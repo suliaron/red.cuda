@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.initial.cuda", "src\red.initial.cuda\red.initial.cuda.vcxproj", "{064E787D-EF04-410A-BDF5-855E463A7036}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda", "src\red.cuda\red.vcxproj", "{FF307D41-7C01-4BCB-BBCA-783D73574BAB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.utility", "src\red.cuda.utility\red.cuda.utility.vcxproj", "{B0E4E5F0-31AB-4772-898F-F606FF37596D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{064E787D-EF04-410A-BDF5-855E463A7036}.Debug|Win32.ActiveCfg = Debug|Win32
+		{064E787D-EF04-410A-BDF5-855E463A7036}.Debug|Win32.Build.0 = Debug|Win32
+		{064E787D-EF04-410A-BDF5-855E463A7036}.Debug|x64.ActiveCfg = Debug|Win32
+		{064E787D-EF04-410A-BDF5-855E463A7036}.Release|Win32.ActiveCfg = Release|Win32
+		{064E787D-EF04-410A-BDF5-855E463A7036}.Release|Win32.Build.0 = Release|Win32
+		{064E787D-EF04-410A-BDF5-855E463A7036}.Release|x64.ActiveCfg = Release|x64
+		{FF307D41-7C01-4BCB-BBCA-783D73574BAB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FF307D41-7C01-4BCB-BBCA-783D73574BAB}.Debug|Win32.Build.0 = Debug|Win32
+		{FF307D41-7C01-4BCB-BBCA-783D73574BAB}.Debug|x64.ActiveCfg = Debug|x64
+		{FF307D41-7C01-4BCB-BBCA-783D73574BAB}.Debug|x64.Build.0 = Debug|x64
+		{FF307D41-7C01-4BCB-BBCA-783D73574BAB}.Release|Win32.ActiveCfg = Release|Win32
+		{FF307D41-7C01-4BCB-BBCA-783D73574BAB}.Release|Win32.Build.0 = Release|Win32
+		{FF307D41-7C01-4BCB-BBCA-783D73574BAB}.Release|x64.ActiveCfg = Release|x64
+		{FF307D41-7C01-4BCB-BBCA-783D73574BAB}.Release|x64.Build.0 = Release|x64
+		{B0E4E5F0-31AB-4772-898F-F606FF37596D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B0E4E5F0-31AB-4772-898F-F606FF37596D}.Debug|Win32.Build.0 = Debug|Win32
+		{B0E4E5F0-31AB-4772-898F-F606FF37596D}.Debug|x64.ActiveCfg = Debug|Win32
+		{B0E4E5F0-31AB-4772-898F-F606FF37596D}.Release|Win32.ActiveCfg = Release|Win32
+		{B0E4E5F0-31AB-4772-898F-F606FF37596D}.Release|Win32.Build.0 = Release|Win32
+		{B0E4E5F0-31AB-4772-898F-F606FF37596D}.Release|x64.ActiveCfg = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
