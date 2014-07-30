@@ -25,9 +25,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="kernel.cu">
-      <Filter>Source Files</Filter>
-    </CudaCompile>
     <CudaCompile Include="main.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>

@@ -160,8 +160,15 @@ int main(int argc, const char** argv)
 		path = redutilcu_file::combine_path(opt.printoutDir, "log.txt");
 		ostream* log_f = new ofstream(path.c_str(), ios::out);
 
+		path = "";
+		redutilcu_file::load_ascii_file(path, path);
+
 	} /* try */
-	catch (nbody_exception& ex)
+	catch (const nbody_exception& ex)
+	{
+		cerr << "Error: " << ex.what() << endl;
+	}
+	catch (const exception& ex)
 	{
 		cerr << "Error: " << ex.what() << endl;
 	}
