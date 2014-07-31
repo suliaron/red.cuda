@@ -163,9 +163,6 @@ int main(int argc, const char** argv)
 		path = file::combine_path(opt.printoutDir, "log.txt");
 		ostream* log_f = new ofstream(path.c_str(), ios::out);
 
-		path = "";
-		file::load_ascii_file(path, path);
-
 	} /* try */
 	catch (const nbody_exception& ex)
 	{

@@ -9,7 +9,7 @@ namespace redutilcu
 {
 namespace file
 {
-string combine_path(string dir, string filename)
+string combine_path(const string& dir, const string& filename)
 {
 	if (dir.size() > 0) {
 		if (*(dir.end() - 1) != '/' && *(dir.end() - 1) != '\\') {
@@ -78,7 +78,7 @@ string get_extension(const string& path)
 	return result;
 }
 
-void load_ascii_file(string& path, string& result)
+void load_ascii_file(const string& path, string& result)
 {
 	std::ifstream file(path);
 	if (file) {

@@ -1,4 +1,4 @@
-// includes system 
+// includes system
 #include <iostream>
 
 // includes project
@@ -9,6 +9,10 @@ options::options(int argc, const char** argv)
 {
 	create_default_options();
 	parse_options(argc, argv);
+	if (parameters_filename.length() > 0)
+	{
+		param = new parameter(inputDir, parameters_filename, verbose);
+	}
 	
 }
 

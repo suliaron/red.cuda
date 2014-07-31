@@ -1,7 +1,8 @@
 #pragma once
 
+// includes project
 #include "red_type.h"
-
+#include "red_macro.h"
 
 #define NDIM		4		// Number of dimensions, 4 to coalesce memory copies
 #define NTILE		256
