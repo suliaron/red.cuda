@@ -3,7 +3,9 @@
 
 #include "tools.h"
 
-namespace redutilcu_tools
+namespace redutilcu
+{
+namespace tools
 {
 bool is_number(const string& str)
 {
@@ -62,4 +64,6 @@ string get_time_stamp()
 
 	return string(time_stamp);
 }
-} /* redutilcu_tools */
+
+} /* tools */
+} /* redutilcu */

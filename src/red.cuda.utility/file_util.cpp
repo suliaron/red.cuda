@@ -5,7 +5,9 @@
 #include "file_util.h"
 #include "tools.h"
 
-namespace redutilcu_file
+namespace redutilcu
+{
+namespace file
 {
 string combine_path(string dir, string filename)
 {
@@ -81,7 +83,7 @@ void load_ascii_file(string& path, string& result)
 	std::ifstream file(path);
 	if (file) {
 		string str;
-		while (std::getline(file, str))
+		while (getline(file, str))
 		{
 			// ignore zero length lines
 			if (str.length() == 0)
@@ -90,15 +92,15 @@ void load_ascii_file(string& path, string& result)
 			if (str[0] == '#')
 				continue;
 			// delete comment after the value
-			redutilcu_tools::trim_right(str, '#');
+			tools::trim_right(str, '#');
 			result += str;
 			result.push_back('\n');
 		} 	
 	}
 	else {
-		throw new std::string("The file '" + path + "' could not opened!\r\n");
+		throw string("The file '" + path + "' could not opened!\r\n");
 	}
 	file.close();
 }
-
-} /* redutilcu_file */
+} /* file */
+} /* redutilcu */

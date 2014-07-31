@@ -1,4 +1,4 @@
-// includes system 
+// includes system
 #include <cmath>
 #include <ctime>
 #include <iomanip>
@@ -21,8 +21,10 @@
 #include "redutilcu.h"
 #include "nbody_exception.h"
 #include "options.h"
+#include "red_type.h"
 
 using namespace std;
+using namespace redutilcu;
 
 int device_query(int argc, const char **argv)
 {
@@ -144,33 +146,34 @@ int device_query(int argc, const char **argv)
 
 int main(int argc, const char** argv)
 {
-	cout << redutilcu_tools::get_time_stamp() << endl;
+	cout << tools::get_time_stamp() << endl;
 	printf("%s Starting...\n\n", argv[0]);
 
 	device_query(argc, argv);
 	time_t start = time(NULL);
 
-	try {
+	try
+	{
 		options opt = options(argc, argv);
 
-		string path = redutilcu_file::combine_path(opt.printoutDir, "position.txt");
+		string path = file::combine_path(opt.printoutDir, "position.txt");
 		ostream* pos_f = new ofstream(path.c_str(), ios::out);
-		path = redutilcu_file::combine_path(opt.printoutDir, "event.txt");
+		path = file::combine_path(opt.printoutDir, "event.txt");
 		ostream* event_f = new ofstream(path.c_str(), ios::out);
-		path = redutilcu_file::combine_path(opt.printoutDir, "log.txt");
+		path = file::combine_path(opt.printoutDir, "log.txt");
 		ostream* log_f = new ofstream(path.c_str(), ios::out);
 
 		path = "";
-		redutilcu_file::load_ascii_file(path, path);
+		file::load_ascii_file(path, path);
 
 	} /* try */
 	catch (const nbody_exception& ex)
 	{
 		cerr << "Error: " << ex.what() << endl;
 	}
-	catch (const exception& ex)
+	catch (const string& msg)
 	{
-		cerr << "Error: " << ex.what() << endl;
+		cerr << "Error: " << msg << endl;
 	}
 	cout << "Total time: " << time(NULL) - start << " s" << endl;
 
