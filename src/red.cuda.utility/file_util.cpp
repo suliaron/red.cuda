@@ -1,4 +1,4 @@
-// includes system 
+// includes system
 #include <fstream>
 
 // includes project

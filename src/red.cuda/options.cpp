@@ -13,6 +13,10 @@ options::options(int argc, const char** argv)
 	{
 		param = new parameter(inputDir, parameters_filename, verbose);
 	}
+	if (gasdisk_filename.length() > 0)
+	{
+		g_disk = new gas_disk(inputDir, gasdisk_filename, verbose);
+	}
 	
 }
 

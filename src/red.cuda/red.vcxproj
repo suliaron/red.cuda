@@ -153,12 +153,14 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dummy.cpp" />
+    <ClCompile Include="gas_disk.cpp" />
     <ClCompile Include="nbody_exception.cpp" />
     <ClCompile Include="options.cpp" />
     <ClCompile Include="parameter.cpp" />
     <ClCompile Include="tokenizer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="gas_disk.h" />
     <ClInclude Include="nbody_exception.h" />
     <ClInclude Include="options.h" />
     <ClInclude Include="parameter.h" />

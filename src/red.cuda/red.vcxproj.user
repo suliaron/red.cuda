@@ -6,7 +6,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest -p parameters.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest -p parameters.txt -gd gasdisk.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

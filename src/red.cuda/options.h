@@ -5,6 +5,7 @@
 #include <string>
 
 // includes project
+#include "gas_disk.h"
 #include "parameter.h"
 
 using namespace std;
@@ -19,7 +20,8 @@ public:
 	string	printoutDir;			//!<  Printout directory
 	string	inputDir;				//!<  Input directory
 
-	parameter *param;
+	parameter* param;
+	gas_disk*  g_disk;	
 
 private:
 	//! holds the path of the file containing the parameters of the simulation

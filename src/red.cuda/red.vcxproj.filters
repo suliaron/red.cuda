@@ -26,6 +26,9 @@
     <ClCompile Include="parameter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gas_disk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="main.cu">
@@ -43,6 +46,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="parameter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gas_disk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
