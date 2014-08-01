@@ -25,15 +25,23 @@ typedef int2		int2_t;
 
 struct __device_builtin__ __builtin_align__(16) posm
 {
-    double x, y, z, m;
+    var_t x, y, z, m;
 };
 
 struct __device_builtin__ __builtin_align__(16) velR
 {
-    double x, y, z, R;
+    var_t x, y, z, R;
 };
 
-struct __device_builtin__ __builtin_align__(16) int4
+struct __device_builtin__ __builtin_align__(16) param
+{
+	var_t mass;
+    var_t density;
+	var_t cd;
+	var_t mig_stop_at;
+};
+
+struct __device_builtin__ __builtin_align__(16) body_metadata
 {
 	int32_t id;
 	int32_t active;
@@ -41,7 +49,15 @@ struct __device_builtin__ __builtin_align__(16) int4
 	int32_t mig_type;
 };
 
+typedef __device_builtin__ struct posm			posm_t;
+typedef __device_builtin__ struct velR			velR_t;
+typedef __device_builtin__ struct param			param_t;
+typedef __device_builtin__ struct body_metadata	body_metadata_t;
 
-typedef __device_builtin__ struct posm posm_t;
-typedef __device_builtin__ struct velR velR_t;
-typedef __device_builtin__ struct int4 body_metadata_t;
+typedef struct sim_data
+{
+	posm_t*				pos;
+	velR_t*				vel;
+	param_t*			params;
+	body_metadata_t*	body_md;
+} sim_data_t;
