@@ -32,6 +32,9 @@
     <ClCompile Include="pp_disk.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="number_of_bodies.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="main.cu">
@@ -55,6 +58,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="pp_disk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="number_of_bodies.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

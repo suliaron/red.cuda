@@ -6,6 +6,8 @@
 // includes project
 #include "red_type.h"
 
+class number_of_bodies;
+
 using namespace std;
 
 typedef enum migration_type
@@ -58,6 +60,19 @@ typedef enum event_name
 class pp_disk
 {
 public:
+	pp_disk(number_of_bodies *nBodies, bool has_gas, ttt_t t0);
 
-	var_t*	id;
+	//! Loads the initial position and velocity of the bodies (second input version).
+	/*   
+		\param path the full path of the data file
+	*/
+	void load(string& path);
+
+	sim_data_t	sim_data;
+
+private:
+	dim3	grid;
+	dim3	block;
+
+	number_of_bodies	*nBodies;
 };

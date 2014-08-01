@@ -61,3 +61,13 @@ typedef struct sim_data
 	param_t*			params;
 	body_metadata_t*	body_md;
 } sim_data_t;
+
+struct	interaction_bound {
+	int2_t	sink;
+	int2_t	source;
+
+	interaction_bound(int2_t sink, int2_t source) : 
+		sink(sink),
+		source(source) 
+	{ }
+};

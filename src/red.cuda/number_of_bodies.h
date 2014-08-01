@@ -1,6 +1,6 @@
 #pragma once
 
-#include "interaction_bound.h"
+#include "red_type.h"
 
 class number_of_bodies {
 public:
