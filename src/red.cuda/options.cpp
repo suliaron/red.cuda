@@ -9,15 +9,15 @@ options::options(int argc, const char** argv)
 {
 	create_default_options();
 	parse_options(argc, argv);
-	if (parameters_filename.length() > 0)
+	if (parameters_filename.length() == 0)
 	{
-		param = new parameter(inputDir, parameters_filename, verbose);
+		throw string("Missing filename for -p!");
 	}
+	param = new parameter(inputDir, parameters_filename, verbose);
 	if (gasdisk_filename.length() > 0)
 	{
 		g_disk = new gas_disk(inputDir, gasdisk_filename, verbose);
 	}
-	
 }
 
 options::~options() 

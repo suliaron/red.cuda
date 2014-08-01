@@ -157,6 +157,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="nbody_exception.cpp" />
     <ClCompile Include="options.cpp" />
     <ClCompile Include="parameter.cpp" />
+    <ClCompile Include="pp_disk.cpp" />
     <ClCompile Include="tokenizer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -164,6 +165,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="nbody_exception.h" />
     <ClInclude Include="options.h" />
     <ClInclude Include="parameter.h" />
+    <ClInclude Include="pp_disk.h" />
     <ClInclude Include="tokenizer.h" />
   </ItemGroup>
   <ItemGroup>
