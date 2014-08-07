@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // includes system
 #include <cstdlib>
@@ -7,6 +7,7 @@
 // includes project
 #include "gas_disk.h"
 #include "parameter.h"
+#include "pp_disk.h"
 
 using namespace std;
 
@@ -16,9 +17,11 @@ public:
 	options(int argc, const char** argv);
 	~options();
 
+	pp_disk* create_pp_disk();
+
 	bool	verbose;				//!< print more information to the screen or log file
-	string	printoutDir;			//!<  Printout directory
-	string	inputDir;				//!<  Input directory
+	string	printout_dir;			//!<  Printout directory
+	string	input_dir;				//!<  Input directory
 
 	parameter* param;
 	gas_disk*  g_disk;	
@@ -30,6 +33,8 @@ private:
 	string gasdisk_filename;
 	//! holds the path of the file containing the data of the bodies
 	string bodylist_filename;
+
+	bool has_gas;
 
 	void print_usage();
 	void create_default_options();

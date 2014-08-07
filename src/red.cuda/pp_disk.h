@@ -2,11 +2,12 @@
 
 // includes system
 #include <string>
+#include <vector>
 
 // includes project
+#include "gas_disk.h"
+#include "number_of_bodies.h"
 #include "red_type.h"
-
-class number_of_bodies;
 
 using namespace std;
 
@@ -60,19 +61,37 @@ typedef enum event_name
 class pp_disk
 {
 public:
-	pp_disk(number_of_bodies *nBodies, bool has_gas, ttt_t t0);
+	pp_disk(string& path, gas_disk *gd);
 
+	//! Returns the mass of the central star
+	var_t get_mass_of_star();
+	//! Transforms the system to barycentric reference frame
+	void transform_to_bc();
+
+	sim_data_t	sim_data;
+	gas_disk	*g_disk;
+
+private:
 	//! Loads the initial position and velocity of the bodies (second input version).
 	/*   
 		\param path the full path of the data file
 	*/
 	void load(string& path);
+	void get_number_of_bodies(string& path);
+	void allocate_storage();
 
-	sim_data_t	sim_data;
+	//! Computes the total mass of the system
+	var_t get_total_mass();
+	//! Compute the position and velocity of the system's barycenter
+	/*  
+		\param R0 will contain the position of the barycenter
+		\param V0 will contain the velocity of the barycenter
+	*/
+	void compute_bc(posm_t* R0, velR_t* V0);
 
-private:
 	dim3	grid;
 	dim3	block;
 
-	number_of_bodies	*nBodies;
+	number_of_bodies	*n_bodies;
+	vector<string>		body_names;
 };

@@ -7,12 +7,58 @@
 
 using namespace std;
 
+/*
+ * Pointer teszt: 
+ * A memóriában egy struktúra adattagjai folytonosan helyezkednek el.
+ * Ha egy ilyen struktúrából a new operatorral tömböt hozok létre, akkor a tömb
+ * elemei is folytonosan fognak elhelyezkedni.
+ * struct my_4double DOES NOT get aligned to 16 bytes. 
+ * DE
+ * a struct __builtin_align__(16) my_4double_a igen.
+ */
+
+struct my_4double
+{
+	double x, y, z, w;
+};
+
+struct __builtin_align__(16) my_4double_a
+{
+	double x, y, z, w;
+};
+
+
 int main(int argc, const char** argv)
 {
 	var_t xmax =  1.0;
 	var_t xmin = -1.0;
 
 	sim_data_t sim_data;
+
+	{
+		posm_t pos;
+		printf("address of pos: %p\n", &pos);
+		printf("address of pos.x: %p\n", &pos.x);
+		printf("address of pos.y: %p\n", &pos.y);
+		printf("address of pos.z: %p\n", &pos.z);
+		printf("address of pos.m: %p\n", &pos.m);
+	}
+
+	{
+		struct my_4double pos;
+		printf("address of pos: %p\n", &pos);
+		printf("address of pos.x: %p\n", &pos.x);
+		printf("address of pos.y: %p\n", &pos.y);
+		printf("address of pos.z: %p\n", &pos.z);
+		printf("address of pos.m: %p\n", &pos.w);
+
+		struct my_4double_a apos;
+		printf("address of apos: %p\n", &apos);
+		printf("address of apos.x: %p\n", &apos.x);
+		printf("address of apos.y: %p\n", &apos.y);
+		printf("address of apos.z: %p\n", &apos.z);
+		printf("address of apos.m: %p\n", &apos.w);
+	}
 
 	sim_data.pos = new posm_t[8];
 

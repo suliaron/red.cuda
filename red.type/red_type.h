@@ -12,8 +12,6 @@
 typedef double		ttt_t;
 //! Type of variables
 typedef double		var_t;
-//! Type of tuple
-typedef double2		var2_t;
 //! Type of boolean variables
 typedef bool		bool_t;
 //! Type of integer variables
@@ -21,16 +19,30 @@ typedef int			int_t;
 //! Type of integer tuples variables
 typedef int2		int2_t;
 
+// int4_t gets aligned to 16 bytes.
+typedef struct __device_builtin__ __builtin_align__(16) _int4
+{
+    int_t x, y, z, w;
+} int4_t;
+
+typedef struct __device_builtin__ __builtin_align__(16) _var2
+{
+    var_t x, y;
+} var2_t;
+
+// posm_t gets aligned to 16 bytes.
 typedef struct __device_builtin__ __builtin_align__(16) posm
 {
     var_t x, y, z, m;
 } posm_t;
 
+// velR_t gets aligned to 16 bytes.
 typedef struct __device_builtin__ __builtin_align__(16) velR
 {
     var_t x, y, z, R;
 } velR_t;
 
+// param_t gets aligned to 16 bytes.
 typedef struct __device_builtin__ __builtin_align__(16) param
 {
 	var_t mass;
@@ -49,10 +61,11 @@ typedef struct __device_builtin__ __builtin_align__(16) body_metadata
 
 typedef struct sim_data
 {
-	posm_t*				pos;
-	velR_t*				vel;
-	param_t*			params;
-	body_metadata_t*	body_md;
+	posm_t			*pos;
+	velR_t			*vel;
+	param_t			*params;
+	body_metadata_t *body_md;
+	ttt_t			*epoch;
 } sim_data_t;
 
 struct	interaction_bound {

@@ -155,13 +155,13 @@ int main(int argc, const char** argv)
 	try
 	{
 		options opt = options(argc, argv);
+		pp_disk *ppd = opt.create_pp_disk();
 
 		cout << opt.param;
 		cout << opt.g_disk;
 
-		
-		// TODO: call calculate() function on g_disk after the mass of the central star is known!
 
+		
 
 		//string path = file::combine_path(opt.printoutDir, "position.txt");
 		//ostream* pos_f = new ofstream(path.c_str(), ios::out);

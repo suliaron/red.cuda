@@ -22,6 +22,14 @@ public:
 	gas_disk(string& dir, string& filename, bool verbose);
 	~gas_disk();
 
+	//! Calculate the mean free path length and temperature profile
+	/*
+		\param m_star The mass of the star (time dependent)
+	*/
+	void	calculate(var_t	m_star);
+
+	__host__ __device__ var_t reduction_factor(ttt_t time);
+
 	//! The decrease type for the gas density
 	string	name;
 	string	desc;
@@ -58,13 +66,6 @@ public:
     var_t	mean_molecular_weight;
 	//! The mean molecular diameter (constant)
 	var_t	particle_diameter;
-	//! The mass of the star (time dependent)
-	var_t	m_star;
-
-	__host__ __device__ 
-	var_t	reduction_factor(ttt_t time);
-	//! Calculate the mean free path length and temperature profile
-	void	calculate();
 
 	// Input/Output streams
 	friend ostream& operator<<(ostream& stream, const gas_disk* g_disk);

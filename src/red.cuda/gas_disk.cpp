@@ -19,8 +19,7 @@ gas_disk::gas_disk(string& dir, string& filename, bool verbose) : /* initializat
 	c_vth(0.0),
 	alpha(0.0),			/* TODO: howto initialize struct in initialization list */
 	mean_molecular_weight(0.0),
-	particle_diameter(0.0),
-	m_star(0.0)
+	particle_diameter(0.0)
 {
 	eta.x = 0.0, eta.y = 0.0;
 	rho.x = 0.0, rho.y = 0.0;
@@ -207,7 +206,7 @@ void gas_disk::set_param(string& key, string& value)
 	}
 }
 
-void	gas_disk::calculate()
+void	gas_disk::calculate(var_t m_star)
 {
 	c_vth = sqrt((8.0 * constants::Boltzman_CMU)/(constants::Pi * mean_molecular_weight * constants::ProtonMass_CMU));
 
@@ -267,7 +266,6 @@ ostream& operator<<(ostream& stream, const gas_disk* g_disk)
 
 	stream << " c_vth: " << g_disk->c_vth << endl;
 	stream << " alpha: " << g_disk->alpha << endl;
-	stream << "m_star: " << g_disk->m_star << endl;
 	stream << "mean_molecular_weight: " << g_disk->mean_molecular_weight << endl;
 	stream << "    particle_diameter: " << g_disk->particle_diameter << endl;
 		
