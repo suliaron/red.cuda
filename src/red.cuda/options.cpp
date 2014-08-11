@@ -108,5 +108,7 @@ pp_disk* options::create_pp_disk()
 		ppd->transform_to_bc();
 	}
 
+	ppd->t = param->start_time;
+
 	return ppd;
 }

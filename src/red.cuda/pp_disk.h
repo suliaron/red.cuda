@@ -62,14 +62,19 @@ class pp_disk
 {
 public:
 	pp_disk(string& path, gas_disk *gd);
+	~pp_disk();
 
 	//! Returns the mass of the central star
 	var_t get_mass_of_star();
 	//! Transforms the system to barycentric reference frame
 	void transform_to_bc();
 
-	sim_data_t	sim_data;
+	sim_data_t	*sim_data;		/*!< aggregate containing all the data of the simulation */
+
 	gas_disk	*g_disk;
+	gas_disk	*d_g_disk;
+
+	ttt_t		t;
 
 private:
 	//! Loads the initial position and velocity of the bodies (second input version).
@@ -88,6 +93,10 @@ private:
 		\param V0 will contain the velocity of the barycenter
 	*/
 	void compute_bc(posm_t* R0, velR_t* V0);
+	//! Copies ODE parameters and variables from the host to the cuda device
+	void copy_to_device();
+	//! Copies ODE parameters and variables from the cuda device to the host
+	void copy_to_host();
 
 	dim3	grid;
 	dim3	block;

@@ -27,6 +27,10 @@ public:
 		\param m_star The mass of the star (time dependent)
 	*/
 	void	calculate(var_t	m_star);
+	//! Copies parameters and variables from the host to the cuda device
+	void copy_to_device();
+	//! Copies parameters and variables from the cuda device to the host
+	void copy_to_host();
 
 	__host__ __device__ var_t reduction_factor(ttt_t time);
 

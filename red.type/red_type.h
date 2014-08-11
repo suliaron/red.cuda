@@ -61,11 +61,11 @@ typedef struct __device_builtin__ __builtin_align__(16) body_metadata
 
 typedef struct sim_data
 {
-	posm_t			*pos;
-	velR_t			*vel;
-	param_t			*params;
-	body_metadata_t *body_md;
-	ttt_t			*epoch;
+	posm_t			*pos, *d_pos;
+	velR_t			*vel, *d_vel;
+	param_t			*params, *d_params;
+	body_metadata_t *body_md, *d_body_md;
+	ttt_t			*epoch, *d_epoch;
 } sim_data_t;
 
 struct	interaction_bound {
@@ -77,3 +77,4 @@ struct	interaction_bound {
 		source(source) 
 	{ }
 };
+
