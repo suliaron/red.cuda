@@ -12,27 +12,31 @@
 #include "nbody_exception.h"
 #include "pp_disk.h"
 #include "redutilcu.h"
+#include "red_constants.h"
 #include "red_macro.h"
+#include "red_type.h"
 
 using namespace std;
 using namespace redutilcu;
 
-/****************** KERNEL functions starts here ******************/
+/****************** KERNEL functions begins here ******************/
 
 __global__
-	void print_position_kernel(int n, const posm_t* pos)
+	void kernel_print_position(int n, const posm_t* pos)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (tid < n)
 	{
-		printf("pos[%d].x : %20.16lf\n", tid, pos[tid].x);
-		printf("pos[%d].y : %20.16lf\n", tid, pos[tid].y);
-		printf("pos[%d].z : %20.16lf\n", tid, pos[tid].z);
-		printf("pos[%d].m : %20.16lf\n", tid, pos[tid].m);
+		printf("%4d\n", tid);
+		var_t x = pos[tid].x;
+		//printf("pos[%4d].x : %20.16lf\n", tid, pos[tid].x);
+		//printf("pos[%4d].y : %20.16lf\n", tid, pos[tid].y);
+		//printf("pos[%4d].z : %20.16lf\n", tid, pos[tid].z);
+		//printf("pos[%4d].m : %20.16lf\n", tid, pos[tid].m);
 	}
 }
 
-/****************** KERNEL functions stops  here ******************/
+/****************** KERNEL functions ends  here  ******************/
 
 
 pp_disk::pp_disk(string& path, gas_disk *gd) :
@@ -284,7 +288,6 @@ void pp_disk::load(string& path)
 
 	if (input) {
 		int_t	type = 0;
-		var_t	cd = 0.0;
 		string	dummy;
         		
 		for (int i = 0; i < n_bodies->total; i++) { 
@@ -332,4 +335,31 @@ void pp_disk::load(string& path)
 	}
 
 	cout << "done" << endl;
+}
+
+void pp_disk::print_body_data(ostream& sout)
+{
+	posm_t* coor = sim_data->pos;
+	velR_t* velo = sim_data->vel;
+	param_t* param = sim_data->params;
+	body_metadata_t* body_md = sim_data->body_md;
+	ttt_t* epoch = sim_data->epoch;
+
+	for (int i = 0; i < n_bodies->total; i++) {
+		sout << body_md[i].id << SEP
+			 << body_md[i].body_type << SEP 
+			 << epoch[i] << SEP
+			 << param[i].mass << SEP
+			 << velo[i].R << SEP
+			 << param[i].density << SEP
+			 << param[i].cd << SEP
+			 << body_md[i].mig_type << SEP
+			 << param[i].mig_stop_at << SEP
+			 << coor[i].x << SEP
+			 << coor[i].y << SEP
+			 << coor[i].z << SEP
+			 << velo[i].x << SEP
+			 << velo[i].y << SEP
+			 << velo[i].z << endl;
+    }
 }

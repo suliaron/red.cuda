@@ -18,6 +18,8 @@
 #define	TORAD		(var_t)0.0174532925199432957692
 #define TODEG		(var_t)57.295779513082320876798
 
+#define SEP			' '
+
 namespace constants
 {
 	const int	 CheckForSM			      = 100;

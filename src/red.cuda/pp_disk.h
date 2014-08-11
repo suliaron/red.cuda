@@ -68,6 +68,11 @@ public:
 	var_t get_mass_of_star();
 	//! Transforms the system to barycentric reference frame
 	void transform_to_bc();
+	//! Print the data of all bodies
+	/*   
+		\param sout print the data to this stream
+	*/
+	void print_body_data(ostream& sout);
 
 	sim_data_t	*sim_data;		/*!< aggregate containing all the data of the simulation */
 

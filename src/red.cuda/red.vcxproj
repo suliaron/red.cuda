@@ -101,6 +101,11 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <CodeGeneration>compute_20,sm_20</CodeGeneration>
+      <Include>%(Include)</Include>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -150,6 +155,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="main.cu" />
+    <CudaCompile Include="pp_disk.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dummy.cpp" />
@@ -158,7 +164,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="number_of_bodies.cpp" />
     <ClCompile Include="options.cpp" />
     <ClCompile Include="parameter.cpp" />
-    <ClCompile Include="pp_disk.cpp" />
     <ClCompile Include="tokenizer.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -99,6 +99,10 @@ pp_disk* options::create_pp_disk()
 {
 	string path = file::combine_path(input_dir, bodylist_filename);
 	pp_disk* ppd = new pp_disk(path, g_disk);
+	if (verbose)
+	{
+		ppd->print_body_data(cout);
+	}
 	if (ppd->g_disk != 0)
 	{
 		ppd->g_disk->calculate(ppd->get_mass_of_star());
