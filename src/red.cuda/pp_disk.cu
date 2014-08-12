@@ -21,22 +21,150 @@ using namespace redutilcu;
 
 /****************** KERNEL functions begins here ******************/
 
+static __global__
+	void	kernel_calculate_grav_accel(
+										ttt_t t, 
+										interaction_bound int_bound, 
+										const body_metadata_t* body_md, 
+										const param_t* params, 
+										const posm_t* coor, 
+										const velR_t* velo, 
+										vec_t* acce
+										)
+{
+	const int bodyIdx = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (body_md[bodyIdx].active && bodyIdx < int_bound.sink.y) {
+
+		acce[bodyIdx].x = 0.0;
+		acce[bodyIdx].y = 0.0;
+		acce[bodyIdx].z = 0.0;
+
+		vec_t ai = {0.0, 0.0, 0.0, 0.0};
+		vec_t dVec;
+		for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+		{
+			if (j == bodyIdx || !body_md[j].active)
+			{
+				continue;
+			}
+			// 3 FLOP
+			dVec.x = coor[j].x - coor[bodyIdx].x;
+			dVec.y = coor[j].y - coor[bodyIdx].y;
+			dVec.z = coor[j].z - coor[bodyIdx].z;
+
+			// 5 FLOP
+			dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+			// TODO: use rsqrt()
+			// 20 FLOP
+			var_t r = sqrt(dVec.w);								// = r
+
+			// 2 FLOP
+			dVec.w = coor[bodyIdx].m / (r*dVec.w);
+
+			// 6 FLOP
+			ai.x += dVec.w * dVec.x;
+			ai.y += dVec.w * dVec.y;
+			ai.z += dVec.w * dVec.z;
+		}
+		// 36 FLOP
+		acce[bodyIdx].x = K2 * ai.x;
+		acce[bodyIdx].y = K2 * ai.y;
+		acce[bodyIdx].z = K2 * ai.z;
+	}
+}
+
+
 __global__
 	void kernel_print_position(int n, const posm_t* pos)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (tid < n)
 	{
-		printf("%4d\n", tid);
-		var_t x = pos[tid].x;
-		//printf("pos[%4d].x : %20.16lf\n", tid, pos[tid].x);
-		//printf("pos[%4d].y : %20.16lf\n", tid, pos[tid].y);
-		//printf("pos[%4d].z : %20.16lf\n", tid, pos[tid].z);
-		//printf("pos[%4d].m : %20.16lf\n", tid, pos[tid].m);
+		printf("pos[%4d].x : %20.16lf\n", tid, pos[tid].x);
+		printf("pos[%4d].y : %20.16lf\n", tid, pos[tid].y);
+		printf("pos[%4d].z : %20.16lf\n", tid, pos[tid].z);
+		printf("pos[%4d].m : %20.16lf\n", tid, pos[tid].m);
 	}
 }
 
 /****************** KERNEL functions ends  here  ******************/
+
+/****************** TEST functions begins here ********************/
+
+void test_print_position(int n, const posm_t* pos)
+{
+	for (int i = 0; i < n; i++)
+	{
+		printf("pos[%4d].x : %20.16lf\n", i, pos[i].x);
+		printf("pos[%4d].y : %20.16lf\n", i, pos[i].y);
+		printf("pos[%4d].z : %20.16lf\n", i, pos[i].z);
+		printf("pos[%4d].m : %20.16lf\n", i, pos[i].m);
+	}
+}
+
+/****************** TEST   functions ends  here  ******************/
+
+void pp_disk::set_kernel_launch_param(int n_data)
+{
+	int		n_thread = min(THREADS_PER_BLOCK, n_data);
+	int		n_block = (n_data + n_thread - 1)/n_thread;
+
+	grid.x	= n_block;
+	block.x = n_thread;
+}
+
+void pp_disk::call_kernel_calculate_grav_accel(ttt_t curr_t, vec_t* dy)
+{
+	cudaError_t cudaStatus = cudaSuccess;
+	int		nBodyToCalculate;
+	
+	nBodyToCalculate = n_bodies->get_n_self_interacting();
+	if (0 < nBodyToCalculate) {
+		interaction_bound int_bound = n_bodies->get_self_interacting();
+		set_kernel_launch_param(nBodyToCalculate);
+
+		kernel_calculate_grav_accel<<<grid, block>>>
+			(curr_t, int_bound, sim_data->d_body_md, sim_data->d_params, sim_data->d_pos, sim_data->vel, dy);
+		cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus) {
+			throw nbody_exception("kernel_calculate_grav_accel failed", cudaStatus);
+		}
+	}
+}
+
+void pp_disk::calculate_dy(int i, int r, ttt_t curr_t, vec_t* dy)
+{
+	cudaError_t cudaStatus = cudaSuccess;
+
+	switch (i)
+	{
+	case 0:
+		// Copy velocities from previous step
+		cudaMemcpy(dy, sim_data->d_vel, n_bodies->get_n_total() * sizeof(velR_t), cudaMemcpyDeviceToDevice);
+		cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus) {
+			throw nbody_exception("cudaMemcpy failed", cudaStatus);
+		}
+		break;
+	case 1:
+		if (r == 0)
+		{
+			// Set the d field of the event_data_t struct to the threshold distance when collision must be looked for
+			// This is set to the radius of the star enhanced by 1 %.
+		}
+		// Calculate accelerations originated from the gravitational force
+		call_kernel_calculate_grav_accel(curr_t, dy);
+		cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus) {
+			throw nbody_exception("call_kernel_calculate_grav_accel failed", cudaStatus);
+		}
+
+		break;
+	}
+}
+
+
 
 
 pp_disk::pp_disk(string& path, gas_disk *gd) :
@@ -48,6 +176,7 @@ pp_disk::pp_disk(string& path, gas_disk *gd) :
 	allocate_storage();
 	load(path);
 	copy_to_device();
+
 	g_disk = gd;
 }
 
@@ -60,7 +189,9 @@ pp_disk::~pp_disk()
 	delete[] sim_data->epoch;
 
 	cudaFree(sim_data->d_pos);
+	cudaFree(sim_data->d_pos_out);
 	cudaFree(sim_data->d_vel);
+	cudaFree(sim_data->d_vel_out);
 	cudaFree(sim_data->d_params);
 	cudaFree(sim_data->d_body_md);
 	cudaFree(sim_data->d_epoch);
@@ -90,6 +221,7 @@ void pp_disk::allocate_storage()
 	const int n = n_bodies->total;
 
 	sim_data = new sim_data_t;
+
 	sim_data->pos = new posm_t[n];
 	sim_data->vel = new velR_t[n];
 	sim_data->params = new param_t[n];
@@ -103,7 +235,19 @@ void pp_disk::allocate_storage()
 		throw nbody_exception("cudaMalloc failed", cudaStatus);
 	}
 	// Allocate device pointer.
+	cudaMalloc((void**) &(sim_data->d_pos_out), n*sizeof(posm_t));
+	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus) {
+		throw nbody_exception("cudaMalloc failed", cudaStatus);
+	}
+	// Allocate device pointer.
 	cudaMalloc((void**) &(sim_data->d_vel), n*sizeof(velR_t));
+	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus) {
+		throw nbody_exception("cudaMalloc failed", cudaStatus);
+	}
+	// Allocate device pointer.
+	cudaMalloc((void**) &(sim_data->d_vel_out), n*sizeof(velR_t));
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus) {
 		throw nbody_exception("cudaMalloc failed", cudaStatus);
@@ -200,10 +344,28 @@ void pp_disk::copy_to_host()
 	}
 }
 
+void pp_disk::copy_variables_to_host()
+{
+	const int n = n_bodies->total;
+
+	// Copy pointer content (position and mass) from device to host
+	cudaMemcpy(sim_data->pos, sim_data->d_pos, n*sizeof(posm_t), cudaMemcpyDeviceToHost);
+	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus) {
+		throw nbody_exception("cudaMemcpy failed", cudaStatus);
+	}
+	// Copy pointer content (velocity and radius) from device to host
+	cudaMemcpy(sim_data->vel, sim_data->d_vel, n*sizeof(velR_t), cudaMemcpyDeviceToHost);
+	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus) {
+		throw nbody_exception("cudaMemcpy failed", cudaStatus);
+	}
+}
+
 var_t pp_disk::get_mass_of_star()
 {
 	body_metadata_t* body_md = sim_data->body_md;
-	for (int j = 0; j < n_bodies->n_massive(); j++ ) {
+	for (int j = 0; j < n_bodies->get_n_massive(); j++ ) {
 		if (body_md[j].body_type == BODY_TYPE_STAR)
 		{
 			return sim_data->params[j].mass;
@@ -217,7 +379,7 @@ var_t pp_disk::get_total_mass()
 	var_t totalMass = 0.0;
 
 	param_t* param = sim_data->params;
-	for (int j = 0; j < n_bodies->n_massive(); j++ ) {
+	for (int j = 0; j < n_bodies->get_n_massive(); j++ ) {
 		totalMass += param[j].mass;
 	}
 
@@ -229,7 +391,7 @@ void pp_disk::compute_bc(posm_t* R0, velR_t* V0)
 	posm_t* coor = sim_data->pos;
 	velR_t* velo = sim_data->vel;
 
-	for (int j = 0; j < n_bodies->n_massive(); j++ ) {
+	for (int j = 0; j < n_bodies->get_n_massive(); j++ ) {
 		R0->x += coor[j].m * coor[j].x;
 		R0->y += coor[j].m * coor[j].y;
 		R0->z += coor[j].m * coor[j].z;
@@ -257,7 +419,7 @@ void pp_disk::transform_to_bc()
 	posm_t* coor = sim_data->pos;
 	velR_t* velo = sim_data->vel;
 	// Transform the bodies coordinates and velocities
-	for (int j = 0; j < n_bodies->n_total(); j++ ) {
+	for (int j = 0; j < n_bodies->get_n_total(); j++ ) {
 		coor[j].x -= R0.x;		coor[j].y -= R0.y;		coor[j].z -= R0.z;
 		velo[j].x -= V0.x;		velo[j].y -= V0.y;		velo[j].z -= V0.z;
 	}
@@ -347,6 +509,7 @@ void pp_disk::print_body_data(ostream& sout)
 
 	for (int i = 0; i < n_bodies->total; i++) {
 		sout << body_md[i].id << SEP
+			 << body_names[i] << SEP
 			 << body_md[i].body_type << SEP 
 			 << epoch[i] << SEP
 			 << param[i].mass << SEP

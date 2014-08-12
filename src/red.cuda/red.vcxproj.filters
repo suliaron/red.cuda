@@ -40,6 +40,9 @@
     <CudaCompile Include="pp_disk.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
+    <CudaCompile Include="int_euler.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nbody_exception.h">
@@ -61,6 +64,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="number_of_bodies.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="int_euler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

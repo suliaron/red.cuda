@@ -20,30 +20,36 @@ typedef int			int_t;
 typedef int2		int2_t;
 
 // int4_t gets aligned to 16 bytes.
-typedef struct __device_builtin__ __builtin_align__(16) _int4
+typedef struct __builtin_align__(16) _int4
 {
     int_t x, y, z, w;
 } int4_t;
 
-typedef struct __device_builtin__ __builtin_align__(16) _var2
+typedef struct __builtin_align__(16) _var2
 {
     var_t x, y;
 } var2_t;
 
+// vec_t gets aligned to 16 bytes.
+typedef struct __builtin_align__(16) vec
+{
+    var_t x, y, z, w;
+} vec_t;
+
 // posm_t gets aligned to 16 bytes.
-typedef struct __device_builtin__ __builtin_align__(16) posm
+typedef struct __builtin_align__(16) posm
 {
     var_t x, y, z, m;
 } posm_t;
 
 // velR_t gets aligned to 16 bytes.
-typedef struct __device_builtin__ __builtin_align__(16) velR
+typedef struct __builtin_align__(16) velR
 {
     var_t x, y, z, R;
 } velR_t;
 
 // param_t gets aligned to 16 bytes.
-typedef struct __device_builtin__ __builtin_align__(16) param
+typedef struct __builtin_align__(16) param
 {
 	var_t mass;
     var_t density;
@@ -51,7 +57,7 @@ typedef struct __device_builtin__ __builtin_align__(16) param
 	var_t mig_stop_at;
 } param_t;
 
-typedef struct __device_builtin__ __builtin_align__(16) body_metadata
+typedef struct __builtin_align__(16) body_metadata
 {
 	int32_t id;
 	int32_t active;
@@ -61,8 +67,8 @@ typedef struct __device_builtin__ __builtin_align__(16) body_metadata
 
 typedef struct sim_data
 {
-	posm_t			*pos, *d_pos;
-	velR_t			*vel, *d_vel;
+	posm_t			*pos, *d_pos, *d_pos_out;
+	velR_t			*vel, *d_vel, *d_vel_out;
 	param_t			*params, *d_params;
 	body_metadata_t *body_md, *d_body_md;
 	ttt_t			*epoch, *d_epoch;

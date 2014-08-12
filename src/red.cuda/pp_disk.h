@@ -64,6 +64,12 @@ public:
 	pp_disk(string& path, gas_disk *gd);
 	~pp_disk();
 
+	//! Copies ODE parameters and variables from the host to the cuda device
+	void copy_to_device();
+	//! Copies ODE parameters and variables from the cuda device to the host
+	void copy_to_host();
+	//! Copies ODE variables from the cuda device to the host
+	void copy_variables_to_host();
 	//! Returns the mass of the central star
 	var_t get_mass_of_star();
 	//! Transforms the system to barycentric reference frame
@@ -74,6 +80,9 @@ public:
 	*/
 	void print_body_data(ostream& sout);
 
+	void calculate_dy(int i, int r, ttt_t curr_t, vec_t* dy);
+
+	number_of_bodies	*n_bodies;
 	sim_data_t	*sim_data;		/*!< aggregate containing all the data of the simulation */
 
 	gas_disk	*g_disk;
@@ -98,14 +107,13 @@ private:
 		\param V0 will contain the velocity of the barycenter
 	*/
 	void compute_bc(posm_t* R0, velR_t* V0);
-	//! Copies ODE parameters and variables from the host to the cuda device
-	void copy_to_device();
-	//! Copies ODE parameters and variables from the cuda device to the host
-	void copy_to_host();
+
+	//! Sets the grid and block for the kernel launch
+	void set_kernel_launch_param(int n_data);
+	void call_kernel_calculate_grav_accel(ttt_t curr_t, vec_t* dy);
 
 	dim3	grid;
 	dim3	block;
 
-	number_of_bodies	*n_bodies;
 	vector<string>		body_names;
 };

@@ -7,6 +7,7 @@
 
 using namespace std;
 
+#if 0
 /*
  * Pointer teszt: 
  * A memóriában egy struktúra adattagjai folytonosan helyezkednek el.
@@ -94,6 +95,7 @@ int main(int argc, const char** argv)
 
 	return 0;
 }
+#endif
 
 # if 0
 /*

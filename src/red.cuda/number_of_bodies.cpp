@@ -10,35 +10,35 @@ number_of_bodies::number_of_bodies(int star, int giant_planet, int rocky_planet,
 		test_particle(test_particle) 
 {
 	total = star + giant_planet + rocky_planet + proto_planet + super_planetesimal + planetesimal + test_particle;
-	total_rounded_up = 0;
 }
 
-int	number_of_bodies::n_total()
+int	number_of_bodies::get_n_total()
 {
-	return star + giant_planet + rocky_planet + proto_planet + super_planetesimal + planetesimal + test_particle;
+	total = star + giant_planet + rocky_planet + proto_planet + super_planetesimal + planetesimal + test_particle; 
+	return total;
 }
 
-int	number_of_bodies::n_massive()
+int	number_of_bodies::get_n_massive()
 {
 	return star + giant_planet + rocky_planet + proto_planet + super_planetesimal + planetesimal;
 }
 
-int	number_of_bodies::n_self_interacting() 
+int	number_of_bodies::get_n_self_interacting() 
 {
 	return star + giant_planet + rocky_planet + proto_planet;
 }
 
-int	number_of_bodies::n_gas_drag()
+int	number_of_bodies::get_n_gas_drag()
 {
 	return super_planetesimal + planetesimal;
 }
 
-int	number_of_bodies::n_migrate_typeI()
+int	number_of_bodies::get_n_migrate_typeI()
 {
 	return rocky_planet + proto_planet;
 }
 
-int	number_of_bodies::n_migrate_typeII()
+int	number_of_bodies::get_n_migrate_typeII()
 {
 	return giant_planet;
 }
@@ -46,9 +46,9 @@ int	number_of_bodies::n_migrate_typeII()
 interaction_bound number_of_bodies::get_self_interacting()
 {
 	sink.x		= 0;
-	sink.y		= n_self_interacting();
+	sink.y		= get_n_self_interacting();
 	source.x	= 0;
-	source.y	= n_massive();
+	source.y	= get_n_massive();
 	interaction_bound iBound(sink, source);
 
 	return iBound;
@@ -56,10 +56,10 @@ interaction_bound number_of_bodies::get_self_interacting()
 
 interaction_bound number_of_bodies::get_nonself_interacting()
 {
-	sink.x			= n_self_interacting();
-	sink.y			= n_massive();
+	sink.x			= get_n_self_interacting();
+	sink.y			= get_n_massive();
 	source.x		= 0;
-	source.y		= n_self_interacting();
+	source.y		= get_n_self_interacting();
 	interaction_bound iBound(sink, source);
 
 	return iBound;
@@ -67,18 +67,18 @@ interaction_bound number_of_bodies::get_nonself_interacting()
 
 interaction_bound number_of_bodies::get_non_interacting()
 {
-	sink.x			= n_massive();
+	sink.x			= get_n_massive();
 	sink.y			= total;
 	source.x		= 0;
-	source.y		= n_massive();
+	source.y		= get_n_massive();
 	interaction_bound iBound(sink, source);
 
 	return iBound;
 }
 
 interaction_bound number_of_bodies::get_bodies_gasdrag() {
-	sink.x			= n_self_interacting();
-	sink.y			= n_massive();
+	sink.x			= get_n_self_interacting();
+	sink.y			= get_n_massive();
 	source.x		= 0;
 	source.y		= 0;
 	interaction_bound iBound(sink, source);
@@ -88,7 +88,7 @@ interaction_bound number_of_bodies::get_bodies_gasdrag() {
 
 interaction_bound number_of_bodies::get_bodies_migrate_typeI() {
 	sink.x			= star + giant_planet;
-	sink.y			= n_massive();
+	sink.y			= get_n_massive();
 	source.x		= 0;
 	source.y		= 0;
 	interaction_bound iBound(sink, source);

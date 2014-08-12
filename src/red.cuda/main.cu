@@ -18,6 +18,8 @@
 #include <thrust/reduce.h>
 
 // includes project
+#include "int_euler.h"
+#include "parameter.h"
 #include "redutilcu.h"
 #include "nbody_exception.h"
 #include "options.h"
@@ -150,25 +152,49 @@ int main(int argc, const char** argv)
 	printf("%s Starting...\n\n", argv[0]);
 
 	device_query(argc, argv);
-	time_t start = time(NULL);
 
+	time_t start = time(NULL);
+	var_t sum_time_of_steps = 0.0;
+	int_t n_step = 0;
 	try
 	{
 		options opt = options(argc, argv);
 		pp_disk *ppd = opt.create_pp_disk();
 
+		integrator::euler *intgr = new integrator::euler(opt.param->start_time, 0.1, ppd);
+
 		cout << opt.param;
 		cout << opt.g_disk;
 
+		ttt_t ps			= 0;
+		ttt_t dt			= 0;
+		string path = file::combine_path(opt.printout_dir, "position.txt");
+		ostream* pos_f = new ofstream(path.c_str(), ios::out);
+		path = file::combine_path(opt.printout_dir, "event.txt");
+		ostream* event_f = new ofstream(path.c_str(), ios::out);
+		path = file::combine_path(opt.printout_dir, "log.txt");
+		ostream* log_f = new ofstream(path.c_str(), ios::out);
 
-		
+		while (ppd->t <= opt.param->stop_time)
+		{
+			clock_t start_of_step = clock();
+			dt = intgr->step();
+			n_step++;
+			clock_t end_of_step = clock();
+			sum_time_of_steps += (end_of_step - start_of_step);
+			if (n_step % 100 == 0) 
+			{
+				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
+			}
 
-		//string path = file::combine_path(opt.printoutDir, "position.txt");
-		//ostream* pos_f = new ofstream(path.c_str(), ios::out);
-		//path = file::combine_path(opt.printoutDir, "event.txt");
-		//ostream* event_f = new ofstream(path.c_str(), ios::out);
-		//path = file::combine_path(opt.printoutDir, "log.txt");
-		//ostream* log_f = new ofstream(path.c_str(), ios::out);
+			ps += fabs(dt);
+			if (fabs(ps) >= opt.param->output_interval)
+			{
+				ps = 0.0;
+				ppd->copy_variables_to_host();
+				ppd->print_body_data(*pos_f);
+			}
+		}
 
 	} /* try */
 	catch (const nbody_exception& ex)
