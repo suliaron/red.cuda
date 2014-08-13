@@ -3,7 +3,6 @@
 
 // includes project
 #include "redutilcu.h"
-#include "nbody_exception.h"
 #include "number_of_bodies.h"
 #include "options.h"
 #include "pp_disk.h"
@@ -89,7 +88,7 @@ void options::parse_options(int argc, const char** argv)
 			exit(EXIT_SUCCESS);
 		}
 		else {
-			throw nbody_exception("Invalid switch on command-line.");
+			throw string("Invalid switch on command-line.");
 		}
 		i++;
 	}
@@ -101,6 +100,7 @@ pp_disk* options::create_pp_disk()
 	pp_disk* ppd = new pp_disk(path, g_disk);
 	if (verbose)
 	{
+		cout << "Contents of the file " << path << ":" << endl;
 		ppd->print_body_data(cout);
 	}
 	if (ppd->g_disk != 0)
@@ -110,7 +110,12 @@ pp_disk* options::create_pp_disk()
 	if (param->fr_cntr == FRAME_CENTER_BARY)
 	{
 		ppd->transform_to_bc();
+		cout << "Body data after transformation:" << endl;
+		ppd->print_body_data(cout);
 	}
+	ppd->copy_to_device();
+
+	ppd->test_call_kernel_print_sim_data();
 
 	ppd->t = param->start_time;
 

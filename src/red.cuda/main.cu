@@ -19,6 +19,7 @@
 
 // includes project
 #include "int_euler.h"
+#include "int_rungekutta4.h"
 #include "parameter.h"
 #include "redutilcu.h"
 #include "nbody_exception.h"
@@ -161,20 +162,21 @@ int main(int argc, const char** argv)
 		options opt = options(argc, argv);
 		pp_disk *ppd = opt.create_pp_disk();
 
-		integrator::euler *intgr = new integrator::euler(opt.param->start_time, 0.1, ppd);
-
-		cout << opt.param;
-		cout << opt.g_disk;
+		//integrator::euler *intgr = new integrator::euler(opt.param->start_time, 0.01, ppd);
+		integrator::rungekutta4 *intgr = new integrator::rungekutta4(opt.param->start_time, 0.1, 
+								opt.param->adaptive, opt.param->tolerance, ppd);
 
 		ttt_t ps			= 0;
 		ttt_t dt			= 0;
 		string path = file::combine_path(opt.printout_dir, "position.txt");
 		ostream* pos_f = new ofstream(path.c_str(), ios::out);
-		path = file::combine_path(opt.printout_dir, "event.txt");
-		ostream* event_f = new ofstream(path.c_str(), ios::out);
-		path = file::combine_path(opt.printout_dir, "log.txt");
-		ostream* log_f = new ofstream(path.c_str(), ios::out);
+		//path = file::combine_path(opt.printout_dir, "event.txt");
+		//ostream* event_f = new ofstream(path.c_str(), ios::out);
+		//path = file::combine_path(opt.printout_dir, "log.txt");
+		//ostream* log_f = new ofstream(path.c_str(), ios::out);
 
+		ppd->copy_to_host();
+		ppd->print_body_data(*pos_f);
 		while (ppd->t <= opt.param->stop_time)
 		{
 			clock_t start_of_step = clock();
@@ -191,10 +193,13 @@ int main(int argc, const char** argv)
 			if (fabs(ps) >= opt.param->output_interval)
 			{
 				ps = 0.0;
-				ppd->copy_variables_to_host();
+				ppd->call_kernel_transform_to(0);
+				ppd->copy_to_host();
 				ppd->print_body_data(*pos_f);
 			}
-		}
+		} /* while */
+		ppd->copy_to_host();
+		ppd->print_body_data(*pos_f);
 
 	} /* try */
 	catch (const nbody_exception& ex)

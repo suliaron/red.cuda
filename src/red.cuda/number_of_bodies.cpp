@@ -1,4 +1,11 @@
+// includes system
+#include <iomanip>
+#include <iostream>
+
+// includes project
 #include "number_of_bodies.h"
+
+using namespace std;
 
 number_of_bodies::number_of_bodies(int star, int giant_planet, int rocky_planet, int proto_planet, int super_planetesimal, int planetesimal, int test_particle) : 
 		star(star), 
@@ -104,4 +111,29 @@ interaction_bound number_of_bodies::get_bodies_migrate_typeII() {
 	interaction_bound iBound(sink, source);
 
 	return iBound;
+}
+
+ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies)
+{
+	const char* body_type_name[] = 
+	{
+		"STAR",
+		"GIANTPLANET",
+		"ROCKYPLANET",
+		"PROTOPLANET",
+		"SUPERPLANETESIMAL",
+		"PLANETESIMAL",
+		"TESTPARTICLE",
+	};
+
+	stream << "Number of bodies:" << endl;
+	stream << setw(20) << body_type_name[0] << ": " << n_bodies->star << endl;
+	stream << setw(20) << body_type_name[1] << ": " << n_bodies->giant_planet << endl;
+	stream << setw(20) << body_type_name[2] << ": " << n_bodies->rocky_planet << endl;
+	stream << setw(20) << body_type_name[3] << ": " << n_bodies->proto_planet << endl;
+	stream << setw(20) << body_type_name[4] << ": " << n_bodies->super_planetesimal << endl;
+	stream << setw(20) << body_type_name[5] << ": " << n_bodies->planetesimal << endl;
+	stream << setw(20) << body_type_name[6] << ": " << n_bodies->test_particle << endl;
+		
+	return stream;
 }

@@ -155,6 +155,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="int_euler.cu" />
+    <CudaCompile Include="int_rungekutta4.cu" />
     <CudaCompile Include="main.cu" />
     <CudaCompile Include="pp_disk.cu" />
   </ItemGroup>
@@ -170,6 +171,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   <ItemGroup>
     <ClInclude Include="int_euler.h" />
     <ClInclude Include="gas_disk.h" />
+    <ClInclude Include="int_rungekutta4.h" />
     <ClInclude Include="nbody_exception.h" />
     <ClInclude Include="number_of_bodies.h" />
     <ClInclude Include="options.h" />
