@@ -17,6 +17,8 @@ number_of_bodies::number_of_bodies(int star, int giant_planet, int rocky_planet,
 		test_particle(test_particle) 
 {
 	total = star + giant_planet + rocky_planet + proto_planet + super_planetesimal + planetesimal + test_particle;
+	sink.x = sink.y = 0;
+	source.x = source.y = 0;
 }
 
 int	number_of_bodies::get_n_total()

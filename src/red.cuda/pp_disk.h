@@ -117,8 +117,11 @@ private:
 		\param path the full path of the data file
 	*/
 	void load(string& path);
-	void get_number_of_bodies(string& path);
+	number_of_bodies* get_number_of_bodies(string& path);
 	void allocate_storage();
+	void allocate_device_vector(void **d_ptr, size_t size);
+	void copy_vector_to_device(void* dst, const void *src, size_t count);
+	void copy_vector_to_host(void* dst, const void *src, size_t count);
 
 	//! Computes the total mass of the system
 	var_t get_total_mass();

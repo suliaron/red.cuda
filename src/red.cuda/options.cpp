@@ -114,9 +114,7 @@ pp_disk* options::create_pp_disk()
 		ppd->print_body_data(cout);
 	}
 	ppd->copy_to_device();
-
 	ppd->test_call_kernel_print_sim_data();
-
 	ppd->t = param->start_time;
 
 	return ppd;

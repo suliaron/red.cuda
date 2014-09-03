@@ -114,7 +114,7 @@ static __global__
 	}
 }
 
-__global__
+static __global__
 	void kernel_print_position(int n, const posm_t* pos)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -127,7 +127,7 @@ __global__
 	}
 }
 
-__global__
+static __global__
 	void kernel_print_velocity(int n, const velR_t* vel)
 {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -140,7 +140,7 @@ __global__
 	}
 }
 
-__global__
+static __global__
 	void kernel_print_parameters(int n, const param_t* par)
 {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -153,7 +153,7 @@ __global__
 	}
 }
 
-__global__
+static __global__
 	void kernel_print_body_metadata(int n, const body_metadata_t* body_md)
 {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -166,7 +166,7 @@ __global__
 	}
 }
 
-__global__
+static __global__
 	void kernel_print_epochs(int n, const ttt_t* epoch)
 {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -176,7 +176,7 @@ __global__
 	}
 }
 
-__global__
+static __global__
 	void kernel_print_vector(int n, const vec_t* v)
 {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -338,17 +338,15 @@ void pp_disk::call_kernel_transform_to(int refBodyId)
 }
 
 pp_disk::pp_disk(string& path, gas_disk *gd) :
+	g_disk(gd),
+	d_g_disk(0),
 	t(0.0),
 	sim_data(0),
 	n_bodies(0)
 {
-	get_number_of_bodies(path);
-
-	cerr << n_bodies;
-
+	n_bodies = get_number_of_bodies(path);
 	allocate_storage();
 	load(path);
-	g_disk = gd;
 }
 
 pp_disk::~pp_disk()
@@ -370,21 +368,22 @@ pp_disk::~pp_disk()
 	delete sim_data;
 }
 
-void pp_disk::get_number_of_bodies(string& path)
+number_of_bodies* pp_disk::get_number_of_bodies(string& path)
 {
+	int ns, ngp, nrp, npp, nspl, npl, ntp;
+	ns = ngp = nrp = npp = nspl = npl = ntp = 0;
+
 	ifstream input(path.c_str());
 	if (input) 
 	{
-		int ns, ngp, nrp, npp, nspl, npl, ntp;
-		ns = ngp = nrp = npp = nspl = npl = ntp = 0;
 		input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp;
-		n_bodies = new number_of_bodies(ns, ngp, nrp, npp, nspl, npl, ntp);
+		input.close();
 	}
 	else 
 	{
 		throw string("Cannot open " + path + ".");
 	}
-	input.close();
+	return new number_of_bodies(ns, ngp, nrp, npp, nspl, npl, ntp);
 }
 
 void pp_disk::allocate_storage()
@@ -393,143 +392,79 @@ void pp_disk::allocate_storage()
 
 	sim_data = new sim_data_t;
 
-	sim_data->pos = new posm_t[n];
-	sim_data->vel = new velR_t[n];
-	sim_data->params = new param_t[n];
-	sim_data->body_md = new body_metadata_t[n];
-	sim_data->epoch = new ttt_t[n];
+	sim_data->pos		= new posm_t[n];
+	sim_data->vel		= new velR_t[n];
+	sim_data->params	= new param_t[n];
+	sim_data->body_md	= new body_metadata_t[n];
+	sim_data->epoch		= new ttt_t[n];
 
 	// Allocate device pointer.
-	cudaMalloc((void**) &(sim_data->d_pos), n*sizeof(posm_t));
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMalloc failed", cudaStatus);
-	}
-	// Allocate device pointer.
-	cudaMalloc((void**) &(sim_data->d_pos_out), n*sizeof(posm_t));
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMalloc failed", cudaStatus);
-	}
-	// Allocate device pointer.
-	cudaMalloc((void**) &(sim_data->d_vel), n*sizeof(velR_t));
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMalloc failed", cudaStatus);
-	}
-	// Allocate device pointer.
-	cudaMalloc((void**) &(sim_data->d_vel_out), n*sizeof(velR_t));
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMalloc failed", cudaStatus);
-	}
-	// Allocate device pointer.
-	cudaMalloc((void**) &(sim_data->d_params), n*sizeof(param_t));
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMalloc failed", cudaStatus);
-	}
-	// Allocate device pointer.
-	cudaMalloc((void**) &(sim_data->d_body_md), n*sizeof(body_metadata_t));
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMalloc failed", cudaStatus);
-	}
-	// Allocate device pointer.
-	cudaMalloc((void**) &(sim_data->d_epoch), n*sizeof(ttt_t));
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMalloc failed", cudaStatus);
-	}
+	allocate_device_vector((void **)&(sim_data->d_pos),			n*sizeof(posm_t));
+	allocate_device_vector((void **)&(sim_data->d_pos_out),		n*sizeof(posm_t));
+	allocate_device_vector((void **)&(sim_data->d_vel),			n*sizeof(velR_t));
+	allocate_device_vector((void **)&(sim_data->d_vel_out),		n*sizeof(velR_t));
+	allocate_device_vector((void **)&(sim_data->d_params),		n*sizeof(param_t));
+	allocate_device_vector((void **)&(sim_data->d_body_md),		n*sizeof(body_metadata_t));
+	allocate_device_vector((void **)&(sim_data->d_epoch),		n*sizeof(ttt_t));
 }
 
 void pp_disk::copy_to_device()
 {
 	const int n = n_bodies->total;
 
-	// Copy pointer content (position and mass) from host to device.
-	cudaMemcpy(sim_data->d_pos, sim_data->pos, n*sizeof(posm_t), cudaMemcpyHostToDevice);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMemcpy failed", cudaStatus);
-	}
-	// Copy pointer content (velocity and radius) from host to device.
-	cudaMemcpy(sim_data->d_vel, sim_data->vel, n*sizeof(velR_t), cudaMemcpyHostToDevice);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMemcpy failed", cudaStatus);
-	}
-	// Copy pointer content (parameter) from host to device.
-	cudaMemcpy(sim_data->d_params, sim_data->params, n*sizeof(param_t), cudaMemcpyHostToDevice);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMemcpy failed", cudaStatus);
-	}
-	// Copy pointer content (body metadata) from host to device.
-	cudaMemcpy(sim_data->d_body_md, sim_data->body_md, n*sizeof(body_metadata_t), cudaMemcpyHostToDevice);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMemcpy failed", cudaStatus);
-	}
-	// Copy pointer content (epoch) from host to device.
-	cudaMemcpy(sim_data->d_epoch, sim_data->epoch, n*sizeof(ttt_t), cudaMemcpyHostToDevice);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMemcpy failed", cudaStatus);
-	}
+	copy_vector_to_device((void *)sim_data->d_pos,		(void *)sim_data->pos,		n*sizeof(posm_t));
+	copy_vector_to_device((void *)sim_data->d_vel,		(void *)sim_data->vel,		n*sizeof(velR_t));
+	copy_vector_to_device((void *)sim_data->d_params,	(void *)sim_data->params,	n*sizeof(param_t));
+	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->body_md,	n*sizeof(body_metadata_t));
+	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->epoch,	n*sizeof(ttt_t));
 }
 
 void pp_disk::copy_to_host()
 {
 	const int n = n_bodies->total;
 
-	// Copy pointer content (position and mass) from device to host
-	cudaMemcpy(sim_data->pos, sim_data->d_pos, n*sizeof(posm_t), cudaMemcpyDeviceToHost);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMemcpy failed", cudaStatus);
-	}
-	// Copy pointer content (velocity and radius) from device to host
-	cudaMemcpy(sim_data->vel, sim_data->d_vel, n*sizeof(velR_t), cudaMemcpyDeviceToHost);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMemcpy failed", cudaStatus);
-	}
-	// Copy pointer content (parameter) from from device to host
-	cudaMemcpy(sim_data->params, sim_data->d_params, n*sizeof(param_t), cudaMemcpyDeviceToHost);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMemcpy failed", cudaStatus);
-	}
-	// Copy pointer content (body metadata) from device to host
-	cudaMemcpy(sim_data->body_md, sim_data->d_body_md, n*sizeof(body_metadata_t), cudaMemcpyDeviceToHost);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMemcpy failed", cudaStatus);
-	}
-	// Copy pointer content (epoch) from device to host
-	cudaMemcpy(sim_data->epoch, sim_data->d_epoch, n*sizeof(ttt_t), cudaMemcpyDeviceToHost);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMemcpy failed", cudaStatus);
-	}
+	copy_vector_to_host((void *)sim_data->pos,			(void *)sim_data->d_pos,	n*sizeof(posm_t));
+	copy_vector_to_host((void *)sim_data->vel,			(void *)sim_data->d_vel,	n*sizeof(velR_t));
+	copy_vector_to_host((void *)sim_data->params,		(void *)sim_data->d_params,	n*sizeof(param_t));
+	copy_vector_to_host((void *)sim_data->body_md,		(void *)sim_data->d_body_md,n*sizeof(body_metadata_t));
+	copy_vector_to_host((void *)sim_data->epoch,		(void *)sim_data->d_epoch,	n*sizeof(ttt_t));
 }
 
 void pp_disk::copy_variables_to_host()
 {
 	const int n = n_bodies->total;
 
-	// Copy pointer content (position and mass) from device to host
-	cudaMemcpy(sim_data->pos, sim_data->d_pos, n*sizeof(posm_t), cudaMemcpyDeviceToHost);
+	copy_vector_to_host((void *)sim_data->d_pos, (void *)sim_data->pos, n*sizeof(posm_t));
+	copy_vector_to_host((void *)sim_data->d_vel, (void *)sim_data->vel,	n*sizeof(velR_t));
+}
+
+void pp_disk::allocate_device_vector(void **d_ptr, size_t size)
+{
+	cudaMalloc(d_ptr, size);
 	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMemcpy failed", cudaStatus);
+	if (cudaSuccess != cudaStatus)
+	{
+		throw nbody_exception("cudaMalloc failed", cudaStatus);
 	}
-	// Copy pointer content (velocity and radius) from device to host
-	cudaMemcpy(sim_data->vel, sim_data->d_vel, n*sizeof(velR_t), cudaMemcpyDeviceToHost);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("cudaMemcpy failed", cudaStatus);
+}
+
+void pp_disk::copy_vector_to_device(void* dst, const void *src, size_t count)
+{
+	cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice);
+	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw nbody_exception("cudaMemcpy failed (copy_vector_to_device)", cudaStatus);
+	}
+}
+
+void pp_disk::copy_vector_to_host(void* dst, const void *src, size_t count)
+{
+	cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost);
+	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw nbody_exception("cudaMemcpy failed (copy_vector_to_host)", cudaStatus);
 	}
 }
 

@@ -67,8 +67,8 @@ typedef struct __builtin_align__(16) body_metadata
 
 typedef struct sim_data
 {
-	posm_t			*pos, *d_pos, *d_pos_out, *d_pos_temp;
-	velR_t			*vel, *d_vel, *d_vel_out, *d_vel_temp;
+	posm_t			*pos, *d_pos, *d_pos_out;
+	velR_t			*vel, *d_vel, *d_vel_out;
 	param_t			*params, *d_params;
 	body_metadata_t *body_md, *d_body_md;
 	ttt_t			*epoch, *d_epoch;
@@ -83,4 +83,3 @@ struct	interaction_bound {
 		source(source) 
 	{ }
 };
-

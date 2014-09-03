@@ -162,29 +162,27 @@ int main(int argc, const char** argv)
 		options opt = options(argc, argv);
 		pp_disk *ppd = opt.create_pp_disk();
 
-		//integrator::euler *intgr = new integrator::euler(opt.param->start_time, 0.01, ppd);
-		integrator::rungekutta4 *intgr = new integrator::rungekutta4(opt.param->start_time, 0.1, 
-								opt.param->adaptive, opt.param->tolerance, ppd);
+		integrator::euler *intgr = new integrator::euler(ppd, 0.001);
+		//integrator::rungekutta4 *intgr = new integrator::rungekutta4(opt.param->start_time, 0.1, opt.param->adaptive, opt.param->tolerance, ppd);
 
 		ttt_t ps			= 0;
 		ttt_t dt			= 0;
-		string path = file::combine_path(opt.printout_dir, "position.txt");
-		ostream* pos_f = new ofstream(path.c_str(), ios::out);
-		//path = file::combine_path(opt.printout_dir, "event.txt");
+		string path = file::combine_path(opt.printout_dir, "result.out.txt");
+		ostream* result_f = new ofstream(path.c_str(), ios::out);
+		//path = file::combine_path(opt.printout_dir, "event.out.txt");
 		//ostream* event_f = new ofstream(path.c_str(), ios::out);
 		//path = file::combine_path(opt.printout_dir, "log.txt");
 		//ostream* log_f = new ofstream(path.c_str(), ios::out);
 
-		ppd->copy_to_host();
-		ppd->print_body_data(*pos_f);
+		ppd->print_body_data(*result_f);
 		while (ppd->t <= opt.param->stop_time)
 		{
 			clock_t start_of_step = clock();
 			dt = intgr->step();
-			n_step++;
 			clock_t end_of_step = clock();
 			sum_time_of_steps += (end_of_step - start_of_step);
-			if (n_step % 100 == 0) 
+			n_step++;
+			if (n_step % 1000 == 0) 
 			{
 				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
 			}
@@ -195,11 +193,11 @@ int main(int argc, const char** argv)
 				ps = 0.0;
 				ppd->call_kernel_transform_to(0);
 				ppd->copy_to_host();
-				ppd->print_body_data(*pos_f);
+				ppd->print_body_data(*result_f);
 			}
 		} /* while */
 		ppd->copy_to_host();
-		ppd->print_body_data(*pos_f);
+		ppd->print_body_data(*result_f);
 
 	} /* try */
 	catch (const nbody_exception& ex)
