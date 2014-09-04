@@ -174,7 +174,7 @@ int main(int argc, const char** argv)
 		//path = file::combine_path(opt.printout_dir, "log.txt");
 		//ostream* log_f = new ofstream(path.c_str(), ios::out);
 
-		ppd->print_body_data(*result_f);
+		ppd->print_result(*result_f);
 		while (ppd->t <= opt.param->stop_time)
 		{
 			clock_t start_of_step = clock();
@@ -193,11 +193,11 @@ int main(int argc, const char** argv)
 				ps = 0.0;
 				ppd->call_kernel_transform_to(0);
 				ppd->copy_to_host();
-				ppd->print_body_data(*result_f);
+				ppd->print_result(*result_f);
 			}
 		} /* while */
 		ppd->copy_to_host();
-		ppd->print_body_data(*result_f);
+		ppd->print_result(*result_f);
 
 	} /* try */
 	catch (const nbody_exception& ex)
@@ -209,7 +209,6 @@ int main(int argc, const char** argv)
 		cerr << "Error: " << msg << endl;
 	}
 	cout << "Total time: " << time(NULL) - start << " s" << endl;
-
 
     return (EXIT_SUCCESS);
 }

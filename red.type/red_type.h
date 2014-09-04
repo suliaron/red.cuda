@@ -75,8 +75,8 @@ typedef struct sim_data
 	vector<vec_t*>	y;							//!< Host vectors of initial position and velocity of the bodies on the host
 	vector<vec_t*>	d_y;						//!< Device vectors of ODE variables at the beginning of the step (at time t)
 	vector<vec_t*>	d_yout;						//!< Device vectors of ODE variables at the end of the step (at time tout)
-	param_t			*params;					//!< Host vector of body parameters
-	param_t			*d_params;					//!< Device vector of body parameters
+	param_t			*p;							//!< Host vector of body parameters
+	param_t			*d_p;						//!< Device vector of body parameters
 	body_metadata_t *body_md; 					//!< Host vector of additional body parameters
 	body_metadata_t *d_body_md; 				//!< Device vector of additional body parameters
 	ttt_t			*epoch;						//!< Host vector of epoch of the bodies

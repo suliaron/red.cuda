@@ -37,28 +37,28 @@ int main(int argc, const char** argv)
 	sim_data_t sim_data;
 
 	{
-		posm_t pos;
-		printf("address of pos: %p\n", &pos);
-		printf("address of pos.x: %p\n", &pos.x);
-		printf("address of pos.y: %p\n", &pos.y);
-		printf("address of pos.z: %p\n", &pos.z);
-		printf("address of pos.m: %p\n", &pos.m);
+		vec_t r;
+		printf("address of r: %p\n", &r);
+		printf("address of r.x: %p\n", &r.x);
+		printf("address of r.y: %p\n", &r.y);
+		printf("address of r.z: %p\n", &r.z);
+		printf("address of r.w: %p\n", &r.w);
 	}
 
 	{
-		struct my_4double pos;
-		printf("address of pos: %p\n", &pos);
-		printf("address of pos.x: %p\n", &pos.x);
-		printf("address of pos.y: %p\n", &pos.y);
-		printf("address of pos.z: %p\n", &pos.z);
-		printf("address of pos.m: %p\n", &pos.w);
+		struct my_4double r;
+		printf("address of r: %p\n", &r);
+		printf("address of r.x: %p\n", &r.x);
+		printf("address of r.y: %p\n", &r.y);
+		printf("address of r.z: %p\n", &r.z);
+		printf("address of r.w: %p\n", &r.w);
 
-		struct my_4double_a apos;
-		printf("address of apos: %p\n", &apos);
-		printf("address of apos.x: %p\n", &apos.x);
-		printf("address of apos.y: %p\n", &apos.y);
-		printf("address of apos.z: %p\n", &apos.z);
-		printf("address of apos.m: %p\n", &apos.w);
+		struct my_4double_a _r;
+		printf("address of _r: %p\n", &_r);
+		printf("address of _r.x: %p\n", &_r.x);
+		printf("address of _r.y: %p\n", &_r.y);
+		printf("address of _r.z: %p\n", &_r.z);
+		printf("address of _r.w: %p\n", &_r.w);
 	}
 
 	sim_data.pos = new posm_t[8];

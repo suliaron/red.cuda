@@ -25,16 +25,13 @@ static __global__
 
 // result = a + b_factor * b
 static __global__
-void kernel_sum_vector(int n, const vec_t* a, const vec_t* b, var_t b_factor, vec_t* result)
+void kernel_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor, var_t* result)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = gridDim.x * blockDim.x;
 
 	while (n > tid) {
-		result[tid].x = a[tid].x + b_factor * b[tid].x;
-		result[tid].y = a[tid].y + b_factor * b[tid].y;
-		result[tid].z = a[tid].z + b_factor * b[tid].z;
-		result[tid].w = a[tid].w;
+		result[tid] = a[tid] + b_factor * b[tid];
 		tid += stride;
 	}
 }
@@ -91,26 +88,13 @@ ttt_t euler::step()
 		ppd->calculate_dy(i, 0, t, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_dy[i]);
 	}
 
-	const int n = ppd->n_bodies->total;
-	calculate_grid(n, THREADS_PER_BLOCK);
+	const int n_var = NDIM * ppd->n_bodies->total;
+	calculate_grid(n_var, THREADS_PER_BLOCK);
 
-	// Create aliases
-	vec_t* d_pos	 = ppd->sim_data->d_y[0];
-	vec_t* d_pos_out = ppd->sim_data->d_yout[0];
-	vec_t* d_vel	 = ppd->sim_data->d_y[1];
-	vec_t* d_vel_out = ppd->sim_data->d_yout[1];
 	for (int i = 0; i < 2; i++)
 	{	
-		if (i == 0)	{ // Propagate position
-			//kernel_print_vector<<<grid, block>>>(n, d_pos_out);
-			//cudaDeviceSynchronize();
-			kernel_sum_vector<<<grid, block>>>(n, d_pos, d_dy[i], dt_try, d_pos_out);
-			//kernel_print_vector<<<grid, block>>>(n, d_pos_out);
-			//cudaDeviceSynchronize();
-		}
-		else {		  // Propagate velocity
-			kernel_sum_vector<<<grid, block>>>(n, d_vel, d_dy[i], dt_try, d_vel_out);
-		}
+		kernel_sum_vector<<<grid, block>>>(
+			n_var, (var_t*)ppd->sim_data->d_y[i], (var_t*)d_dy[i], dt_try, (var_t*)ppd->sim_data->d_yout[i]);
 		cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) 
 		{
@@ -122,8 +106,10 @@ ttt_t euler::step()
 	dt_next = dt_try;
 
 	ppd->t += dt_did;
-	swap(ppd->sim_data->d_yout[0], ppd->sim_data->d_y[0]);
-	swap(ppd->sim_data->d_yout[1], ppd->sim_data->d_y[1]);
+	for (int i = 0; i < 2; i++)
+	{
+		swap(ppd->sim_data->d_yout[i], ppd->sim_data->d_y[i]);
+	}
 
 	return dt_did;
 }

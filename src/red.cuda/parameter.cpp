@@ -179,7 +179,7 @@ void parameter::set_param(string& key, string& value)
 	}
 }
 
-ostream& operator<<(ostream& stream, const parameter* param)
+ostream& operator<<(ostream& stream, const parameter* p)
 {
 	const char* integrator_name[] = 
 		{
@@ -205,17 +205,17 @@ ostream& operator<<(ostream& stream, const parameter* param)
 			"THRESHOLD_COLLISION_FACTOR",
 		};
 
-	stream << "simulation name: " << param->simulation_name << endl;
-	stream << "simulation description: " << param->simulation_desc << endl;
-	stream << "simulation frame center: " << frame_center_name[param->fr_cntr] << endl;
-	stream << "simulation integrator: " << integrator_name[param->int_type] << endl;
-	stream << "simulation tolerance: " << param->tolerance << endl;
-	stream << "simulation adaptive: " << (param->adaptive ? "true" : "false") << endl;
-	stream << "simulation start time: " << param->start_time << endl;
-	stream << "simulation length: " << param->simulation_length << endl;
-	stream << "simulation output interval: " << param->output_interval << endl;
+	stream << "simulation name: " << p->simulation_name << endl;
+	stream << "simulation description: " << p->simulation_desc << endl;
+	stream << "simulation frame center: " << frame_center_name[p->fr_cntr] << endl;
+	stream << "simulation integrator: " << integrator_name[p->int_type] << endl;
+	stream << "simulation tolerance: " << p->tolerance << endl;
+	stream << "simulation adaptive: " << (p->adaptive ? "true" : "false") << endl;
+	stream << "simulation start time: " << p->start_time << endl;
+	stream << "simulation length: " << p->simulation_length << endl;
+	stream << "simulation output interval: " << p->output_interval << endl;
 	for (int i = 0; i < THRESHOLD_N; i++) {
-		stream << "simulation threshold[" << threshold_name[i] << "]: " << param->threshold[i] << endl;
+		stream << "simulation threshold[" << threshold_name[i] << "]: " << p->threshold[i] << endl;
 	}
 
 	return stream;

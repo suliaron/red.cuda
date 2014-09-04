@@ -83,7 +83,7 @@ public:
 	/*   
 		\param sout print the data to this stream
 	*/
-	void print_body_data(ostream& sout);
+	void print_result(ostream& sout);
 
 	// Input/Output streams
 	friend ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies);
@@ -92,13 +92,13 @@ public:
 	/*!
 		This function is called by the integrator when calculation of the differentials is necessary
 		\param i Order of the variables to calculate (e.g. 0: velocities, 1: acceleration ...)
-		\param r Number of substep, used with higher order methods, like Runge-Kutta
+		\param rr Number of substep, used with higher order methods, like Runge-Kutta
 		\param curr_t Time
-		\param pos Device vector with position variables
-		\param vel Device vector with velocity variables
+		\param r Device vector with position variables
+		\param v Device vector with velocity variables
 		\param dy Device vector that will hold the differentials
 	*/
-	void calculate_dy(int i, int r, ttt_t curr_t, const vec_t *pos, const vec_t *vel, vec_t* dy);
+	void calculate_dy(int i, int rr, ttt_t curr_t, const vec_t *r, const vec_t *v, vec_t* dy);
 
 	// Test function: print out all the simulation data contained on the device
 	void test_call_kernel_print_sim_data();
@@ -134,7 +134,7 @@ private:
 
 	//! Sets the grid and block for the kernel launch
 	void set_kernel_launch_param(int n_data);
-	void call_kernel_calculate_grav_accel(ttt_t curr_t, const vec_t* pos, const vec_t* vel, vec_t* dy);
+	void call_kernel_calculate_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 
 	dim3	grid;
 	dim3	block;
