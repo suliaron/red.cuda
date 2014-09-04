@@ -44,14 +44,14 @@ static __global__
 										interaction_bound int_bound, 
 										const body_metadata_t* body_md, 
 										const param_t* params, 
-										const posm_t* pos, 
-										const velR_t* vel, 
+										const vec_t* pos, 
+										const vec_t* vel, 
 										vec_t* acce
 										)
 {
 	const int bodyIdx = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (body_md[bodyIdx].active && bodyIdx < int_bound.sink.y) {
+	if (body_md[bodyIdx].id > 0 && bodyIdx < int_bound.sink.y) {
 
 		acce[bodyIdx].x = 0.0;
 		acce[bodyIdx].y = 0.0;
@@ -61,7 +61,7 @@ static __global__
 		vec_t dVec;
 		for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 		{
-			if (j == bodyIdx || !body_md[j].active)
+			if (j == bodyIdx || body_md[j].id > 0)
 			{
 				continue;
 			}
@@ -77,7 +77,7 @@ static __global__
 			var_t r = sqrt(dVec.w);								// = r
 
 			// 2 FLOP
-			dVec.w = pos[bodyIdx].m / (r*dVec.w);
+			dVec.w = params[bodyIdx].mass / (r*dVec.w);
 
 			// 6 FLOP
 			ai.x += dVec.w * dVec.x;
@@ -96,8 +96,8 @@ static __global__
 								int n,
 								int refBodyId,
 								const param_t *params,
-								posm_t* pos, 
-								velR_t* vel
+								vec_t* pos, 
+								vec_t* vel
 								)
 {
 	int	bodyIdx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -115,7 +115,7 @@ static __global__
 }
 
 static __global__
-	void kernel_print_position(int n, const posm_t* pos)
+	void kernel_print_position(int n, const vec_t* pos)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (tid < n)
@@ -123,12 +123,12 @@ static __global__
 		printf("pos[%4d].x : %20.16lf\n", tid, pos[tid].x);
 		printf("pos[%4d].y : %20.16lf\n", tid, pos[tid].y);
 		printf("pos[%4d].z : %20.16lf\n", tid, pos[tid].z);
-		printf("pos[%4d].m : %20.16lf\n", tid, pos[tid].m);
+		printf("pos[%4d].m : %20.16lf\n", tid, pos[tid].w);
 	}
 }
 
 static __global__
-	void kernel_print_velocity(int n, const velR_t* vel)
+	void kernel_print_velocity(int n, const vec_t* vel)
 {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n)
@@ -136,7 +136,7 @@ static __global__
 		printf("vel[%4d].x : %20.16lf\n", i, vel[i].x);
 		printf("vel[%4d].y : %20.16lf\n", i, vel[i].y);
 		printf("vel[%4d].z : %20.16lf\n", i, vel[i].z);
-		printf("vel[%4d].R : %20.16lf\n", i, vel[i].R);
+		printf("vel[%4d].R : %20.16lf\n", i, vel[i].w);
 	}
 }
 
@@ -148,7 +148,7 @@ static __global__
 	{
 		printf("par[%4d].mass        : %20.16lf\n", i, par[i].mass);
 		printf("par[%4d].density     : %20.16lf\n", i, par[i].density);
-		printf("par[%4d].mig_stop_at : %20.16lf\n", i, par[i].mig_stop_at);
+		printf("par[%4d].radius		 : %20.16lf\n", i, par[i].radius);
 		printf("par[%4d].cd          : %20.16lf\n", i, par[i].cd);
 	}
 }
@@ -160,9 +160,9 @@ static __global__
 	if (i < n)
 	{
 		printf("par[%4d].id        : %10.4d\n", i, body_md[i].id);
-		printf("par[%4d].active    : %10.4d\n", i, body_md[i].active);
 		printf("par[%4d].body_type : %10.4d\n", i, body_md[i].body_type);
 		printf("par[%4d].mig_type  : %10.4d\n", i, body_md[i].mig_type);
+		printf("par[%4d].mig_type  : %20.16lf\n", i, body_md[i].mig_stop_at);
 	}
 }
 
@@ -193,14 +193,14 @@ static __global__
 
 /****************** TEST functions begins here ********************/
 
-void test_print_position(int n, const posm_t* pos)
+void test_print_position(int n, const vec_t* pos)
 {
 	for (int i = 0; i < n; i++)
 	{
 		printf("pos[%4d].x : %20.16lf\n", i, pos[i].x);
 		printf("pos[%4d].y : %20.16lf\n", i, pos[i].y);
 		printf("pos[%4d].z : %20.16lf\n", i, pos[i].z);
-		printf("pos[%4d].m : %20.16lf\n", i, pos[i].m);
+		printf("pos[%4d].m : %20.16lf\n", i, pos[i].w);
 	}
 }
 
@@ -212,14 +212,14 @@ void pp_disk::test_call_kernel_print_sim_data()
 
 	set_kernel_launch_param(n);
 
-	kernel_print_position<<<grid, block>>>(n, sim_data->d_pos);
+	kernel_print_position<<<grid, block>>>(n, sim_data->d_y[0]);
 	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus) {
 		throw nbody_exception("kernel_print_position failed", cudaStatus);
 	}
 	cudaDeviceSynchronize();
 
-	kernel_print_velocity<<<grid, block>>>(n, sim_data->d_vel);
+	kernel_print_velocity<<<grid, block>>>(n, sim_data->d_y[1]);
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus) {
 		throw nbody_exception("kernel_print_velocity failed", cudaStatus);
@@ -259,7 +259,7 @@ void pp_disk::set_kernel_launch_param(int n_data)
 	block.x = n_thread;
 }
 
-void pp_disk::call_kernel_calculate_grav_accel(ttt_t curr_t, const posm_t* pos, const velR_t* vel, vec_t* dy)
+void pp_disk::call_kernel_calculate_grav_accel(ttt_t curr_t, const vec_t* pos, const vec_t* vel, vec_t* dy)
 {
 	cudaError_t cudaStatus = cudaSuccess;
 	int		nBodyToCalculate;
@@ -278,7 +278,7 @@ void pp_disk::call_kernel_calculate_grav_accel(ttt_t curr_t, const posm_t* pos, 
 	}
 }
 
-void pp_disk::calculate_dy(int i, int r, ttt_t curr_t, const posm_t* pos, const velR_t* vel, vec_t* dy)
+void pp_disk::calculate_dy(int i, int r, ttt_t curr_t, const vec_t* pos, const vec_t* vel, vec_t* dy)
 {
 	cudaError_t cudaStatus = cudaSuccess;
 	int n = n_bodies->get_n_total();
@@ -330,7 +330,7 @@ void pp_disk::call_kernel_transform_to(int refBodyId)
 
 	set_kernel_launch_param(nBodyToCalculate);
 	
-	kernel_transform_to<<<grid, block>>>(nBodyToCalculate, refBodyId, sim_data->d_params, sim_data->d_pos, sim_data->d_vel);
+	kernel_transform_to<<<grid, block>>>(nBodyToCalculate, refBodyId, sim_data->d_params, sim_data->d_y[0], sim_data->d_y[1]);
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus) {
 		throw nbody_exception("kernel_transform_to failed", cudaStatus);
@@ -351,16 +351,19 @@ pp_disk::pp_disk(string& path, gas_disk *gd) :
 
 pp_disk::~pp_disk()
 {
-	delete[] sim_data->pos;
-	delete[] sim_data->vel;
+	for (int i = 0; i < 2; i++)
+	{
+		delete[] sim_data->y[i];
+	}
 	delete[] sim_data->params;
 	delete[] sim_data->body_md;
 	delete[] sim_data->epoch;
 
-	cudaFree(sim_data->d_pos);
-	cudaFree(sim_data->d_pos_out);
-	cudaFree(sim_data->d_vel);
-	cudaFree(sim_data->d_vel_out);
+	for (int i = 0; i < 2; i++)
+	{
+		cudaFree(sim_data->d_y[i]);
+		cudaFree(sim_data->d_yout[i]);
+	}
 	cudaFree(sim_data->d_params);
 	cudaFree(sim_data->d_body_md);
 	cudaFree(sim_data->d_epoch);
@@ -392,17 +395,23 @@ void pp_disk::allocate_storage()
 
 	sim_data = new sim_data_t;
 
-	sim_data->pos		= new posm_t[n];
-	sim_data->vel		= new velR_t[n];
+	sim_data->y.resize(2);
+	for (int i = 0; i < 2; i++)
+	{
+		sim_data->y[i]	= new vec_t[n];
+	}
 	sim_data->params	= new param_t[n];
 	sim_data->body_md	= new body_metadata_t[n];
 	sim_data->epoch		= new ttt_t[n];
 
+	sim_data->d_y.resize(2);
+	sim_data->d_yout.resize(2);
 	// Allocate device pointer.
-	allocate_device_vector((void **)&(sim_data->d_pos),			n*sizeof(posm_t));
-	allocate_device_vector((void **)&(sim_data->d_pos_out),		n*sizeof(posm_t));
-	allocate_device_vector((void **)&(sim_data->d_vel),			n*sizeof(velR_t));
-	allocate_device_vector((void **)&(sim_data->d_vel_out),		n*sizeof(velR_t));
+	for (int i = 0; i < 2; i++)
+	{
+		allocate_device_vector((void **)&(sim_data->d_y[i]),	n*sizeof(vec_t));
+		allocate_device_vector((void **)&(sim_data->d_yout[i]),	n*sizeof(vec_t));
+	}
 	allocate_device_vector((void **)&(sim_data->d_params),		n*sizeof(param_t));
 	allocate_device_vector((void **)&(sim_data->d_body_md),		n*sizeof(body_metadata_t));
 	allocate_device_vector((void **)&(sim_data->d_epoch),		n*sizeof(ttt_t));
@@ -412,8 +421,10 @@ void pp_disk::copy_to_device()
 {
 	const int n = n_bodies->total;
 
-	copy_vector_to_device((void *)sim_data->d_pos,		(void *)sim_data->pos,		n*sizeof(posm_t));
-	copy_vector_to_device((void *)sim_data->d_vel,		(void *)sim_data->vel,		n*sizeof(velR_t));
+	for (int i = 0; i < 2; i++)
+	{
+		copy_vector_to_device((void *)sim_data->d_y[i],	(void *)sim_data->y[i],		n*sizeof(vec_t));
+	}
 	copy_vector_to_device((void *)sim_data->d_params,	(void *)sim_data->params,	n*sizeof(param_t));
 	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->body_md,	n*sizeof(body_metadata_t));
 	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->epoch,	n*sizeof(ttt_t));
@@ -423,8 +434,10 @@ void pp_disk::copy_to_host()
 {
 	const int n = n_bodies->total;
 
-	copy_vector_to_host((void *)sim_data->pos,			(void *)sim_data->d_pos,	n*sizeof(posm_t));
-	copy_vector_to_host((void *)sim_data->vel,			(void *)sim_data->d_vel,	n*sizeof(velR_t));
+	for (int i = 0; i < 2; i++)
+	{
+		copy_vector_to_host((void *)sim_data->y[i],		(void *)sim_data->d_y[i],	n*sizeof(vec_t));
+	}
 	copy_vector_to_host((void *)sim_data->params,		(void *)sim_data->d_params,	n*sizeof(param_t));
 	copy_vector_to_host((void *)sim_data->body_md,		(void *)sim_data->d_body_md,n*sizeof(body_metadata_t));
 	copy_vector_to_host((void *)sim_data->epoch,		(void *)sim_data->d_epoch,	n*sizeof(ttt_t));
@@ -434,8 +447,10 @@ void pp_disk::copy_variables_to_host()
 {
 	const int n = n_bodies->total;
 
-	copy_vector_to_host((void *)sim_data->d_pos, (void *)sim_data->pos, n*sizeof(posm_t));
-	copy_vector_to_host((void *)sim_data->d_vel, (void *)sim_data->vel,	n*sizeof(velR_t));
+	for (int i = 0; i < 2; i++)
+	{
+		copy_vector_to_host((void *)sim_data->y[i],		(void *)sim_data->d_y[i],	n*sizeof(vec_t));
+	}
 }
 
 void pp_disk::allocate_device_vector(void **d_ptr, size_t size)
@@ -492,19 +507,21 @@ var_t pp_disk::get_total_mass()
 	return totalMass;
 }
 
-void pp_disk::compute_bc(posm_t* R0, velR_t* V0)
+void pp_disk::compute_bc(vec_t* R0, vec_t* V0)
 {
-	posm_t* coor = sim_data->pos;
-	velR_t* velo = sim_data->vel;
+	const param_t* params = sim_data->params;
+	const vec_t* coor = sim_data->y[0];
+	const vec_t* velo = sim_data->y[1];
 
 	for (int j = 0; j < n_bodies->get_n_massive(); j++ ) {
-		R0->x += coor[j].m * coor[j].x;
-		R0->y += coor[j].m * coor[j].y;
-		R0->z += coor[j].m * coor[j].z;
+		var_t m = params[j].mass;
+		R0->x += m * coor[j].x;
+		R0->y += m * coor[j].y;
+		R0->z += m * coor[j].z;
 
-		V0->x += coor[j].m * velo[j].x;
-		V0->y += coor[j].m * velo[j].y;
-		V0->z += coor[j].m * velo[j].z;
+		V0->x += m * velo[j].x;
+		V0->y += m * velo[j].y;
+		V0->z += m * velo[j].z;
 	}
 	var_t M0 = get_total_mass();
 
@@ -517,13 +534,13 @@ void pp_disk::transform_to_bc()
 	cout << "Transforming to barycentric system ... ";
 
 	// Position and velocity of the system's barycenter
-	posm_t R0 = {0.0, 0.0, 0.0, 0.0};
-	velR_t V0 = {0.0, 0.0, 0.0, 0.0};
+	vec_t R0 = {0.0, 0.0, 0.0, 0.0};
+	vec_t V0 = {0.0, 0.0, 0.0, 0.0};
 
 	compute_bc(&R0, &V0);
 
-	posm_t* coor = sim_data->pos;
-	velR_t* velo = sim_data->vel;
+	vec_t* coor = sim_data->y[0];
+	vec_t* velo = sim_data->y[1];
 	// Transform the bodies coordinates and velocities
 	for (int j = 0; j < n_bodies->get_n_total(); j++ ) {
 		coor[j].x -= R0.x;		coor[j].y -= R0.y;		coor[j].z -= R0.z;
@@ -548,9 +565,9 @@ void pp_disk::load(string& path)
 		throw string("Cannot open " + path + ".");
 	}
 
-	posm_t* coor = sim_data->pos;
-	velR_t* velo = sim_data->vel;
-	param_t* param = sim_data->params;
+	vec_t* coor = sim_data->y[0];
+	vec_t* velo = sim_data->y[1];
+	param_t* params = sim_data->params;
 	body_metadata_t* body_md = sim_data->body_md;
 	ttt_t* epoch = sim_data->epoch;
 
@@ -559,7 +576,6 @@ void pp_disk::load(string& path)
 		string	dummy;
         		
 		for (int i = 0; i < n_bodies->total; i++) { 
-			body_md[i].active = true;
 			// id
 			input >> body_md[i].id;
 			// name
@@ -572,20 +588,19 @@ void pp_disk::load(string& path)
 			input >> epoch[i];
 
 			// mass
-			input >> param[i].mass;
-			coor[i].m = param[i].mass;
+			input >> params[i].mass;
 			// radius
-			input >> velo[i].R;
+			input >> params[i].radius;
 			// density
-			input >> param[i].density;
+			input >> params[i].density;
 			// stokes constant
-			input >> param[i].cd;
+			input >> params[i].cd;
 
 			// migration type
 			input >> type;
 			body_md[i].mig_type = static_cast<migration_type_t>(type);
 			// migration stop at
-			input >> param[i].mig_stop_at;
+			input >> body_md[i].mig_stop_at;
 
 			// position
 			input >> coor[i].x;
@@ -607,9 +622,9 @@ void pp_disk::load(string& path)
 
 void pp_disk::print_body_data(ostream& sout)
 {
-	posm_t* coor = sim_data->pos;
-	velR_t* velo = sim_data->vel;
-	param_t* param = sim_data->params;
+	vec_t* coor = sim_data->y[0];
+	vec_t* velo = sim_data->y[1];
+	param_t* params = sim_data->params;
 	body_metadata_t* body_md = sim_data->body_md;
 	ttt_t* epoch = sim_data->epoch;
 
@@ -618,12 +633,12 @@ void pp_disk::print_body_data(ostream& sout)
 			 << body_names[i] << SEP
 			 << body_md[i].body_type << SEP 
 			 << epoch[i] << SEP
-			 << param[i].mass << SEP
-			 << velo[i].R << SEP
-			 << param[i].density << SEP
-			 << param[i].cd << SEP
+			 << params[i].mass << SEP
+			 << params[i].radius << SEP
+			 << params[i].density << SEP
+			 << params[i].cd << SEP
 			 << body_md[i].mig_type << SEP
-			 << param[i].mig_stop_at << SEP
+			 << body_md[i].mig_stop_at << SEP
 			 << coor[i].x << SEP
 			 << coor[i].y << SEP
 			 << coor[i].z << SEP

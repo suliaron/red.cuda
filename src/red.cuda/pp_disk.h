@@ -98,7 +98,7 @@ public:
 		\param vel Device vector with velocity variables
 		\param dy Device vector that will hold the differentials
 	*/
-	void calculate_dy(int i, int r, ttt_t curr_t, const posm_t *pos, const velR_t *vel, vec_t* dy);
+	void calculate_dy(int i, int r, ttt_t curr_t, const vec_t *pos, const vec_t *vel, vec_t* dy);
 
 	// Test function: print out all the simulation data contained on the device
 	void test_call_kernel_print_sim_data();
@@ -130,11 +130,11 @@ private:
 		\param R0 will contain the position of the barycenter
 		\param V0 will contain the velocity of the barycenter
 	*/
-	void compute_bc(posm_t* R0, velR_t* V0);
+	void compute_bc(vec_t* R0, vec_t* V0);
 
 	//! Sets the grid and block for the kernel launch
 	void set_kernel_launch_param(int n_data);
-	void call_kernel_calculate_grav_accel(ttt_t curr_t, const posm_t* pos, const velR_t* vel, vec_t* dy);
+	void call_kernel_calculate_grav_accel(ttt_t curr_t, const vec_t* pos, const vec_t* vel, vec_t* dy);
 
 	dim3	grid;
 	dim3	block;

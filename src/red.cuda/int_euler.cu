@@ -88,17 +88,17 @@ ttt_t euler::step()
 	// Calculate initial differentials and store them into d_dy
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calculate_dy(i, 0, t, ppd->sim_data->d_pos, ppd->sim_data->d_vel, d_dy[i]);
+		ppd->calculate_dy(i, 0, t, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_dy[i]);
 	}
 
 	const int n = ppd->n_bodies->total;
 	calculate_grid(n, THREADS_PER_BLOCK);
 
 	// Create aliases
-	vec_t* d_pos	 = (vec_t*)ppd->sim_data->d_pos;
-	vec_t* d_pos_out = (vec_t*)ppd->sim_data->d_pos_out;
-	vec_t* d_vel	 = (vec_t*)ppd->sim_data->d_vel;
-	vec_t* d_vel_out = (vec_t*)ppd->sim_data->d_vel_out;
+	vec_t* d_pos	 = ppd->sim_data->d_y[0];
+	vec_t* d_pos_out = ppd->sim_data->d_yout[0];
+	vec_t* d_vel	 = ppd->sim_data->d_y[1];
+	vec_t* d_vel_out = ppd->sim_data->d_yout[1];
 	for (int i = 0; i < 2; i++)
 	{	
 		if (i == 0)	{ // Propagate position
@@ -122,8 +122,8 @@ ttt_t euler::step()
 	dt_next = dt_try;
 
 	ppd->t += dt_did;
-	swap(ppd->sim_data->d_pos_out, ppd->sim_data->d_pos);
-	swap(ppd->sim_data->d_vel_out, ppd->sim_data->d_vel);
+	swap(ppd->sim_data->d_yout[0], ppd->sim_data->d_y[0]);
+	swap(ppd->sim_data->d_yout[1], ppd->sim_data->d_y[1]);
 
 	return dt_did;
 }

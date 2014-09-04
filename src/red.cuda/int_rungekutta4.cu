@@ -121,7 +121,7 @@ void rungekutta4::call_kernel_calc_ytemp_for_fr(int r)
 {
 	const int n_var = 4 * ppd->n_bodies->total;
 	for (int i = 0; i < 2; i++) {
-		var_t *y_n = (i == 0 ? (var_t*)ppd->sim_data->d_pos : (var_t*)ppd->sim_data->d_vel);
+		var_t *y_n = (i == 0 ? (var_t*)ppd->sim_data->d_y[0] : (var_t*)ppd->sim_data->d_y[1]);
 		var_t *fr	= (var_t*)d_f[i][r-1];
 
 		calculate_grid(n_var, THREADS_PER_BLOCK);
@@ -139,8 +139,8 @@ void rungekutta4::call_kernel_calc_yHat()
 
 	for (int i = 0; i < 2; i++) {
 
-		var_t *y_n	 = (i == 0 ? (var_t*)ppd->sim_data->d_pos : (var_t*)ppd->sim_data->d_vel);
-		var_t *y_Hat = (i == 0 ? (var_t*)ppd->sim_data->d_pos_out : (var_t*)ppd->sim_data->d_vel_out);
+		var_t *y_n	 = (i == 0 ? (var_t*)ppd->sim_data->d_y[0] : (var_t*)ppd->sim_data->d_y[1]);
+		var_t *y_Hat = (i == 0 ? (var_t*)ppd->sim_data->d_yout[0] : (var_t*)ppd->sim_data->d_yout[1]);
 		var_t *f1	 = (var_t*)d_f[i][0];
 		var_t *f2	 = (var_t*)d_f[i][1];
 		var_t *f3	 = (var_t*)d_f[i][2];
@@ -163,7 +163,7 @@ ttt_t rungekutta4::step()
 	// Calculate f1 = f(tn, yn) = d_f[][0]
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calculate_dy(i, r, ttemp, ppd->sim_data->d_pos, ppd->sim_data->d_vel, d_f[i][r]);
+		ppd->calculate_dy(i, r, ttemp, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_f[i][r]);
 	}
 
 	var_t max_err = 0.0;
@@ -178,7 +178,7 @@ ttt_t rungekutta4::step()
 			ttemp = ppd->t + c[r] * dt_try;
 			call_kernel_calc_ytemp_for_fr(r);
 			for (int i = 0; i < 2; i++) {
-				ppd->calculate_dy(i, r, ttemp, (posm_t*)d_ytemp[0], (velR_t*)d_ytemp[1], d_f[i][r]);
+				ppd->calculate_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
 			}
 		}
 		// yHat_(n+1) = yn + dt*(1/6*f1 + 1/3*f2 + 1/3*f3 + 1/6*f4) + O(dt^5)
@@ -189,8 +189,8 @@ ttt_t rungekutta4::step()
 
 
 	ppd->t += dt_did;
-	swap(ppd->sim_data->d_pos_out, ppd->sim_data->d_pos);
-	swap(ppd->sim_data->d_vel_out, ppd->sim_data->d_vel);
+	swap(ppd->sim_data->d_yout[0], ppd->sim_data->d_y[0]);
+	swap(ppd->sim_data->d_yout[1], ppd->sim_data->d_y[1]);
 
 	return dt_did;
 }
