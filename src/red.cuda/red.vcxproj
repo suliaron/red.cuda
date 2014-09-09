@@ -69,6 +69,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -155,6 +158,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="int_euler.cu" />
+    <CudaCompile Include="int_rungekutta2.cu" />
     <CudaCompile Include="int_rungekutta4.cu" />
     <CudaCompile Include="main.cu" />
     <CudaCompile Include="pp_disk.cu" />
@@ -171,6 +175,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   <ItemGroup>
     <ClInclude Include="int_euler.h" />
     <ClInclude Include="gas_disk.h" />
+    <ClInclude Include="int_rungekutta2.h" />
     <ClInclude Include="int_rungekutta4.h" />
     <ClInclude Include="nbody_exception.h" />
     <ClInclude Include="number_of_bodies.h" />

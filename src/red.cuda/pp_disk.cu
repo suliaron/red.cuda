@@ -639,11 +639,11 @@ void pp_disk::print_result(ostream& sout)
 			 << p[i].cd << SEP
 			 << body_md[i].mig_type << SEP
 			 << body_md[i].mig_stop_at << SEP
-			 << r[i].x << SEP
-			 << r[i].y << SEP
-			 << r[i].z << SEP
-			 << v[i].x << SEP
-			 << v[i].y << SEP
-			 << v[i].z << endl;
+			 << r[i].x - r[0].x << SEP
+			 << r[i].y - r[0].y << SEP
+			 << r[i].z - r[0].z << SEP
+			 << v[i].x - v[0].x << SEP
+			 << v[i].y - v[0].y << SEP
+			 << v[i].z - v[0].z << endl;
     }
 }

@@ -25,7 +25,7 @@ static __global__
 
 // result = a + b_factor * b
 static __global__
-void kernel_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor, var_t* result)
+	void kernel_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor, var_t* result)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = gridDim.x * blockDim.x;
@@ -82,6 +82,7 @@ void euler::calculate_grid(int nData, int threads_per_block)
 
 ttt_t euler::step()
 {
+	t = ppd->t;
 	// Calculate initial differentials and store them into d_dy
 	for (int i = 0; i < 2; i++)
 	{

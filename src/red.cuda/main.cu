@@ -19,6 +19,7 @@
 
 // includes project
 #include "int_euler.h"
+#include "int_rungekutta2.h"
 #include "int_rungekutta4.h"
 #include "parameter.h"
 #include "redutilcu.h"
@@ -163,11 +164,12 @@ int main(int argc, const char** argv)
 		pp_disk *ppd = opt.create_pp_disk();
 
 		integrator::euler *intgr = new integrator::euler(ppd, 0.001);
+		//integrator::rungekutta2 *intgr = new integrator::rungekutta2(ppd, 0.001);
 		//integrator::rungekutta4 *intgr = new integrator::rungekutta4(opt.param->start_time, 0.1, opt.param->adaptive, opt.param->tolerance, ppd);
 
 		ttt_t ps			= 0;
 		ttt_t dt			= 0;
-		string path = file::combine_path(opt.printout_dir, "result.out.txt");
+		string path = file::combine_path(opt.printout_dir, "result." + intgr->name + ".out.txt");
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
 		//path = file::combine_path(opt.printout_dir, "event.out.txt");
 		//ostream* event_f = new ofstream(path.c_str(), ios::out);
@@ -182,7 +184,7 @@ int main(int argc, const char** argv)
 			clock_t end_of_step = clock();
 			sum_time_of_steps += (end_of_step - start_of_step);
 			n_step++;
-			if (n_step % 1000 == 0) 
+			if (n_step % 100000 == 0) 
 			{
 				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
 			}
@@ -191,7 +193,7 @@ int main(int argc, const char** argv)
 			if (fabs(ps) >= opt.param->output_interval)
 			{
 				ps = 0.0;
-				ppd->call_kernel_transform_to(0);
+				//ppd->call_kernel_transform_to(0);
 				ppd->copy_to_host();
 				ppd->print_result(*result_f);
 			}
