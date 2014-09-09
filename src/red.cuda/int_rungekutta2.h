@@ -13,17 +13,16 @@ using namespace std;
 namespace integrator
 {
 
-class rungekutta4
+class rungekutta2
 {
 public:
 	static var_t a[];
 	static var_t b[];
-	static var_t bh[];
 	static ttt_t c[];
 
 public:
-	rungekutta4(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance);
-	~rungekutta4();
+	rungekutta2(pp_disk *ppd, ttt_t dt);
+	~rungekutta2();
 	ttt_t step();
 
 	ttt_t dt_try;
@@ -35,24 +34,15 @@ private:
 	void allocate_device_vector(void **d_ptr, size_t size);
 
 	void call_kernel_calc_ytemp_for_fr(int r);
-	void call_kernel_calc_yHat();
-	void call_kernel_calc_error();
+	void call_kernel_calc_y_np1();
 
 	//! The order of the embedded RK formulae
 	int	RKOrder;
-	//! The maximum number of the force calculation
-	int	r_max;
-	//! True if the method estimates the error and accordingly adjusts the step-size
-	bool adaptive;
-	//! The maximum of the allowed local truncation error
-	var_t tolerance;
 
 	//! Holds the derivatives for the differential equations
 	vector<vector <vec_t*> >	d_f;
 	//! Holds the temporary solution approximation along the step
 	vector<vec_t*>				d_ytemp;
-	//! Holds the leading local truncation error for each variable
-	vector<var_t*>				d_err;
 
 	dim3	grid;
 	dim3	block;

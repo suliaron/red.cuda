@@ -1,0 +1,17 @@
+# lines beginning with # are comments and ignored
+# this is a test file for the solaris.cuda parameters
+name = this is the name of the simulation
+description = this is the description of the simulation
+
+frame_center = bary
+integrator = rungekuttafehlberg78
+#adaptive = true # deleted because if tolerance is set than the integration must be adaptive!
+#tolerance = 1.0e-10
+
+start_time = 0.0  # year
+length = 10.0  # year
+output_interval = 0.1 # year
+
+ejection = 100.0 # AU
+hit_centrum = 0.1 # [AU]
+collision_factor = 1.0

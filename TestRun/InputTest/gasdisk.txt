@@ -1,0 +1,26 @@
+# lines or text beginning with # are comments and ignored
+# this is a test file for the solaris.cuda gas disk input file
+
+name = Test gas disk
+description = Gas disk with test values
+
+mean_molecular_weight = 2.7
+particle_diameter = 3.0e-10 # m
+
+alpha = 3.1e-3 # the so-called alpha parameter of the disk
+
+time_dependence = linear
+t0 = 10   # yr
+t1 = 100  # yr
+
+eta_c = 2.0e-3 # the velocity of the gas: (1 - 2*eta(r))^(1/2), eta(r) = eta_c * r^eta_p
+eta_p = 0.5
+
+rho_c = 1.0e-9 # g/cm^3 the volume density of the gas at 1 AU in the mid-plane
+rho_p = -2.75  # the exponent of the power-law describing the radial dependence of the gas density: rho(r) = rho_c * r^rho_p
+
+sch_c = 5.0e-2 # the scale height h(r) of the disk
+sch_p = 1.25   # h(r) = sch_c * r^sch_p
+
+tau_c = 0.6666 # power-law describing the time-scale of the type II migration
+tau_p = 2.0    # tau(r) = tau_c * (r/h(r))^tau_p

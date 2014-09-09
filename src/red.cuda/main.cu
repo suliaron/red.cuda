@@ -164,12 +164,14 @@ int main(int argc, const char** argv)
 		pp_disk *ppd = opt.create_pp_disk();
 
 		//integrator::euler *intgr = new integrator::euler(ppd, 0.001);
-		integrator::rungekutta2 *intgr = new integrator::rungekutta2(ppd, 0.001);
-		//integrator::rungekutta4 *intgr = new integrator::rungekutta4(opt.param->start_time, 0.1, opt.param->adaptive, opt.param->tolerance, ppd);
+		//integrator::rungekutta2 *intgr = new integrator::rungekutta2(ppd, 0.001);
+		integrator::rungekutta4 *intgr = new integrator::rungekutta4(ppd, 0.001, opt.param->adaptive, opt.param->tolerance);
 
-		ttt_t ps			= 0;
-		ttt_t dt			= 0;
-		string path = file::combine_path(opt.printout_dir, "result." + intgr->name + ".out.txt");
+		ttt_t ps = 0;
+		ttt_t dt = 0;
+		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
+		string result_filename = "result" + adapt + intgr->name + ".txt";
+		string path = file::combine_path(opt.printout_dir, result_filename);
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
 		//path = file::combine_path(opt.printout_dir, "event.out.txt");
 		//ostream* event_f = new ofstream(path.c_str(), ios::out);
@@ -186,6 +188,7 @@ int main(int argc, const char** argv)
 			n_step++;
 			if (n_step % 100000 == 0) 
 			{
+				cout << "dt: " << dt << " [d], ";
 				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
 			}
 

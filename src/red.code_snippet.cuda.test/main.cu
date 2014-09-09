@@ -1,6 +1,7 @@
 // includes system
 #include <cstdio>
 #include <cstdlib>
+#include <cstdint>
 #include <iostream>
 #include <stdlib.h>
 #include <string>
@@ -10,6 +11,9 @@
 #include "device_launch_parameters.h"
 
 // includes Thrust
+#include "thrust\device_ptr.h"
+#include "thrust\fill.h"
+#include "thrust\extrema.h"
 
 // includes project
 #include "red_type.h"
@@ -17,6 +21,27 @@
 
 
 using namespace std;
+
+__global__
+	void kernel_print_array(int n, const var_t* v)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < n)
+	{
+		printf("v[%4d] : %20.16lf\n", i, v[i]);
+	}
+}
+
+__global__
+	void set_element_of_array(int n, int idx, var_t* v, var_t value)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (i < n && idx == i)
+	{
+		v[idx] = value;
+	}
+}
 
 __global__
 	void kernel_print_vector(int n, const vec_t* v)
@@ -57,7 +82,20 @@ void test_print_position(int n, const vec_t* r)
 	}
 }
 
+void allocate_device_vector(void **d_ptr, size_t size)
+{
+	cudaMalloc(d_ptr, size);
+	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("cudaMalloc failed");
+	}
+}
+
+
 #if 0
+// Study and test how a struct is placed into the memory
+// Study and test how an array of struct is placed into the memory
 int main(int argc, const char** argv)
 {
 	sim_data_t sim_data;
@@ -143,6 +181,8 @@ int main(int argc, const char** argv)
 }
 #endif
 
+#if 0
+// Study and test the vector<vector <vec_t*> > type
 int main(int argc, const char** argv)
 {
 	vector<vector <vec_t*> >	d_f(8);		// size of the outer vector container
@@ -155,4 +195,56 @@ int main(int argc, const char** argv)
 			d_f[i][j] = new vec_t[4];		// allocate 4 vec_t type element for each i, j pair
 		}
 	}
+}
+#endif
+
+// Study how to wrap a vec_t* into thrust vector to find the maximal element
+// howto find the index of the maximum element
+int main(int argc, const char** argv)
+{
+	{
+		int data[6] = {1, 0, 2, 2, 1, 3};
+		int *result = thrust::max_element(data, data + 6);
+		printf("result: %p\n", result);
+		printf("*result: %d\n", *result);
+		int i = 0;
+	}
+
+	//! Holds the leading local truncation error for each variable
+	vector<var_t*> d_err(1);
+
+	// Create a raw pointer to device memory
+	allocate_device_vector((void**)&d_err[0], 8 * sizeof(var_t));
+
+	set_element_of_array<<<1, 8>>>(8, 2, d_err[0], 3.1415926535897932384626433832795);
+	set_element_of_array<<<1, 8>>>(8, 5, d_err[0], 5.987654321);
+	kernel_print_array<<<1, 8>>>(8, d_err[0]);
+	cudaDeviceSynchronize();
+
+	// Wrap raw pointer with a device_ptr
+	thrust::device_ptr<var_t> d_ptr(d_err[0]);
+
+	printf("d_ptr: %p\n", d_ptr.get());
+
+	thrust::device_ptr<var_t> d_ptr_max_element = thrust::max_element(d_ptr, d_ptr + 8);
+
+	var_t max_element = 0.0;
+	// Copy the max element from device memory to host memory
+	cudaMemcpy((void*)&max_element, (void*)d_ptr_max_element.get(), sizeof(var_t), cudaMemcpyDeviceToHost);
+	printf("Value of max_element: %lf\n", max_element);
+	
+	printf("d_ptr_max_element: %p\n", d_ptr_max_element.get());
+	int idx_of_max_element = (d_ptr_max_element.get() - d_ptr.get());
+	cout << "idx_of_max_element: " << idx_of_max_element << endl;
+
+	max_element = *thrust::max_element(d_ptr, d_ptr + 8);
+	cout << "max_element: " << max_element << endl;
+
+	// Use device_ptr in thrust algorithms
+	thrust::fill(d_ptr, d_ptr + 8, (var_t)0.0);
+
+	kernel_print_array<<<1, 8>>>(8, d_err[0]);
+	cudaDeviceSynchronize();
+
+	cudaFree(d_err[0]);
 }
