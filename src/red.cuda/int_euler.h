@@ -27,14 +27,14 @@ public:
 	string	name;
 
 private:
-	void	calculate_grid(int nData, int threads_per_block);
+	void	calc_grid(int nData, int threads_per_block);
 	void	allocate_device_vector(void **d_ptr, size_t size);
 
 	dim3	grid;
 	dim3	block;
 
 	ttt_t	t;					/*!< Actual time of the integrator */
-	vector<vec_t*> d_dy;		/*!< Differentials on the device */
+	vector<vec_t*> d_df;		/*!< Differentials on the device */
 	pp_disk*	ppd;			/*!< simulation data */					
 };
 

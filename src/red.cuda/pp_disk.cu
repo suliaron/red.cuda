@@ -39,7 +39,7 @@ static __host__ __device__
 /****************** KERNEL functions begins here ******************/
 
 static __global__
-	void	kernel_calculate_grav_accel(
+	void	kernel_calc_grav_accel(
 										ttt_t t, 
 										interaction_bound int_bound, 
 										const body_metadata_t* body_md, 
@@ -56,12 +56,13 @@ static __global__
 		a[bodyIdx].x = 0.0;
 		a[bodyIdx].y = 0.0;
 		a[bodyIdx].z = 0.0;
+		a[bodyIdx].w = 0.0;
 
-		vec_t ai = {0.0, 0.0, 0.0, 0.0};
 		vec_t dVec;
+		/* Skip the body with the same index and those which are inactive ie. id < 0 */
 		for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 		{
-			if (j == bodyIdx || body_md[j].id > 0)
+			if (j == bodyIdx || body_md[j].id < 0)
 			{
 				continue;
 			}
@@ -80,14 +81,14 @@ static __global__
 			dVec.w = p[j].mass / (r*dVec.w);
 
 			// 6 FLOP
-			ai.x += dVec.w * dVec.x;
-			ai.y += dVec.w * dVec.y;
-			ai.z += dVec.w * dVec.z;
+			a[bodyIdx].x += dVec.w * dVec.x;
+			a[bodyIdx].y += dVec.w * dVec.y;
+			a[bodyIdx].z += dVec.w * dVec.z;
 		}
 		// 36 FLOP
-		a[bodyIdx].x = K2 * ai.x;
-		a[bodyIdx].y = K2 * ai.y;
-		a[bodyIdx].z = K2 * ai.z;
+		a[bodyIdx].x *= K2;
+		a[bodyIdx].y *= K2;
+		a[bodyIdx].z *= K2;
 	}
 }
 
@@ -259,26 +260,26 @@ void pp_disk::set_kernel_launch_param(int n_data)
 	block.x = n_thread;
 }
 
-void pp_disk::call_kernel_calculate_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
+void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
 	cudaError_t cudaStatus = cudaSuccess;
-	int		nBodyToCalculate;
+	int		nBodyTocalc;
 	
-	nBodyToCalculate = n_bodies->get_n_self_interacting();
-	if (0 < nBodyToCalculate) {
+	nBodyTocalc = n_bodies->get_n_self_interacting();
+	if (0 < nBodyTocalc) {
 		interaction_bound int_bound = n_bodies->get_self_interacting();
-		set_kernel_launch_param(nBodyToCalculate);
+		set_kernel_launch_param(nBodyTocalc);
 
-		kernel_calculate_grav_accel<<<grid, block>>>
+		kernel_calc_grav_accel<<<grid, block>>>
 			(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy);
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {
-			throw nbody_exception("kernel_calculate_grav_accel failed", cudaStatus);
+			throw nbody_exception("kernel_calc_grav_accel failed", cudaStatus);
 		}
 	}
 }
 
-void pp_disk::calculate_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
+void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
 	cudaError_t cudaStatus = cudaSuccess;
 	const int n = n_bodies->get_n_total();
@@ -309,7 +310,7 @@ void pp_disk::calculate_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const ve
 			// This is set to the radius of the star enhanced by 1 %.
 		}
 		// Calculate accelerations originated from the gravitational force
-		call_kernel_calculate_grav_accel(curr_t, r, v, dy);
+		call_kernel_calc_grav_accel(curr_t, r, v, dy);
 #if 0
 		set_kernel_launch_param(n);
 		kernel_print_vector<<<grid, block>>>(n, dy);
@@ -326,11 +327,11 @@ void pp_disk::calculate_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const ve
 void pp_disk::call_kernel_transform_to(int refBodyId)
 {
 	cudaError_t cudaStatus = cudaSuccess;
-	int		nBodyToCalculate = n_bodies->get_n_total();
+	int		nBodyTocalc = n_bodies->get_n_total();
 
-	set_kernel_launch_param(nBodyToCalculate);
+	set_kernel_launch_param(nBodyTocalc);
 	
-	kernel_transform_to<<<grid, block>>>(nBodyToCalculate, refBodyId, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1]);
+	kernel_transform_to<<<grid, block>>>(nBodyTocalc, refBodyId, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1]);
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus) {
 		throw nbody_exception("kernel_transform_to failed", cudaStatus);
@@ -606,10 +607,12 @@ void pp_disk::load(string& path)
 			input >> r[i].x;
 			input >> r[i].y;
 			input >> r[i].z;
+			r[i].w = 0.0;
 			// velocity
 			input >> v[i].x;
 			input >> v[i].y;
 			input >> v[i].z;
+			v[i].w = 0.0;
 		}
         input.close();
 	}
@@ -639,11 +642,12 @@ void pp_disk::print_result(ostream& sout)
 			 << p[i].cd << SEP
 			 << body_md[i].mig_type << SEP
 			 << body_md[i].mig_stop_at << SEP
-			 << r[i].x - r[0].x << SEP
-			 << r[i].y - r[0].y << SEP
-			 << r[i].z - r[0].z << SEP
-			 << v[i].x - v[0].x << SEP
-			 << v[i].y - v[0].y << SEP
-			 << v[i].z - v[0].z << endl;
+			 << r[i].x << SEP
+			 << r[i].y << SEP
+			 << r[i].z << SEP
+			 << v[i].x << SEP
+			 << v[i].y << SEP
+			 << v[i].z << endl;
     }
+	sout.flush();
 }

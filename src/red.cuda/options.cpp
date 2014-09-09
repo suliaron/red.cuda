@@ -105,7 +105,7 @@ pp_disk* options::create_pp_disk()
 	}
 	if (ppd->g_disk != 0)
 	{
-		ppd->g_disk->calculate(ppd->get_mass_of_star());
+		ppd->g_disk->calc(ppd->get_mass_of_star());
 	}
 	if (param->fr_cntr == FRAME_CENTER_BARY)
 	{

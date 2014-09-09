@@ -41,7 +41,7 @@ namespace integrator
 {
 euler::euler(pp_disk *ppd, ttt_t dt) :
 	name("Euler"),
-	d_dy(2),
+	d_df(2),
 	dt_try(dt),
 	dt_did(0.0),
 	dt_next(0.0),
@@ -52,14 +52,14 @@ euler::euler(pp_disk *ppd, ttt_t dt) :
 
 	for (int i = 0; i < 2; i++)
 	{
-		allocate_device_vector((void**)&(d_dy[i]), n*sizeof(vec_t));
+		allocate_device_vector((void**)&(d_df[i]), n*sizeof(vec_t));
 	}
 }
 
 euler::~euler()
 {
-	cudaFree(d_dy[0]);
-	cudaFree(d_dy[1]);
+	cudaFree(d_df[0]);
+	cudaFree(d_df[1]);
 }
 
 void euler::allocate_device_vector(void **d_ptr, size_t size)
@@ -72,7 +72,7 @@ void euler::allocate_device_vector(void **d_ptr, size_t size)
 	}
 }
 
-void euler::calculate_grid(int nData, int threads_per_block)
+void euler::calc_grid(int nData, int threads_per_block)
 {
 	int	nThread = std::min(threads_per_block, nData);
 	int	nBlock = (nData + nThread - 1)/nThread;
@@ -86,16 +86,16 @@ ttt_t euler::step()
 	// Calculate initial differentials and store them into d_dy
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calculate_dy(i, 0, t, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_dy[i]);
+		ppd->calc_dy(i, 0, t, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_df[i]);
 	}
 
 	const int n_var = NDIM * ppd->n_bodies->total;
-	calculate_grid(n_var, THREADS_PER_BLOCK);
+	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++)
 	{	
 		kernel_sum_vector<<<grid, block>>>(
-			n_var, (var_t*)ppd->sim_data->d_y[i], (var_t*)d_dy[i], dt_try, (var_t*)ppd->sim_data->d_yout[i]);
+			n_var, (var_t*)ppd->sim_data->d_y[i], (var_t*)d_df[i], dt_try, (var_t*)ppd->sim_data->d_yout[i]);
 		cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) 
 		{

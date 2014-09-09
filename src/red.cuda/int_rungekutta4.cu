@@ -9,9 +9,21 @@
 #include "red_macro.h"
 #include "red_constants.h"
 
+static __global__
+	void kernel_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor, var_t* result)
+{
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = gridDim.x * blockDim.x;
+
+	while (n > tid) {
+		result[tid] = a[tid] + b_factor * b[tid];
+		tid += stride;
+	}
+}
+
 // ytemp = y_n + a*fr, r = 2, 3, 4
 static __global__
-void kernel_calc_ytemp_for_fr(int_t n, var_t *ytemp, const var_t *y_n, const var_t *fr, var_t a)
+	void kernel_calc_ytemp_for_fr(int_t n, var_t *ytemp, const var_t *y_n, const var_t *fr, var_t a)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = gridDim.x * blockDim.x;
@@ -109,7 +121,7 @@ rungekutta4::~rungekutta4()
 	}
 }
 
-void rungekutta4::calculate_grid(int nData, int threads_per_block)
+void rungekutta4::calc_grid(int nData, int threads_per_block)
 {
 	int	nThread = std::min(threads_per_block, nData);
 	int	nBlock = (nData + nThread - 1)/nThread;
@@ -124,7 +136,7 @@ void rungekutta4::call_kernel_calc_ytemp_for_fr(int r)
 		var_t *y_n = (i == 0 ? (var_t*)ppd->sim_data->d_y[0] : (var_t*)ppd->sim_data->d_y[1]);
 		var_t *fr	= (var_t*)d_f[i][r-1];
 
-		calculate_grid(n_var, THREADS_PER_BLOCK);
+		calc_grid(n_var, THREADS_PER_BLOCK);
 		kernel_calc_ytemp_for_fr<<<grid, block>>>(n_var, (var_t*)d_ytemp[i], y_n, fr, a[r] * dt_try);
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {
@@ -146,7 +158,7 @@ void rungekutta4::call_kernel_calc_yHat()
 		var_t *f3	 = (var_t*)d_f[i][2];
 		var_t *f4	 = (var_t*)d_f[i][3];
 
-		calculate_grid(n_var, THREADS_PER_BLOCK);
+		calc_grid(n_var, THREADS_PER_BLOCK);
 		kernel_calc_yHat<<<grid, block>>>(n_var, y_Hat, y_n, f1, f2, f3, f4, b[0] * dt_try, b[1] * dt_try);
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {
@@ -163,7 +175,7 @@ ttt_t rungekutta4::step()
 	// Calculate f1 = f(tn, yn) = d_f[][0]
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calculate_dy(i, r, ttemp, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_f[i][r]);
+		ppd->calc_dy(i, r, ttemp, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_f[i][r]);
 	}
 
 	var_t max_err = 0.0;
@@ -178,7 +190,7 @@ ttt_t rungekutta4::step()
 			ttemp = ppd->t + c[r] * dt_try;
 			call_kernel_calc_ytemp_for_fr(r);
 			for (int i = 0; i < 2; i++) {
-				ppd->calculate_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
+				ppd->calc_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
 			}
 		}
 		// yHat_(n+1) = yn + dt*(1/6*f1 + 1/3*f2 + 1/3*f3 + 1/6*f4) + O(dt^5)

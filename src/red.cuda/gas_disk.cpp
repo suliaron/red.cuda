@@ -206,7 +206,7 @@ void gas_disk::set_param(string& key, string& value)
 	}
 }
 
-void	gas_disk::calculate(var_t m_star)
+void	gas_disk::calc(var_t m_star)
 {
 	c_vth = sqrt((8.0 * constants::Boltzman_CMU)/(constants::Pi * mean_molecular_weight * constants::ProtonMass_CMU));
 

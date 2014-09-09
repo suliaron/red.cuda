@@ -98,7 +98,7 @@ public:
 		\param v Device vector with velocity variables
 		\param dy Device vector that will hold the differentials
 	*/
-	void calculate_dy(int i, int rr, ttt_t curr_t, const vec_t *r, const vec_t *v, vec_t* dy);
+	void calc_dy(int i, int rr, ttt_t curr_t, const vec_t *r, const vec_t *v, vec_t* dy);
 
 	// Test function: print out all the simulation data contained on the device
 	void test_call_kernel_print_sim_data();
@@ -134,7 +134,7 @@ private:
 
 	//! Sets the grid and block for the kernel launch
 	void set_kernel_launch_param(int n_data);
-	void call_kernel_calculate_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
+	void call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 
 	dim3	grid;
 	dim3	block;

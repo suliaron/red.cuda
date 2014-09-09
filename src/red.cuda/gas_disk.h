@@ -26,7 +26,7 @@ public:
 	/*
 		\param m_star The mass of the star (time dependent)
 	*/
-	void calculate(var_t	m_star);
+	void calc(var_t	m_star);
 	//! Copies parameters and variables from the host to the cuda device
 	void copy_to_device();
 	//! Copies parameters and variables from the cuda device to the host

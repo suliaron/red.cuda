@@ -31,7 +31,7 @@ public:
 	ttt_t dt_next;
 	string name;
 private:
-	void calculate_grid(int nData, int threads_per_block);
+	void calc_grid(int nData, int threads_per_block);
 	void call_kernel_calc_ytemp_for_fr(int r);
 	void call_kernel_calc_yHat();
 

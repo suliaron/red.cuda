@@ -163,8 +163,8 @@ int main(int argc, const char** argv)
 		options opt = options(argc, argv);
 		pp_disk *ppd = opt.create_pp_disk();
 
-		integrator::euler *intgr = new integrator::euler(ppd, 0.001);
-		//integrator::rungekutta2 *intgr = new integrator::rungekutta2(ppd, 0.001);
+		//integrator::euler *intgr = new integrator::euler(ppd, 0.001);
+		integrator::rungekutta2 *intgr = new integrator::rungekutta2(ppd, 0.001);
 		//integrator::rungekutta4 *intgr = new integrator::rungekutta4(opt.param->start_time, 0.1, opt.param->adaptive, opt.param->tolerance, ppd);
 
 		ttt_t ps			= 0;
