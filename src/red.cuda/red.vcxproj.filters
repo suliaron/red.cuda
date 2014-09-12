@@ -32,6 +32,9 @@
     <ClCompile Include="number_of_bodies.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="integrator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="main.cu">
@@ -85,6 +88,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="integrator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

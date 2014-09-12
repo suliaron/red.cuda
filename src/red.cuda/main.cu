@@ -162,15 +162,12 @@ int main(int argc, const char** argv)
 	{
 		options opt = options(argc, argv);
 		pp_disk *ppd = opt.create_pp_disk();
-
-		//integrator::euler *intgr = new integrator::euler(ppd, 0.001);
-		//integrator::rungekutta2 *intgr = new integrator::rungekutta2(ppd, 0.001);
-		integrator::rungekutta4 *intgr = new integrator::rungekutta4(ppd, 0.001, opt.param->adaptive, opt.param->tolerance);
+		integrator *intgr = opt.create_integrator(ppd, 0.001);
 
 		ttt_t ps = 0;
 		ttt_t dt = 0;
 		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
-		string result_filename = "_result" + adapt + intgr->name + ".txt";
+		string result_filename = "___result" + adapt + intgr->name + ".txt";
 		string path = file::combine_path(opt.printout_dir, result_filename);
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
 		//path = file::combine_path(opt.printout_dir, "event.out.txt");

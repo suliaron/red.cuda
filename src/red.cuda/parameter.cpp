@@ -97,28 +97,19 @@ void parameter::set_param(string& key, string& value)
     else if (key == "integrator") {
 		transform(value.begin(), value.end(), value.begin(), ::tolower);
 		if (value == "e" || value == "euler") {
-			int_type = parameter::INTEGRATOR_EULER;
+			int_type = INTEGRATOR_EULER;
 		}
 		else if (value == "rk2" || value == "rungekutta2")	{
-			int_type = parameter::INTEGRATOR_RUNGEKUTTA2;
-		}
-		else if (value == "ork2" || value == "optimizedrungekutta2")	{
-			int_type = parameter::INTEGRATOR_OPT_RUNGEKUTTA2;
+			int_type = INTEGRATOR_RUNGEKUTTA2;
 		}
 		else if (value == "rk4" || value == "rungekutta4")	{
-			int_type = parameter::INTEGRATOR_RUNGEKUTTA4;
+			int_type = INTEGRATOR_RUNGEKUTTA4;
 		}
 		else if (value == "rkf78" || value == "rungekuttafehlberg78")	{
-			int_type = parameter::INTEGRATOR_RUNGEKUTTAFEHLBERG78;
+			int_type = INTEGRATOR_RUNGEKUTTAFEHLBERG78;
 		}			
-		else if (value == "ork4" || value == "optimizedrungekutta4")	{
-			int_type = parameter::INTEGRATOR_OPT_RUNGEKUTTA4;
-		}
 		else if (value == "rkn" || value == "rungekuttanystrom") {
-			int_type = parameter::INTEGRATOR_RUNGEKUTTANYSTROM;
-		}
-		else if (value == "orkn" || value == "optimizedrungekuttanystrom") {
-			int_type = parameter::INTEGRATOR_OPT_RUNGEKUTTANYSTROM;
+			int_type = INTEGRATOR_RUNGEKUTTANYSTROM;
 		}
 		else {
 			throw string("Invalid integrator type: " + value);
@@ -185,12 +176,9 @@ ostream& operator<<(ostream& stream, const parameter* p)
 		{
 			"INTEGRATOR_EULER"
 			"INTEGRATOR_RUNGEKUTTA2",
-			"INTEGRATOR_OPT_RUNGEKUTTA2",
 			"INTEGRATOR_RUNGEKUTTA4",
-			"INTEGRATOR_OPT_RUNGEKUTTA4",
 			"INTEGRATOR_RUNGEKUTTAFEHLBERG78",
 			"INTEGRATOR_RUNGEKUTTANYSTROM",
-			"INTEGRATOR_OPT_RUNGEKUTTANYSTROM"
 		};
 	const char* frame_center_name[] = 
 		{

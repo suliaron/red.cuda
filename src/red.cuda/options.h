@@ -5,6 +5,7 @@
 #include <string>
 
 // includes project
+#include "integrator.h"
 #include "gas_disk.h"
 #include "parameter.h"
 #include "pp_disk.h"
@@ -18,6 +19,7 @@ public:
 	~options();
 
 	pp_disk* create_pp_disk();
+	integrator* create_integrator(pp_disk* ppd, ttt_t dt);
 
 	bool	verbose;				//!< print more information to the screen or log file
 	string	printout_dir;			//!<  Printout directory

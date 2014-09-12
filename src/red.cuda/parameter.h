@@ -22,20 +22,18 @@ typedef enum threshold
 			THRESHOLD_N
 		} threshold_t;
 
+typedef enum integrator_type
+		{ 
+			INTEGRATOR_EULER,
+			INTEGRATOR_RUNGEKUTTA2,
+			INTEGRATOR_RUNGEKUTTA4,
+			INTEGRATOR_RUNGEKUTTAFEHLBERG78,
+			INTEGRATOR_RUNGEKUTTANYSTROM,
+		} integrator_type_t;
+
 class parameter
 {
 public:
-	typedef enum integrator_type
-			{ 
-				INTEGRATOR_EULER,
-				INTEGRATOR_RUNGEKUTTA2,
-				INTEGRATOR_OPT_RUNGEKUTTA2,
-				INTEGRATOR_RUNGEKUTTA4,
-				INTEGRATOR_OPT_RUNGEKUTTA4,
-				INTEGRATOR_RUNGEKUTTAFEHLBERG78,
-				INTEGRATOR_RUNGEKUTTANYSTROM,
-				INTEGRATOR_OPT_RUNGEKUTTANYSTROM
-			} integrator_type_t;
 
 	parameter(string& dir, string& filename, bool verbose);
 	~parameter();

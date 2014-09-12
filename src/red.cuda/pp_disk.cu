@@ -15,6 +15,7 @@
 #include "red_constants.h"
 #include "red_macro.h"
 #include "red_type.h"
+#include "util.h"
 
 using namespace std;
 using namespace redutilcu;
@@ -189,10 +190,7 @@ void test_print_position(int n, const vec_t* r)
 {
 	for (int i = 0; i < n; i++)
 	{
-		printf("r[%4d].x : %20.16lf\n", i, r[i].x);
-		printf("r[%4d].y : %20.16lf\n", i, r[i].y);
-		printf("r[%4d].z : %20.16lf\n", i, r[i].z);
-		printf("r[%4d].w : %20.16lf\n", i, r[i].w);
+		printf("[%d]: (%20.16lf, %20.16lf, %20.16lf, %20.16lf)\n", i, r[i].x, r[i].y, r[i].z, r[i].w);
 	}
 }
 
@@ -402,12 +400,12 @@ void pp_disk::allocate_storage()
 	// Allocate device pointer.
 	for (int i = 0; i < 2; i++)
 	{
-		allocate_device_vector((void **)&(sim_data->d_y[i]),	n*sizeof(vec_t));
-		allocate_device_vector((void **)&(sim_data->d_yout[i]),	n*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_y[i]),	n*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_yout[i]),	n*sizeof(vec_t));
 	}
-	allocate_device_vector((void **)&(sim_data->d_p),			n*sizeof(param_t));
-	allocate_device_vector((void **)&(sim_data->d_body_md),		n*sizeof(body_metadata_t));
-	allocate_device_vector((void **)&(sim_data->d_epoch),		n*sizeof(ttt_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_p),			n*sizeof(param_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_body_md),		n*sizeof(body_metadata_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_epoch),		n*sizeof(ttt_t));
 }
 
 void pp_disk::copy_to_device()
@@ -443,36 +441,6 @@ void pp_disk::copy_variables_to_host()
 	for (int i = 0; i < 2; i++)
 	{
 		copy_vector_to_host((void *)sim_data->y[i],		(void *)sim_data->d_y[i],	n*sizeof(vec_t));
-	}
-}
-
-void pp_disk::allocate_device_vector(void **d_ptr, size_t size)
-{
-	cudaMalloc(d_ptr, size);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("cudaMalloc failed", cudaStatus);
-	}
-}
-
-void pp_disk::copy_vector_to_device(void* dst, const void *src, size_t count)
-{
-	cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("cudaMemcpy failed (copy_vector_to_device)", cudaStatus);
-	}
-}
-
-void pp_disk::copy_vector_to_host(void* dst, const void *src, size_t count)
-{
-	cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("cudaMemcpy failed (copy_vector_to_host)", cudaStatus);
 	}
 }
 

@@ -23,36 +23,26 @@ static __global__
 	}
 }
 
-namespace integrator
-{
-
-var_t rungekutta2::a[] =  {0.0, 1.0/2.0};
-var_t rungekutta2::b[] =  {0.0, 1.0};
-ttt_t rungekutta2::c[] =  {0.0, 1.0/2.0};
+var_t rungekutta2::a[] = {0.0, 1.0/2.0};
+var_t rungekutta2::b[] = {0.0, 1.0};
+ttt_t rungekutta2::c[] = {0.0, 1.0/2.0};
 
 rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt) :
-	name("Runge-Kutta2"),
+	integrator(ppd, dt),
 	RKOrder(2),
-	d_f(2),
-	d_ytemp(2),
-	dt_try(dt),
-	dt_did(0.0),
-	dt_next(0.0),
-	ppd(ppd)
+	d_f(2)
 {
 	const int n = ppd->n_bodies->total;
-	t = ppd->t;
+	name = "Runge-Kutta2";
 
-	// Allocate device pointer.
+	t = ppd->t;
 	for (int i = 0; i < 2; i++)
 	{
-		//ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n*sizeof(vec_t));
-		allocate_device_vector((void**) &(d_ytemp[i]), n*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n*sizeof(vec_t));
 		d_f[i].resize(RKOrder);
 		for (int r = 0; r < RKOrder; r++) 
 		{
-			//ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n * sizeof(vec_t));
-			allocate_device_vector((void**) &(d_f[i][r]), n * sizeof(vec_t));
+			ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n * sizeof(vec_t));
 		}
 	}
 }
@@ -61,30 +51,11 @@ rungekutta2::~rungekutta2()
 {
 	for (int i = 0; i < 2; i++)
 	{
-		cudaFree(d_ytemp[i]);
 		for (int r = 0; r < RKOrder; r++) 
 		{
 			cudaFree(d_f[i][r]);
 		}
 	}
-}
-
-void rungekutta2::allocate_device_vector(void **d_ptr, size_t size)
-{
-	cudaMalloc(d_ptr, size);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("cudaMalloc failed", cudaStatus);
-	}
-}
-
-void rungekutta2::calc_grid(int nData, int threads_per_block)
-{
-	int	nThread = std::min(threads_per_block, nData);
-	int	nBlock = (nData + nThread - 1)/nThread;
-	grid.x  = nBlock;
-	block.x = nThread;
 }
 
 void rungekutta2::call_kernel_calc_ytemp_for_fr(int r)
@@ -155,5 +126,3 @@ ttt_t rungekutta2::step()
 
 	return dt_did;
 }
-
-} /* namespace integrator */

@@ -10,19 +10,6 @@
 #include "red_constants.h"
 #include "util.h"
 
-static __global__
-	void kernel_print_vector(int n, const vec_t* v)
-{
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i < n)
-	{
-		printf("v[%4d].x : %20.16lf\n", i, v[i].x);
-		printf("v[%4d].y : %20.16lf\n", i, v[i].y);
-		printf("v[%4d].z : %20.16lf\n", i, v[i].z);
-		printf("v[%4d].w : %20.16lf\n", i, v[i].w);
-	}
-}
-
 // result = a + b_factor * b
 static __global__
 	void kernel_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor, var_t* result)
@@ -37,23 +24,17 @@ static __global__
 }
 
 
-namespace integrator
-{
 euler::euler(pp_disk *ppd, ttt_t dt) :
-	name("Euler"),
-	d_df(2),
-	dt_try(dt),
-	dt_did(0.0),
-	dt_next(0.0),
-	ppd(ppd)
+	integrator(ppd, dt),
+	d_df(2)
 {
 	const int n = ppd->n_bodies->total;
-	t = ppd->t;
+	name = "Euler";
 
+	t = ppd->t;
 	for (int i = 0; i < 2; i++)
 	{
-		//ALLOCATE_DEVICE_VECTOR((void**)&(d_df[i]), n*sizeof(vec_t));
-		allocate_device_vector((void**)&(d_df[i]), n*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void**)&(d_df[i]), n*sizeof(vec_t));
 	}
 }
 
@@ -61,24 +42,6 @@ euler::~euler()
 {
 	cudaFree(d_df[0]);
 	cudaFree(d_df[1]);
-}
-
-void euler::allocate_device_vector(void **d_ptr, size_t size)
-{
-	cudaMalloc(d_ptr, size);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("cudaMalloc failed", cudaStatus);
-	}
-}
-
-void euler::calc_grid(int nData, int threads_per_block)
-{
-	int	nThread = std::min(threads_per_block, nData);
-	int	nBlock = (nData + nThread - 1)/nThread;
-	grid.x  = nBlock;
-	block.x = nThread;
 }
 
 void euler::call_kernel_calc_y_np1()
@@ -101,7 +64,6 @@ void euler::call_kernel_calc_y_np1()
 	}
 }
 
-
 ttt_t euler::step()
 {
 	t = ppd->t;
@@ -110,25 +72,7 @@ ttt_t euler::step()
 	{
 		ppd->calc_dy(i, 0, t, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_df[i]);
 	}
-
 	call_kernel_calc_y_np1();
-
-	//const int n_var = NDIM * ppd->n_bodies->total;
-	//calc_grid(n_var, THREADS_PER_BLOCK);
-
-	//for (int i = 0; i < 2; i++)
-	//{	
-	//	var_t *y_n	 = (var_t*)ppd->sim_data->d_y[i];
-	//	var_t *y_np1 = (var_t*)ppd->sim_data->d_yout[i];
-	//	var_t *f0	 = (var_t*)d_df[i];
-
-	//	kernel_sum_vector<<<grid, block>>>(n_var, y_n, f0, dt_try, y_np1);
-	//	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	//	if (cudaSuccess != cudaStatus) 
-	//	{
-	//		throw nbody_exception("kernel_sum_vector failed", cudaStatus);
-	//	}
-	//}
 
 	dt_did = dt_try;
 	dt_next = dt_try;
@@ -141,5 +85,3 @@ ttt_t euler::step()
 
 	return dt_did;
 }
-
-} /* namespace integrator */

@@ -6,6 +6,9 @@
 #include "number_of_bodies.h"
 #include "options.h"
 #include "pp_disk.h"
+#include "int_euler.h"
+#include "int_rungekutta2.h"
+#include "int_rungekutta4.h"
 
 using namespace redutilcu;
 
@@ -118,4 +121,34 @@ pp_disk* options::create_pp_disk()
 	ppd->t = param->start_time;
 
 	return ppd;
+}
+
+integrator* options::create_integrator(pp_disk* ppd, ttt_t dt)
+{
+	integrator* intgr;
+
+	switch (param->int_type)
+	{
+	case INTEGRATOR_EULER:
+		intgr = new euler(ppd, dt);
+		break;
+	case INTEGRATOR_RUNGEKUTTA2:
+		intgr = new rungekutta2(ppd, dt);
+		break;
+	case INTEGRATOR_RUNGEKUTTA4:
+		intgr = new rungekutta4(ppd, dt, param->adaptive, param->tolerance);
+		break;
+	case INTEGRATOR_RUNGEKUTTAFEHLBERG78:
+		throw string("Requested integrator is not implemented.");
+		//intgr = new rkf7(*f, dt, adaptive, tolerance);
+		break;
+	case INTEGRATOR_RUNGEKUTTANYSTROM:
+		throw string("Requested integrator is not implemented.");
+		//intgr = new rungekuttanystrom<9>(*f, dt, adaptive, tolerance);
+		break;
+	default:
+		throw string("Requested integrator is not implemented.");
+	}
+
+	return intgr;
 }

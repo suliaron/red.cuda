@@ -13,6 +13,7 @@
 #include "nbody_exception.h"
 #include "red_macro.h"
 #include "red_constants.h"
+#include "util.h"
 
 // result = a + b_factor * b
 static __global__
@@ -51,8 +52,6 @@ static __global__
 	}
 }
 
-namespace integrator
-{
 #define	LAMBDA	1.0/10.0
 
 ttt_t rungekutta4::c[] =  {0.0, 1.0/2.0, 1.0/2.0, 1.0, 1.0};
@@ -61,37 +60,30 @@ var_t rungekutta4::bh[] = {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0, 0.0};
 var_t rungekutta4::b[] =  {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0 -LAMBDA, LAMBDA};
 
 rungekutta4::rungekutta4(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance) :
-	name("Runge-Kutta4"),
-	d_f(2),
-	d_ytemp(2),
-	d_err(2),
+	integrator(ppd, dt),
 	adaptive(adaptive),
 	tolerance(tolerance),
-	dt_try(dt),
-	dt_did(0.0),
-	dt_next(0.0),
-	ppd(ppd)
+	d_f(2),
+	d_err(2)
 {
 	const int n = ppd->n_bodies->total;
 	const int n_var = NDIM * n;
-	t = ppd->t;
+	name = "Runge-Kutta4";
 
+	t = ppd->t;
 	RKOrder = 4;
 	r_max = adaptive ? RKOrder + 1 : RKOrder;
-
-	// Allocate device pointer.
 	for (int i = 0; i < 2; i++)
 	{
-		allocate_device_vector((void**) &(d_ytemp[i]), n * sizeof(vec_t));
-
+		ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n * sizeof(vec_t));
 		d_f[i].resize(r_max);
 		for (int r = 0; r < r_max; r++) 
 		{
-			allocate_device_vector((void**) &(d_f[i][r]), n * sizeof(vec_t));
+			ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n * sizeof(vec_t));
 		}
 		if (adaptive)
 		{
-			allocate_device_vector((void**) &(d_err[i]), n_var * sizeof(var_t));
+			ALLOCATE_DEVICE_VECTOR((void**) &(d_err[i]), n_var * sizeof(var_t));
 		}
 	}
 }
@@ -100,7 +92,6 @@ rungekutta4::~rungekutta4()
 {
 	for (int i = 0; i < 2; i++)
 	{
-		cudaFree(d_ytemp[i]);
 		for (int r = 0; r < r_max; r++) 
 		{
 			cudaFree(d_f[i][r]);
@@ -110,24 +101,6 @@ rungekutta4::~rungekutta4()
 			cudaFree(d_err[i]);
 		}
 	}
-}
-
-void rungekutta4::allocate_device_vector(void **d_ptr, size_t size)
-{
-	cudaMalloc(d_ptr, size);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("cudaMalloc failed", cudaStatus);
-	}
-}
-
-void rungekutta4::calc_grid(int nData, int threads_per_block)
-{
-	int	nThread = std::min(threads_per_block, nData);
-	int	nBlock = (nData + nThread - 1)/nThread;
-	grid.x  = nBlock;
-	block.x = nThread;
 }
 
 void rungekutta4::call_kernel_calc_ytemp_for_fr(int r)
@@ -268,5 +241,3 @@ var_t rungekutta4::get_max_error(int n_var)
 }
 
 #undef LAMBDA
-
-} /* namespace integrator */
