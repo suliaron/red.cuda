@@ -8,7 +8,7 @@
 #include "nbody_exception.h"
 #include "red_macro.h"
 #include "red_constants.h"
-
+#include "util.h"
 
 static __global__
 	void kernel_print_vector(int n, const vec_t* v)
@@ -52,6 +52,7 @@ euler::euler(pp_disk *ppd, ttt_t dt) :
 
 	for (int i = 0; i < 2; i++)
 	{
+		//ALLOCATE_DEVICE_VECTOR((void**)&(d_df[i]), n*sizeof(vec_t));
 		allocate_device_vector((void**)&(d_df[i]), n*sizeof(vec_t));
 	}
 }
@@ -80,6 +81,27 @@ void euler::calc_grid(int nData, int threads_per_block)
 	block.x = nThread;
 }
 
+void euler::call_kernel_calc_y_np1()
+{
+	const int n_var = NDIM * ppd->n_bodies->total;
+
+	calc_grid(n_var, THREADS_PER_BLOCK);
+	for (int i = 0; i < 2; i++)
+	{	
+		var_t *y_n	 = (var_t*)ppd->sim_data->d_y[i];
+		var_t *y_np1 = (var_t*)ppd->sim_data->d_yout[i];
+		var_t *f0	 = (var_t*)d_df[i];
+
+		kernel_sum_vector<<<grid, block>>>(n_var, y_n, f0, dt_try, y_np1);
+		cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus) 
+		{
+			throw nbody_exception("kernel_sum_vector failed", cudaStatus);
+		}
+	}
+}
+
+
 ttt_t euler::step()
 {
 	t = ppd->t;
@@ -89,19 +111,24 @@ ttt_t euler::step()
 		ppd->calc_dy(i, 0, t, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_df[i]);
 	}
 
-	const int n_var = NDIM * ppd->n_bodies->total;
-	calc_grid(n_var, THREADS_PER_BLOCK);
+	call_kernel_calc_y_np1();
 
-	for (int i = 0; i < 2; i++)
-	{	
-		kernel_sum_vector<<<grid, block>>>(
-			n_var, (var_t*)ppd->sim_data->d_y[i], (var_t*)d_df[i], dt_try, (var_t*)ppd->sim_data->d_yout[i]);
-		cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus) 
-		{
-			throw nbody_exception("kernel_sum_vector failed", cudaStatus);
-		}
-	}
+	//const int n_var = NDIM * ppd->n_bodies->total;
+	//calc_grid(n_var, THREADS_PER_BLOCK);
+
+	//for (int i = 0; i < 2; i++)
+	//{	
+	//	var_t *y_n	 = (var_t*)ppd->sim_data->d_y[i];
+	//	var_t *y_np1 = (var_t*)ppd->sim_data->d_yout[i];
+	//	var_t *f0	 = (var_t*)d_df[i];
+
+	//	kernel_sum_vector<<<grid, block>>>(n_var, y_n, f0, dt_try, y_np1);
+	//	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	//	if (cudaSuccess != cudaStatus) 
+	//	{
+	//		throw nbody_exception("kernel_sum_vector failed", cudaStatus);
+	//	}
+	//}
 
 	dt_did = dt_try;
 	dt_next = dt_try;

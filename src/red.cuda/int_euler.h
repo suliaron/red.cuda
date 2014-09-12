@@ -28,6 +28,7 @@ public:
 
 private:
 	void	calc_grid(int nData, int threads_per_block);
+	void	call_kernel_calc_y_np1();
 	void	allocate_device_vector(void **d_ptr, size_t size);
 
 	dim3	grid;

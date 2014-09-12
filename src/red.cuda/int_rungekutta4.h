@@ -33,6 +33,7 @@ public:
 private:
 	void calc_grid(int nData, int threads_per_block);
 	void allocate_device_vector(void **d_ptr, size_t size);
+	var_t get_max_error(int n_var);
 
 	void call_kernel_calc_ytemp_for_fr(int r);
 	void call_kernel_calc_yHat();

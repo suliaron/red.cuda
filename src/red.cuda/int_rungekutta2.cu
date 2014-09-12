@@ -8,6 +8,7 @@
 #include "nbody_exception.h"
 #include "red_macro.h"
 #include "red_constants.h"
+#include "util.h"
 
 // result = a + b_factor * b
 static __global__
@@ -45,10 +46,12 @@ rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt) :
 	// Allocate device pointer.
 	for (int i = 0; i < 2; i++)
 	{
+		//ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n*sizeof(vec_t));
 		allocate_device_vector((void**) &(d_ytemp[i]), n*sizeof(vec_t));
 		d_f[i].resize(RKOrder);
 		for (int r = 0; r < RKOrder; r++) 
 		{
+			//ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n * sizeof(vec_t));
 			allocate_device_vector((void**) &(d_f[i][r]), n * sizeof(vec_t));
 		}
 	}
@@ -87,13 +90,13 @@ void rungekutta2::calc_grid(int nData, int threads_per_block)
 void rungekutta2::call_kernel_calc_ytemp_for_fr(int r)
 {
 	const int n_var = NDIM * ppd->n_bodies->total;
+	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {
 		var_t *y_n	  = (var_t*)ppd->sim_data->d_y[i];
 		var_t *fr	  = (var_t*)d_f[i][r];
 		var_t* result = (var_t*)d_ytemp[i];
 
-		calc_grid(n_var, THREADS_PER_BLOCK);
 		kernel_sum_vector<<<grid, block>>>(n_var, y_n, fr, a[r] * dt_try, result);
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus)
@@ -106,13 +109,13 @@ void rungekutta2::call_kernel_calc_ytemp_for_fr(int r)
 void rungekutta2::call_kernel_calc_y_np1()
 {
 	const int n_var = NDIM * ppd->n_bodies->total;
+	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {
 		var_t *y_n	 = (var_t*)ppd->sim_data->d_y[i];
 		var_t *y_np1 = (var_t*)ppd->sim_data->d_yout[i];
 		var_t *f2	 = (var_t*)d_f[i][1];
 
-		calc_grid(n_var, THREADS_PER_BLOCK);
 		kernel_sum_vector<<<grid, block>>>(n_var, y_n, f2, b[1] * dt_try, y_np1);
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus)

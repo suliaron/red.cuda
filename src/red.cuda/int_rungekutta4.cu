@@ -223,30 +223,12 @@ ttt_t rungekutta4::step()
 			ttemp = ppd->t + c[r] * dt_try;
 			// Calculate f5 = f(tn + c5 * dt,  yn + dt*(1/6*f1 + 1/3*f2 + 1/3*f3 + 1/6*f4)) = d_f[][4]
 			for (int i = 0; i < 2; i++) {
-				ppd->calc_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
+				ppd->calc_dy(i, r, ttemp, ppd->sim_data->d_yout[0], ppd->sim_data->d_yout[1], d_f[i][r]);
 			}
 			// calculate: d_err = h(f4 - f5)
 			call_kernel_calc_error();
 
-			// Wrap raw pointer with a device_ptr
-			thrust::device_ptr<var_t> d_ptr_r(d_err[0]);
-			thrust::device_ptr<var_t> d_ptr_v(d_err[1]);
-
-			// Use thrust to find the maximum element
-			thrust::device_ptr<var_t> d_ptr_max_r = thrust::max_element(d_ptr_r, d_ptr_r + n_var);
-			thrust::device_ptr<var_t> d_ptr_max_v = thrust::max_element(d_ptr_v, d_ptr_v + n_var);
-
-			// Get the index of the maximum element
-			int64_t idx_max_err_r = d_ptr_max_r.get() - d_ptr_r.get();
-			int64_t idx_max_err_v = d_ptr_max_v.get() - d_ptr_v.get();
-
-			var_t max_err_r = 0.0;
-			var_t max_err_v = 0.0;
-			// Copy the max element from device memory to host memory
-			cudaMemcpy((void*)&max_err_r, (void*)d_ptr_max_r.get(), sizeof(var_t), cudaMemcpyDeviceToHost);
-			cudaMemcpy((void*)&max_err_v, (void*)d_ptr_max_v.get(), sizeof(var_t), cudaMemcpyDeviceToHost);
-
-			var_t max_err = fabs(dt_try * LAMBDA * std::max(max_err_r, max_err_v));
+			var_t max_err = get_max_error(n_var);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/4.0);
 		}
 
@@ -260,6 +242,29 @@ ttt_t rungekutta4::step()
 	}
 
 	return dt_did;
+}
+
+var_t rungekutta4::get_max_error(int n_var)
+{
+	// Wrap raw pointer with a device_ptr
+	thrust::device_ptr<var_t> d_ptr_r(d_err[0]);
+	thrust::device_ptr<var_t> d_ptr_v(d_err[1]);
+
+	// Use thrust to find the maximum element
+	thrust::device_ptr<var_t> d_ptr_max_r = thrust::max_element(d_ptr_r, d_ptr_r + n_var);
+	thrust::device_ptr<var_t> d_ptr_max_v = thrust::max_element(d_ptr_v, d_ptr_v + n_var);
+
+	// Get the index of the maximum element
+	int64_t idx_max_err_r = d_ptr_max_r.get() - d_ptr_r.get();
+	int64_t idx_max_err_v = d_ptr_max_v.get() - d_ptr_v.get();
+
+	var_t max_err_r = 0.0;
+	var_t max_err_v = 0.0;
+	// Copy the max element from device memory to host memory
+	cudaMemcpy((void*)&max_err_r, (void*)d_ptr_max_r.get(), sizeof(var_t), cudaMemcpyDeviceToHost);
+	cudaMemcpy((void*)&max_err_v, (void*)d_ptr_max_v.get(), sizeof(var_t), cudaMemcpyDeviceToHost);
+
+	return fabs(dt_try * LAMBDA * std::max(max_err_r, max_err_v));
 }
 
 #undef LAMBDA

@@ -12,7 +12,8 @@
 
 static cudaError_t HandleError(cudaError_t cudaStatus, const char *file, int line)
 {
-    if (cudaSuccess != cudaStatus) {
+    if (cudaSuccess != cudaStatus) 
+	{
         printf( "%s in %s at line %d\n", cudaGetErrorString( cudaStatus ), file, line );
         return cudaStatus;
     }

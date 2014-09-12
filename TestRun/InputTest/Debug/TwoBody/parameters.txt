@@ -5,8 +5,7 @@ description = this is the description of the simulation
 
 frame_center = bary
 integrator = rungekuttafehlberg78
-#adaptive = true # deleted because if tolerance is set than the integration must be adaptive!
-#tolerance = 1.0e-10
+tolerance = 1.0e-10
 
 start_time = 0.0  # year
 length = 10.0  # year

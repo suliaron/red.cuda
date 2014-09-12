@@ -162,6 +162,9 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile Include="int_rungekutta4.cu" />
     <CudaCompile Include="main.cu" />
     <CudaCompile Include="pp_disk.cu" />
+    <CudaCompile Include="util.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dummy.cpp" />
@@ -183,6 +186,9 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="parameter.h" />
     <ClInclude Include="pp_disk.h" />
     <ClInclude Include="tokenizer.h" />
+    <ClInclude Include="util.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\red.cuda.utility\red.cuda.utility.vcxproj">

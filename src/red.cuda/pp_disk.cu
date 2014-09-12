@@ -51,14 +51,14 @@ static __global__
 {
 	const int bodyIdx = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (body_md[bodyIdx].id > 0 && bodyIdx < int_bound.sink.y) {
+	if (body_md[bodyIdx].id >= 0 && bodyIdx < int_bound.sink.y) {
 
 		a[bodyIdx].x = 0.0;
 		a[bodyIdx].y = 0.0;
 		a[bodyIdx].z = 0.0;
 		a[bodyIdx].w = 0.0;
 
-		vec_t dVec;
+		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
 		/* Skip the body with the same index and those which are inactive ie. id < 0 */
 		for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 		{
@@ -121,23 +121,17 @@ static __global__
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (tid < n)
 	{
-		printf("r[%4d].x : %20.16lf\n", tid, r[tid].x);
-		printf("r[%4d].y : %20.16lf\n", tid, r[tid].y);
-		printf("r[%4d].z : %20.16lf\n", tid, r[tid].z);
-		printf("r[%4d].w : %20.16lf\n", tid, r[tid].w);
+		printf("r[%d]: (%20.16lf, %20.16lf, %20.16lf, %20.16lf)\n", tid, r[tid].x, r[tid].y, r[tid].z, r[tid].w);
 	}
 }
 
 static __global__
 	void kernel_print_velocity(int n, const vec_t* v)
 {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i < n)
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (tid < n)
 	{
-		printf("v[%4d].x : %20.16lf\n", i, v[i].x);
-		printf("v[%4d].y : %20.16lf\n", i, v[i].y);
-		printf("v[%4d].z : %20.16lf\n", i, v[i].z);
-		printf("v[%4d].w : %20.16lf\n", i, v[i].w);
+		printf("v[%d]: (%20.16lf, %20.16lf, %20.16lf, %20.16lf)\n", tid, v[tid].x, v[tid].y, v[tid].z, v[tid].w);
 	}
 }
 
@@ -180,13 +174,10 @@ static __global__
 static __global__
 	void kernel_print_vector(int n, const vec_t* v)
 {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i < n)
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (tid < n)
 	{
-		printf("v[%4d].x : %20.16lf\n", i, v[i].x);
-		printf("v[%4d].y : %20.16lf\n", i, v[i].y);
-		printf("v[%4d].z : %20.16lf\n", i, v[i].z);
-		printf("v[%4d].w : %20.16lf\n", i, v[i].w);
+		printf("[%d]: (%20.16lf, %20.16lf, %20.16lf, %20.16lf)\n", tid, v[tid].x, v[tid].y, v[tid].z, v[tid].w);
 	}
 }
 
@@ -201,7 +192,7 @@ void test_print_position(int n, const vec_t* r)
 		printf("r[%4d].x : %20.16lf\n", i, r[i].x);
 		printf("r[%4d].y : %20.16lf\n", i, r[i].y);
 		printf("r[%4d].z : %20.16lf\n", i, r[i].z);
-		printf("r[%4d].m : %20.16lf\n", i, r[i].w);
+		printf("r[%4d].w : %20.16lf\n", i, r[i].w);
 	}
 }
 
@@ -263,9 +254,8 @@ void pp_disk::set_kernel_launch_param(int n_data)
 void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
 	cudaError_t cudaStatus = cudaSuccess;
-	int		nBodyTocalc;
 	
-	nBodyTocalc = n_bodies->get_n_self_interacting();
+	int nBodyTocalc = n_bodies->get_n_self_interacting();
 	if (0 < nBodyTocalc) {
 		interaction_bound int_bound = n_bodies->get_self_interacting();
 		set_kernel_launch_param(nBodyTocalc);
@@ -295,10 +285,11 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 		}
 #if 0
 		set_kernel_launch_param(n);
+		printf("velocity:\n");
 		kernel_print_vector<<<grid, block>>>(n, dy);
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {
-			throw nbody_exception("cudaMemcpy failed", cudaStatus);
+			throw nbody_exception("kernel_print_vector failed", cudaStatus);
 		}
 		cudaDeviceSynchronize();
 #endif
@@ -313,10 +304,11 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 		call_kernel_calc_grav_accel(curr_t, r, v, dy);
 #if 0
 		set_kernel_launch_param(n);
+		printf("acceleration:\n");
 		kernel_print_vector<<<grid, block>>>(n, dy);
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {
-			throw nbody_exception("cudaMemcpy failed", cudaStatus);
+			throw nbody_exception("kernel_print_vector failed", cudaStatus);
 		}
 		cudaDeviceSynchronize();
 #endif
@@ -327,11 +319,11 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 void pp_disk::call_kernel_transform_to(int refBodyId)
 {
 	cudaError_t cudaStatus = cudaSuccess;
-	int		nBodyTocalc = n_bodies->get_n_total();
+	int	nBodyToCalc = n_bodies->get_n_total();
 
-	set_kernel_launch_param(nBodyTocalc);
+	set_kernel_launch_param(nBodyToCalc);
 	
-	kernel_transform_to<<<grid, block>>>(nBodyTocalc, refBodyId, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1]);
+	kernel_transform_to<<<grid, block>>>(nBodyToCalc, refBodyId, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1]);
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus) {
 		throw nbody_exception("kernel_transform_to failed", cudaStatus);
