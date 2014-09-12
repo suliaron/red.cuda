@@ -106,13 +106,13 @@ rungekutta4::~rungekutta4()
 void rungekutta4::call_kernel_calc_ytemp_for_fr(int r)
 {
 	const int n_var = 4 * ppd->n_bodies->total;
+	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {
 		var_t *y_n = (var_t*)ppd->sim_data->d_y[i];
 		var_t *fr  = (var_t*)d_f[i][r-1];
 		var_t* ytemp = (var_t*)d_ytemp[i];
 
-		calc_grid(n_var, THREADS_PER_BLOCK);
 		kernel_sum_vector<<<grid, block>>>(n_var, y_n, fr, a[r] * dt_try, ytemp);
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {
