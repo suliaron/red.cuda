@@ -150,8 +150,7 @@ int device_query(int argc, const char **argv)
 
 int main(int argc, const char** argv)
 {
-	cout << tools::get_time_stamp() << endl;
-	printf("%s Starting...\n\n", argv[0]);
+	cout << "At " << tools::get_time_stamp() << " starting " << argv[0] << endl;
 
 	device_query(argc, argv);
 
