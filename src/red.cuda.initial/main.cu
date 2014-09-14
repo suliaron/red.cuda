@@ -282,6 +282,7 @@ void print_body_record(
 		cerr << "Invalid output version!" << endl;
 		exit(1);
 	}
+    output.flush();
 }
 
 void Emese_data_format_to_solaris_cuda_format(const string& input_path, const string& output_path)
@@ -483,6 +484,7 @@ void generate_pp(phys_prop_dist_t *pp_d, param_t& param)
 	param.cd = generate_random(pp_d->item[DRAG_COEFF].limits.x, pp_d->item[DRAG_COEFF].limits.y, pp_d->item[DRAG_COEFF].pdf);
 }
 
+// TODO: use bodyId-1 in place of bodyId since bodyId starts from 1!
 int generate_pp_disk(const string &path, body_disk_t& body_disk, output_version_t o_version)
 {
 	static char sep = ' ';
@@ -543,7 +545,7 @@ int generate_pp_disk(const string &path, body_disk_t& body_disk, output_version_
 						return ret_code;
 					}
 
-                    print_body_record(output, body_disk.names[bodyId], t, &param, &body_md, &rVec, &vVec, precision, o_version);
+                    print_body_record(output, body_disk.names[bodyId-1], t, &param, &body_md, &rVec, &vVec, precision, o_version);
 				} /* else */
 			} /* for */
 		} /* for */
