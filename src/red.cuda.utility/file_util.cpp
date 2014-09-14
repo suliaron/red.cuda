@@ -80,7 +80,7 @@ string get_extension(const string& path)
 
 void load_ascii_file(const string& path, string& result)
 {
-	std::ifstream file(path);
+	std::ifstream file(path.c_str());
 	if (file) {
 		string str;
 		while (getline(file, str))
