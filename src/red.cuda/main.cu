@@ -166,7 +166,7 @@ int main(int argc, const char** argv)
 		ttt_t ps = 0;
 		ttt_t dt = 0;
 		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
-		string result_filename = "___result" + adapt + intgr->name + ".txt";
+		string result_filename = "_4_result" + adapt + intgr->name + ".txt";
 		string path = file::combine_path(opt.printout_dir, result_filename);
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
 		//path = file::combine_path(opt.printout_dir, "event.out.txt");

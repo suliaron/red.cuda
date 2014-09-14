@@ -327,51 +327,51 @@ void rungekutta8::call_calc_ytemp_for_fr_kernel(int r)
 		switch (r) {
 		case 1:
 			idx = 1;		
-			kernel_calc_ytemp_for_f1<<<grid, block>>>(n, ytemp, dt_try, y_n, f0, a[idx]);
+			kernel_calc_ytemp_for_f1<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, a[idx]);
 			break;
 		case 2:
 			idx = 2;
-			kernel_calc_ytemp_for_f2<<<grid, block>>>(n, ytemp, dt_try, y_n, f0, f1, a[idx], a[idx+1]);
+			kernel_calc_ytemp_for_f2<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f1, a[idx], a[idx+1]);
 			break;
 		case 3:
 			idx = 4;
-			kernel_calc_ytemp_for_f3<<<grid, block>>>(n, ytemp, dt_try, y_n, f0, f2, a[idx], a[idx+2]);
+			kernel_calc_ytemp_for_f3<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f2, a[idx], a[idx+2]);
 			break;
 		case 4:
 			idx = 7;
-			kernel_calc_ytemp_for_f4<<<grid, block>>>(n, ytemp, dt_try, y_n, f0, f2, f3, a[idx], a[idx+2], a[idx+3]);
+			kernel_calc_ytemp_for_f4<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f2, f3, a[idx], a[idx+2], a[idx+3]);
 			break;
 		case 5:
 			idx = 11;
-			kernel_calc_ytemp_for_f5<<<grid, block>>>(n, ytemp, dt_try, y_n, f0, f3, f4, a[idx], a[idx+3], a[idx+4]);
+			kernel_calc_ytemp_for_f5<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f3, f4, a[idx], a[idx+3], a[idx+4]);
 			break;
 		case 6:
 			idx = 16;
-			kernel_calc_ytemp_for_f6<<<grid, block>>>(n, ytemp, dt_try, y_n, f0, f3, f4, f5, a[idx], a[idx+3], a[idx+4], a[idx+5]);
+			kernel_calc_ytemp_for_f6<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f3, f4, f5, a[idx], a[idx+3], a[idx+4], a[idx+5]);
 			break;
 		case 7:
 			idx = 22;
-			kernel_calc_ytemp_for_f7<<<grid, block>>>(n, ytemp, dt_try, y_n, f0, f4, f5, f6, a[idx], a[idx+4], a[idx+5], a[idx+6]);
+			kernel_calc_ytemp_for_f7<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f4, f5, f6, a[idx], a[idx+4], a[idx+5], a[idx+6]);
 			break;
 		case 8:
 			idx = 29;
-			kernel_calc_ytemp_for_f8<<<grid, block>>>(n, ytemp, dt_try, y_n, f0, f3, f4, f5, f6, f7, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7]);
+			kernel_calc_ytemp_for_f8<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f3, f4, f5, f6, f7, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7]);
 			break;
 		case 9:
 			idx = 37;
-			kernel_calc_ytemp_for_f9<<<grid, block>>>(n, ytemp, dt_try, y_n, f0, f3, f4, f5, f6, f7, f8, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7], a[idx+8]);
+			kernel_calc_ytemp_for_f9<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f3, f4, f5, f6, f7, f8, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7], a[idx+8]);
 			break;
 		case 10:
 			idx = 46;
-			kernel_calc_ytemp_for_f10<<<grid, block>>>(n, ytemp, dt_try, y_n, f0, f3, f4, f5, f6, f7, f8, f9, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7], a[idx+8], a[idx+9]);
+			kernel_calc_ytemp_for_f10<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f3, f4, f5, f6, f7, f8, f9, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7], a[idx+8], a[idx+9]);
 			break;
 		case 11:
 			idx = 56;
-			kernel_calc_ytemp_for_f11<<<grid, block>>>(n, ytemp, dt_try, y_n, f0, f5, f6, f7, f8, f9, a[idx], a[idx+5], a[idx+6], a[idx+7], a[idx+8], a[idx+9]);
+			kernel_calc_ytemp_for_f11<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f5, f6, f7, f8, f9, a[idx], a[idx+5], a[idx+6], a[idx+7], a[idx+8], a[idx+9]);
 			break;
 		case 12:
 			idx = 67;
-			kernel_calc_ytemp_for_f12<<<grid, block>>>(n, ytemp, dt_try, y_n, f0, f3, f4, f5, f6, f7, f8, f9, f11, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7], a[idx+8], a[idx+9], a[idx+11]);
+			kernel_calc_ytemp_for_f12<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f3, f4, f5, f6, f7, f8, f9, f11, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7], a[idx+8], a[idx+9], a[idx+11]);
 			break;
 		default:
 			throw string("call_calc_ytemp_for_fr_kernel: parameter out of range.");
@@ -393,10 +393,15 @@ void rungekutta8::call_calc_yscale_kernel()
 		var_t* y_n   = (var_t*)ppd->sim_data->d_y[i];
 		var_t* f0 = (var_t*)d_f[i][0];
 
-		kernel_calc_yscale<<<grid, block>>>(n, yscale, dt_try, y_n, f0);
+		kernel_calc_yscale<<<grid, block>>>(n_var, yscale, dt_try, y_n, f0);
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {
 			throw string("kernel_calc_yscale failed");
 		}
 	}
+}
+
+ttt_t rungekutta8::step()
+{
+	return dt_did;
 }
