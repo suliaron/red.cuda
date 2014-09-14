@@ -442,45 +442,45 @@ int_t	calculate_number_of_bodies(body_disk &bd)
 	return result;
 }
 
-void generate_oe(oe_dist_t oe_d, orbelem_t& oe)
+void generate_oe(oe_dist_t *oe_d, orbelem_t& oe)
 {
-    oe.sma  = generate_random(oe_d.item[ORBITAL_ELEMENT_SMA].limits.x,  oe_d.item[ORBITAL_ELEMENT_SMA].limits.y,  oe_d.item[ORBITAL_ELEMENT_SMA].pdf);
-	oe.ecc  = generate_random(oe_d.item[ORBITAL_ELEMENT_ECC].limits.x,  oe_d.item[ORBITAL_ELEMENT_ECC].limits.y,  oe_d.item[ORBITAL_ELEMENT_ECC].pdf);
-	oe.inc  = generate_random(oe_d.item[ORBITAL_ELEMENT_INC].limits.x,  oe_d.item[ORBITAL_ELEMENT_INC].limits.y,  oe_d.item[ORBITAL_ELEMENT_INC].pdf);
-	oe.peri = generate_random(oe_d.item[ORBITAL_ELEMENT_PERI].limits.x, oe_d.item[ORBITAL_ELEMENT_PERI].limits.y, oe_d.item[ORBITAL_ELEMENT_PERI].pdf);
-	oe.node = generate_random(oe_d.item[ORBITAL_ELEMENT_NODE].limits.x, oe_d.item[ORBITAL_ELEMENT_NODE].limits.y, oe_d.item[ORBITAL_ELEMENT_NODE].pdf);
-    oe.mean = generate_random(oe_d.item[ORBITAL_ELEMENT_MEAN].limits.x, oe_d.item[ORBITAL_ELEMENT_MEAN].limits.y, oe_d.item[ORBITAL_ELEMENT_MEAN].pdf);
+    oe.sma  = generate_random(oe_d->item[ORBITAL_ELEMENT_SMA].limits.x,  oe_d->item[ORBITAL_ELEMENT_SMA].limits.y,  oe_d->item[ORBITAL_ELEMENT_SMA].pdf);
+	oe.ecc  = generate_random(oe_d->item[ORBITAL_ELEMENT_ECC].limits.x,  oe_d->item[ORBITAL_ELEMENT_ECC].limits.y,  oe_d->item[ORBITAL_ELEMENT_ECC].pdf);
+	oe.inc  = generate_random(oe_d->item[ORBITAL_ELEMENT_INC].limits.x,  oe_d->item[ORBITAL_ELEMENT_INC].limits.y,  oe_d->item[ORBITAL_ELEMENT_INC].pdf);
+	oe.peri = generate_random(oe_d->item[ORBITAL_ELEMENT_PERI].limits.x, oe_d->item[ORBITAL_ELEMENT_PERI].limits.y, oe_d->item[ORBITAL_ELEMENT_PERI].pdf);
+	oe.node = generate_random(oe_d->item[ORBITAL_ELEMENT_NODE].limits.x, oe_d->item[ORBITAL_ELEMENT_NODE].limits.y, oe_d->item[ORBITAL_ELEMENT_NODE].pdf);
+    oe.mean = generate_random(oe_d->item[ORBITAL_ELEMENT_MEAN].limits.x, oe_d->item[ORBITAL_ELEMENT_MEAN].limits.y, oe_d->item[ORBITAL_ELEMENT_MEAN].pdf);
 }
 
-void generate_pp(phys_prop_dist_t pp_d, param_t& param)
+void generate_pp(phys_prop_dist_t *pp_d, param_t& param)
 {
-	param.mass = generate_random(pp_d.item[MASS].limits.x, pp_d.item[MASS].limits.y, pp_d.item[MASS].pdf);
+	param.mass = generate_random(pp_d->item[MASS].limits.x, pp_d->item[MASS].limits.y, pp_d->item[MASS].pdf);
 
-	if (	 pp_d.item[DENSITY].limits.x == 0.0 && pp_d.item[DENSITY].limits.y == 0.0 &&
-			 pp_d.item[RADIUS].limits.x == 0.0 && pp_d.item[RADIUS].limits.y == 0.0 )
+	if (	 pp_d->item[DENSITY].limits.x == 0.0 && pp_d->item[DENSITY].limits.y == 0.0 &&
+			 pp_d->item[RADIUS].limits.x == 0.0 && pp_d->item[RADIUS].limits.y == 0.0 )
 	{
 		param.radius = 0.0;
 		param.density = 0.0;
 	}
-	else if (pp_d.item[DENSITY].limits.x == 0.0 && pp_d.item[DENSITY].limits.y == 0.0 &&
-			 pp_d.item[RADIUS].limits.x > 0.0 && pp_d.item[RADIUS].limits.y > 0.0 )
+	else if (pp_d->item[DENSITY].limits.x == 0.0 && pp_d->item[DENSITY].limits.y == 0.0 &&
+			 pp_d->item[RADIUS].limits.x > 0.0 && pp_d->item[RADIUS].limits.y > 0.0 )
 	{
-		param.radius = generate_random(pp_d.item[RADIUS].limits.x, pp_d.item[RADIUS].limits.y, pp_d.item[RADIUS].pdf);
+		param.radius = generate_random(pp_d->item[RADIUS].limits.x, pp_d->item[RADIUS].limits.y, pp_d->item[RADIUS].pdf);
 		param.density = calculate_density(param.mass, param.radius);
 	}
-	else if (pp_d.item[DENSITY].limits.x > 0.0 && pp_d.item[DENSITY].limits.y > 0.0 &&
-			 pp_d.item[RADIUS].limits.x == 0.0 && pp_d.item[RADIUS].limits.y == 0.0 )
+	else if (pp_d->item[DENSITY].limits.x > 0.0 && pp_d->item[DENSITY].limits.y > 0.0 &&
+			 pp_d->item[RADIUS].limits.x == 0.0 && pp_d->item[RADIUS].limits.y == 0.0 )
 	{
-		param.density = generate_random(pp_d.item[DENSITY].limits.x, pp_d.item[DENSITY].limits.y, pp_d.item[DENSITY].pdf);
+		param.density = generate_random(pp_d->item[DENSITY].limits.x, pp_d->item[DENSITY].limits.y, pp_d->item[DENSITY].pdf);
 		param.radius = calculate_radius(param.mass, param.density);
 	}
 	else
 	{
-		param.radius = generate_random(pp_d.item[RADIUS].limits.x, pp_d.item[RADIUS].limits.y, pp_d.item[RADIUS].pdf);
-		param.density = generate_random(pp_d.item[DENSITY].limits.x, pp_d.item[DENSITY].limits.y, pp_d.item[DENSITY].pdf);
+		param.radius = generate_random(pp_d->item[RADIUS].limits.x, pp_d->item[RADIUS].limits.y, pp_d->item[RADIUS].pdf);
+		param.density = generate_random(pp_d->item[DENSITY].limits.x, pp_d->item[DENSITY].limits.y, pp_d->item[DENSITY].pdf);
 	}
 
-	param.cd = generate_random(pp_d.item[DRAG_COEFF].limits.x, pp_d.item[DRAG_COEFF].limits.y, pp_d.item[DRAG_COEFF].pdf);
+	param.cd = generate_random(pp_d->item[DRAG_COEFF].limits.x, pp_d->item[DRAG_COEFF].limits.y, pp_d->item[DRAG_COEFF].pdf);
 }
 
 int generate_pp_disk(const string &path, body_disk_t& body_disk, output_version_t o_version)
@@ -520,7 +520,7 @@ int generate_pp_disk(const string &path, body_disk_t& body_disk, output_version_
 					body_md.body_type = BODY_TYPE_STAR;
 					epoch = 0.0;
 
-					generate_pp(body_disk.pp_d[body_type], param0);
+					generate_pp(&body_disk.pp_d[body_type], param0);
 					body_md.mig_type = body_disk.mig_type[bodyId];
 					body_md.mig_stop_at = body_disk.stop_at[bodyId];
 					print_body_record(output, body_disk.names[bodyId], epoch, &param0, &body_md, &rVec, &vVec, precision, OUTPUT_VERSION_SECOND);
@@ -531,8 +531,8 @@ int generate_pp_disk(const string &path, body_disk_t& body_disk, output_version_
 					body_md.body_type = static_cast<body_type_t>(body_type);
 					epoch = 0.0;
 
-					generate_oe(body_disk.oe_d[body_type], oe);
-					generate_pp(body_disk.pp_d[body_type], param);
+					generate_oe(&body_disk.oe_d[body_type], oe);
+					generate_pp(&body_disk.pp_d[body_type], param);
 					body_md.mig_type = body_disk.mig_type[bodyId];
 					body_md.mig_stop_at = body_disk.stop_at[bodyId];
 
@@ -675,25 +675,14 @@ void set_parameters_of_Dvorak_disk(body_disk_t& disk)
 	type = BODY_TYPE_TESTPARTICLE;
 }
 
-int parse_options(int argc, const char **argv, number_of_bodies **nBodies, string &outDir, string &filename)
+int parse_options(int argc, const char **argv, string &outDir, string &filename)
 {
 	int i = 1;
 
 	while (i < argc) {
 		string p = argv[i];
 
-		if (p == "-nBodies") {
-			i++;
-			int	star				= atoi(argv[i++]);
-			int	giant_planet		= atoi(argv[i++]);
-			int	rocky_planet		= atoi(argv[i++]);
-			int	proto_planet		= atoi(argv[i++]);
-			int	super_planetesimal	= atoi(argv[i++]);
-			int	planetesimal		= atoi(argv[i++]);
-			int	test_particle		= atoi(argv[i]);
-			*nBodies = new number_of_bodies(star, giant_planet, rocky_planet, proto_planet, super_planetesimal, planetesimal, test_particle);
-		}
-		else if (p == "-o") {
+		if (     p == "-o") {
 			i++;
 			outDir = argv[i];
 		}
@@ -721,7 +710,7 @@ int main(int argc, const char **argv)
 	string filename;
 	string output_path;
 
-	parse_options(argc, argv, 0, outDir, filename);
+	parse_options(argc, argv, outDir, filename);
 
 	{
 		set_parameters_of_Two_body_disk(disk);
