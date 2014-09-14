@@ -93,7 +93,7 @@
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
-      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <TargetMachinePlatform>32</TargetMachinePlatform>
       <CodeGeneration>compute_20,sm_20</CodeGeneration>
     </CudaCompile>
   </ItemDefinitionGroup>

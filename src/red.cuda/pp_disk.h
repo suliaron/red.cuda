@@ -30,23 +30,23 @@ typedef enum body_type
 		BODY_TYPE_N
 	} body_type_t;
 
-typedef enum orbelem_name
-	{
-		ORBELEM_SMA,
-		ORBELEM_ECC,
-		ORBELEM_INC,
-		ORBELEM_PERI,
-		ORBELEM_NODE,
-		ORBELEM_MEAN
-	} orbelem_name_t;
+//typedef enum orbelem_name
+//	{
+//		ORBELEM_SMA,
+//		ORBELEM_ECC,
+//		ORBELEM_INC,
+//		ORBELEM_PERI,
+//		ORBELEM_NODE,
+//		ORBELEM_MEAN
+//	} orbelem_name_t;
 
-typedef enum phys_prop_name
-	{
-		MASS,
-		RADIUS,
-		DENSITY,
-		DRAG_COEFF
-	} phys_prop_name_t;
+//typedef enum phys_prop_name
+//	{
+//		MASS,
+//		RADIUS,
+//		DENSITY,
+//		DRAG_COEFF
+//	} phys_prop_name_t;
 
 typedef enum event_name
 	{
