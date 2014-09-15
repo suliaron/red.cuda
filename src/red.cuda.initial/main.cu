@@ -82,12 +82,6 @@ typedef enum phys_prop_name
 		    DRAG_COEFF
 	    } phys_prop_name_t;
 
-typedef enum output_version
-		{
-			OUTPUT_VERSION_FIRST,
-			OUTPUT_VERSION_SECOND
-		} output_version_t;
-
 typedef struct distribution
 		{
 			var2_t	limits;
@@ -243,45 +237,28 @@ void print_body_record(
     var_t epoch, 
     param_t *param, 
     body_metadata_t *body_md,
-    vec_t *r, vec_t *v, int precision, output_version_t o_version)
+    vec_t *r, vec_t *v, int precision)
 {
 	static char sep = ' ';
 
-	int type = static_cast<body_type_t>(body_md->body_type);
+	output << setw(6) << body_md->id << sep
+			<< setw(16) << name << sep 
+			<< setw(3) << body_md->body_type << sep 
+			<< setw(20) << epoch << sep;
+	output << setw(precision + 6) << setprecision(precision) << param->mass << sep 
+			<< setw(precision + 6) << param->radius << sep 
+			<< setw(precision + 6) << param->density << sep 
+			<< setw(precision + 6) << param->cd << sep;
+	output << setw(3) << body_md->mig_type << sep
+			<< setw(precision + 6) << body_md->mig_stop_at << sep;
+	output << setw(precision + 6) << r->x << sep 
+			<< setw(precision + 6) << r->y << sep
+			<< setw(precision + 6) << r->z << sep;
+	output << setw(precision + 6) << v->x << sep
+			<< setw(precision + 6) << v->y << sep
+			<< setw(precision + 6) << v->z << sep;
+	output << endl;
 
-	switch (o_version)
-	{
-	case OUTPUT_VERSION_FIRST:
-		output << body_md->id << sep << epoch << sep;
-		output << param->mass << sep << param->radius << sep << param->density << sep << param->cd << sep;
-		output << body_md->mig_type << sep << body_md->mig_stop_at << sep;
-		output << r->x << sep << r->y << sep << r->z << sep;
-		output << v->x << sep << v->y << sep << v->z << sep;
-		output << endl;
-		break;
-	case OUTPUT_VERSION_SECOND:
-		output << setw(6) << body_md->id << sep
-			   << setw(16) << name << sep 
-			   << setw(3) << body_md->body_type << sep 
-			   << setw(20) << epoch << sep;
-		output << setw(precision + 6) << setprecision(precision) << param->mass << sep 
-			   << setw(precision + 6) << param->radius << sep 
-			   << setw(precision + 6) << param->density << sep 
-			   << setw(precision + 6) << param->cd << sep;
-		output << setw(3) << body_md->mig_type << sep
-			   << setw(precision + 6) << body_md->mig_stop_at << sep;
-		output << setw(precision + 6) << r->x << sep 
-			   << setw(precision + 6) << r->y << sep
-			   << setw(precision + 6) << r->z << sep;
-		output << setw(precision + 6) << v->x << sep
-			   << setw(precision + 6) << v->y << sep
-			   << setw(precision + 6) << v->z << sep;
-		output << endl;
-		break;
-	default:
-		cerr << "Invalid output version!" << endl;
-		exit(1);
-	}
     output.flush();
 }
 
@@ -346,14 +323,11 @@ void Emese_data_format_to_solaris_cuda_format(const string& input_path, const st
 			input.read(reinterpret_cast<char *>(& m), sizeof( m));
 			input.read(reinterpret_cast<char *>(& rad), sizeof( rad));
 
-			var_t	t = time;
 			vec_t	rVec = {x, y, z, 0.0};
 			vec_t	vVec = {vx, vy, vz, 0.0};
 
-            ttt_t           epoch = 0.0;
 			param_t	        param;
             body_metadata_t body_md;
-			orbelem_t	    oe;
 
 			body_md.id = id;
 			if (id == 0)
@@ -371,7 +345,6 @@ void Emese_data_format_to_solaris_cuda_format(const string& input_path, const st
 					body_md.body_type = BODY_TYPE_TESTPARTICLE;
 				}
 			}
-			epoch = time;
 
 			param.cd = 0.0;
 			param.mass = m;
@@ -380,7 +353,7 @@ void Emese_data_format_to_solaris_cuda_format(const string& input_path, const st
 			body_md.mig_stop_at = 0.0;
 			body_md.mig_type = MIGRATION_TYPE_NO;
 
-			print_body_record(output, name, time, &param,&body_md, &rVec, &vVec, 15, OUTPUT_VERSION_SECOND);
+			print_body_record(output, name, time, &param,&body_md, &rVec, &vVec, 15);
 		}
 		input.close();
 		output.close();
@@ -484,8 +457,7 @@ void generate_pp(phys_prop_dist_t *pp_d, param_t& param)
 	param.cd = generate_random(pp_d->item[DRAG_COEFF].limits.x, pp_d->item[DRAG_COEFF].limits.y, pp_d->item[DRAG_COEFF].pdf);
 }
 
-// TODO: use bodyId-1 in place of bodyId since bodyId starts from 1!
-int generate_pp_disk(const string &path, body_disk_t& body_disk, output_version_t o_version)
+int generate_pp_disk(const string &path, body_disk_t& body_disk)
 {
 	static char sep = ' ';
 	static const int precision = 10;
@@ -510,33 +482,33 @@ int generate_pp_disk(const string &path, body_disk_t& body_disk, output_version_
         orbelem_t	oe;
 
         // The id of each body must be larger than 0 in order to indicate inactive body with negative id (ie. zero is not good)
-		int_t bodyId = 1;
+        int bodyIdx = 0;
+		int bodyId = 1;
 		for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)
 		{
 			srand ((unsigned int)time(0));
-			for (int i = 0; i < body_disk.nBody[body_type]; i++, bodyId++)
+			for (int i = 0; i < body_disk.nBody[body_type]; i++, bodyIdx++, bodyId++)
 			{
+    			epoch = 0.0;
 				if (body_type == BODY_TYPE_STAR)
 				{
 					body_md.id = bodyId;
 					body_md.body_type = BODY_TYPE_STAR;
-					epoch = 0.0;
 
 					generate_pp(&body_disk.pp_d[body_type], param0);
-					body_md.mig_type = body_disk.mig_type[bodyId];
-					body_md.mig_stop_at = body_disk.stop_at[bodyId];
-					print_body_record(output, body_disk.names[bodyId], epoch, &param0, &body_md, &rVec, &vVec, precision, OUTPUT_VERSION_SECOND);
+					body_md.mig_type = body_disk.mig_type[bodyIdx];
+					body_md.mig_stop_at = body_disk.stop_at[bodyIdx];
+					print_body_record(output, body_disk.names[bodyIdx], epoch, &param0, &body_md, &rVec, &vVec, precision);
 				} /* if */
 				else 
 				{
 					body_md.id = bodyId;
 					body_md.body_type = static_cast<body_type_t>(body_type);
-					epoch = 0.0;
 
 					generate_oe(&body_disk.oe_d[body_type], oe);
 					generate_pp(&body_disk.pp_d[body_type], param);
-					body_md.mig_type = body_disk.mig_type[bodyId];
-					body_md.mig_stop_at = body_disk.stop_at[bodyId];
+					body_md.mig_type = body_disk.mig_type[bodyIdx];
+					body_md.mig_stop_at = body_disk.stop_at[bodyIdx];
 
 					var_t mu = K2*(param0.mass + param.mass);
 					int_t ret_code = calculate_phase(mu, &oe, &rVec, &vVec);
@@ -545,7 +517,7 @@ int generate_pp_disk(const string &path, body_disk_t& body_disk, output_version_
 						return ret_code;
 					}
 
-                    print_body_record(output, body_disk.names[bodyId-1], t, &param, &body_md, &rVec, &vVec, precision, o_version);
+                    print_body_record(output, body_disk.names[bodyIdx], t, &param, &body_md, &rVec, &vVec, precision);
 				} /* else */
 			} /* for */
 		} /* for */
@@ -574,17 +546,15 @@ void set_parameters_of_Two_body_disk(body_disk_t& disk)
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at = new var_t[nBodies];
 
-	int	body_id = 1;
+    int bodyIdx = 0;
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
 	set(disk.pp_d[type].item[MASS], 1.0, pdf_const);
 	set(disk.pp_d[type].item[RADIUS], 1.0 * constants::SolarRadiusToAu, pdf_const);
 	set(disk.pp_d[type].item[DRAG_COEFF], 0.0, pdf_const);
-	disk.mig_type[body_id] = MIGRATION_TYPE_NO;
-	disk.stop_at[body_id] = 0.0;
-
-	body_id++;
+	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+	disk.stop_at[bodyIdx] = 0.0;
 
 	type = BODY_TYPE_GIANTPLANET;
 	{
@@ -599,11 +569,12 @@ void set_parameters_of_Two_body_disk(body_disk_t& disk)
 		set(disk.pp_d[type].item[DENSITY], 1.3 * constants::GramPerCm3ToSolarPerAu3, pdf_const);
 		set(disk.pp_d[type].item[DRAG_COEFF], 0.0, pdf_const);
 
-		for (int i = 0; i < disk.nBody[type]; i++, body_id++) 
+		for (int i = 0; i < disk.nBody[type]; i++) 
 		{
+            bodyIdx++;
 			disk.names.push_back(create_name(i, type));
-			disk.mig_type[body_id] = MIGRATION_TYPE_NO;
-			disk.stop_at[body_id] = 0.0;
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
 
@@ -633,17 +604,16 @@ void set_parameters_of_Dvorak_disk(body_disk_t& disk)
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at = new var_t[nBodies];
 
-	int	body_id = 1;
-	int type = BODY_TYPE_STAR;
+    int bodyIdx = 0;
+
+    int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
 	set(disk.pp_d[type].item[MASS], 1.0, pdf_const);
 	set(disk.pp_d[type].item[RADIUS], 1.0 * constants::SolarRadiusToAu, pdf_const);
 	set(disk.pp_d[type].item[DRAG_COEFF], 0.0, pdf_const);
-	disk.mig_type[body_id] = MIGRATION_TYPE_NO;
-	disk.stop_at[body_id] = 0.0;
-
-	body_id++;
+	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+	disk.stop_at[bodyIdx] = 0.0;
 
 	type = BODY_TYPE_GIANTPLANET;
 
@@ -662,11 +632,12 @@ void set_parameters_of_Dvorak_disk(body_disk_t& disk)
 		set(disk.pp_d[type].item[DENSITY], rhoBasalt, pdf_const);
 		set(disk.pp_d[type].item[DRAG_COEFF], 0.0, pdf_const);
 
-		for (int i = 0; i < disk.nBody[type]; i++, body_id++) 
+        for (int i = 0; i < disk.nBody[type]; i++) 
 		{
+            bodyIdx++;
 			disk.names.push_back(create_name(i, type));
-			disk.mig_type[body_id] = MIGRATION_TYPE_NO;
-			disk.stop_at[body_id] = 0.0;
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
 
@@ -717,7 +688,7 @@ int main(int argc, const char **argv)
 	{
 		set_parameters_of_Two_body_disk(disk);
         output_path = file::combine_path(outDir, filename);
-		generate_pp_disk(output_path, disk, OUTPUT_VERSION_SECOND);
+		generate_pp_disk(output_path, disk);
 		return 0;
 	}
 
@@ -731,7 +702,7 @@ int main(int argc, const char **argv)
 	{
 		set_parameters_of_Dvorak_disk(disk);
 		output_path = file::combine_path(outDir, filename);
-		generate_pp_disk(output_path, disk, OUTPUT_VERSION_SECOND);
+		generate_pp_disk(output_path, disk);
     	return 0;
 	}
 
@@ -788,7 +759,7 @@ int main(int argc, const char **argv)
 	}
 
 	outDir = "C:\\Work\\Projects\\solaris.cuda\\TestRun\\InputTest";
-	generate_pp_disk(file::combine_path(outDir, "test_disk.txt"), test_disk, OUTPUT_VERSION_SECOND);
+	generate_pp_disk(file::combine_path(outDir, "test_disk.txt"), test_disk);
 
 	delete[] test_disk.mig_type;
 	delete[] test_disk.stop_at;
