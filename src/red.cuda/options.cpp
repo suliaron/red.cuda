@@ -9,6 +9,7 @@
 #include "int_euler.h"
 #include "int_rungekutta2.h"
 #include "int_rungekutta4.h"
+#include "int_rungekutta8.h"
 
 using namespace redutilcu;
 
@@ -139,8 +140,7 @@ integrator* options::create_integrator(pp_disk* ppd, ttt_t dt)
 		intgr = new rungekutta4(ppd, dt, param->adaptive, param->tolerance);
 		break;
 	case INTEGRATOR_RUNGEKUTTAFEHLBERG78:
-		throw string("Requested integrator is not implemented.");
-		//intgr = new rkf7(*f, dt, adaptive, tolerance);
+		intgr = new rungekutta8(ppd, dt, param->adaptive, param->tolerance);
 		break;
 	case INTEGRATOR_RUNGEKUTTANYSTROM:
 		throw string("Requested integrator is not implemented.");

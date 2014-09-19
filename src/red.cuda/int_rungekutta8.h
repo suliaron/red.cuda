@@ -45,5 +45,5 @@ private:
 	void call_calc_yscale_kernel();
 	void call_calc_error_kernel();
 	void call_calc_scalederror_kernel();
-
+	var_t get_max_error(int n_var);
 };

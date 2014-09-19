@@ -389,9 +389,9 @@ void rungekutta8::call_calc_yscale_kernel()
 	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {
-		var_t *yscale= d_yscale[i];
-		var_t* y_n   = (var_t*)ppd->sim_data->d_y[i];
-		var_t* f0 = (var_t*)d_f[i][0];
+		var_t* yscale = d_yscale[i];
+		var_t* y_n    = (var_t*)ppd->sim_data->d_y[i];
+		var_t* f0     = (var_t*)d_f[i][0];
 
 		kernel_calc_yscale<<<grid, block>>>(n_var, yscale, dt_try, y_n, f0);
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
@@ -401,7 +401,150 @@ void rungekutta8::call_calc_yscale_kernel()
 	}
 }
 
+void rungekutta8::call_calc_error_kernel()
+{
+	const int n_var = 4 * ppd->n_bodies->total;
+	calc_grid(n_var, THREADS_PER_BLOCK);
+
+	for (int i = 0; i < 2; i++) {
+		var_t *err = d_err[i];
+		var_t *f0  = (var_t*)d_f[i][0];
+		var_t *f10 = (var_t*)d_f[i][10];
+		var_t *f11 = (var_t*)d_f[i][11];
+		var_t *f12 = (var_t*)d_f[i][12];
+
+		kernel_calc_error<<<grid, block>>>(n_var, err, f0, f10, f11, f12);
+		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus) {
+			throw string("kernel_calc_error failed");
+		}
+	}
+}
+
+void rungekutta8::call_calc_scalederror_kernel()
+{
+	const int n_var = 4 * ppd->n_bodies->total;
+	calc_grid(n_var, THREADS_PER_BLOCK);
+
+	for (int i = 0; i < 2; i++) {
+		var_t *err = d_err[i];
+		var_t *yscale= (var_t*)d_yscale[i];
+		var_t *f0  = (var_t*)d_f[i][0];
+		var_t *f10 = (var_t*)d_f[i][10];
+		var_t *f11 = (var_t*)d_f[i][11];
+		var_t *f12 = (var_t*)d_f[i][12];
+
+		kernel_calc_scalederror<<<grid, block>>>(n_var, err, dt_try, yscale, f0, f10, f11, f12);
+		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus) {
+			throw string("kernel_calc_scalederror failed");
+		}
+	}
+}
+
+void rungekutta8::call_calc_y_np1_kernel()
+{
+	const int n_var = 4 * ppd->n_bodies->total;
+	calc_grid(n_var, THREADS_PER_BLOCK);
+
+	for (int i = 0; i < 2; i++) {
+		var_t* y_n   = (var_t*)ppd->sim_data->d_y[i];
+		var_t* y_np1 = (var_t*)ppd->sim_data->d_yout[i];
+
+		var_t *f0  = (var_t*)d_f[i][0];
+		var_t *f5  = (var_t*)d_f[i][5];
+		var_t *f6  = (var_t*)d_f[i][6];
+		var_t *f7  = (var_t*)d_f[i][7];
+		var_t *f8  = (var_t*)d_f[i][8];
+		var_t *f9  = (var_t*)d_f[i][9];
+		var_t *f10 = (var_t*)d_f[i][10];
+
+		kernel_calc_y_np1<<<grid, block>>>(n_var, y_np1, dt_try, y_n, f0, f5, f6, f7, f8, f9, f10, b[0], b[5], b[6], b[7], b[8], b[9], b[10]);
+		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus) {
+			throw string("calc_y_np1_kernel failed");
+		}
+	}
+}
+
 ttt_t rungekutta8::step()
 {
+	const int n_var = NDIM * ppd->n_bodies->total;
+
+	// Calculate initial differentials and store them into d_f[][0]
+	int r = 0;
+	ttt_t ttemp = ppd->t + c[r] * dt_try;
+	// Calculate f1 = f(tn, yn) = d_f[][0]
+	for (int i = 0; i < 2; i++)
+	{
+		ppd->calc_dy(i, r, ttemp, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_f[i][r]);
+	}
+
+	var_t max_err = 0.0;
+	int iter = 0;
+	do
+	{
+		dt_did = dt_try;
+		// Calculate f2 = f(tn + c1 * dt, yn + a10 * dt * f0) = d_f[][1]
+		// ...
+		// Calculate f11 = f(tn + c10 * dt, yn + a10,0 * dt * f0 + ...) = d_f[][10]
+		for (r = 1; r <= 10; r++) {
+			ttemp = ppd->t + c[r] * dt_try;
+			call_calc_ytemp_for_fr_kernel(r);
+			for (int i = 0; i < 2; i++) {
+				ppd->calc_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
+			}
+		}
+		// y_(n+1) = yn + dt*(b0*f0 + b5*f5 + b6*f6 + b7*f7 + b8*f8 + b9*f9 + b10*f10) + O(dt^8)
+		call_calc_y_np1_kernel();
+
+		if (adaptive) {
+			// TODO: implement
+			// Calculate f11 = f(tn + c11 * dt, yn + ...) = d_f[][11]
+			// Calculate f12 = f(tn + c11 * dt, yn + ...) = d_f[][11]
+			for (r = 11; r < r_max; r++) {
+				ttemp = ppd->t + c[r] * dt_try;
+				call_calc_ytemp_for_fr_kernel(r);
+				for (int i = 0; i < 2; i++) {
+					ppd->calc_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
+				}
+			}
+			call_calc_error_kernel();
+			var_t max_err = get_max_error(n_var);
+			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/8.0);
+		}
+
+		iter++;
+	} while (adaptive && max_err > tolerance);
+
+	ppd->t += dt_did;
+	for (int i = 0; i < 2; i++)
+	{
+		swap(ppd->sim_data->d_yout[i], ppd->sim_data->d_y[i]);
+	}
+
 	return dt_did;
+}
+
+var_t rungekutta8::get_max_error(int n_var)
+{
+	// Wrap raw pointer with a device_ptr
+	thrust::device_ptr<var_t> d_ptr_r(d_err[0]);
+	thrust::device_ptr<var_t> d_ptr_v(d_err[1]);
+
+	// Use thrust to find the maximum element
+	thrust::device_ptr<var_t> d_ptr_max_r = thrust::max_element(d_ptr_r, d_ptr_r + n_var);
+	thrust::device_ptr<var_t> d_ptr_max_v = thrust::max_element(d_ptr_v, d_ptr_v + n_var);
+
+	// Get the index of the maximum element
+	int64_t idx_max_err_r = d_ptr_max_r.get() - d_ptr_r.get();
+	int64_t idx_max_err_v = d_ptr_max_v.get() - d_ptr_v.get();
+
+	var_t max_err_r = 0.0;
+	var_t max_err_v = 0.0;
+	// Copy the max element from device memory to host memory
+	cudaMemcpy((void*)&max_err_r, (void*)d_ptr_max_r.get(), sizeof(var_t), cudaMemcpyDeviceToHost);
+	cudaMemcpy((void*)&max_err_v, (void*)d_ptr_max_v.get(), sizeof(var_t), cudaMemcpyDeviceToHost);
+
+	return fabs(dt_try * 41.0/840.0 * std::max(max_err_r, max_err_v));
 }
