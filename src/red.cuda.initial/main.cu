@@ -685,19 +685,19 @@ int main(int argc, const char **argv)
 
 	parse_options(argc, argv, outDir, filename);
 
-	{
-		set_parameters_of_Two_body_disk(disk);
-        output_path = file::combine_path(outDir, filename);
-		generate_pp_disk(output_path, disk);
-		return 0;
-	}
+	//{
+	//	set_parameters_of_Two_body_disk(disk);
+ //       output_path = file::combine_path(outDir, filename);
+	//	generate_pp_disk(output_path, disk);
+	//	return 0;
+	//}
 
-	{
-		string input_path = file::combine_path(outDir, filename);
-		string output_path = file::combine_path(outDir, file::get_filename_without_ext(filename) + ".txt");
-		Emese_data_format_to_solaris_cuda_format(input_path, output_path);
-		return 0;
-	}
+	//{
+	//	string input_path = file::combine_path(outDir, filename);
+	//	string output_path = file::combine_path(outDir, file::get_filename_without_ext(filename) + ".txt");
+	//	Emese_data_format_to_solaris_cuda_format(input_path, output_path);
+	//	return 0;
+	//}
 
 	{
 		set_parameters_of_Dvorak_disk(disk);

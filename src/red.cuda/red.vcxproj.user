@@ -8,4 +8,12 @@
     <LocalDebuggerCommandArguments>--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Debug\TwoBody -p parameters.txt -ic TwoBody.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LocalDebuggerCommandArguments>--verbose -iDir D:\Work\Projects\red.cuda\TestRun\InputTest\Debug\TwoBody -ic TwoBody.txt -p parameters.txt </LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LocalDebuggerCommandArguments>-iDir D:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run01 -ic run01.txt -p parameters.txt</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
 </Project>

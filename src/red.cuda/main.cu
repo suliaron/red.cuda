@@ -166,7 +166,7 @@ int main(int argc, const char** argv)
 		ttt_t ps = 0;
 		ttt_t dt = 0;
 		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
-		string result_filename = "_5_result" + adapt + intgr->name + ".txt";
+		string result_filename = "result" + adapt + intgr->name + ".txt";
 		string path = file::combine_path(opt.printout_dir, result_filename);
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
 		//path = file::combine_path(opt.printout_dir, "event.out.txt");
@@ -182,7 +182,7 @@ int main(int argc, const char** argv)
 			clock_t end_of_step = clock();
 			sum_time_of_steps += (end_of_step - start_of_step);
 			n_step++;
-			if (n_step % 100000 == 0) 
+			if (n_step % 100 == 0) 
 			{
 				cout << "dt: " << dt << " [d], ";
 				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
