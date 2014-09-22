@@ -511,6 +511,7 @@ ttt_t rungekutta8::step()
 			}
 			call_calc_error_kernel();
 			var_t max_err = get_max_error(n_var);
+			printf("max_err: %le\n", max_err);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/8.0);
 		}
 
