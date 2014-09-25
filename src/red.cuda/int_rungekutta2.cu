@@ -118,6 +118,8 @@ ttt_t rungekutta2::step()
 	dt_did = dt_try;
 	call_kernel_calc_y_np1();
 
+	update_counters(1);
+
 	ppd->t += dt_did;
 	for (int i = 0; i < 2; i++)
 	{

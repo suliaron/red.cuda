@@ -33,3 +33,13 @@ void copy_vector_to_host(void* dst, const void *src, size_t count)
 		throw nbody_exception("cudaMemcpy failed (copy_vector_to_host)", cudaStatus);
 	}
 }
+
+void copy_constant_to_device(const void* dst, const void *src, size_t count)
+{
+	cudaMemcpyToSymbol(dst, src, count);
+	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw nbody_exception("cudaMemcpyToSymbol failed (copy_constant_to_device)", cudaStatus);
+	}
+}

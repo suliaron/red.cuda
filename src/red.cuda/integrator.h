@@ -20,6 +20,7 @@ public:
 	integrator(pp_disk *ppd, ttt_t dt);
 	~integrator();
 
+	void update_counters(int iter);
 	int get_n_failed_step();
 	int get_n_passed_step();
 	int get_n_tried_step();

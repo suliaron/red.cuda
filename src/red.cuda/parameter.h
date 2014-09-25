@@ -8,28 +8,28 @@
 
 using namespace std;
 
-typedef enum frame_center
-		{
-			FRAME_CENTER_BARY,
-			FRAME_CENTER_ASTRO
-		} frame_center_t;
-
-typedef enum threshold
-		{
-			THRESHOLD_HIT_CENTRUM_DISTANCE,
-			THRESHOLD_EJECTION_DISTANCE,
-			THRESHOLD_COLLISION_FACTOR,
-			THRESHOLD_N
-		} threshold_t;
-
-typedef enum integrator_type
-		{ 
-			INTEGRATOR_EULER,
-			INTEGRATOR_RUNGEKUTTA2,
-			INTEGRATOR_RUNGEKUTTA4,
-			INTEGRATOR_RUNGEKUTTAFEHLBERG78,
-			INTEGRATOR_RUNGEKUTTANYSTROM,
-		} integrator_type_t;
+//typedef enum frame_center
+//		{
+//			FRAME_CENTER_BARY,
+//			FRAME_CENTER_ASTRO
+//		} frame_center_t;
+//
+//typedef enum threshold
+//		{
+//			THRESHOLD_HIT_CENTRUM_DISTANCE,
+//			THRESHOLD_EJECTION_DISTANCE,
+//			THRESHOLD_COLLISION_FACTOR,
+//			THRESHOLD_N
+//		} threshold_t;
+//
+//typedef enum integrator_type
+//		{ 
+//			INTEGRATOR_EULER,
+//			INTEGRATOR_RUNGEKUTTA2,
+//			INTEGRATOR_RUNGEKUTTA4,
+//			INTEGRATOR_RUNGEKUTTAFEHLBERG78,
+//			INTEGRATOR_RUNGEKUTTANYSTROM,
+//		} integrator_type_t;
 
 class parameter
 {

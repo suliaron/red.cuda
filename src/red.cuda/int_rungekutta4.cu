@@ -204,9 +204,10 @@ ttt_t rungekutta4::step()
 			var_t max_err = get_max_error(n_var);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/4.0);
 		}
-
 		iter++;
 	} while (adaptive && max_err > tolerance);
+
+	update_counters(iter);
 
 	ppd->t += dt_did;
 	for (int i = 0; i < 2; i++)

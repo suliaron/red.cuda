@@ -10,6 +10,7 @@
 #include "int_rungekutta2.h"
 #include "int_rungekutta4.h"
 #include "int_rungekutta8.h"
+#include "util.h"
 
 using namespace redutilcu;
 
@@ -118,7 +119,10 @@ pp_disk* options::create_pp_disk()
 		ppd->print_result(cout);
 	}
 	ppd->copy_to_device();
+	ppd->copy_threshold_to_device(param->threshold);
+
 	ppd->test_call_kernel_print_sim_data();
+
 	ppd->t = param->start_time;
 
 	return ppd;

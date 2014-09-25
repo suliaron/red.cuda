@@ -16,6 +16,8 @@
 #include "util.h"
 
 
+
+
 ttt_t rungekutta8::c[] =  { 0.0, 2.0/27.0, 1.0/9.0, 1.0/6.0, 5.0/12.0, 1.0/2.0, 5.0/6.0, 1.0/6.0, 2.0/3.0, 1.0/3.0, 1.0, 0.0, 1.0 };
 
 var_t rungekutta8::a[] =  {	         0.0, 
@@ -174,6 +176,10 @@ static __global__
 
 	while (n > tid) {
 		ytemp[tid] = y_n[tid] + dt * (a110*f0[tid] + a115*f5[tid] + a116*f6[tid] + a117*f7[tid] + a118*f8[tid] + a119*f9[tid]);
+// DEBUG CODE
+		//printf("%2d\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n",
+		//	tid, y_n[tid], dt, a110, f0[tid], a115, f5[tid], a116, f6[tid], a117, f7[tid], a118, f8[tid], a119, f9[tid], ytemp[tid]);
+// END DEBUG CODE
 		tid += stride;
 	}
 }
@@ -368,6 +374,9 @@ void rungekutta8::call_calc_ytemp_for_fr_kernel(int r)
 		case 11:
 			idx = 56;
 			kernel_calc_ytemp_for_f11<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f5, f6, f7, f8, f9, a[idx], a[idx+5], a[idx+6], a[idx+7], a[idx+8], a[idx+9]);
+// DEBUG CODE
+			//cudaDeviceSynchronize();
+// END DEBUG CODE
 			break;
 		case 12:
 			idx = 67;
@@ -467,6 +476,17 @@ void rungekutta8::call_calc_y_np1_kernel()
 	}
 }
 
+// DEBUG CODE
+void print_vector(int n, const char* name, const var_t *v)
+{
+	for (int i = 0; i < n; i++)
+	{
+		printf("%10s[%2d]: %25.15le\n", name, i, v[i]);
+	}
+}
+// END DEBUG CODE
+
+
 ttt_t rungekutta8::step()
 {
 	const int n_var = NDIM * ppd->n_bodies->total;
@@ -495,13 +515,13 @@ ttt_t rungekutta8::step()
 				ppd->calc_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
 			}
 		}
+	
 		// y_(n+1) = yn + dt*(b0*f0 + b5*f5 + b6*f6 + b7*f7 + b8*f8 + b9*f9 + b10*f10) + O(dt^8)
 		call_calc_y_np1_kernel();
 
 		if (adaptive) {
-			// TODO: implement
 			// Calculate f11 = f(tn + c11 * dt, yn + ...) = d_f[][11]
-			// Calculate f12 = f(tn + c11 * dt, yn + ...) = d_f[][11]
+			// Calculate f12 = f(tn + c11 * dt, yn + ...) = d_f[][12]
 			for (r = 11; r < r_max; r++) {
 				ttemp = ppd->t + c[r] * dt_try;
 				call_calc_ytemp_for_fr_kernel(r);
@@ -511,12 +531,12 @@ ttt_t rungekutta8::step()
 			}
 			call_calc_error_kernel();
 			var_t max_err = get_max_error(n_var);
-			printf("max_err: %le\n", max_err);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/8.0);
 		}
-
 		iter++;
 	} while (adaptive && max_err > tolerance);
+
+	update_counters(iter);
 
 	ppd->t += dt_did;
 	for (int i = 0; i < 2; i++)
@@ -532,6 +552,14 @@ var_t rungekutta8::get_max_error(int n_var)
 	// Wrap raw pointer with a device_ptr
 	thrust::device_ptr<var_t> d_ptr_r(d_err[0]);
 	thrust::device_ptr<var_t> d_ptr_v(d_err[1]);
+
+	// DEBUG CODE
+	var_t* h_ptr_r = (var_t*)malloc(n_var * sizeof(var_t));
+	var_t* h_ptr_v = (var_t*)malloc(n_var * sizeof(var_t));
+
+	cudaMemcpy((void*)h_ptr_r, (void*)d_ptr_r.get(), n_var * sizeof(var_t), cudaMemcpyDeviceToHost);
+	cudaMemcpy((void*)h_ptr_v, (void*)d_ptr_v.get(), n_var * sizeof(var_t), cudaMemcpyDeviceToHost);
+	// END DEBUG CODE
 
 	// Use thrust to find the maximum element
 	thrust::device_ptr<var_t> d_ptr_max_r = thrust::max_element(d_ptr_r, d_ptr_r + n_var);

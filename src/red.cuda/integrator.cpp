@@ -32,6 +32,13 @@ integrator::~integrator()
 	}
 }
 
+void integrator::update_counters(int iter)
+{
+	n_tried_step  += iter;
+	n_failed_step += (iter - 1);
+	n_passed_step++;
+}
+
 int integrator::get_n_failed_step()
 {
 	return n_failed_step;

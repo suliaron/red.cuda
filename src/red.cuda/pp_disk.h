@@ -30,34 +30,6 @@ typedef enum body_type
 		BODY_TYPE_N
 	} body_type_t;
 
-//typedef enum orbelem_name
-//	{
-//		ORBELEM_SMA,
-//		ORBELEM_ECC,
-//		ORBELEM_INC,
-//		ORBELEM_PERI,
-//		ORBELEM_NODE,
-//		ORBELEM_MEAN
-//	} orbelem_name_t;
-
-//typedef enum phys_prop_name
-//	{
-//		MASS,
-//		RADIUS,
-//		DENSITY,
-//		DRAG_COEFF
-//	} phys_prop_name_t;
-
-typedef enum event_name
-	{
-		EVENT_NAME_NONE,
-		EVENT_NAME_HIT_CENTRUM,
-		EVENT_NAME_EJECTION,
-		EVENT_NAME_CLOSE_ENCOUNTER,
-		EVENT_NAME_COLLISION,
-		EVENT_NAME_N
-	} event_name_t;
-
 class pp_disk
 {
 public:
@@ -68,6 +40,8 @@ public:
 	void copy_to_device();
 	//! Copies ODE parameters and variables from the cuda device to the host
 	void copy_to_host();
+	//! Copies threshold data to the device constant memory
+	void copy_threshold_to_device(const var_t* threshold);
 	//! Copies ODE variables from the cuda device to the host
 	void copy_variables_to_host();
 	//! Returns the mass of the central star
@@ -84,6 +58,9 @@ public:
 		\param sout print the data to this stream
 	*/
 	void print_result(ostream& sout);
+
+	//! Returns the number of events
+	int get_n_event();
 
 	// Input/Output streams
 	friend ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies);
@@ -104,7 +81,7 @@ public:
 	void test_call_kernel_print_sim_data();
 
 	number_of_bodies	*n_bodies;
-	sim_data_t	*sim_data;		/*!< aggregate containing all the data of the simulation */
+	sim_data_t	*sim_data;		/*!< struct containing all the data of the simulation */
 
 	gas_disk	*g_disk;
 	gas_disk	*d_g_disk;
@@ -135,6 +112,14 @@ private:
 
 	dim3	grid;
 	dim3	block;
+
+	int	event_counter;
+	int* d_event_counter;
+
+	event_data_t* potential_event;			//!< Vector on the host containing data for possible events
+	event_data_t* d_potential_event;		//!< Vector on the device containing data for possible events
+	event_data_t* occured_event;			//!< Vector on the host containing data for occured events
+	event_data_t* d_occured_event;			//!< Vector on the device containing data for occured events
 
 	vector<string>		body_names;
 };

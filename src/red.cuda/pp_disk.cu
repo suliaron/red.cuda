@@ -20,6 +20,8 @@
 using namespace std;
 using namespace redutilcu;
 
+__constant__ var_t dc_threshold[THRESHOLD_N];
+
 /****************** DEVICE functions begins here ******************/
 
 static __host__ __device__
@@ -47,49 +49,83 @@ static __global__
 										const param_t* p, 
 										const vec_t* r, 
 										const vec_t* v, 
-										vec_t* a
+										vec_t* a,
+										event_data_t* events,
+										int *event_counter
 										)
 {
-	const int bodyIdx = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
+	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (body_md[bodyIdx].id >= 0 && bodyIdx < int_bound.sink.y) {
-
-		a[bodyIdx].x = 0.0;
-		a[bodyIdx].y = 0.0;
-		a[bodyIdx].z = 0.0;
-		a[bodyIdx].w = 0.0;
+	if (i < int_bound.sink.y && body_md[i].id >= 0)
+	{
+		a[i].x = 0.0;
+		a[i].y = 0.0;
+		a[i].z = 0.0;
+		a[i].w = 0.0;
 
 		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
-		/* Skip the body with the same index and those which are inactive ie. id < 0 */
 		for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 		{
-			if (j == bodyIdx || body_md[j].id < 0)
+			/* Skip the body with the same index and those which are inactive ie. id < 0 */
+			if (j == i || body_md[j].id < 0)
 			{
 				continue;
 			}
 			// 3 FLOP
-			dVec.x = r[j].x - r[bodyIdx].x;
-			dVec.y = r[j].y - r[bodyIdx].y;
-			dVec.z = r[j].z - r[bodyIdx].z;
+			dVec.x = r[j].x - r[i].x;
+			dVec.y = r[j].y - r[i].y;
+			dVec.z = r[j].z - r[i].z;
 
 			// 5 FLOP
 			dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
 			// TODO: use rsqrt()
 			// 20 FLOP
-			var_t r = sqrt(dVec.w);								// = r
+			var_t d = sqrt(dVec.w);								// = r
 
 			// 2 FLOP
-			dVec.w = p[j].mass / (r*dVec.w);
+			dVec.w = p[j].mass / (d*dVec.w);
 
 			// 6 FLOP
-			a[bodyIdx].x += dVec.w * dVec.x;
-			a[bodyIdx].y += dVec.w * dVec.y;
-			a[bodyIdx].z += dVec.w * dVec.z;
+			a[i].x += dVec.w * dVec.x;
+			a[i].y += dVec.w * dVec.y;
+			a[i].z += dVec.w * dVec.z;
+
+			// Check for collision - ignore the star
+			// The data of the collision will be stored for the body with the smaller index
+			if (i > 0 && i < j && d < dc_threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
+			{
+				unsigned int i = atomicAdd(event_counter, 1);
+				printf("COLLISION detected: i: %5d j: %5d d: %10.4le\n", i, j, d);
+				events[i].event_name = EVENT_NAME_CLOSE_ENCOUNTER;
+				events[i].d = d;
+				events[i].t = t;
+				events[i].id.x = body_md[i].id;
+				events[i].id.y = body_md[j].id;
+				events[i].idx.x = i;
+				events[i].idx.y = j;
+				events[i].r1 = r[i];
+				events[i].v1 = v[i];
+				events[i].r2 = r[j];
+				events[i].v2 = v[j];
+			}
+
+			// Check for ejection and hit centrum - ignore the star and other body if it has already an event
+			if (i > 0 && events[i].event_name == EVENT_NAME_NONE)
+			{
+				if (d > dc_threshold[THRESHOLD_EJECTION_DISTANCE])
+				{
+					// TODO
+				}
+				if (d < dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE])
+				{
+					// TODO
+				}
+			}
 		}
 		// 36 FLOP
-		a[bodyIdx].x *= K2;
-		a[bodyIdx].y *= K2;
-		a[bodyIdx].z *= K2;
+		a[i].x *= K2;
+		a[i].y *= K2;
+		a[i].z *= K2;
 	}
 }
 
@@ -182,6 +218,14 @@ static __global__
 	}
 }
 
+static __global__
+	void kernel_print_constant_memory()
+{
+	printf("dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] : %lf\n", dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
+	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE   ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE]);
+	printf("dc_threshold[THRESHOLD_COLLISION_FACTOR    ] : %lf\n", dc_threshold[THRESHOLD_COLLISION_FACTOR]);
+}
+
 /****************** KERNEL functions ends  here  ******************/
 
 /****************** TEST functions begins here ********************/
@@ -236,6 +280,13 @@ void pp_disk::test_call_kernel_print_sim_data()
 		throw nbody_exception("kernel_print_epochs failed", cudaStatus);
 	}
 	cudaDeviceSynchronize();
+
+	kernel_print_constant_memory<<<1, 1>>>();
+	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus) {
+		throw nbody_exception("kernel_print_constant_memory failed", cudaStatus);
+	}
+	cudaDeviceSynchronize();
 }
 
 /****************** TEST   functions ends  here  ******************/
@@ -259,7 +310,7 @@ void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const ve
 		set_kernel_launch_param(nBodyTocalc);
 
 		kernel_calc_grav_accel<<<grid, block>>>
-			(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy);
+			(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_potential_event, d_event_counter);
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {
 			throw nbody_exception("kernel_calc_grav_accel failed", cudaStatus);
@@ -330,10 +381,12 @@ void pp_disk::call_kernel_transform_to(int refBodyId)
 
 pp_disk::pp_disk(string& path, gas_disk *gd) :
 	g_disk(gd),
-	d_g_disk(0),
+	d_g_disk(0x0),
 	t(0.0),
-	sim_data(0),
-	n_bodies(0)
+	sim_data(0x0),
+	n_bodies(0x0),
+	event_counter(0),
+	d_event_counter(0x0)
 {
 	n_bodies = get_number_of_bodies(path);
 	allocate_storage();
@@ -349,6 +402,7 @@ pp_disk::~pp_disk()
 	delete[] sim_data->p;
 	delete[] sim_data->body_md;
 	delete[] sim_data->epoch;
+	delete[] potential_event;
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -358,6 +412,8 @@ pp_disk::~pp_disk()
 	cudaFree(sim_data->d_p);
 	cudaFree(sim_data->d_body_md);
 	cudaFree(sim_data->d_epoch);
+	cudaFree(d_potential_event);
+	cudaFree(d_event_counter);
 
 	delete sim_data;
 }
@@ -382,30 +438,35 @@ number_of_bodies* pp_disk::get_number_of_bodies(string& path)
 
 void pp_disk::allocate_storage()
 {
-	const int n = n_bodies->total;
+	const int nBody = n_bodies->total;
 
 	sim_data = new sim_data_t;
 
 	sim_data->y.resize(2);
 	for (int i = 0; i < 2; i++)
 	{
-		sim_data->y[i]	= new vec_t[n];
+		sim_data->y[i]	= new vec_t[nBody];
 	}
-	sim_data->p	= new param_t[n];
-	sim_data->body_md	= new body_metadata_t[n];
-	sim_data->epoch		= new ttt_t[n];
+	sim_data->p	= new param_t[nBody];
+	sim_data->body_md	= new body_metadata_t[nBody];
+	sim_data->epoch		= new ttt_t[nBody];
+
+	potential_event = new event_data_t[nBody];
 
 	sim_data->d_y.resize(2);
 	sim_data->d_yout.resize(2);
 	// Allocate device pointer.
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_y[i]),	n*sizeof(vec_t));
-		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_yout[i]),	n*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_y[i]),	nBody*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_yout[i]),	nBody*sizeof(vec_t));
 	}
-	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_p),			n*sizeof(param_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_body_md),		n*sizeof(body_metadata_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_epoch),		n*sizeof(ttt_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_p),			nBody*sizeof(param_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_body_md),		nBody*sizeof(body_metadata_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_epoch),		nBody*sizeof(ttt_t));
+
+	ALLOCATE_DEVICE_VECTOR((void **)&d_potential_event,			nBody*sizeof(event_data_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,				1*sizeof(int));
 }
 
 void pp_disk::copy_to_device()
@@ -419,6 +480,7 @@ void pp_disk::copy_to_device()
 	copy_vector_to_device((void *)sim_data->d_p,		(void *)sim_data->p,		n*sizeof(param_t));
 	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->body_md,	n*sizeof(body_metadata_t));
 	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->epoch,	n*sizeof(ttt_t));
+	copy_vector_to_device((void *)d_event_counter,		(void *)&h_event_indexer,	1*sizeof(int));
 }
 
 void pp_disk::copy_to_host()
@@ -434,6 +496,12 @@ void pp_disk::copy_to_host()
 	copy_vector_to_host((void *)sim_data->epoch,		(void *)sim_data->d_epoch,	n*sizeof(ttt_t));
 }
 
+void pp_disk::copy_threshold_to_device(const var_t* threshold)
+{
+	// Calls the copy_constant_to_device in the util.cu
+	copy_constant_to_device(dc_threshold, threshold, THRESHOLD_N*sizeof(var_t));
+}
+
 void pp_disk::copy_variables_to_host()
 {
 	const int n = n_bodies->total;
@@ -442,6 +510,12 @@ void pp_disk::copy_variables_to_host()
 	{
 		copy_vector_to_host((void *)sim_data->y[i],		(void *)sim_data->d_y[i],	n*sizeof(vec_t));
 	}
+}
+
+int pp_disk::get_n_event()
+{
+	copy_vector_to_host((void *)&event_counter, (void *)d_event_counter, 1*sizeof(int));
+	return event_counter;
 }
 
 var_t pp_disk::get_mass_of_star()
@@ -595,7 +669,7 @@ void pp_disk::print_result(ostream& sout)
 		sout << body_md[i].id << SEP
 			 << body_names[i] << SEP
 			 << body_md[i].body_type << SEP 
-			 << epoch[i] << SEP
+			 << t << SEP
 			 << p[i].mass << SEP
 			 << p[i].radius << SEP
 			 << p[i].density << SEP

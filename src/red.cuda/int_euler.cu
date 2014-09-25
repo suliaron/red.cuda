@@ -77,6 +77,8 @@ ttt_t euler::step()
 	dt_did = dt_try;
 	dt_next = dt_try;
 
+	update_counters(1);
+
 	ppd->t += dt_did;
 	for (int i = 0; i < 2; i++)
 	{

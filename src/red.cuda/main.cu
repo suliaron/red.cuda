@@ -148,6 +148,8 @@ int device_query(int argc, const char **argv)
     return (EXIT_SUCCESS);
 }
 
+//--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Release\TwoBody -p parameters.txt -ic TwoBody.txt
+//--verbose -iDir C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run01 -p parameters.txt -ic run01.txt
 int main(int argc, const char** argv)
 {
 	cout << "At " << tools::get_time_stamp() << " starting " << argv[0] << endl;
@@ -182,6 +184,13 @@ int main(int argc, const char** argv)
 			clock_t end_of_step = clock();
 			sum_time_of_steps += (end_of_step - start_of_step);
 			n_step++;
+
+			int n_event = ppd->get_n_event();
+			if (n_event > 0)
+			{
+				cout << n_event " event(s) occured" << endl;
+			}
+
 			if (n_step % 100 == 0) 
 			{
 				cout << "dt: " << dt << " [d], ";
