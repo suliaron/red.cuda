@@ -1,5 +1,6 @@
 // includes system
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <fstream>
 
@@ -42,28 +43,99 @@ static __host__ __device__
 /****************** KERNEL functions begins here ******************/
 
 static __global__
-	void	kernel_calc_grav_accel(
-										ttt_t t, 
-										interaction_bound int_bound, 
-										const body_metadata_t* body_md, 
-										const param_t* p, 
-										const vec_t* r, 
-										const vec_t* v, 
-										vec_t* a,
-										event_data_t* events,
-										int *event_counter
-										)
+	void kernel_check_for_ejection_hit_centrum
+	(
+		ttt_t t, 
+		interaction_bound int_bound, 
+		const param_t* p, 
+		const vec_t* r, 
+		const vec_t* v, 
+		body_metadata_t* body_md, 
+		event_data_t* events,
+		int *event_counter
+	)
+{
+	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (i < int_bound.sink.y && body_md[i].id > 0)
+	{
+		unsigned int n_event = 0;
+		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+
+		// Calculate the distance from the star
+		// 3 FLOP
+		dVec.x = r[i].x - r[0].x;
+		dVec.y = r[i].y - r[0].y;
+		dVec.z = r[i].z - r[0].z;
+		// 5 FLOP
+		dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+		if (dVec.w > SQR(dc_threshold[THRESHOLD_EJECTION_DISTANCE]))
+		{
+			n_event = atomicAdd(event_counter, 1);
+			//printf("r2 = %10lf\t%d EJECTION detected. i: %d\n", dVec.w, n_event, bodyIdx);
+
+			events[n_event].event_name = EVENT_NAME_EJECTION;
+			events[n_event].d = sqrt(dVec.w);
+			events[n_event].t = t;
+			events[n_event].id.x = body_md[i].id;
+			events[n_event].id.y = body_md[0].id;
+			events[n_event].idx.x = i;
+			events[n_event].idx.y = 0;
+			events[n_event].r1 = r[i];
+			events[n_event].v1 = v[i];
+			events[n_event].r2 = r[0];
+			events[n_event].v2 = v[0];
+			// Make the body inactive
+			body_md[i].id *= -1;
+		}
+		else if (dVec.w < SQR(dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]))
+		{
+			n_event = atomicAdd(event_counter, 1);
+			//printf("r2 = %10lf\t%d HIT_CENTRUM detected. bodyIdx: %d\n", dVec.w, n_event, bodyIdx);
+
+			events[n_event].event_name = EVENT_NAME_HIT_CENTRUM;
+			events[n_event].d = sqrt(dVec.w);
+			events[n_event].t = t;
+			events[n_event].id.x = body_md[i].id;
+			events[n_event].id.y = body_md[0].id;
+			events[n_event].idx.x = i;
+			events[n_event].idx.y = 0;
+			events[n_event].r1 = r[i];
+			events[n_event].v1 = v[i];
+			events[n_event].r2 = r[0];
+			events[n_event].v2 = v[0];
+			// Make the body inactive
+			body_md[i].id *= -1;
+		}
+	}
+}
+
+static __global__
+	void	kernel_calc_grav_accel
+	(
+		ttt_t t, 
+		interaction_bound int_bound, 
+		const body_metadata_t* body_md, 
+		const param_t* p, 
+		const vec_t* r, 
+		const vec_t* v, 
+		vec_t* a,
+		event_data_t* events,
+		int *event_counter
+	)
 {
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (i < int_bound.sink.y && body_md[i].id >= 0)
 	{
+		unsigned int n_event = 0;
+		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+
 		a[i].x = 0.0;
 		a[i].y = 0.0;
 		a[i].z = 0.0;
 		a[i].w = 0.0;
 
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
 		for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 		{
 			/* Skip the body with the same index and those which are inactive ie. id < 0 */
@@ -75,28 +147,24 @@ static __global__
 			dVec.x = r[j].x - r[i].x;
 			dVec.y = r[j].y - r[i].y;
 			dVec.z = r[j].z - r[i].z;
-
 			// 5 FLOP
 			dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
-			// TODO: use rsqrt()
 			// 20 FLOP
 			var_t d = sqrt(dVec.w);								// = r
-
 			// 2 FLOP
 			dVec.w = p[j].mass / (d*dVec.w);
-
 			// 6 FLOP
 			a[i].x += dVec.w * dVec.x;
 			a[i].y += dVec.w * dVec.y;
 			a[i].z += dVec.w * dVec.z;
 
-			// Check for collision - ignore the star
+			// Check for collision - ignore the star (i > 0 criterium)
 			// The data of the collision will be stored for the body with the smaller index
 			if (i > 0 && i < j && d < dc_threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
 			{
-				unsigned int i = atomicAdd(event_counter, 1);
+				//unsigned int i = atomicAdd(event_counter, 1);
 				printf("COLLISION detected: i: %5d j: %5d d: %10.4le\n", i, j, d);
-				events[i].event_name = EVENT_NAME_CLOSE_ENCOUNTER;
+				events[i].event_name = EVENT_NAME_COLLISION;
 				events[i].d = d;
 				events[i].t = t;
 				events[i].id.x = body_md[i].id;
@@ -107,19 +175,6 @@ static __global__
 				events[i].v1 = v[i];
 				events[i].r2 = r[j];
 				events[i].v2 = v[j];
-			}
-
-			// Check for ejection and hit centrum - ignore the star and other body if it has already an event
-			if (i > 0 && events[i].event_name == EVENT_NAME_NONE)
-			{
-				if (d > dc_threshold[THRESHOLD_EJECTION_DISTANCE])
-				{
-					// TODO
-				}
-				if (d < dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE])
-				{
-					// TODO
-				}
 			}
 		}
 		// 36 FLOP
@@ -318,6 +373,24 @@ void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const ve
 	}
 }
 
+int pp_disk::call_kernel_check_for_ejection_hit_centrum()
+{
+	cudaError_t cudaStatus = cudaSuccess;
+	
+	int nBodyTocalc = n_bodies->total;
+	interaction_bound int_bound(0, nBodyTocalc, 0, 0);
+	set_kernel_launch_param(nBodyTocalc);
+
+	kernel_check_for_ejection_hit_centrum<<<grid, dim>>>
+		(t, int_bound, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_body_md, d_potential_event, d_event_counter);
+	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus) {
+		throw nbody_exception("kernel_check_for_ejection_hit_centrum failed", cudaStatus);
+	}
+
+	return get_n_event();
+}
+
 void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
 	cudaError_t cudaStatus = cudaSuccess;
@@ -480,7 +553,7 @@ void pp_disk::copy_to_device()
 	copy_vector_to_device((void *)sim_data->d_p,		(void *)sim_data->p,		n*sizeof(param_t));
 	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->body_md,	n*sizeof(body_metadata_t));
 	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->epoch,	n*sizeof(ttt_t));
-	copy_vector_to_device((void *)d_event_counter,		(void *)&h_event_indexer,	1*sizeof(int));
+	copy_vector_to_device((void *)d_event_counter,		(void *)&event_counter,		1*sizeof(int));
 }
 
 void pp_disk::copy_to_host()
@@ -494,6 +567,7 @@ void pp_disk::copy_to_host()
 	copy_vector_to_host((void *)sim_data->p,			(void *)sim_data->d_p,		n*sizeof(param_t));
 	copy_vector_to_host((void *)sim_data->body_md,		(void *)sim_data->d_body_md,n*sizeof(body_metadata_t));
 	copy_vector_to_host((void *)sim_data->epoch,		(void *)sim_data->d_epoch,	n*sizeof(ttt_t));
+	copy_vector_to_host((void *)&event_counter,			(void *)d_event_counter,	1*sizeof(int));
 }
 
 void pp_disk::copy_threshold_to_device(const var_t* threshold)
@@ -512,10 +586,21 @@ void pp_disk::copy_variables_to_host()
 	}
 }
 
+void pp_disk::copy_event_data_to_host()
+{
+	copy_vector_to_host((void *)potential_event, (void *)d_occured_event, event_counter*sizeof(event_data_t));
+}
+
 int pp_disk::get_n_event()
 {
 	copy_vector_to_host((void *)&event_counter, (void *)d_event_counter, 1*sizeof(int));
 	return event_counter;
+}
+
+void pp_disk::clear_event_counter()
+{
+	event_counter = 0;
+	copy_vector_to_device((void *)d_event_counter, (void *)&event_counter, 1*sizeof(int));
 }
 
 var_t pp_disk::get_mass_of_star()
@@ -684,4 +769,43 @@ void pp_disk::print_result(ostream& sout)
 			 << v[i].z << endl;
     }
 	sout.flush();
+}
+
+void pp_disk::print_event_data(ostream& sout, ostream& log_f)
+{
+	static char sep = ' ';
+	static char *e_names[] = {"NONE", "HIT_CENTRUM", "EJECTION", "CLOSE_ENCOUNTER", "COLLISION"};
+
+	for (int i = 0; i < event_counter; i++)
+	{
+		sout << setw(20) << setprecision(10) << occured_event[i].t << sep
+			 << setw(16) << e_names[occured_event[i].event_name] << sep
+			 << setw( 8) << occured_event[i].id.x << sep
+			 << setw( 8) << occured_event[i].id.y << sep
+			 << setw(20) << setprecision(10) << params[occured_event[i].idx.x].mass << sep
+			 << setw(20) << setprecision(10) << params[occured_event[i].idx.x].density << sep
+			 << setw(20) << setprecision(10) << params[occured_event[i].idx.x].radius << sep
+			 << setw(20) << setprecision(10) << occured_event[i].r1.x << sep
+			 << setw(20) << setprecision(10) << occured_event[i].r1.y << sep
+			 << setw(20) << setprecision(10) << occured_event[i].r1.z << sep
+			 << setw(20) << setprecision(10) << occured_event[i].v1.x << sep
+			 << setw(20) << setprecision(10) << occured_event[i].v1.y << sep
+			 << setw(20) << setprecision(10) << occured_event[i].v1.z << sep
+			 << setw(20) << setprecision(10) << params[occured_event[i].idx.y].mass << sep
+			 << setw(20) << setprecision(10) << params[occured_event[i].idx.y].density << sep
+			 << setw(20) << setprecision(10) << params[occured_event[i].idx.y].radius << sep
+			 << setw(20) << setprecision(10) << occured_event[i].r2.x << sep
+			 << setw(20) << setprecision(10) << occured_event[i].r2.y << sep
+			 << setw(20) << setprecision(10) << occured_event[i].r2.z << sep
+			 << setw(20) << setprecision(10) << occured_event[i].v2.x << sep
+			 << setw(20) << setprecision(10) << occured_event[i].v2.y << sep
+			 << setw(20) << setprecision(10) << occured_event[i].v2.z << sep << endl;
+
+		if (log_f)
+		{
+			char time_stamp[20];
+			get_time_stamp(time_stamp);
+			log_f << time_stamp << sep << e_names[occured_event[i].event_name] << endl;
+		}
+	}
 }

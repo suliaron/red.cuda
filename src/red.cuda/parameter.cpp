@@ -105,7 +105,7 @@ void parameter::set_param(string& key, string& value)
 		else if (value == "rk4" || value == "rungekutta4")	{
 			int_type = INTEGRATOR_RUNGEKUTTA4;
 		}
-		else if (value == "rkf78" || value == "rungekuttafehlberg78")	{
+		else if (value == "rkf8" || value == "rungekuttafehlberg8")	{
 			int_type = INTEGRATOR_RUNGEKUTTAFEHLBERG78;
 		}			
 		else if (value == "rkn" || value == "rungekuttanystrom") {

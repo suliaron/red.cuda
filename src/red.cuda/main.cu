@@ -148,7 +148,12 @@ int device_query(int argc, const char **argv)
     return (EXIT_SUCCESS);
 }
 
+//http://stackoverflow.com/questions/11666049/cuda-kernel-results-different-in-release-mode
+//http://developer.download.nvidia.com/assets/cuda/files/NVIDIA-CUDA-Floating-Point.pdf
+
+//--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Debug\TwoBody -p parameters.txt -ic TwoBody.txt
 //--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Release\TwoBody -p parameters.txt -ic TwoBody.txt
+
 //--verbose -iDir C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run01 -p parameters.txt -ic run01.txt
 int main(int argc, const char** argv)
 {
@@ -165,33 +170,45 @@ int main(int argc, const char** argv)
 		pp_disk *ppd = opt.create_pp_disk();
 		integrator *intgr = opt.create_integrator(ppd, 0.001);
 
-		ttt_t ps = 0;
-		ttt_t dt = 0;
 		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
-		string result_filename = "result" + adapt + intgr->name + ".txt";
+		string result_filename = "_result" + adapt + intgr->name + ".txt";
 		string path = file::combine_path(opt.printout_dir, result_filename);
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
-		//path = file::combine_path(opt.printout_dir, "event.out.txt");
-		//ostream* event_f = new ofstream(path.c_str(), ios::out);
-		//path = file::combine_path(opt.printout_dir, "log.txt");
-		//ostream* log_f = new ofstream(path.c_str(), ios::out);
 
+		path = file::combine_path(opt.printout_dir, "event.txt");
+		ostream* event_f = new ofstream(path.c_str(), ios::out);
+
+		path = file::combine_path(opt.printout_dir, "log.txt");
+		ostream* log_f = new ofstream(path.c_str(), ios::out);
+
+		ttt_t ps = 0;
+		ttt_t dt = 0;
 		ppd->print_result(*result_f);
 		while (ppd->t <= opt.param->stop_time)
 		{
+			int n_event = ppd->call_kernel_check_for_ejection_hit_centrum();
+			if (n_event > 0)
+			{
+				cout << n_event << " ejection and hit_centrum event(s) occured" << endl;
+				ppd->copy_event_data_to_host();
+				ppd->print_event_data(*event_f, *log_f);
+				ppd->clear_event_counter();
+			}
+
 			clock_t start_of_step = clock();
 			dt = intgr->step();
 			clock_t end_of_step = clock();
 			sum_time_of_steps += (end_of_step - start_of_step);
 			n_step++;
 
-			int n_event = ppd->get_n_event();
+			n_event = ppd->get_n_event();
 			if (n_event > 0)
 			{
-				cout << n_event " event(s) occured" << endl;
+				cout << n_event << " collision event(s) occured" << endl;
+				ppd->clear_event_counter();
 			}
 
-			if (n_step % 100 == 0) 
+			if (n_step % 10000 == 0) 
 			{
 				cout << "dt: " << dt << " [d], ";
 				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
@@ -206,8 +223,12 @@ int main(int argc, const char** argv)
 				ppd->print_result(*result_f);
 			}
 		} /* while */
-		ppd->copy_to_host();
-		ppd->print_result(*result_f);
+		// To avoid duplicate save at the end of the simulation
+		if (ps > 0.0)
+		{
+			ppd->copy_to_host();
+			ppd->print_result(*result_f);
+		}
 
 	} /* try */
 	catch (const nbody_exception& ex)

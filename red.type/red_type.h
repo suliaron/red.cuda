@@ -132,4 +132,12 @@ struct interaction_bound
 		sink(sink),
 		source(source) 
 	{ }
+
+	interaction_bound(int x0, int y0, int x1, int y1)
+	{
+		sink.x = x0;
+		sink.y = y0;
+		source.x = x1;
+		source.y = y1;
+	}
 };

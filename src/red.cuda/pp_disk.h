@@ -44,27 +44,38 @@ public:
 	void copy_threshold_to_device(const var_t* threshold);
 	//! Copies ODE variables from the cuda device to the host
 	void copy_variables_to_host();
+	//! Copies the event data from the cuda device to the host
+	void copy_event_data_to_host();
 	//! Returns the mass of the central star
 	var_t get_mass_of_star();
 	//! Transforms the system to barycentric reference frame
 	void transform_to_bc();
-	//! Transforms the system to a reference frame with the reference body in the origin
-	/*
-		\param refBodyId the id o
-	*/
-	void call_kernel_transform_to(int refBodyId);
 	//! Print the data of all bodies
 	/*   
 		\param sout print the data to this stream
 	*/
 	void print_result(ostream& sout);
+	//! Print the event data
+	/*   
+		\param sout print the data to this stream
+		\param log_f print the data to this stream
+	*/
+	void print_event_data(ostream& sout, ostream& log_f);
 
 	//! Returns the number of events
 	int get_n_event();
+	//! Clears the event_counter (sets to 0)
+	void clear_event_counter();
 
-	// Input/Output streams
-	friend ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies);
-
+	//! Check all bodies against ejection and hit centrum criterium
+	int call_kernel_check_for_ejection_hit_centrum();
+	//! Test function: print out all the simulation data contained on the device
+	void test_call_kernel_print_sim_data();
+	//! Transforms the system to a reference frame with the reference body in the origin
+	/*
+		\param refBodyId the id o
+	*/
+	void call_kernel_transform_to(int refBodyId);
 	//! Calculates the differentials of variables
 	/*!
 		This function is called by the integrator when calculation of the differentials is necessary
@@ -77,8 +88,8 @@ public:
 	*/
 	void calc_dy(int i, int rr, ttt_t curr_t, const vec_t *r, const vec_t *v, vec_t* dy);
 
-	// Test function: print out all the simulation data contained on the device
-	void test_call_kernel_print_sim_data();
+	// Input/Output streams
+	friend ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies);
 
 	number_of_bodies	*n_bodies;
 	sim_data_t	*sim_data;		/*!< struct containing all the data of the simulation */

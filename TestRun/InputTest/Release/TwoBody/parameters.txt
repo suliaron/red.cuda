@@ -4,8 +4,8 @@ name = this is the name of the simulation
 description = this is the description of the simulation
 
 frame_center = bary
-integrator = rkf78
-tolerance = 1.0e-10
+integrator = rk4
+# tolerance = 1.0e-10
 
 start_time = 0.0  # year
 length = 10.0  # year
