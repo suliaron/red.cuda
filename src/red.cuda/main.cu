@@ -184,9 +184,11 @@ int main(int argc, const char** argv)
 		ttt_t ps = 0;
 		ttt_t dt = 0;
 		ppd->print_result(*result_f);
+		int event_total = 0;
 		while (ppd->t <= opt.param->stop_time)
 		{
 			int n_event = ppd->call_kernel_check_for_ejection_hit_centrum();
+			event_total += n_event;
 			if (n_event > 0)
 			{
 				cout << n_event << " ejection and hit_centrum event(s) occured" << endl;
@@ -202,13 +204,16 @@ int main(int argc, const char** argv)
 			n_step++;
 
 			n_event = ppd->get_n_event();
+			event_total += n_event;
 			if (n_event > 0)
 			{
 				cout << n_event << " collision event(s) occured" << endl;
+				ppd->copy_event_data_to_host();
+				ppd->print_event_data(*event_f, *log_f);
 				ppd->clear_event_counter();
 			}
 
-			if (n_step % 10000 == 0) 
+			if (n_step % 1000 == 0) 
 			{
 				cout << "dt: " << dt << " [d], ";
 				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;

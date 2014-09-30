@@ -127,10 +127,10 @@ private:
 	int	event_counter;
 	int* d_event_counter;
 
-	event_data_t* potential_event;			//!< Vector on the host containing data for possible events
-	event_data_t* d_potential_event;		//!< Vector on the device containing data for possible events
-	event_data_t* occured_event;			//!< Vector on the host containing data for occured events
-	event_data_t* d_occured_event;			//!< Vector on the device containing data for occured events
+	event_data_t* events;			//!< Vector on the host containing data for possible events
+	event_data_t* d_events;			//!< Vector on the device containing data for possible events
+	//event_data_t* occured_event;			//!< Vector on the host containing data for occured events
+	//event_data_t* d_occured_event;			//!< Vector on the device containing data for occured events
 
 	vector<string>		body_names;
 };
