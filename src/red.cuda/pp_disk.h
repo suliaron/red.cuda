@@ -67,6 +67,14 @@ public:
 	//! Clears the event_counter (sets to 0)
 	void clear_event_counter();
 
+	//! Handles the collision between two or more bodies
+	event_data_t* handle_collision();
+	int handle_collision_pair(int n, event_data_t *ed);
+	int count_collision_pair_occurance(int2_t id);
+	void create_collision_pair_list(int2_t id, event_data_t *ed);
+	void get_survivor_merger_idx(int2_t id, int *survivIdx, int *mergerIdx);
+	void calc_phase_after_collision(var_t m0, var_t m1, const vec_t* r1, const vec_t* v1, const vec_t* r2, const vec_t* v2, vec_t& r0, vec_t& v0);
+
 	//! Check all bodies against ejection and hit centrum criterium
 	int call_kernel_check_for_ejection_hit_centrum();
 	//! Test function: print out all the simulation data contained on the device
@@ -124,8 +132,11 @@ private:
 	dim3	grid;
 	dim3	block;
 
-	int	event_counter;
-	int* d_event_counter;
+	int	n_ejection;					//! Total number of ejections
+	int n_hit_centrum;				//! Total number of hit centrum
+	int n_collision;				//! Total number of collisions
+	int	event_counter;				//! Number of events occured during the last check
+	int* d_event_counter;			//! Number of events occured during the last check (stored on the devive)
 
 	event_data_t* events;			//!< Vector on the host containing data for possible events
 	event_data_t* d_events;			//!< Vector on the device containing data for possible events

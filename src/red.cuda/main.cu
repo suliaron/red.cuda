@@ -171,14 +171,14 @@ int main(int argc, const char** argv)
 		integrator *intgr = opt.create_integrator(ppd, 0.001);
 
 		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
-		string result_filename = "_result" + adapt + intgr->name + ".txt";
+		string result_filename = "__result" + adapt + intgr->name + ".txt";
 		string path = file::combine_path(opt.printout_dir, result_filename);
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
 
-		path = file::combine_path(opt.printout_dir, "event.txt");
+		path = file::combine_path(opt.printout_dir, "__event.txt");
 		ostream* event_f = new ofstream(path.c_str(), ios::out);
 
-		path = file::combine_path(opt.printout_dir, "log.txt");
+		path = file::combine_path(opt.printout_dir, "__log.txt");
 		ostream* log_f = new ofstream(path.c_str(), ios::out);
 
 		ttt_t ps = 0;
@@ -191,7 +191,7 @@ int main(int argc, const char** argv)
 			event_total += n_event;
 			if (n_event > 0)
 			{
-				cout << n_event << " ejection and hit_centrum event(s) occured" << endl;
+				cout << n_event << " ejection or hit_centrum event(s) occured" << endl;
 				ppd->copy_event_data_to_host();
 				ppd->print_event_data(*event_f, *log_f);
 				ppd->clear_event_counter();
@@ -209,6 +209,7 @@ int main(int argc, const char** argv)
 			{
 				cout << n_event << " collision event(s) occured" << endl;
 				ppd->copy_event_data_to_host();
+				ppd->handle_collision();
 				ppd->print_event_data(*event_f, *log_f);
 				ppd->clear_event_counter();
 			}

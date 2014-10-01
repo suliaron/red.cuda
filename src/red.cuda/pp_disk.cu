@@ -57,6 +57,7 @@ static __global__
 {
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
+	// Ignore the star (id > 0)
 	if (i < int_bound.sink.y && body_md[i].id > 0)
 	{
 		unsigned int k = 0;
@@ -72,7 +73,7 @@ static __global__
 		if (dVec.w > SQR(dc_threshold[THRESHOLD_EJECTION_DISTANCE]))
 		{
 			k = atomicAdd(event_counter, 1);
-			//printf("r2 = %10lf\t%d EJECTION detected. i: %d\n", dVec.w, k, bodyIdx);
+			printf("d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", sqrt(dVec.w), k, body_md[i].id, body_md[0].id);
 
 			events[k].event_name = EVENT_NAME_EJECTION;
 			events[k].d = sqrt(dVec.w);
@@ -92,7 +93,7 @@ static __global__
 		else if (dVec.w < SQR(dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]) && i != 0)
 		{
 			k = atomicAdd(event_counter, 1);
-			//printf("r2 = %10lf\t%d HIT_CENTRUM detected. bodyIdx: %d\n", dVec.w, k, bodyIdx);
+			printf("d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", sqrt(dVec.w), k, body_md[i].id, body_md[0].id);
 
 			events[k].event_name = EVENT_NAME_HIT_CENTRUM;
 			events[k].d = sqrt(dVec.w);
@@ -163,7 +164,7 @@ static __global__
 			if (i > 0 && i < j && d < dc_threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
 			{
 				unsigned int k = atomicAdd(event_counter, 1);
-				printf("d = %20.10le %d. COLLISION detected: i: %5d j: %5d\n", d, k, i, j);
+				printf("d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", d, k, body_md[i].id, body_md[j].id);
 				events[k].event_name = EVENT_NAME_COLLISION;
 				events[k].d = d;
 				events[k].t = t;
@@ -405,38 +406,161 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 		if (cudaSuccess != cudaStatus) {
 			throw nbody_exception("cudaMemcpy failed", cudaStatus);
 		}
-#if 0
-		set_kernel_launch_param(n);
-		printf("velocity:\n");
-		kernel_print_vector<<<grid, block>>>(n, dy);
-		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus) {
-			throw nbody_exception("kernel_print_vector failed", cudaStatus);
-		}
-		cudaDeviceSynchronize();
-#endif
 		break;
 	case 1:
 		if (rr == 0)
 		{
-			// Set the d field of the event_data_t struct to the threshold distance when collision must be looked for
-			// This is set to the radius of the star enhanced by 1 %.
 		}
 		// Calculate accelerations originated from the gravitational force
 		call_kernel_calc_grav_accel(curr_t, r, v, dy);
-#if 0
-		set_kernel_launch_param(n);
-		printf("acceleration:\n");
-		kernel_print_vector<<<grid, block>>>(n, dy);
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {
-			throw nbody_exception("kernel_print_vector failed", cudaStatus);
+			throw nbody_exception("call_kernel_calc_grav_accel failed", cudaStatus);
 		}
-		cudaDeviceSynchronize();
-#endif
 		break;
 	}
 }
+
+event_data_t* pp_disk::handle_collision()
+{
+	event_data_t* collisions = new event_data_t[event_counter];
+
+	int idx = 0;
+	// Iterates over all collisions
+	for (int i = 0; i < event_counter; i++)
+	{
+		int n_pair = count_collision_pair_occurance(events[i].id);
+		event_data_t* ed = new event_data_t[n_pair];
+		create_collision_pair_list(events[i].id, ed);
+		int k = handle_collision_pair(n_pair, ed);
+
+		// Copy the selected collision into the array
+		collisions[idx++] = ed[k];
+
+		delete[] ed;
+	}
+
+	return collisions;
+}
+
+int pp_disk::count_collision_pair_occurance(int2_t id)
+{
+	int result = 0;
+	for (int i = 0; i < event_counter; i++)
+	{
+		if (id.x == events[i].id.x && id.y == events[i].id.y)
+		{
+			result++;
+		}
+	}
+	return result;
+}
+
+void pp_disk::create_collision_pair_list(int2_t id, event_data_t *ed)
+{
+	int k = 0;
+	for (int i = 0; i < event_counter; i++)
+	{
+		if (id.x == events[i].id.x && id.y == events[i].id.y)
+		{
+			ed[k++] = events[i];
+		}
+	}
+}
+
+int pp_disk::handle_collision_pair(int n, event_data_t *ed)
+{
+	int i_save = 0;
+
+	ttt_t t_coll = ed[0].t;
+	for (int i = 0; i < n; i++)
+	{
+		if (ed[i].t <= t_coll)
+		{
+			i_save = i;
+		}
+	}
+
+	int survivIdx = 0;
+	int mergerIdx = 0;
+
+	get_survivor_merger_idx(ed[i_save].id, &survivIdx, &mergerIdx);
+
+	// Calculate position and velocitiy of the new object
+	vec_t r0;
+	vec_t v0;
+	var_t m_surviv = sim_data->p[survivIdx].mass;
+	var_t m_merger = sim_data->p[mergerIdx].mass;
+	calculate_phase_after_collision(m_surviv, m_merger, &(ed[i_save].r1), &(ed[i_save].v1), &(ed[i_save].r2), &(ed[i_save].v2), r0, v0);
+
+	// Calculate mass, volume, radius and density of the new object
+	var_t mass	 = m_surviv + m_merger;
+	// Calculate V = V1 + V2
+	var_t volume = 4.188790204786391 * (CUBE(sim_data->p[mergerIdx].radius) + CUBE(sim_data->p[survivIdx].radius));
+	var_t radius = pow(0.238732414637843 * volume, 1.0/3.0);
+	var_t density= mass / volume;
+
+	// Update mass, density and radius of survivor
+	sim_data->p[survivIdx].mass	   = mass;
+	sim_data->p[survivIdx].density = density;
+	sim_data->p[survivIdx].radius  = radius;
+
+	// Make the merged body inactive
+	sim_data->body_md[mergerIdx].id *= -1;
+
+	copy_vector_to_device((void *)sim_data->d_y[0][survivIdx], (void *)&r0,							  sizeof(vec_t));
+	copy_vector_to_device((void *)sim_data->d_y[1][survivIdx], (void *)&v0,							  sizeof(vec_t));
+	copy_vector_to_device((void *)sim_data->d_p[survivIdx],    (void *)&sim_data->p[survivIdx],		  sizeof(param_t));
+	copy_vector_to_device((void *)sim_data->body_md[mergerIdx],(void *)&sim_data->body_md[mergerIdx], sizeof(body_metadata_t));
+
+	return i_save;
+}
+
+void pp_disk::calc_phase_after_collision(var_t m0, var_t m1, const vec_t* r1, const vec_t* v1, const vec_t* r2, const vec_t* v2, vec_t& r0, vec_t& v0)
+{
+	const var_t M = m0 + m1;
+
+	r0.x = (m0 * r1->x + m1 * r2->x) / M;
+	r0.y = (m0 * r1->y + m1 * r2->y) / M;
+	r0.z = (m0 * r1->z + m1 * r2->z) / M;
+
+	v0.x = (m0 * v1->x + m1 * v2->x) / M;
+	v0.y = (m0 * v1->y + m1 * v2->y) / M;
+	v0.z = (m0 * v1->z + m1 * v2->z) / M;
+}
+
+void pp_disk::get_survivor_merger_idx(int2_t id, int *survivIdx, int *mergerIdx)
+{
+	int i;
+	int2_t idx;
+
+	for (i = 0; i < nBodies->total; i++)
+	{
+		if (id.x == sim_data->body_md[i].id)
+		{
+			idx.x = i;
+			break;
+		}
+	}
+	i++;
+	for ( ; i < nBodies->total; i++)
+	{
+		if (id.y == sim_data->body_md[i].id)
+		{
+			idx.y = i;
+		}
+	}
+
+	*survivIdx = idx.x;
+	*mergerIdx = idx.y;
+	if (sim_data->p[*mergerIdx].mass > sim_data->p[*survivIdx].mass)
+	{
+		std::swap(*survivIdx, *mergerIdx);
+		//*survivIdx = idx.y;
+		//*mergerIdx = idx.x;
+	}
+}
+
 
 void pp_disk::call_kernel_transform_to(int refBodyId)
 {
@@ -458,6 +582,9 @@ pp_disk::pp_disk(string& path, gas_disk *gd) :
 	t(0.0),
 	sim_data(0x0),
 	n_bodies(0x0),
+	n_hit_centrum(0),
+	n_ejection(0),
+	n_collision(0),
 	event_counter(0),
 	d_event_counter(0x0)
 {
@@ -777,8 +904,9 @@ void pp_disk::print_event_data(ostream& sout, ostream& log_f)
 
 	for (int i = 0; i < event_counter; i++)
 	{
-		sout << setw(20) << setprecision(10) << events[i].t << sep
-			 << setw(16) << e_names[events[i].event_name] << sep
+		sout << setw(16) << e_names[events[i].event_name] << sep
+			 << setw(20) << setprecision(16) << events[i].t << sep
+			 << setw(20) << setprecision(16) << events[i].d << sep
 			 << setw( 8) << events[i].id.x << sep
 			 << setw( 8) << events[i].id.y << sep
 			 << setw(20) << setprecision(10) << sim_data->p[events[i].idx.x].mass << sep

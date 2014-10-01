@@ -115,13 +115,13 @@ pp_disk* options::create_pp_disk()
 	if (param->fr_cntr == FRAME_CENTER_BARY)
 	{
 		ppd->transform_to_bc();
-		cout << "Body data after transformation:" << endl;
-		ppd->print_result(cout);
+		//cout << "Body data after transformation:" << endl;
+		//ppd->print_result(cout);
 	}
 	ppd->copy_to_device();
 	ppd->copy_threshold_to_device(param->threshold);
 
-	ppd->test_call_kernel_print_sim_data();
+	//ppd->test_call_kernel_print_sim_data();
 
 	ppd->t = param->start_time;
 
