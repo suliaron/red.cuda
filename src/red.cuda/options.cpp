@@ -103,11 +103,11 @@ pp_disk* options::create_pp_disk()
 {
 	string path = file::combine_path(input_dir, bodylist_filename);
 	pp_disk* ppd = new pp_disk(path, g_disk);
-	if (verbose)
-	{
-		cout << "Contents of the file " << path << ":" << endl;
-		ppd->print_result(cout);
-	}
+	//if (verbose)
+	//{
+	//	cout << "Contents of the file " << path << ":" << endl;
+	//	ppd->print_result(cout);
+	//}
 	if (ppd->g_disk != 0)
 	{
 		ppd->g_disk->calc(ppd->get_mass_of_star());

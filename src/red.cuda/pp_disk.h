@@ -67,11 +67,12 @@ public:
 	//! Clears the event_counter (sets to 0)
 	void clear_event_counter();
 
-	//! Handles the collision between two or more bodies
-	event_data_t* handle_collision();
-	int handle_collision_pair(int n, event_data_t *ed);
-	int count_collision_pair_occurance(int2_t id);
-	void create_collision_pair_list(int2_t id, event_data_t *ed);
+	//! From the events it will create a vector containing one entry for each colliding pair with the earliest collision time
+	void create_sp_events();
+
+	void handle_collision();
+	void handle_collision_pair(event_data_t *ed);
+
 	void get_survivor_merger_idx(int2_t id, int *survivIdx, int *mergerIdx);
 	void calc_phase_after_collision(var_t m0, var_t m1, const vec_t* r1, const vec_t* v1, const vec_t* r2, const vec_t* v2, vec_t& r0, vec_t& v0);
 
@@ -138,10 +139,9 @@ private:
 	int	event_counter;				//! Number of events occured during the last check
 	int* d_event_counter;			//! Number of events occured during the last check (stored on the devive)
 
-	event_data_t* events;			//!< Vector on the host containing data for possible events
-	event_data_t* d_events;			//!< Vector on the device containing data for possible events
-	//event_data_t* occured_event;			//!< Vector on the host containing data for occured events
-	//event_data_t* d_occured_event;			//!< Vector on the device containing data for occured events
+	event_data_t* events;			//!< Vector on the host containing data for events (one colliding pair multiple occurances)
+	event_data_t* d_events;			//!< Vector on the device containing data for events (one colliding pair multiple occurances)
+	vector<event_data_t> sp_events;	//!< Vector on the host containing data for events but  (one colliding pair one occurances)
 
 	vector<string>		body_names;
 };

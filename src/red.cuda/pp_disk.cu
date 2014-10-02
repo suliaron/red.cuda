@@ -128,60 +128,62 @@ static __global__
 {
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (i < int_bound.sink.y && body_md[i].id >= 0)
+	if (i < int_bound.sink.y)
 	{
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
-
 		a[i].x = 0.0;
 		a[i].y = 0.0;
 		a[i].z = 0.0;
 		a[i].w = 0.0;
 
-		for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+		if (body_md[i].id >= 0)
 		{
-			/* Skip the body with the same index and those which are inactive ie. id < 0 */
-			if (j == i || body_md[j].id < 0)
+			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 			{
-				continue;
-			}
-			// 3 FLOP
-			dVec.x = r[j].x - r[i].x;
-			dVec.y = r[j].y - r[i].y;
-			dVec.z = r[j].z - r[i].z;
-			// 5 FLOP
-			dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
-			// 20 FLOP
-			var_t d = sqrt(dVec.w);								// = r
-			// 2 FLOP
-			dVec.w = p[j].mass / (d*dVec.w);
-			// 6 FLOP
-			a[i].x += dVec.w * dVec.x;
-			a[i].y += dVec.w * dVec.y;
-			a[i].z += dVec.w * dVec.z;
+				/* Skip the body with the same index and those which are inactive ie. id < 0 */
+				if (j == i || body_md[j].id < 0)
+				{
+					continue;
+				}
+				// 3 FLOP
+				dVec.x = r[j].x - r[i].x;
+				dVec.y = r[j].y - r[i].y;
+				dVec.z = r[j].z - r[i].z;
+				// 5 FLOP
+				dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+				// 20 FLOP
+				var_t d = sqrt(dVec.w);								// = r
+				// 2 FLOP
+				dVec.w = p[j].mass / (d*dVec.w);
+				// 6 FLOP
+				a[i].x += dVec.w * dVec.x;
+				a[i].y += dVec.w * dVec.y;
+				a[i].z += dVec.w * dVec.z;
 
-			// Check for collision - ignore the star (i > 0 criterium)
-			// The data of the collision will be stored for the body with the smaller index
-			if (i > 0 && i < j && d < dc_threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
-			{
-				unsigned int k = atomicAdd(event_counter, 1);
-				printf("d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", d, k, body_md[i].id, body_md[j].id);
-				events[k].event_name = EVENT_NAME_COLLISION;
-				events[k].d = d;
-				events[k].t = t;
-				events[k].id.x = body_md[i].id;
-				events[k].id.y = body_md[j].id;
-				events[k].idx.x = i;
-				events[k].idx.y = j;
-				events[k].r1 = r[i];
-				events[k].v1 = v[i];
-				events[k].r2 = r[j];
-				events[k].v2 = v[j];
+				// Check for collision - ignore the star (i > 0 criterium)
+				// The data of the collision will be stored for the body with the smaller index
+				if (i > 0 && i < j && d < dc_threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
+				{
+					unsigned int k = atomicAdd(event_counter, 1);
+					printf("d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", d, k, body_md[i].id, body_md[j].id);
+					events[k].event_name = EVENT_NAME_COLLISION;
+					events[k].d = d;
+					events[k].t = t;
+					events[k].id.x = body_md[i].id;
+					events[k].id.y = body_md[j].id;
+					events[k].idx.x = i;
+					events[k].idx.y = j;
+					events[k].r1 = r[i];
+					events[k].v1 = v[i];
+					events[k].r2 = r[j];
+					events[k].v2 = v[j];
+				}
 			}
+			// 36 FLOP
+			a[i].x *= K2;
+			a[i].y *= K2;
+			a[i].z *= K2;
 		}
-		// 36 FLOP
-		a[i].x *= K2;
-		a[i].y *= K2;
-		a[i].z *= K2;
 	}
 }
 
@@ -421,77 +423,59 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 	}
 }
 
-event_data_t* pp_disk::handle_collision()
+void pp_disk::handle_collision()
 {
-	event_data_t* collisions = new event_data_t[event_counter];
+	create_sp_events();
 
-	int idx = 0;
-	// Iterates over all collisions
-	for (int i = 0; i < event_counter; i++)
+	// TODO: implement collision graph: bredth-first search
+
+	for (int i = 0; i < sp_events.size(); i++)
 	{
-		int n_pair = count_collision_pair_occurance(events[i].id);
-		event_data_t* ed = new event_data_t[n_pair];
-		create_collision_pair_list(events[i].id, ed);
-		int k = handle_collision_pair(n_pair, ed);
-
-		// Copy the selected collision into the array
-		collisions[idx++] = ed[k];
-
-		delete[] ed;
+		handle_collision_pair(&sp_events[i]);
+		n_collision++;
 	}
-
-	return collisions;
 }
 
-int pp_disk::count_collision_pair_occurance(int2_t id)
+void pp_disk::create_sp_events()
 {
-	int result = 0;
-	for (int i = 0; i < event_counter; i++)
-	{
-		if (id.x == events[i].id.x && id.y == events[i].id.y)
-		{
-			result++;
-		}
-	}
-	return result;
-}
+	sp_events.resize(event_counter);
 
-void pp_disk::create_collision_pair_list(int2_t id, event_data_t *ed)
-{
+	sp_events[0] = events[0];
 	int k = 0;
-	for (int i = 0; i < event_counter; i++)
+	// Iterates over all collisions
+	for (int i = 1; i < event_counter; i++)
 	{
-		if (id.x == events[i].id.x && id.y == events[i].id.y)
+		// 
+		if (sp_events[k].id.x == events[i].id.x && sp_events[k].id.y == events[i].id.y)
 		{
-			ed[k++] = events[i];
+			if (sp_events[k].t > events[i].t)
+			{
+				sp_events[k] = events[i];
+			}
+			continue;
+		}
+		else
+		{
+			k++;
+			sp_events[k] = events[i];
 		}
 	}
+	sp_events.resize(k+1);
 }
 
-int pp_disk::handle_collision_pair(int n, event_data_t *ed)
+void pp_disk::handle_collision_pair(event_data_t *collision)
 {
-	int i_save = 0;
-
-	ttt_t t_coll = ed[0].t;
-	for (int i = 0; i < n; i++)
-	{
-		if (ed[i].t <= t_coll)
-		{
-			i_save = i;
-		}
-	}
-
 	int survivIdx = 0;
 	int mergerIdx = 0;
 
-	get_survivor_merger_idx(ed[i_save].id, &survivIdx, &mergerIdx);
+	get_survivor_merger_idx(collision->id, &survivIdx, &mergerIdx);
 
 	// Calculate position and velocitiy of the new object
-	vec_t r0;
-	vec_t v0;
+	vec_t r0 = {0.0, 0.0, 0.0, 0.0};
+	vec_t v0 = {0.0, 0.0, 0.0, 0.0};
 	var_t m_surviv = sim_data->p[survivIdx].mass;
 	var_t m_merger = sim_data->p[mergerIdx].mass;
-	calculate_phase_after_collision(m_surviv, m_merger, &(ed[i_save].r1), &(ed[i_save].v1), &(ed[i_save].r2), &(ed[i_save].v2), r0, v0);
+	calc_phase_after_collision(m_surviv, m_merger, &(collision->r1), &(collision->v1), &(collision->r2), &(collision->v2), r0, v0);
 
 	// Calculate mass, volume, radius and density of the new object
 	var_t mass	 = m_surviv + m_merger;
@@ -508,12 +492,10 @@ int pp_disk::handle_collision_pair(int n, event_data_t *ed)
 	// Make the merged body inactive
 	sim_data->body_md[mergerIdx].id *= -1;
 
-	copy_vector_to_device((void *)sim_data->d_y[0][survivIdx], (void *)&r0,							  sizeof(vec_t));
-	copy_vector_to_device((void *)sim_data->d_y[1][survivIdx], (void *)&v0,							  sizeof(vec_t));
-	copy_vector_to_device((void *)sim_data->d_p[survivIdx],    (void *)&sim_data->p[survivIdx],		  sizeof(param_t));
-	copy_vector_to_device((void *)sim_data->body_md[mergerIdx],(void *)&sim_data->body_md[mergerIdx], sizeof(body_metadata_t));
-
-	return i_save;
+	copy_vector_to_device((void **)&sim_data->d_y[0][survivIdx],	(void *)&r0,							sizeof(vec_t));
+	copy_vector_to_device((void **)&sim_data->d_y[1][survivIdx],	(void *)&v0,							sizeof(vec_t));
+	copy_vector_to_device((void **)&sim_data->d_p[survivIdx],		(void *)&sim_data->p[survivIdx],		sizeof(param_t));
+	copy_vector_to_device((void **)&sim_data->d_body_md[mergerIdx],	(void *)&sim_data->body_md[mergerIdx],	sizeof(body_metadata_t));
 }
 
 void pp_disk::calc_phase_after_collision(var_t m0, var_t m1, const vec_t* r1, const vec_t* v1, const vec_t* r2, const vec_t* v2, vec_t& r0, vec_t& v0)
@@ -534,7 +516,7 @@ void pp_disk::get_survivor_merger_idx(int2_t id, int *survivIdx, int *mergerIdx)
 	int i;
 	int2_t idx;
 
-	for (i = 0; i < nBodies->total; i++)
+	for (i = 0; i < n_bodies->total; i++)
 	{
 		if (id.x == sim_data->body_md[i].id)
 		{
@@ -543,7 +525,7 @@ void pp_disk::get_survivor_merger_idx(int2_t id, int *survivIdx, int *mergerIdx)
 		}
 	}
 	i++;
-	for ( ; i < nBodies->total; i++)
+	for ( ; i < n_bodies->total; i++)
 	{
 		if (id.y == sim_data->body_md[i].id)
 		{
@@ -902,35 +884,35 @@ void pp_disk::print_event_data(ostream& sout, ostream& log_f)
 	static char sep = ' ';
 	static char *e_names[] = {"NONE", "HIT_CENTRUM", "EJECTION", "CLOSE_ENCOUNTER", "COLLISION"};
 
-	for (int i = 0; i < event_counter; i++)
+	for (int i = 0; i < sp_events.size(); i++)
 	{
-		sout << setw(16) << e_names[events[i].event_name] << sep
-			 << setw(20) << setprecision(16) << events[i].t << sep
-			 << setw(20) << setprecision(16) << events[i].d << sep
-			 << setw( 8) << events[i].id.x << sep
-			 << setw( 8) << events[i].id.y << sep
-			 << setw(20) << setprecision(10) << sim_data->p[events[i].idx.x].mass << sep
-			 << setw(20) << setprecision(10) << sim_data->p[events[i].idx.x].density << sep
-			 << setw(20) << setprecision(10) << sim_data->p[events[i].idx.x].radius << sep
-			 << setw(20) << setprecision(10) << events[i].r1.x << sep
-			 << setw(20) << setprecision(10) << events[i].r1.y << sep
-			 << setw(20) << setprecision(10) << events[i].r1.z << sep
-			 << setw(20) << setprecision(10) << events[i].v1.x << sep
-			 << setw(20) << setprecision(10) << events[i].v1.y << sep
-			 << setw(20) << setprecision(10) << events[i].v1.z << sep
-			 << setw(20) << setprecision(10) << sim_data->p[events[i].idx.y].mass << sep
-			 << setw(20) << setprecision(10) << sim_data->p[events[i].idx.y].density << sep
-			 << setw(20) << setprecision(10) << sim_data->p[events[i].idx.y].radius << sep
-			 << setw(20) << setprecision(10) << events[i].r2.x << sep
-			 << setw(20) << setprecision(10) << events[i].r2.y << sep
-			 << setw(20) << setprecision(10) << events[i].r2.z << sep
-			 << setw(20) << setprecision(10) << events[i].v2.x << sep
-			 << setw(20) << setprecision(10) << events[i].v2.y << sep
-			 << setw(20) << setprecision(10) << events[i].v2.z << sep << endl;
+		sout << setw(16) << e_names[sp_events[i].event_name] << sep
+			 << setw(20) << setprecision(16) << sp_events[i].t << sep
+			 << setw(20) << setprecision(16) << sp_events[i].d << sep
+			 << setw( 8) << sp_events[i].id.x << sep
+			 << setw( 8) << sp_events[i].id.y << sep
+			 << setw(20) << setprecision(10) << sim_data->p[sp_events[i].idx.x].mass << sep
+			 << setw(20) << setprecision(10) << sim_data->p[sp_events[i].idx.x].density << sep
+			 << setw(20) << setprecision(10) << sim_data->p[sp_events[i].idx.x].radius << sep
+			 << setw(20) << setprecision(10) << sp_events[i].r1.x << sep
+			 << setw(20) << setprecision(10) << sp_events[i].r1.y << sep
+			 << setw(20) << setprecision(10) << sp_events[i].r1.z << sep
+			 << setw(20) << setprecision(10) << sp_events[i].v1.x << sep
+			 << setw(20) << setprecision(10) << sp_events[i].v1.y << sep
+			 << setw(20) << setprecision(10) << sp_events[i].v1.z << sep
+			 << setw(20) << setprecision(10) << sim_data->p[sp_events[i].idx.y].mass << sep
+			 << setw(20) << setprecision(10) << sim_data->p[sp_events[i].idx.y].density << sep
+			 << setw(20) << setprecision(10) << sim_data->p[sp_events[i].idx.y].radius << sep
+			 << setw(20) << setprecision(10) << sp_events[i].r2.x << sep
+			 << setw(20) << setprecision(10) << sp_events[i].r2.y << sep
+			 << setw(20) << setprecision(10) << sp_events[i].r2.z << sep
+			 << setw(20) << setprecision(10) << sp_events[i].v2.x << sep
+			 << setw(20) << setprecision(10) << sp_events[i].v2.y << sep
+			 << setw(20) << setprecision(10) << sp_events[i].v2.z << sep << endl;
 
 		if (log_f)
 		{
-			log_f << tools::get_time_stamp() << sep << e_names[events[i].event_name] << endl;
+			log_f << tools::get_time_stamp() << sep << e_names[sp_events[i].event_name] << endl;
 		}
 	}
 }
