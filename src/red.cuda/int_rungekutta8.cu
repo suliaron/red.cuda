@@ -176,10 +176,6 @@ static __global__
 
 	while (n > tid) {
 		ytemp[tid] = y_n[tid] + dt * (a110*f0[tid] + a115*f5[tid] + a116*f6[tid] + a117*f7[tid] + a118*f8[tid] + a119*f9[tid]);
-// DEBUG CODE
-		//printf("%2d\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n%25.15le\n",
-		//	tid, y_n[tid], dt, a110, f0[tid], a115, f5[tid], a116, f6[tid], a117, f7[tid], a118, f8[tid], a119, f9[tid], ytemp[tid]);
-// END DEBUG CODE
 		tid += stride;
 	}
 }
@@ -300,7 +296,7 @@ rungekutta8::~rungekutta8()
 	}
 }
 
-void rungekutta8::call_calc_ytemp_for_fr_kernel(int r)
+void rungekutta8::call_kernel_calc_ytemp_for_fr(int r)
 {
 	int idx = 0;
 
@@ -374,25 +370,22 @@ void rungekutta8::call_calc_ytemp_for_fr_kernel(int r)
 		case 11:
 			idx = 56;
 			kernel_calc_ytemp_for_f11<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f5, f6, f7, f8, f9, a[idx], a[idx+5], a[idx+6], a[idx+7], a[idx+8], a[idx+9]);
-// DEBUG CODE
-			//cudaDeviceSynchronize();
-// END DEBUG CODE
 			break;
 		case 12:
 			idx = 67;
 			kernel_calc_ytemp_for_f12<<<grid, block>>>(n_var, ytemp, dt_try, y_n, f0, f3, f4, f5, f6, f7, f8, f9, f11, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7], a[idx+8], a[idx+9], a[idx+11]);
 			break;
 		default:
-			throw string("call_calc_ytemp_for_fr_kernel: parameter out of range.");
+			throw string("call_kernel_calc_ytemp_for_fr: parameter out of range.");
 		}
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {
-			throw string("call_calc_ytemp_for_fr_kernel failed");
+			throw string("call_kernel_calc_ytemp_for_fr failed");
 		}
 	}
 }
 
-void rungekutta8::call_calc_yscale_kernel()
+void rungekutta8::call_kernel_calc_yscale()
 {
 	const int n_var = 4 * ppd->n_bodies->total;
 	calc_grid(n_var, THREADS_PER_BLOCK);
@@ -410,7 +403,7 @@ void rungekutta8::call_calc_yscale_kernel()
 	}
 }
 
-void rungekutta8::call_calc_error_kernel()
+void rungekutta8::call_kernel_calc_error()
 {
 	const int n_var = 4 * ppd->n_bodies->total;
 	calc_grid(n_var, THREADS_PER_BLOCK);
@@ -430,7 +423,7 @@ void rungekutta8::call_calc_error_kernel()
 	}
 }
 
-void rungekutta8::call_calc_scalederror_kernel()
+void rungekutta8::call_kernel_calc_scalederror()
 {
 	const int n_var = 4 * ppd->n_bodies->total;
 	calc_grid(n_var, THREADS_PER_BLOCK);
@@ -451,7 +444,7 @@ void rungekutta8::call_calc_scalederror_kernel()
 	}
 }
 
-void rungekutta8::call_calc_y_np1_kernel()
+void rungekutta8::call_kernel_calc_y_np1()
 {
 	const int n_var = 4 * ppd->n_bodies->total;
 	calc_grid(n_var, THREADS_PER_BLOCK);
@@ -476,17 +469,6 @@ void rungekutta8::call_calc_y_np1_kernel()
 	}
 }
 
-// DEBUG CODE
-void print_vector(int n, const char* name, const var_t *v)
-{
-	for (int i = 0; i < n; i++)
-	{
-		printf("%10s[%2d]: %25.15le\n", name, i, v[i]);
-	}
-}
-// END DEBUG CODE
-
-
 ttt_t rungekutta8::step()
 {
 	const int n_var = NDIM * ppd->n_bodies->total;
@@ -510,29 +492,33 @@ ttt_t rungekutta8::step()
 		// Calculate f11 = f(tn + c10 * dt, yn + a10,0 * dt * f0 + ...) = d_f[][10]
 		for (r = 1; r <= 10; r++) {
 			ttemp = ppd->t + c[r] * dt_try;
-			call_calc_ytemp_for_fr_kernel(r);
+			call_kernel_calc_ytemp_for_fr(r);
 			for (int i = 0; i < 2; i++) {
 				ppd->calc_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
 			}
 		}
 	
 		// y_(n+1) = yn + dt*(b0*f0 + b5*f5 + b6*f6 + b7*f7 + b8*f8 + b9*f9 + b10*f10) + O(dt^8)
-		call_calc_y_np1_kernel();
+		call_kernel_calc_y_np1();
 
 		if (adaptive) {
 			// Calculate f11 = f(tn + c11 * dt, yn + ...) = d_f[][11]
 			// Calculate f12 = f(tn + c11 * dt, yn + ...) = d_f[][12]
 			for (r = 11; r < r_max; r++) {
 				ttemp = ppd->t + c[r] * dt_try;
-				call_calc_ytemp_for_fr_kernel(r);
+				call_kernel_calc_ytemp_for_fr(r);
 				for (int i = 0; i < 2; i++) {
 					ppd->calc_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
 				}
 			}
-			call_calc_error_kernel();
+			call_kernel_calc_error();
 			max_err = get_max_error(n_var);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/8.0);
 
+			// NOTE: introduce collision_monitor_accuracy_level variable: 
+			// level 0: if collision was detected do not refine the stepsize, but exit the loop
+			// level 1: if collision was detected refine the stepsize once, after that exit the loop
+			// level 2: if collision was detected refine the stepsize until the required accuracy is reached, than exit the loop
 			// Were there collisions?
 			if (ppd->get_n_event() > 0)
 			{

@@ -57,8 +57,8 @@ static __global__
 {
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
-	// Ignore the star (id > 0)
-	if (i < int_bound.sink.y && body_md[i].id > 0)
+	// Ignore the star and the inactive bodies
+	if (i < int_bound.sink.y && body_md[i].body_type != BODY_TYPE_STAR && body_md[i].id > 0)
 	{
 		unsigned int k = 0;
 		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
@@ -73,7 +73,7 @@ static __global__
 		if (dVec.w > SQR(dc_threshold[THRESHOLD_EJECTION_DISTANCE]))
 		{
 			k = atomicAdd(event_counter, 1);
-			printf("d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", sqrt(dVec.w), k, body_md[i].id, body_md[0].id);
+			//printf("d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", sqrt(dVec.w), k+1, body_md[i].id, body_md[0].id);
 
 			events[k].event_name = EVENT_NAME_EJECTION;
 			events[k].d = sqrt(dVec.w);
@@ -89,11 +89,10 @@ static __global__
 			// Make the body inactive
 			body_md[i].id *= -1;
 		}
-		// Ignore the star from the hit centrum criterion (i != 0)
-		else if (dVec.w < SQR(dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]) && i != 0)
+		else if (dVec.w < SQR(dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]))
 		{
 			k = atomicAdd(event_counter, 1);
-			printf("d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", sqrt(dVec.w), k, body_md[i].id, body_md[0].id);
+			//printf("d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", sqrt(dVec.w), k+1, body_md[i].id, body_md[0].id);
 
 			events[k].event_name = EVENT_NAME_HIT_CENTRUM;
 			events[k].d = sqrt(dVec.w);
@@ -135,7 +134,7 @@ static __global__
 		a[i].z = 0.0;
 		a[i].w = 0.0;
 
-		if (body_md[i].id >= 0)
+		if (body_md[i].id > 0)
 		{
 			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
 			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
@@ -165,7 +164,7 @@ static __global__
 				if (i > 0 && i < j && d < dc_threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
 				{
 					unsigned int k = atomicAdd(event_counter, 1);
-					printf("d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", d, k, body_md[i].id, body_md[j].id);
+					printf("d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", d, k+1, body_md[i].id, body_md[j].id);
 					events[k].event_name = EVENT_NAME_COLLISION;
 					events[k].d = d;
 					events[k].t = t;
@@ -436,6 +435,25 @@ void pp_disk::handle_collision()
 	}
 }
 
+void pp_disk::handle_ejection_hit_centrum()
+{
+	sp_events.resize(event_counter);
+
+	for (int i = 0; i < event_counter; i++)
+	{
+		sp_events[i] = events[i];
+		if (sp_events[i].event_name == EVENT_NAME_EJECTION)
+		{
+			n_ejection++;
+		}
+		else
+		{
+			handle_collision_pair(&sp_events[i]);
+			n_hit_centrum++;
+		}
+	}
+}
+
 void pp_disk::create_sp_events()
 {
 	sp_events.resize(event_counter);
@@ -465,10 +483,13 @@ void pp_disk::create_sp_events()
 
 void pp_disk::handle_collision_pair(event_data_t *collision)
 {
-	int survivIdx = 0;
-	int mergerIdx = 0;
+	int survivIdx = collision->idx.x;
+	int mergerIdx = collision->idx.y;
 
-	get_survivor_merger_idx(collision->id, &survivIdx, &mergerIdx);
+	if (sim_data->p[mergerIdx].mass > sim_data->p[survivIdx].mass)
+	{
+		std::swap(survivIdx, mergerIdx);
+	}
 
 	// Calculate position and velocitiy of the new object
 	vec_t r0 = {0.0, 0.0, 0.0, 0.0};
@@ -510,39 +531,6 @@ void pp_disk::calc_phase_after_collision(var_t m0, var_t m1, const vec_t* r1, co
 	v0.y = (m0 * v1->y + m1 * v2->y) / M;
 	v0.z = (m0 * v1->z + m1 * v2->z) / M;
 }
-
-void pp_disk::get_survivor_merger_idx(int2_t id, int *survivIdx, int *mergerIdx)
-{
-	int i;
-	int2_t idx;
-
-	for (i = 0; i < n_bodies->total; i++)
-	{
-		if (id.x == sim_data->body_md[i].id)
-		{
-			idx.x = i;
-			break;
-		}
-	}
-	i++;
-	for ( ; i < n_bodies->total; i++)
-	{
-		if (id.y == sim_data->body_md[i].id)
-		{
-			idx.y = i;
-		}
-	}
-
-	*survivIdx = idx.x;
-	*mergerIdx = idx.y;
-	if (sim_data->p[*mergerIdx].mass > sim_data->p[*survivIdx].mass)
-	{
-		std::swap(*survivIdx, *mergerIdx);
-		//*survivIdx = idx.y;
-		//*mergerIdx = idx.x;
-	}
-}
-
 
 void pp_disk::call_kernel_transform_to(int refBodyId)
 {

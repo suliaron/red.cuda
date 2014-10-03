@@ -40,10 +40,10 @@ private:
 	//! Holds the values against which the error is scaled
 	vector<var_t*>				d_yscale;
 
-	void call_calc_ytemp_for_fr_kernel(int r);
-	void call_calc_y_np1_kernel();
-	void call_calc_yscale_kernel();
-	void call_calc_error_kernel();
-	void call_calc_scalederror_kernel();
+	void call_kernel_calc_ytemp_for_fr(int r);
+	void call_kernel_calc_y_np1();
+	void call_kernel_calc_yscale();
+	void call_kernel_calc_error();
+	void call_kernel_calc_scalederror();
 	var_t get_max_error(int n_var);
 };

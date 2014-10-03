@@ -71,9 +71,8 @@ public:
 	void create_sp_events();
 
 	void handle_collision();
-	void handle_collision_pair(event_data_t *ed);
-
-	void get_survivor_merger_idx(int2_t id, int *survivIdx, int *mergerIdx);
+	void handle_ejection_hit_centrum();
+	void handle_collision_pair(event_data_t *collision);
 	void calc_phase_after_collision(var_t m0, var_t m1, const vec_t* r1, const vec_t* v1, const vec_t* r2, const vec_t* v2, vec_t& r0, vec_t& v0);
 
 	//! Check all bodies against ejection and hit centrum criterium
