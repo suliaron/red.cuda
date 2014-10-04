@@ -56,7 +56,7 @@ typedef enum event_name
 		} event_name_t;
 
 // int4_t gets aligned to 16 bytes.
-typedef struct __builtin_align__(16) _int4
+typedef struct /*__builtin_align__(16)*/ _int4
 		{
 			int_t x;
 			int_t y;
@@ -65,14 +65,14 @@ typedef struct __builtin_align__(16) _int4
 		} int4_t;
 
 // var2_t gets aligned to 16 bytes.
-typedef struct __builtin_align__(16) _var2
+typedef struct /*__builtin_align__(16)*/ _var2
 		{
 			var_t x;
 			var_t y;
 		} var2_t;
 
 // vec_t gets aligned to 16 bytes.
-typedef struct __builtin_align__(16) vec
+typedef struct /*__builtin_align__(16)*/ vec
 		{
 			var_t x;
 			var_t y;
@@ -81,7 +81,7 @@ typedef struct __builtin_align__(16) vec
 		} vec_t;
 
 // param_t gets aligned to 16 bytes.
-typedef struct __builtin_align__(16) param
+typedef struct /*__builtin_align__(16)*/ param
 		{
 			var_t mass;
 			var_t radius;
@@ -89,7 +89,8 @@ typedef struct __builtin_align__(16) param
 			var_t cd;
 		} param_t;
 
-typedef struct __builtin_align__(16) body_metadata
+// body_metadata_t gets aligned to 16 bytes.
+typedef struct /*__builtin_align__(16)*/ body_metadata
 		{
 			int32_t id;
 			int32_t body_type;

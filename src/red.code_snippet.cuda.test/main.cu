@@ -62,7 +62,7 @@ __global__
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (tid < n)
 	{
-		printf("r[%4d]: %f\n", tid, r[tid]);
+		//printf("r[%4d]: %f\n", tid, r[tid]);
 		printf("r[%4d].x: %f\n", tid, r[tid].x);
 		printf("r[%4d].y: %f\n", tid, r[tid].y);
 		printf("r[%4d].z: %f\n", tid, r[tid].z);
@@ -74,7 +74,7 @@ void test_print_position(int n, const vec_t* r)
 {
 	for (int tid = 0; tid < n; tid++)
 	{
-		printf("r[%4d]: %f\n", tid, r[tid]);
+		//printf("r[%4d]: %f\n", tid, r[tid]);
 		printf("r[%4d].x: %f\n", tid, r[tid].x);
 		printf("r[%4d].y: %f\n", tid, r[tid].y);
 		printf("r[%4d].z: %f\n", tid, r[tid].z);
