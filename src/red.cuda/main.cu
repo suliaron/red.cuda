@@ -171,24 +171,22 @@ int main(int argc, const char** argv)
 		integrator *intgr = opt.create_integrator(ppd, 0.001);
 
 		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
-		string result_filename = "4result" + adapt + intgr->name + ".txt";
+		string result_filename = "6result" + adapt + intgr->name + ".txt";
 		string path = file::combine_path(opt.printout_dir, result_filename);
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
 
-		path = file::combine_path(opt.printout_dir, "4event.txt");
+		path = file::combine_path(opt.printout_dir, "6event.txt");
 		ostream* event_f = new ofstream(path.c_str(), ios::out);
 
-		path = file::combine_path(opt.printout_dir, "4log.txt");
+		path = file::combine_path(opt.printout_dir, "6log.txt");
 		ostream* log_f = new ofstream(path.c_str(), ios::out);
 
 		ttt_t ps = 0;
 		ttt_t dt = 0;
 		ppd->print_result(*result_f);
-		int event_total = 0;
 		while (ppd->t <= opt.param->stop_time)
 		{
 			int n_event = ppd->call_kernel_check_for_ejection_hit_centrum();
-			event_total += n_event;
 			if (n_event > 0)
 			{
 				cout << n_event << " ejection or hit_centrum event(s) occured" << endl;
@@ -214,10 +212,11 @@ int main(int argc, const char** argv)
 				ppd->clear_event_counter();
 			}
 
-			if (n_step % 1000 == 0) 
+			if (n_step % 500 == 0) 
 			{
 				cout << "dt: " << dt << " [d], ";
 				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
+				cout << ppd->n_collision << " collision(s), " << ppd->n_ejection << " ejection(s), " << ppd->n_hit_centrum << " hit centrum were detected (No. of bodies: " << ppd->n_bodies->total - ppd->get_n_total_event() << ")" << endl;
 			}
 
 			ps += fabs(dt);

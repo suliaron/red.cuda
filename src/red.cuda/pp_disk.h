@@ -33,6 +33,15 @@ typedef enum body_type
 class pp_disk
 {
 public:
+
+	typedef struct survivor
+		{
+			vec_t			r;
+			vec_t			v;
+			param_t			p;
+			body_metadata_t body_md;
+		} survivor_t;
+
 	pp_disk(string& path, gas_disk *gd);
 	~pp_disk();
 
@@ -62,8 +71,12 @@ public:
 	*/
 	void print_event_data(ostream& sout, ostream& log_f);
 
-	//! Returns the number of events
+	//! Returns the number of events during the last step
 	int get_n_event();
+
+	//! Returns the number of events during the simulation
+	int get_n_total_event();
+
 	//! Clears the event_counter (sets to 0)
 	void clear_event_counter();
 
@@ -72,7 +85,7 @@ public:
 
 	void handle_collision();
 	void handle_ejection_hit_centrum();
-	void handle_collision_pair(event_data_t *collision);
+	void handle_collision_pair(int i, event_data_t *collision);
 	void calc_phase_after_collision(var_t m0, var_t m1, const vec_t* r1, const vec_t* v1, const vec_t* r2, const vec_t* v2, vec_t& r0, vec_t& v0);
 
 	//! Check all bodies against ejection and hit centrum criterium
@@ -107,6 +120,10 @@ public:
 
 	ttt_t		t;
 
+	int	n_ejection;					//! Total number of ejections
+	int n_hit_centrum;				//! Total number of hit centrum
+	int n_collision;				//! Total number of collisions
+
 private:
 	//! Loads the initial position and velocity of the bodies (second input version).
 	/*   
@@ -132,15 +149,13 @@ private:
 	dim3	grid;
 	dim3	block;
 
-	int	n_ejection;					//! Total number of ejections
-	int n_hit_centrum;				//! Total number of hit centrum
-	int n_collision;				//! Total number of collisions
 	int	event_counter;				//! Number of events occured during the last check
 	int* d_event_counter;			//! Number of events occured during the last check (stored on the devive)
 
 	event_data_t* events;			//!< Vector on the host containing data for events (one colliding pair multiple occurances)
 	event_data_t* d_events;			//!< Vector on the device containing data for events (one colliding pair multiple occurances)
 	vector<event_data_t> sp_events;	//!< Vector on the host containing data for events but  (one colliding pair one occurances)
+	vector<survivor_t>	survivors;	//!< Vector on the host containing data for the survivor body
 
 	vector<string>		body_names;
 };
