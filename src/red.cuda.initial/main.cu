@@ -648,6 +648,86 @@ void set_parameters_of_Dvorak_disk(body_disk_t& disk)
 	type = BODY_TYPE_TESTPARTICLE;
 }
 
+void set_parameters_of_N1_massive_N3_test(body_disk_t& disk)
+{
+	const var_t mCeres	  = 9.43e20 /* kg */ * constants::KilogramToSolar;
+	const var_t mMoon	  = 7.35e22 /* kg */ * constants::KilogramToSolar;
+	const var_t rhoBasalt = 2.7 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+
+	set_default(disk);
+
+	disk.nBody[BODY_TYPE_STAR        ] = 1;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 10;
+	disk.nBody[BODY_TYPE_TESTPARTICLE] = 10;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at = new var_t[nBodies];
+
+    int bodyIdx = 0;
+
+    int type = BODY_TYPE_STAR;
+
+	disk.names.push_back("star");
+	set(disk.pp_d[type].item[MASS], 1.0, pdf_const);
+	set(disk.pp_d[type].item[RADIUS], 1.0 * constants::SolarRadiusToAu, pdf_const);
+	set(disk.pp_d[type].item[DRAG_COEFF], 0.0, pdf_const);
+	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+	disk.stop_at[bodyIdx] = 0.0;
+
+	type = BODY_TYPE_GIANTPLANET;
+
+	type = BODY_TYPE_ROCKYPLANET;
+
+	type = BODY_TYPE_PROTOPLANET;
+	{
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_SMA], 0.9, 2.5, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_ECC], 0.0, 0.3, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_INC], 0.0, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_PERI], 0.0, 360.0 * constants::DegreeToRadian, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_NODE], 0.0, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN], 0.0, 360.0 * constants::DegreeToRadian, pdf_const);
+
+		set(disk.pp_d[type].item[MASS], mCeres, mMoon/10.0, pdf_mass_lognormal);
+		set(disk.pp_d[type].item[DENSITY], rhoBasalt, pdf_const);
+		set(disk.pp_d[type].item[DRAG_COEFF], 0.0, pdf_const);
+
+        for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+
+	type = BODY_TYPE_SUPERPLANETESIMAL;
+
+	type = BODY_TYPE_PLANETESIMAL;
+
+	type = BODY_TYPE_TESTPARTICLE;
+	{
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_SMA], 0.9, 2.5, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_ECC], 0.0, 0.3, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_INC], 0.0, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_PERI], 0.0, 360.0 * constants::DegreeToRadian, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_NODE], 0.0, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN], 0.0, 360.0 * constants::DegreeToRadian, pdf_const);
+
+		set(disk.pp_d[type].item[MASS], 0.0, pdf_const);
+		set(disk.pp_d[type].item[DENSITY], 0.0, pdf_const);
+		set(disk.pp_d[type].item[DRAG_COEFF], 0.0, pdf_const);
+
+        for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
+
 int parse_options(int argc, const char **argv, string &outDir, string &filename)
 {
 	int i = 1;
@@ -676,6 +756,7 @@ int parse_options(int argc, const char **argv, string &outDir, string &filename)
 //-o D:\Work\Projects\solaris.cuda\TestRun\Dvorak_disk -f Dvorak_disk.txt
 //-o C:\Work\Projects\red.cuda\TestRun\InputTest\TwoBody -f TwoBody.txt
 //-o C:\Work\Projects\solaris.cuda\TestRun\Dvorak_disk_Emese -f collision-testdata-N10001-vecelem-binary.dat
+//-o C:\Work\Projects\red.cuda\TestRun\InputTest\Release\N1_massive_N3_test -f N1_massive_N3_test.txt
 int main(int argc, const char **argv)
 {
 	body_disk_t disk;
@@ -687,7 +768,7 @@ int main(int argc, const char **argv)
 
 	//{
 	//	set_parameters_of_Two_body_disk(disk);
- //       output_path = file::combine_path(outDir, filename);
+	//  output_path = file::combine_path(outDir, filename);
 	//	generate_pp_disk(output_path, disk);
 	//	return 0;
 	//}
@@ -699,8 +780,15 @@ int main(int argc, const char **argv)
 	//	return 0;
 	//}
 
+	//{
+	//	set_parameters_of_Dvorak_disk(disk);
+	//	output_path = file::combine_path(outDir, filename);
+	//	generate_pp_disk(output_path, disk);
+	//	return 0;
+	//}
+
 	{
-		set_parameters_of_Dvorak_disk(disk);
+		set_parameters_of_N1_massive_N3_test(disk);
 		output_path = file::combine_path(outDir, filename);
 		generate_pp_disk(output_path, disk);
     	return 0;

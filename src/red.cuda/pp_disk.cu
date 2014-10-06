@@ -73,7 +73,7 @@ static __global__
 		if (dVec.w > SQR(dc_threshold[THRESHOLD_EJECTION_DISTANCE]))
 		{
 			k = atomicAdd(event_counter, 1);
-			printf("d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", sqrt(dVec.w), k+1, body_md[i].id, body_md[0].id);
+			printf("d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
 
 			events[k].event_name = EVENT_NAME_EJECTION;
 			events[k].d = sqrt(dVec.w);
@@ -92,7 +92,7 @@ static __global__
 		else if (dVec.w < SQR(dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]))
 		{
 			k = atomicAdd(event_counter, 1);
-			printf("d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", sqrt(dVec.w), k+1, body_md[i].id, body_md[0].id);
+			printf("d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
 
 			events[k].event_name = EVENT_NAME_HIT_CENTRUM;
 			events[k].d = sqrt(dVec.w);
@@ -164,7 +164,6 @@ static __global__
 				if (i > 0 && i < j && d < dc_threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
 				{
 					unsigned int k = atomicAdd(event_counter, 1);
-					printf("d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", d, k+1, body_md[i].id, body_md[j].id);
 
 					int survivIdx = i;
 					int mergerIdx = j;
@@ -174,6 +173,7 @@ static __global__
 						survivIdx = mergerIdx;
 						mergerIdx = t;
 					}
+					printf("d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
 
 					events[k].event_name = EVENT_NAME_COLLISION;
 					events[k].d = d;
@@ -371,10 +371,23 @@ void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const ve
 {
 	cudaError_t cudaStatus = cudaSuccess;
 	
-	int nBodyTocalc = n_bodies->get_n_self_interacting();
-	if (0 < nBodyTocalc) {
+	int n_sink = n_bodies->get_n_self_interacting();
+	if (0 < n_sink) {
 		interaction_bound int_bound = n_bodies->get_self_interacting();
-		set_kernel_launch_param(nBodyTocalc);
+		set_kernel_launch_param(n_sink);
+
+		kernel_calc_grav_accel<<<grid, block>>>
+			(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
+		cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus) {
+			throw nbody_exception("kernel_calc_grav_accel failed", cudaStatus);
+		}
+	}
+
+	n_sink = n_bodies->test_particle;
+	if (0 < n_sink) {
+		interaction_bound int_bound = n_bodies->get_non_interacting();
+		set_kernel_launch_param(n_sink);
 
 		kernel_calc_grav_accel<<<grid, block>>>
 			(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
@@ -389,9 +402,9 @@ int pp_disk::call_kernel_check_for_ejection_hit_centrum()
 {
 	cudaError_t cudaStatus = cudaSuccess;
 	
-	int nBodyTocalc = n_bodies->total;
-	interaction_bound int_bound(0, nBodyTocalc, 0, 0);
-	set_kernel_launch_param(nBodyTocalc);
+	int n_total = n_bodies->total;
+	interaction_bound int_bound(0, n_total, 0, 0);
+	set_kernel_launch_param(n_total);
 
 	kernel_check_for_ejection_hit_centrum<<<grid, block>>>
 		(t, int_bound, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_body_md, d_events, d_event_counter);
@@ -432,7 +445,7 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 	}
 }
 
-void pp_disk::handle_collision()
+int pp_disk::handle_collision()
 {
 	create_sp_events();
 
@@ -443,11 +456,16 @@ void pp_disk::handle_collision()
 		handle_collision_pair(i, &sp_events[i]);
 		n_collision++;
 	}
+
+	return sp_events.size();
 }
 
-void pp_disk::handle_ejection_hit_centrum()
+int2_t pp_disk::handle_ejection_hit_centrum()
 {
 	sp_events.resize(event_counter);
+	survivors.resize(event_counter);
+
+	int2_t number = {0, 0};
 
 	for (int i = 0; i < event_counter; i++)
 	{
@@ -455,13 +473,17 @@ void pp_disk::handle_ejection_hit_centrum()
 		if (sp_events[i].event_name == EVENT_NAME_EJECTION)
 		{
 			n_ejection++;
+			number.x++;
 		}
 		else
 		{
 			handle_collision_pair(i, &sp_events[i]);
 			n_hit_centrum++;
+			number.y++;
 		}
 	}
+
+	return number;
 }
 
 void pp_disk::create_sp_events()
@@ -473,7 +495,6 @@ void pp_disk::create_sp_events()
 	// Iterates over all collisions
 	for (int i = 1; i < event_counter; i++)
 	{
-		// 
 		if (sp_events[k].id.x == events[i].id.x && sp_events[k].id.y == events[i].id.y)
 		{
 			if (sp_events[k].t > events[i].t)
@@ -616,6 +637,131 @@ number_of_bodies* pp_disk::get_number_of_bodies(string& path)
 		throw string("Cannot open " + path + ".");
 	}
 	return new number_of_bodies(ns, ngp, nrp, npp, nspl, npl, ntp);
+}
+
+void pp_disk::remove_inactive_bodies()
+{
+	sim_data_t *sim_data_temp = new sim_data_t;
+
+	int n_save_nBody = n_bodies->total;
+	int n_active_body = 0;
+	int n_inactive_body = 0;
+# if 1 // Find out the number of active/inactive bodies
+	{
+		int		star				= 0;
+		int		giant_planet		= 0;
+		int		rocky_planet		= 0;
+		int		proto_planet		= 0;
+		int		super_planetesimal	= 0;
+		int		planetesimal		= 0;
+		int		test_particle		= 0;
+
+		for (int i = 0; i < n_bodies->total; i++)
+		{
+			if (sim_data->body_md[i].id > 0)
+			{
+				n_active_body++;
+			}
+			// Count the inactive bodies by type
+			else
+			{
+				n_inactive_body++;
+				switch (sim_data->body_md[i].body_type)
+				{
+				case BODY_TYPE_STAR:
+					star++;
+					break;
+				case BODY_TYPE_GIANTPLANET:
+					giant_planet++;
+					break;
+				case BODY_TYPE_ROCKYPLANET:
+					rocky_planet++;
+					break;
+				case BODY_TYPE_PROTOPLANET:
+					proto_planet++;
+					break;
+				case BODY_TYPE_SUPERPLANETESIMAL:
+					super_planetesimal++;
+					break;
+				case BODY_TYPE_PLANETESIMAL:
+					planetesimal++;
+					break;
+				case BODY_TYPE_TESTPARTICLE:
+					test_particle++;
+					break;
+				default:
+					throw string("Undefined body type!");
+				}
+			}
+		}
+		cout << "There are " << star << " inactive star" << endl;
+		cout << "There are " << giant_planet << " inactive giant planet" << endl;
+		cout << "There are " << rocky_planet << " inactive rocky planet" << endl;
+		cout << "There are " << proto_planet << " inactive protoplanet" << endl;
+		cout << "There are " << super_planetesimal << " inactive super planetesimal" << endl;
+		cout << "There are " << planetesimal << " inactive planetesimal" << endl;
+		cout << "There are " << test_particle << " inactive test particle" << endl;
+
+		n_bodies->star -= star;
+		n_bodies->giant_planet -= giant_planet;
+		n_bodies->rocky_planet -= rocky_planet;
+		n_bodies->proto_planet -= proto_planet;
+		n_bodies->super_planetesimal -= super_planetesimal;
+		n_bodies->planetesimal -= planetesimal;
+		n_bodies->test_particle -= test_particle;
+		n_bodies->total = n_active_body;
+	}
+#endif
+
+	sim_data_temp->y.resize(2);
+	for (int i = 0; i < 2; i++)
+	{
+		sim_data_temp->y[i]	= new vec_t[n_bodies->total];
+	}
+	sim_data_temp->p		= new param_t[n_bodies->total];
+	sim_data_temp->body_md	= new body_metadata_t[n_bodies->total];
+
+	// Copy the data of active bodies to sim_data_temp
+	int k = 0;
+	for (int i = 0; i < n_save_nBody; i++)
+	{
+		if (sim_data->body_md[i].id > 0)
+		{
+			// Copy position
+			sim_data_temp->y[0][k]		= sim_data->y[0][i];
+			// Copy velocity
+			sim_data_temp->y[1][k]		= sim_data->y[1][i];
+			// Copy parameters
+			sim_data_temp->p[k]			= sim_data->p[i];
+			// Copy metadata
+			sim_data_temp->body_md[k]	= sim_data->body_md[i];
+			k++;
+		}
+	}
+
+	// Copy the active bodies back to sim_data
+	for (int i = 0; i < n_bodies->total; i++)
+	{
+		// Copy position
+		sim_data->y[0][i]		= sim_data_temp->y[0][i];
+		// Copy velocity
+		sim_data->y[1][i]		= sim_data_temp->y[1][i];
+		// Copy parameters
+		sim_data->p[i]			= sim_data_temp->p[i];
+		// Copy metadata
+		sim_data->body_md[i]	= sim_data_temp->body_md[i];
+	}
+
+	// Copy the active bodies to the device
+	copy_to_device();
+
+	for (int i = 0; i < 2; i++)
+	{
+		delete[] sim_data_temp->y[i];
+	}
+	delete[] sim_data_temp->p;
+	delete[] sim_data_temp->body_md;
+	delete sim_data_temp;
 }
 
 void pp_disk::allocate_storage()
@@ -856,7 +1002,7 @@ void pp_disk::load(string& path)
 	cout << "done" << endl;
 }
 
-void pp_disk::print_result(ostream& sout)
+void pp_disk::print_result_ascii(ostream& sout)
 {
 	vec_t* r = sim_data->y[0];
 	vec_t* v = sim_data->y[1];
@@ -864,6 +1010,11 @@ void pp_disk::print_result(ostream& sout)
 	body_metadata_t* body_md = sim_data->body_md;
 
 	for (int i = 0; i < n_bodies->total; i++) {
+		// Skip inactive body
+		if (body_md[i].id < 0)
+		{
+			continue;
+		}
 		sout << body_md[i].id << SEP
 			 << body_names[i] << SEP
 			 << body_md[i].body_type << SEP 
@@ -882,6 +1033,11 @@ void pp_disk::print_result(ostream& sout)
 			 << v[i].z << endl;
     }
 	sout.flush();
+}
+
+void pp_disk::print_result_binary(ostream& sout)
+{
+	throw string("print_result_binary is not implemented");
 }
 
 void pp_disk::print_event_data(ostream& sout, ostream& log_f)

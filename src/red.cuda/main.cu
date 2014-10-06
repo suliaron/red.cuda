@@ -171,27 +171,29 @@ int main(int argc, const char** argv)
 		integrator *intgr = opt.create_integrator(ppd, 0.001);
 
 		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
-		string result_filename = "6result" + adapt + intgr->name + ".txt";
+		string result_filename = "result" + adapt + intgr->name + ".txt";
 		string path = file::combine_path(opt.printout_dir, result_filename);
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
 
-		path = file::combine_path(opt.printout_dir, "6event.txt");
+		path = file::combine_path(opt.printout_dir, "event.txt");
 		ostream* event_f = new ofstream(path.c_str(), ios::out);
 
-		path = file::combine_path(opt.printout_dir, "6log.txt");
+		path = file::combine_path(opt.printout_dir, "log.txt");
 		ostream* log_f = new ofstream(path.c_str(), ios::out);
 
 		ttt_t ps = 0;
 		ttt_t dt = 0;
-		ppd->print_result(*result_f);
+		int n_event_after_last_save = 0;
+		ppd->print_result_ascii(*result_f);
 		while (ppd->t <= opt.param->stop_time)
 		{
 			int n_event = ppd->call_kernel_check_for_ejection_hit_centrum();
+			n_event_after_last_save += n_event;
 			if (n_event > 0)
 			{
-				cout << n_event << " ejection or hit_centrum event(s) occured" << endl;
 				ppd->copy_event_data_to_host();
-				ppd->handle_ejection_hit_centrum();
+				int2_t n_eh = ppd->handle_ejection_hit_centrum();
+				cout << n_eh.x << " ejection " << n_eh.y << " hit_centrum event(s) occured" << endl;
 				ppd->print_event_data(*event_f, *log_f);
 				ppd->clear_event_counter();
 			}
@@ -205,9 +207,10 @@ int main(int argc, const char** argv)
 			n_event = ppd->get_n_event();
 			if (n_event > 0)
 			{
-				cout << n_event << " collision event(s) occured" << endl;
 				ppd->copy_event_data_to_host();
-				ppd->handle_collision();
+				n_event = ppd->handle_collision();
+				n_event_after_last_save += n_event;
+				cout << n_event << " collision event(s) occured" << endl;
 				ppd->print_event_data(*event_f, *log_f);
 				ppd->clear_event_counter();
 			}
@@ -216,23 +219,28 @@ int main(int argc, const char** argv)
 			{
 				cout << "dt: " << dt << " [d], ";
 				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
-				cout << ppd->n_collision << " collision(s), " << ppd->n_ejection << " ejection(s), " << ppd->n_hit_centrum << " hit centrum were detected (No. of bodies: " << ppd->n_bodies->total - ppd->get_n_total_event() << ")" << endl;
+				cout << ppd->n_collision << " collision(s), " << ppd->n_ejection << " ejection(s), " << ppd->n_hit_centrum << " hit centrum were detected (No. of bodies: " << ppd->n_bodies->total - n_event_after_last_save << ")" << endl;
 			}
 
 			ps += fabs(dt);
 			if (fabs(ps) >= opt.param->output_interval)
 			{
 				ps = 0.0;
-				//ppd->call_kernel_transform_to(0);
 				ppd->copy_to_host();
-				ppd->print_result(*result_f);
+				if (n_event_after_last_save > 16)
+				{
+					// Rebuild the vectors and remove inactive bodies
+					ppd->remove_inactive_bodies();
+					n_event_after_last_save = 0;
+				}
+				ppd->print_result_ascii(*result_f);
 			}
 		} /* while */
 		// To avoid duplicate save at the end of the simulation
 		if (ps > 0.0)
 		{
 			ppd->copy_to_host();
-			ppd->print_result(*result_f);
+			ppd->print_result_ascii(*result_f);
 		}
 
 	} /* try */

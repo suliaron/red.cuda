@@ -59,11 +59,16 @@ public:
 	var_t get_mass_of_star();
 	//! Transforms the system to barycentric reference frame
 	void transform_to_bc();
-	//! Print the data of all bodies
+	//! Print the data of all bodies in text format
 	/*   
 		\param sout print the data to this stream
 	*/
-	void print_result(ostream& sout);
+	void print_result_ascii(ostream& sout);
+	//! Print the data of all bodies in binary format
+	/*   
+		\param sout print the data to this stream
+	*/
+	void print_result_binary(ostream& sout);
 	//! Print the event data
 	/*   
 		\param sout print the data to this stream
@@ -83,10 +88,10 @@ public:
 	//! From the events it will create a vector containing one entry for each colliding pair with the earliest collision time
 	void create_sp_events();
 
-	void handle_collision();
-	void handle_ejection_hit_centrum();
+	int handle_collision();
+	int2_t handle_ejection_hit_centrum();
 	void handle_collision_pair(int i, event_data_t *collision);
-	void calc_phase_after_collision(var_t m0, var_t m1, const vec_t* r1, const vec_t* v1, const vec_t* r2, const vec_t* v2, vec_t& r0, vec_t& v0);
+	void calc_phase_after_collision(var_t m1, var_t m2, const vec_t* r1, const vec_t* v1, const vec_t* r2, const vec_t* v2, vec_t& r0, vec_t& v0);
 
 	//! Check all bodies against ejection and hit centrum criterium
 	int call_kernel_check_for_ejection_hit_centrum();
@@ -108,6 +113,8 @@ public:
 		\param dy Device vector that will hold the differentials
 	*/
 	void calc_dy(int i, int rr, ttt_t curr_t, const vec_t *r, const vec_t *v, vec_t* dy);
+
+	void remove_inactive_bodies();
 
 	// Input/Output streams
 	friend ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies);

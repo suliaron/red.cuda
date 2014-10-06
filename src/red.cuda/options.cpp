@@ -103,11 +103,6 @@ pp_disk* options::create_pp_disk()
 {
 	string path = file::combine_path(input_dir, bodylist_filename);
 	pp_disk* ppd = new pp_disk(path, g_disk);
-	//if (verbose)
-	//{
-	//	cout << "Contents of the file " << path << ":" << endl;
-	//	ppd->print_result(cout);
-	//}
 	if (ppd->g_disk != 0)
 	{
 		ppd->g_disk->calc(ppd->get_mass_of_star());
@@ -116,7 +111,7 @@ pp_disk* options::create_pp_disk()
 	{
 		ppd->transform_to_bc();
 		//cout << "Body data after transformation:" << endl;
-		//ppd->print_result(cout);
+		//ppd->print_result_ascii(cout);
 	}
 	ppd->copy_to_device();
 	ppd->copy_threshold_to_device(param->threshold);
