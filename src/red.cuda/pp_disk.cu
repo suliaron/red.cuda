@@ -160,8 +160,9 @@ static __global__
 				a[i].z += dVec.w * dVec.z;
 
 				// Check for collision - ignore the star (i > 0 criterium)
-				// The data of the collision will be stored for the body with the smaller index
-				if (i > 0 && i < j && d < dc_threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
+				// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
+				// If i < j is the condition than test particles can not collide with massive bodies
+				if (i > 0 && i > j && d < dc_threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
 				{
 					unsigned int k = atomicAdd(event_counter, 1);
 
@@ -521,10 +522,16 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 	// Calculate position and velocitiy of the new object
 	vec_t r0 = {0.0, 0.0, 0.0, 0.0};
 	vec_t v0 = {0.0, 0.0, 0.0, 0.0};
+
 	var_t m_surviv = sim_data->p[survivIdx].mass;
 	var_t m_merger = sim_data->p[mergerIdx].mass;
 	calc_phase_after_collision(m_surviv, m_merger, &(collision->r1), &(collision->v1), &(collision->r2), &(collision->v2), r0, v0);
 
+	if (BODY_TYPE_SUPERPLANETESIMAL == sim_data->body_md[mergerIdx].body_type)
+	{
+		// TODO: implement collision between a body and a super-planetesimal
+		throw string("Collision between a massive body and a super-planetesimal is not yet implemented.");
+	}
 	// Calculate mass, volume, radius and density of the new object
 	var_t mass	 = m_surviv + m_merger;
 	// Calculate V = V1 + V2

@@ -597,8 +597,9 @@ void set_parameters_of_Dvorak_disk(body_disk_t& disk)
 
 	set_default(disk);
 
-	disk.nBody[BODY_TYPE_STAR       ] = 1;
-	disk.nBody[BODY_TYPE_PROTOPLANET] = 1000;
+	disk.nBody[BODY_TYPE_STAR        ] = 1;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 5000;
+	disk.nBody[BODY_TYPE_TESTPARTICLE] = 5000;
 
 	int_t nBodies = calculate_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
@@ -646,6 +647,26 @@ void set_parameters_of_Dvorak_disk(body_disk_t& disk)
 	type = BODY_TYPE_PLANETESIMAL;
 
 	type = BODY_TYPE_TESTPARTICLE;
+	{
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_SMA], 0.5, 4.0, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_ECC], 0.0, 0.1, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_INC], 0.0, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_PERI], 0.0, 360.0 * constants::DegreeToRadian, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_NODE], 0.0, pdf_const);
+		set(disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN], 0.0, 360.0 * constants::DegreeToRadian, pdf_const);
+
+		set(disk.pp_d[type].item[MASS], 0.0, pdf_const);
+		set(disk.pp_d[type].item[DENSITY], 0.0, pdf_const);
+		set(disk.pp_d[type].item[DRAG_COEFF], 0.0, pdf_const);
+
+        for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
 }
 
 void set_parameters_of_N1_massive_N3_test(body_disk_t& disk)
@@ -757,6 +778,7 @@ int parse_options(int argc, const char **argv, string &outDir, string &filename)
 //-o C:\Work\Projects\red.cuda\TestRun\InputTest\TwoBody -f TwoBody.txt
 //-o C:\Work\Projects\solaris.cuda\TestRun\Dvorak_disk_Emese -f collision-testdata-N10001-vecelem-binary.dat
 //-o C:\Work\Projects\red.cuda\TestRun\InputTest\Release\N1_massive_N3_test -f N1_massive_N3_test.txt
+//-o C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -f Run_cf_5.txt
 int main(int argc, const char **argv)
 {
 	body_disk_t disk;
@@ -780,19 +802,19 @@ int main(int argc, const char **argv)
 	//	return 0;
 	//}
 
-	//{
-	//	set_parameters_of_Dvorak_disk(disk);
-	//	output_path = file::combine_path(outDir, filename);
-	//	generate_pp_disk(output_path, disk);
-	//	return 0;
-	//}
-
 	{
-		set_parameters_of_N1_massive_N3_test(disk);
+		set_parameters_of_Dvorak_disk(disk);
 		output_path = file::combine_path(outDir, filename);
 		generate_pp_disk(output_path, disk);
-    	return 0;
+		return 0;
 	}
+
+	//{
+	//	set_parameters_of_N1_massive_N3_test(disk);
+	//	output_path = file::combine_path(outDir, filename);
+	//	generate_pp_disk(output_path, disk);
+ //   	return 0;
+	//}
 
 
 	ostringstream convert;	// stream used for the conversion

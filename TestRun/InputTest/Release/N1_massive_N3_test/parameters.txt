@@ -6,11 +6,13 @@ description = test for test particle integration
 frame_center = bary
 integrator = rkf8
 tolerance = 1.0e-10
+error_check_for_tp = false # default value
 
 start_time = 0.0  # year
-length = 10.0  # year
-output_interval = 0.1 # year
+length = 1000.0  # year
+output_interval = 1 # year
 
 ejection = 100.0 # AU
 hit_centrum = 0.1 # [AU]
-collision_factor = 1.0
+collision_factor = 100.0
+

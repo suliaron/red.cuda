@@ -14,6 +14,7 @@ using namespace std;
 
 integrator::integrator(pp_disk *ppd, ttt_t dt) : 
 	ppd(ppd),
+	error_check_for_tp(false),
 	dt_try(dt),
 	dt_did(0.0),
 	dt_next(0.0),

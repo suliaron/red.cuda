@@ -149,5 +149,10 @@ integrator* options::create_integrator(pp_disk* ppd, ttt_t dt)
 		throw string("Requested integrator is not implemented.");
 	}
 
+	if (param->error_check_for_tp)
+	{
+		intgr->error_check_for_tp = true;
+	}
+
 	return intgr;
 }

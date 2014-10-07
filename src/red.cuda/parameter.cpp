@@ -14,6 +14,7 @@ parameter::parameter(string& dir, string& filename, bool verbose) :
 	filename(filename),
 	verbose(verbose),
 	adaptive(false),
+	error_check_for_tp(false),
 	fr_cntr(FRAME_CENTER_BARY),
 	int_type(INTEGRATOR_EULER),
 	tolerance(1.0e-10),
@@ -122,6 +123,20 @@ void parameter::set_param(string& key, string& value)
 		adaptive = true;
 		tolerance = atof(value.c_str());
 	}
+	else if (key == "error_check_for_tp") {
+		if      (value == "true")
+		{
+			error_check_for_tp = true;
+		}
+		else if (value == "false")
+		{
+			error_check_for_tp = false;
+		}
+		else {
+			throw string("Invalid value at: " + key);
+		}
+	}
+
     else if (key == "start_time") {
 		if (!tools::is_number(value)) {
 			throw string("Invalid number at: " + key);

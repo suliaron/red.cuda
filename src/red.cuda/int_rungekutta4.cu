@@ -161,8 +161,6 @@ void rungekutta4::call_kernel_calc_error()
 
 ttt_t rungekutta4::step()
 {
-	const int n_var = NDIM * ppd->n_bodies->total;
-
 	// Calculate initial differentials and store them into d_f[][0]
 	int r = 0;
 	ttt_t ttemp = ppd->t + c[r] * dt_try;
@@ -200,6 +198,8 @@ ttt_t rungekutta4::step()
 			}
 			// calculate: d_err = h(f4 - f5)
 			call_kernel_calc_error();
+
+			int n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->total : ppd->n_bodies->get_n_massive());
 			max_err = get_max_error(n_var);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/4.0);
 

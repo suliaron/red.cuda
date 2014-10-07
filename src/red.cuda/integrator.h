@@ -27,6 +27,9 @@ public:
 
 	virtual ttt_t step() = 0;
 
+	//! Check the error also for the test particle
+	bool_t error_check_for_tp;
+
 	string name;
 protected:
 	void	calc_grid(int nData, int threads_per_block);

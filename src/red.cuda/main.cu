@@ -155,6 +155,7 @@ int device_query(int argc, const char **argv)
 //--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Release\TwoBody -p parameters.txt -ic TwoBody.txt
 
 //--verbose -iDir C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run01 -p parameters.txt -ic run01.txt
+//-v C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -p parameters.txt -ic run01.txt -ic Run_cf_5.txt
 int main(int argc, const char** argv)
 {
 	cout << "At " << tools::get_time_stamp() << " starting " << argv[0] << endl;
@@ -188,11 +189,11 @@ int main(int argc, const char** argv)
 		while (ppd->t <= opt.param->stop_time)
 		{
 			int n_event = ppd->call_kernel_check_for_ejection_hit_centrum();
-			n_event_after_last_save += n_event;
 			if (n_event > 0)
 			{
 				ppd->copy_event_data_to_host();
 				int2_t n_eh = ppd->handle_ejection_hit_centrum();
+				n_event_after_last_save += n_event;
 				cout << n_eh.x << " ejection " << n_eh.y << " hit_centrum event(s) occured" << endl;
 				ppd->print_event_data(*event_f, *log_f);
 				ppd->clear_event_counter();

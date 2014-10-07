@@ -471,8 +471,6 @@ void rungekutta8::call_kernel_calc_y_np1()
 
 ttt_t rungekutta8::step()
 {
-	const int n_var = NDIM * ppd->n_bodies->total;
-
 	// Calculate initial differentials and store them into d_f[][0]
 	int r = 0;
 	ttt_t ttemp = ppd->t + c[r] * dt_try;
@@ -512,6 +510,8 @@ ttt_t rungekutta8::step()
 				}
 			}
 			call_kernel_calc_error();
+
+			int n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->total : ppd->n_bodies->get_n_massive());
 			max_err = get_max_error(n_var);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/8.0);
 
@@ -548,14 +548,6 @@ var_t rungekutta8::get_max_error(int n_var)
 	// Wrap raw pointer with a device_ptr
 	thrust::device_ptr<var_t> d_ptr_r(d_err[0]);
 	thrust::device_ptr<var_t> d_ptr_v(d_err[1]);
-
-	// DEBUG CODE
-	var_t* h_ptr_r = (var_t*)malloc(n_var * sizeof(var_t));
-	var_t* h_ptr_v = (var_t*)malloc(n_var * sizeof(var_t));
-
-	cudaMemcpy((void*)h_ptr_r, (void*)d_ptr_r.get(), n_var * sizeof(var_t), cudaMemcpyDeviceToHost);
-	cudaMemcpy((void*)h_ptr_v, (void*)d_ptr_v.get(), n_var * sizeof(var_t), cudaMemcpyDeviceToHost);
-	// END DEBUG CODE
 
 	// Use thrust to find the maximum element
 	thrust::device_ptr<var_t> d_ptr_max_r = thrust::max_element(d_ptr_r, d_ptr_r + n_var);
