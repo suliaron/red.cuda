@@ -52,6 +52,7 @@ public:
 private:
 	void parse();
 	void set_param(string& key, string& value);
+	void transform_time();
 
 	//! holds a copy of the file containing the parameters of the simulation
 	string	data;

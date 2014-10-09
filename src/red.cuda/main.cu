@@ -172,23 +172,24 @@ int main(int argc, const char** argv)
 		integrator *intgr = opt.create_integrator(ppd, 0.001);
 
 		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
-		string result_filename = "result" + adapt + intgr->name + ".txt";
+		string result_filename = "trace_t_result" + adapt + intgr->name + ".txt";
 		string path = file::combine_path(opt.printout_dir, result_filename);
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
 
-		path = file::combine_path(opt.printout_dir, "event.txt");
+		path = file::combine_path(opt.printout_dir, "trace_t_event.txt");
 		ostream* event_f = new ofstream(path.c_str(), ios::out);
 
-		path = file::combine_path(opt.printout_dir, "log.txt");
+		path = file::combine_path(opt.printout_dir, "trace_t_log.txt");
 		ostream* log_f = new ofstream(path.c_str(), ios::out);
 
 		ttt_t ps = 0;
 		ttt_t dt = 0;
+		int n_event = 0;
 		int n_event_after_last_save = 0;
 		ppd->print_result_ascii(*result_f);
 		while (ppd->t <= opt.param->stop_time)
 		{
-			int n_event = ppd->call_kernel_check_for_ejection_hit_centrum();
+			n_event = ppd->call_kernel_check_for_ejection_hit_centrum();
 			if (n_event > 0)
 			{
 				ppd->copy_event_data_to_host();
@@ -205,6 +206,13 @@ int main(int argc, const char** argv)
 			sum_time_of_steps += (end_of_step - start_of_step);
 			n_step++;
 
+			// NSIGHT CODE
+			if (2 <= n_step)
+			{
+				break;
+			}
+			// NSIGHT CODE END
+
 			n_event = ppd->get_n_event();
 			if (n_event > 0)
 			{
@@ -216,9 +224,9 @@ int main(int argc, const char** argv)
 				ppd->clear_event_counter();
 			}
 
-			if (n_step % 500 == 0) 
+			if (n_step % 100 == 0) 
 			{
-				cout << "dt: " << dt << " [d], ";
+				printf("t: %25.15le, dt: %25.15le ", ppd->t, dt);
 				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
 				cout << ppd->n_collision << " collision(s), " << ppd->n_ejection << " ejection(s), " << ppd->n_hit_centrum << " hit centrum were detected (No. of bodies: " << ppd->n_bodies->total - n_event_after_last_save << ")" << endl;
 			}
@@ -235,6 +243,9 @@ int main(int argc, const char** argv)
 					n_event_after_last_save = 0;
 				}
 				ppd->print_result_ascii(*result_f);
+				// NSIGHT CODE
+				break;
+				// NSIGHT CODE END
 			}
 		} /* while */
 		// To avoid duplicate save at the end of the simulation

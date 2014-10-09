@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-v -iDir C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -p parameters.txt -ic Run_cf_5.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -iDir C:\Work\Projects\red.cuda.TestRun\Emese_Dvorak\cf_5 -p parameters.txt -ic suli-data-collision-N10001-heliocentric-vecelem-binary.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Release\N1_massive_N3_test -p parameters.txt -ic N1_massive_N3_test.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Release\TwoBody -p parameters.txt -ic TwoBody.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

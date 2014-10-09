@@ -43,6 +43,13 @@ static __host__ __device__
 /****************** KERNEL functions begins here ******************/
 
 static __global__
+	void kernel_dummy()
+{
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int k = i*i;
+}
+
+static __global__
 	void kernel_check_for_ejection_hit_centrum
 	(
 		ttt_t t, 
@@ -73,7 +80,7 @@ static __global__
 		if (dVec.w > SQR(dc_threshold[THRESHOLD_EJECTION_DISTANCE]))
 		{
 			k = atomicAdd(event_counter, 1);
-			printf("d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
+			//printf("t = %20.10le d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
 
 			events[k].event_name = EVENT_NAME_EJECTION;
 			events[k].d = sqrt(dVec.w);
@@ -92,7 +99,7 @@ static __global__
 		else if (dVec.w < SQR(dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]))
 		{
 			k = atomicAdd(event_counter, 1);
-			printf("d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
+			//printf("t = %20.10le d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
 
 			events[k].event_name = EVENT_NAME_HIT_CENTRUM;
 			events[k].d = sqrt(dVec.w);
@@ -133,14 +140,13 @@ static __global__
 		a[i].y = 0.0;
 		a[i].z = 0.0;
 		a[i].w = 0.0;
-
 		if (body_md[i].id > 0)
 		{
 			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
 			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 			{
 				/* Skip the body with the same index and those which are inactive ie. id < 0 */
-				if (j == i || body_md[j].id < 0)
+				if (i == j || body_md[j].id < 0)
 				{
 					continue;
 				}
@@ -174,7 +180,7 @@ static __global__
 						survivIdx = mergerIdx;
 						mergerIdx = t;
 					}
-					printf("d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
+					//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
 
 					events[k].event_name = EVENT_NAME_COLLISION;
 					events[k].d = d;
@@ -190,9 +196,10 @@ static __global__
 				}
 			}
 			// 36 FLOP
-			a[i].x *= K2;
-			a[i].y *= K2;
-			a[i].z *= K2;
+			// With the used time unit k = 1
+			//a[i].x *= K2;
+			//a[i].y *= K2;
+			//a[i].z *= K2;
 		}
 	}
 }
@@ -305,7 +312,6 @@ void test_print_position(int n, const vec_t* r)
 		printf("[%d]: (%20.16lf, %20.16lf, %20.16lf, %20.16lf)\n", i, r[i].x, r[i].y, r[i].z, r[i].w);
 	}
 }
-
 
 // Test function: print out all the simulation data contained on the device
 void pp_disk::test_call_kernel_print_sim_data()
@@ -426,11 +432,14 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 	{
 	case 0:
 		// Copy velocities from previous step
+		kernel_dummy<<<40, 256>>>();
+#if 0 // NSIGHT CODE
 		cudaMemcpy(dy, v, n * sizeof(vec_t), cudaMemcpyDeviceToDevice);
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {
 			throw nbody_exception("cudaMemcpy failed", cudaStatus);
 		}
+#endif
 		break;
 	case 1:
 		if (rr == 0)
@@ -873,7 +882,8 @@ void pp_disk::clear_event_counter()
 var_t pp_disk::get_mass_of_star()
 {
 	body_metadata_t* body_md = sim_data->body_md;
-	for (int j = 0; j < n_bodies->get_n_massive(); j++ ) {
+	for (int j = 0; j < n_bodies->get_n_massive(); j++ )
+	{
 		if (body_md[j].body_type == BODY_TYPE_STAR)
 		{
 			return sim_data->p[j].mass;
@@ -887,7 +897,8 @@ var_t pp_disk::get_total_mass()
 	var_t totalMass = 0.0;
 
 	param_t* p = sim_data->p;
-	for (int j = 0; j < n_bodies->get_n_massive(); j++ ) {
+	for (int j = 0; j < n_bodies->get_n_massive(); j++ )
+	{
 		totalMass += p[j].mass;
 	}
 
@@ -900,7 +911,8 @@ void pp_disk::compute_bc(vec_t* R0, vec_t* V0)
 	const vec_t* r = sim_data->y[0];
 	const vec_t* v = sim_data->y[1];
 
-	for (int j = 0; j < n_bodies->get_n_massive(); j++ ) {
+	for (int j = 0; j < n_bodies->get_n_massive(); j++ )
+	{
 		var_t m = p[j].mass;
 		R0->x += m * r[j].x;
 		R0->y += m * r[j].y;
@@ -929,12 +941,27 @@ void pp_disk::transform_to_bc()
 	vec_t* r = sim_data->y[0];
 	vec_t* v = sim_data->y[1];
 	// Transform the bodies coordinates and velocities
-	for (int j = 0; j < n_bodies->get_n_total(); j++ ) {
+	for (int j = 0; j < n_bodies->total; j++ )
+	{
 		r[j].x -= R0.x;		r[j].y -= R0.y;		r[j].z -= R0.z;
 		v[j].x -= V0.x;		v[j].y -= V0.y;		v[j].z -= V0.z;
 	}
 
 	cout << "done" << endl;
+}
+
+void pp_disk::transform_time()
+{
+	vec_t* v = sim_data->y[1];
+	// Transform the bodies coordinates and velocities
+	for (int j = 0; j < n_bodies->total; j++ )
+	{
+		sim_data->epoch[j] *= constants::Gauss;
+
+		v[j].x /= constants::Gauss;
+		v[j].y /= constants::Gauss;
+		v[j].z /= constants::Gauss;
+	}
 }
 
 void pp_disk::load(string& path)

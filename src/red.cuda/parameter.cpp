@@ -26,6 +26,7 @@ parameter::parameter(string& dir, string& filename, bool verbose) :
 	string path = file::combine_path(dir, filename);
 	file::load_ascii_file(path, data);
 	parse();
+	transform_time();
 	data.clear();
 
 	stop_time = start_time + simulation_length;
@@ -183,6 +184,13 @@ void parameter::set_param(string& key, string& value)
 		}
 		cout << "\t'" << key << "' was assigned to '" << value << "'" << endl;
 	}
+}
+
+void parameter::transform_time()
+{
+	start_time			*= constants::Gauss;
+	simulation_length	*= constants::Gauss;
+	output_interval		*= constants::Gauss;
 }
 
 ostream& operator<<(ostream& stream, const parameter* p)

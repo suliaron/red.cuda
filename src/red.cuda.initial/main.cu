@@ -262,7 +262,7 @@ void print_body_record(
     output.flush();
 }
 
-void Emese_data_format_to_solaris_cuda_format(const string& input_path, const string& output_path)
+void Emese_data_format_to_red_cuda_format(const string& input_path, const string& output_path)
 {
 	ifstream input(input_path, ios::in | ios::binary);
 	ofstream output(output_path, ios_base::out);
@@ -329,14 +329,15 @@ void Emese_data_format_to_solaris_cuda_format(const string& input_path, const st
 			param_t	        param;
             body_metadata_t body_md;
 
-			body_md.id = id;
-			if (id == 0)
+			// red.cuda: id starts from 1
+			body_md.id = ++id;
+			if (1 == body_md.id)
 			{
 				body_md.body_type = BODY_TYPE_STAR;
 			}
-			if (id)
+			if (1 < body_md.id)
 			{
-				if (m > 0.0)
+				if (0.0 < m)
 				{
 					body_md.body_type = BODY_TYPE_PROTOPLANET;
 				}
@@ -775,8 +776,8 @@ int parse_options(int argc, const char **argv, string &outDir, string &filename)
 }
 
 //-o D:\Work\Projects\solaris.cuda\TestRun\Dvorak_disk -f Dvorak_disk.txt
-//-o C:\Work\Projects\red.cuda\TestRun\InputTest\TwoBody -f TwoBody.txt
-//-o C:\Work\Projects\solaris.cuda\TestRun\Dvorak_disk_Emese -f collision-testdata-N10001-vecelem-binary.dat
+//-o C:\Work\Projects\red.cuda\TestRun\InputTest\Release\TwoBody -f TwoBody.txt
+//-o C:\Work\Projects\red.cuda.TestRun\Emese_Dvorak -f collision-testdata-N10001-vecelem-binary.dat
 //-o C:\Work\Projects\red.cuda\TestRun\InputTest\Release\N1_massive_N3_test -f N1_massive_N3_test.txt
 //-o C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -f Run_cf_5.txt
 int main(int argc, const char **argv)
@@ -788,26 +789,26 @@ int main(int argc, const char **argv)
 
 	parse_options(argc, argv, outDir, filename);
 
+	{
+		string input_path = file::combine_path(outDir, filename);
+		string output_path = file::combine_path(outDir, file::get_filename_without_ext(filename) + ".txt");
+		Emese_data_format_to_red_cuda_format(input_path, output_path);
+		return 0;
+	}
+
 	//{
 	//	set_parameters_of_Two_body_disk(disk);
-	//  output_path = file::combine_path(outDir, filename);
+	//	output_path = file::combine_path(outDir, filename);
 	//	generate_pp_disk(output_path, disk);
 	//	return 0;
 	//}
 
 	//{
-	//	string input_path = file::combine_path(outDir, filename);
-	//	string output_path = file::combine_path(outDir, file::get_filename_without_ext(filename) + ".txt");
-	//	Emese_data_format_to_solaris_cuda_format(input_path, output_path);
+	//	set_parameters_of_Dvorak_disk(disk);
+	//	output_path = file::combine_path(outDir, filename);
+	//	generate_pp_disk(output_path, disk);
 	//	return 0;
 	//}
-
-	{
-		set_parameters_of_Dvorak_disk(disk);
-		output_path = file::combine_path(outDir, filename);
-		generate_pp_disk(output_path, disk);
-		return 0;
-	}
 
 	//{
 	//	set_parameters_of_N1_massive_N3_test(disk);

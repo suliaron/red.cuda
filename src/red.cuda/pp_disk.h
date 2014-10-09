@@ -59,6 +59,8 @@ public:
 	var_t get_mass_of_star();
 	//! Transforms the system to barycentric reference frame
 	void transform_to_bc();
+	//! Transform the velocity using the new time unit: 1/k = 58.13244 ...
+	void transform_time();
 	//! Print the data of all bodies in text format
 	/*   
 		\param sout print the data to this stream

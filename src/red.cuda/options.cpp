@@ -24,7 +24,7 @@ options::options(int argc, const char** argv) :
 	parse_options(argc, argv);
 	if (parameters_filename.length() == 0)
 	{
-		throw string("Missing filename for -p  | --parameter!");
+		throw string("Missing filename for -p | --parameter!");
 	}
 	if (bodylist_filename.length() == 0)
 	{
@@ -45,7 +45,7 @@ options::~options()
 
 void options::print_usage()
 {
-	cout << "Usage: red.cuda <parameterlis>" << endl;
+	cout << "Usage: red.cuda <parameterlist>" << endl;
 	cout << "Parameters:" << endl;
 	cout << "     -iDir | --inputDir <directory>         : the directory containig the input files"  << endl;
 	cout << "     -p    | --parameter <filename>         : the file containig the parameters of the simulation"  << endl;
@@ -113,6 +113,7 @@ pp_disk* options::create_pp_disk()
 		//cout << "Body data after transformation:" << endl;
 		//ppd->print_result_ascii(cout);
 	}
+	ppd->transform_time();
 	ppd->copy_to_device();
 	ppd->copy_threshold_to_device(param->threshold);
 

@@ -8,6 +8,7 @@
 
 // includes project
 #include "integrator.h"
+#include "red_constants.h"
 #include "red_type.h"
 
 using namespace std;
@@ -15,7 +16,7 @@ using namespace std;
 integrator::integrator(pp_disk *ppd, ttt_t dt) : 
 	ppd(ppd),
 	error_check_for_tp(false),
-	dt_try(dt),
+	dt_try(dt * constants::Gauss), // Transfor time unit
 	dt_did(0.0),
 	dt_next(0.0),
 	n_failed_step(0),
