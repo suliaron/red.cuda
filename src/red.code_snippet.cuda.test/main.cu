@@ -16,11 +16,99 @@
 #include "thrust\extrema.h"
 
 // includes project
+#include "number_of_bodies.h"
 #include "red_type.h"
 #include "red_macro.h"
+#include "util.h"
 
 
 using namespace std;
+
+static __global__
+	void	kernel_calc_grav_accel
+	(
+		ttt_t t, 
+		interaction_bound int_bound, 
+		const body_metadata_t* body_md, 
+		const param_t* p, 
+		const vec_t* r, 
+		const vec_t* v, 
+		vec_t* a,
+		event_data_t* events,
+		int *event_counter
+	)
+{
+	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (i < int_bound.sink.y)
+	{
+		a[i].x = 0.0;
+		a[i].y = 0.0;
+		a[i].z = 0.0;
+		a[i].w = 0.0;
+		if (body_md[i].id > 0)
+		{
+			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+			{
+				/* Skip the body with the same index and those which are inactive ie. id < 0 */
+				if (i == j || body_md[j].id < 0)
+				{
+					continue;
+				}
+				// 3 FLOP
+				dVec.x = r[j].x - r[i].x;
+				dVec.y = r[j].y - r[i].y;
+				dVec.z = r[j].z - r[i].z;
+				// 5 FLOP
+				dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+				// 20 FLOP
+				var_t d = sqrt(dVec.w);								// = r
+				// 2 FLOP
+				dVec.w = p[j].mass / (d*dVec.w);
+				// 6 FLOP
+				a[i].x += dVec.w * dVec.x;
+				a[i].y += dVec.w * dVec.y;
+				a[i].z += dVec.w * dVec.z;
+
+				// Check for collision - ignore the star (i > 0 criterium)
+				// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
+				// If i < j is the condition than test particles can not collide with massive bodies
+				if (i > 0 && i > j && d < /* dc_threshold[THRESHOLD_COLLISION_FACTOR] */ 5.0 * (p[i].radius + p[j].radius))
+				{
+					unsigned int k = atomicAdd(event_counter, 1);
+
+					int survivIdx = i;
+					int mergerIdx = j;
+					if (p[mergerIdx].mass > p[survivIdx].mass)
+					{
+						int t = survivIdx;
+						survivIdx = mergerIdx;
+						mergerIdx = t;
+					}
+					//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
+
+					events[k].event_name = EVENT_NAME_COLLISION;
+					events[k].d = d;
+					events[k].t = t;
+					events[k].id.x = body_md[survivIdx].id;
+					events[k].id.y = body_md[mergerIdx].id;
+					events[k].idx.x = survivIdx;
+					events[k].idx.y = mergerIdx;
+					events[k].r1 = r[survivIdx];
+					events[k].v1 = v[survivIdx];
+					events[k].r2 = r[mergerIdx];
+					events[k].v2 = v[mergerIdx];
+				}
+			}
+			// 36 FLOP
+			// With the used time unit k = 1
+			//a[i].x *= K2;
+			//a[i].y *= K2;
+			//a[i].z *= K2;
+		}
+	}
+}
 
 __global__
 	void kernel_print_array(int n, const var_t* v)
@@ -198,6 +286,7 @@ int main(int argc, const char** argv)
 }
 #endif
 
+#if 0
 // Study how to wrap a vec_t* into thrust vector to find the maximal element
 // howto find the index of the maximum element
 int main(int argc, const char** argv)
@@ -247,4 +336,112 @@ int main(int argc, const char** argv)
 	cudaDeviceSynchronize();
 
 	cudaFree(d_err[0]);
+}
+#endif
+
+// Measure the execution time of the kernel computing the gravitational acceleleration
+
+ttt_t t;
+//interaction_bound int_bound;
+body_metadata_t* body_md;
+param_t* p;
+vec_t* r;
+vec_t* v;
+vec_t* a;
+event_data_t* events;
+event_data_t* d_events;
+int *event_counter;
+int *d_event_counter;
+
+void allocate_storage(const number_of_bodies *n_bodies, sim_data_t *sim_data)
+{
+	const int nBody = n_bodies->total;
+
+	sim_data = new sim_data_t;
+
+	sim_data->y.resize(2);
+	for (int i = 0; i < 2; i++)
+	{
+		sim_data->y[i]	= new vec_t[nBody];
+	}
+	sim_data->p	= new param_t[nBody];
+	sim_data->body_md	= new body_metadata_t[nBody];
+	sim_data->epoch		= new ttt_t[nBody];
+
+	events = new event_data_t[nBody];
+
+	sim_data->d_y.resize(2);
+	sim_data->d_yout.resize(2);
+	// Allocate device pointer.
+	for (int i = 0; i < 2; i++)
+	{
+		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_y[i]),	nBody*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_yout[i]),	nBody*sizeof(vec_t));
+	}
+	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_p),			nBody*sizeof(param_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_body_md),		nBody*sizeof(body_metadata_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_epoch),		nBody*sizeof(ttt_t));
+
+	ALLOCATE_DEVICE_VECTOR((void **)&d_events,					nBody*sizeof(event_data_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,				1*sizeof(int));
+}
+
+void copy_to_device(const number_of_bodies *n_bodies, const sim_data_t *sim_data)
+{
+	const int n = n_bodies->total;
+
+	for (int i = 0; i < 2; i++)
+	{
+		copy_vector_to_device((void *)sim_data->d_y[i],	(void *)sim_data->y[i],		n*sizeof(vec_t));
+	}
+	copy_vector_to_device((void *)sim_data->d_p,		(void *)sim_data->p,		n*sizeof(param_t));
+	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->body_md,	n*sizeof(body_metadata_t));
+	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->epoch,	n*sizeof(ttt_t));
+	copy_vector_to_device((void *)d_event_counter,		(void *)&event_counter,		1*sizeof(int));
+}
+
+void populate_data(const number_of_bodies *n_bodies, sim_data_t *sim_data)
+{
+}
+
+void deallocate_storage(sim_data_t *sim_data)
+{
+	for (int i = 0; i < 2; i++)
+	{
+		delete[] sim_data->y[i];
+	}
+	delete[] sim_data->p;
+	delete[] sim_data->body_md;
+	delete[] sim_data->epoch;
+	delete[] events;
+
+	for (int i = 0; i < 2; i++)
+	{
+		cudaFree(sim_data->d_y[i]);
+		cudaFree(sim_data->d_yout[i]);
+	}
+	cudaFree(sim_data->d_p);
+	cudaFree(sim_data->d_body_md);
+	cudaFree(sim_data->d_epoch);
+	cudaFree(d_events);
+	cudaFree(d_event_counter);
+
+	delete sim_data;
+}
+
+int main(int argc, const char** argv)
+{
+	number_of_bodies n_bodies = number_of_bodies(1, 0, 0, 5000, 0, 0, 5000);
+
+	sim_data_t *sim_data = 0x0;
+	t = 0.0;
+	*event_counter = 0;
+
+	allocate_storage(&n_bodies, sim_data);
+	populate_data(&n_bodies, sim_data);
+	copy_to_device(&n_bodies, sim_data);
+
+
+
+	deallocate_storage(sim_data);
 }

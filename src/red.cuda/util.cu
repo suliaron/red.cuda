@@ -5,9 +5,8 @@
 
 void allocate_device_vector(void **d_ptr, size_t size, const char *file, int line)
 {
-	cudaError_t cudaStatus = cudaSuccess;
 	cudaMalloc(d_ptr, size);
-	cudaStatus = HandleError(cudaStatus, file, line);
+	cudaError_t cudaStatus = HandleError(cudaStatus, file, line);
 	if (cudaSuccess != cudaStatus)
 	{
 		throw nbody_exception("cudaMalloc failed", cudaStatus);
