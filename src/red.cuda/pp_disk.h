@@ -11,25 +11,6 @@
 
 using namespace std;
 
-typedef enum migration_type
-	{
-		MIGRATION_TYPE_NO,
-		MIGRATION_TYPE_TYPE_I,
-		MIGRATION_TYPE_TYPE_II
-	} migration_type_t;
-
-typedef enum body_type
-	{
-		BODY_TYPE_STAR,
-		BODY_TYPE_GIANTPLANET,
-		BODY_TYPE_ROCKYPLANET,
-		BODY_TYPE_PROTOPLANET,
-		BODY_TYPE_SUPERPLANETESIMAL,
-		BODY_TYPE_PLANETESIMAL,
-		BODY_TYPE_TESTPARTICLE,
-		BODY_TYPE_N
-	} body_type_t;
-
 class pp_disk
 {
 public:

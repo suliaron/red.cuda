@@ -52,9 +52,6 @@
     <CudaCompile Include="int_rungekutta2.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
-    <CudaCompile Include="util.cu">
-      <Filter>Source Files</Filter>
-    </CudaCompile>
     <CudaCompile Include="int_rungekutta8.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
@@ -88,9 +85,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="int_rungekutta2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="integrator.h">

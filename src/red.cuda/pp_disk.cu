@@ -16,7 +16,6 @@
 #include "red_constants.h"
 #include "red_macro.h"
 #include "red_type.h"
-#include "util.h"
 
 using namespace std;
 using namespace redutilcu;

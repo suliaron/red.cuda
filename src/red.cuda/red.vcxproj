@@ -174,7 +174,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile Include="int_rungekutta8.cu" />
     <CudaCompile Include="main.cu" />
     <CudaCompile Include="pp_disk.cu" />
-    <CudaCompile Include="util.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dummy.cpp" />
@@ -199,11 +198,10 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="parameter.h" />
     <ClInclude Include="pp_disk.h" />
     <ClInclude Include="tokenizer.h" />
-    <ClInclude Include="util.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\red.cuda.utility\red.cuda.utility.vcxproj">
-      <Project>{b0e4e5f0-31ab-4772-898f-f606ff37596d}</Project>
+    <ProjectReference Include="..\red.cuda.utility2\red.cuda.vcxproj">
+      <Project>{9136ac9b-7fb0-43f4-968b-0ad558f8b638}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
