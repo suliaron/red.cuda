@@ -9,7 +9,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.code_snippet.cuda", "sr
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.initial", "src\red.cuda.initial\red.cuda.vcxproj", "{AA7E756C-9F56-4B61-9DBC-05B03C794490}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.utility2", "src\red.cuda.utility2\red.cuda.vcxproj", "{9136AC9B-7FB0-43F4-968B-0AD558F8B638}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.utility2", "src\red.cuda.utility2\red.cuda.utility2.vcxproj", "{9136AC9B-7FB0-43F4-968B-0AD558F8B638}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

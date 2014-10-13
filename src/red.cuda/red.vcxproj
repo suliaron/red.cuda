@@ -200,6 +200,9 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="tokenizer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\red.cuda.utility2\red.cuda.utility2.vcxproj">
+      <Project>{9136ac9b-7fb0-43f4-968b-0ad558f8b638}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\red.cuda.utility2\red.cuda.vcxproj">
       <Project>{9136ac9b-7fb0-43f4-968b-0ad558f8b638}</Project>
     </ProjectReference>

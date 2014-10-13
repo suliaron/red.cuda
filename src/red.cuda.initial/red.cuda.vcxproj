@@ -22,11 +22,11 @@
     <CudaCompile Include="main.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\red.cuda.utility2\red.cuda.vcxproj">
+    <ProjectReference Include="..\red.cuda.utility2\red.cuda.utility2.vcxproj">
       <Project>{9136ac9b-7fb0-43f4-968b-0ad558f8b638}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\red.cuda.utility\red.cuda.utility.vcxproj">
-      <Project>{b0e4e5f0-31ab-4772-898f-f606ff37596d}</Project>
+    <ProjectReference Include="..\red.cuda.utility2\red.cuda.vcxproj">
+      <Project>{9136ac9b-7fb0-43f4-968b-0ad558f8b638}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

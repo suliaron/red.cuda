@@ -25,6 +25,44 @@
 using namespace std;
 
 static __global__
+	void	kernel_calc_grav_accel_int_mul_of_thread_per_block
+	(
+		interaction_bound int_bound, 
+		const param_t* p, 
+		const vec_t* r, 
+		vec_t* a
+	)
+{
+	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
+
+	vec_t dVec;
+	// This line (beyond my depth) speeds up the kernel
+	a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
+	for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+	{
+		/* Skip the body with the same index */
+		if (i == j)
+		{
+			continue;
+		}
+		// 3 FLOP
+		dVec.x = r[j].x - r[i].x;
+		dVec.y = r[j].y - r[i].y;
+		dVec.z = r[j].z - r[i].z;
+		// 5 FLOP
+		dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+		// 20 FLOP
+		var_t d = sqrt(dVec.w);								// = r
+		// 2 FLOP
+		dVec.w = p[j].mass / (d*dVec.w);					// = m / r^3
+		// 6 FLOP
+		a[i].x += dVec.w * dVec.x;
+		a[i].y += dVec.w * dVec.y;
+		a[i].z += dVec.w * dVec.z;
+	}
+}
+
+static __global__
 	void	kernel_calc_grav_accel
 	(
 		ttt_t t, 
@@ -42,11 +80,8 @@ static __global__
 
 	if (i < int_bound.sink.y)
 	{
-		// This 4 lines speed up the kernel
-		a[i].x = 0.0;
-		a[i].y = 0.0;
-		a[i].z = 0.0;
-		a[i].w = 0.0;
+		// This line (beyond my depth) speeds up the kernel
+		a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
 		if (body_md[i].id > 0)
 		{
 			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
@@ -75,32 +110,32 @@ static __global__
 				// Check for collision - ignore the star (i > 0 criterium)
 				// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
 				// If i < j is the condition than test particles can not collide with massive bodies
-				//if (i > 0 && i > j && d < /* dc_threshold[THRESHOLD_COLLISION_FACTOR] */ 5.0 * (p[i].radius + p[j].radius))
-				//{
-				//	unsigned int k = atomicAdd(event_counter, 1);
+				if (i > 0 && i > j && d < /* dc_threshold[THRESHOLD_COLLISION_FACTOR] */ 5.0 * (p[i].radius + p[j].radius))
+				{
+					unsigned int k = atomicAdd(event_counter, 1);
 
-				//	int survivIdx = i;
-				//	int mergerIdx = j;
-				//	if (p[mergerIdx].mass > p[survivIdx].mass)
-				//	{
-				//		int t = survivIdx;
-				//		survivIdx = mergerIdx;
-				//		mergerIdx = t;
-				//	}
-				//	//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
+					int survivIdx = i;
+					int mergerIdx = j;
+					if (p[mergerIdx].mass > p[survivIdx].mass)
+					{
+						int t = survivIdx;
+						survivIdx = mergerIdx;
+						mergerIdx = t;
+					}
+					//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
 
-				//	events[k].event_name = EVENT_NAME_COLLISION;
-				//	events[k].d = d;
-				//	events[k].t = t;
-				//	events[k].id.x = body_md[survivIdx].id;
-				//	events[k].id.y = body_md[mergerIdx].id;
-				//	events[k].idx.x = survivIdx;
-				//	events[k].idx.y = mergerIdx;
-				//	events[k].r1 = r[survivIdx];
-				//	events[k].v1 = v[survivIdx];
-				//	events[k].r2 = r[mergerIdx];
-				//	events[k].v2 = v[mergerIdx];
-				//}
+					events[k].event_name = EVENT_NAME_COLLISION;
+					events[k].d = d;
+					events[k].t = t;
+					events[k].id.x = body_md[survivIdx].id;
+					events[k].id.y = body_md[mergerIdx].id;
+					events[k].idx.x = survivIdx;
+					events[k].idx.y = mergerIdx;
+					events[k].r1 = r[survivIdx];
+					events[k].v1 = v[survivIdx];
+					events[k].r2 = r[mergerIdx];
+					events[k].v2 = v[mergerIdx];
+				}
 			}
 			// 36 FLOP
 			// With the used time unit k = 1
@@ -552,6 +587,47 @@ event_data_t* d_events;
 int event_counter;
 int *d_event_counter;
 
+//void _allocate_device_vector(void **d_ptr, size_t size, const char *file, int line)
+//{
+//	cudaMalloc(d_ptr, size);
+//	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+//	if (cudaSuccess != cudaStatus)
+//	{
+//		throw string("cudaMalloc failed (allocate_device_vector)");
+//	}
+//}
+//
+//void _copy_vector_to_device(void* dst, const void *src, size_t count)
+//{
+//	cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice);
+//	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+//	if (cudaSuccess != cudaStatus)
+//	{
+//		throw string("cudaMemcpy failed (copy_vector_to_device)");
+//	}
+//}
+//
+//void _copy_vector_to_host(void* dst, const void *src, size_t count)
+//{
+//	cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost);
+//	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+//	if (cudaSuccess != cudaStatus)
+//	{
+//		throw string("cudaMemcpy failed (copy_vector_to_host)");
+//	}
+//}
+//
+//void _copy_constant_to_device(const void* dst, const void *src, size_t count)
+//{
+//	cudaMemcpyToSymbol(dst, src, count);
+//	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+//	if (cudaSuccess != cudaStatus)
+//	{
+//		throw string("cudaMemcpyToSymbol failed (copy_constant_to_device)");
+//	}
+//}
+
+
 void allocate_storage(const number_of_bodies *n_bodies, sim_data_t *sim_data)
 {
 	const int nBody = n_bodies->total;
@@ -572,15 +648,50 @@ void allocate_storage(const number_of_bodies *n_bodies, sim_data_t *sim_data)
 	// Allocate device pointer.
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_y[i]),	nBody*sizeof(vec_t));
-		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_yout[i]),	nBody*sizeof(vec_t));
+		allocate_device_vector((void **)&(sim_data->d_y[i]),	nBody*sizeof(vec_t));
+		allocate_device_vector((void **)&(sim_data->d_yout[i]), nBody*sizeof(vec_t));
 	}
-	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_p),			nBody*sizeof(param_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_body_md),		nBody*sizeof(body_metadata_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_epoch),		nBody*sizeof(ttt_t));
+	allocate_device_vector((void **)&(sim_data->d_p),			nBody*sizeof(param_t));
+	allocate_device_vector((void **)&(sim_data->d_body_md),		nBody*sizeof(body_metadata_t));
+	allocate_device_vector((void **)&(sim_data->d_epoch),		nBody*sizeof(ttt_t));
 
-	ALLOCATE_DEVICE_VECTOR((void **)&d_events,					nBody*sizeof(event_data_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,				1*sizeof(int));
+	allocate_device_vector((void **)&d_events,					nBody*sizeof(event_data_t));
+	allocate_device_vector((void **)&d_event_counter,				1*sizeof(int));
+
+	/* Total of 9 cudaMalloc */
+}
+
+void allocate_pinned_storage(const number_of_bodies *n_bodies, sim_data_t *sim_data)
+{
+	const int nBody = n_bodies->total;
+
+	sim_data->y.resize(2);
+	for (int i = 0; i < 2; i++)
+	{
+		cudaMallocHost((void **)&sim_data->y[i],	nBody * sizeof(vec_t));
+	}
+	cudaMallocHost((void **)&sim_data->p,			nBody * sizeof(param_t));
+	cudaMallocHost((void **)&sim_data->body_md,		nBody * sizeof(body_metadata_t));
+	cudaMallocHost((void **)&sim_data->epoch,		nBody * sizeof(ttt_t));
+
+	cudaMallocHost((void **)&events,				nBody * sizeof(event_data_t));
+
+	sim_data->d_y.resize(2);
+	sim_data->d_yout.resize(2);
+	// Allocate device pointer.
+	for (int i = 0; i < 2; i++)
+	{
+		allocate_device_vector((void **)&(sim_data->d_y[i]),	nBody*sizeof(vec_t));
+		allocate_device_vector((void **)&(sim_data->d_yout[i]), nBody*sizeof(vec_t));
+	}
+	allocate_device_vector((void **)&(sim_data->d_p),			nBody*sizeof(param_t));
+	allocate_device_vector((void **)&(sim_data->d_body_md),		nBody*sizeof(body_metadata_t));
+	allocate_device_vector((void **)&(sim_data->d_epoch),		nBody*sizeof(ttt_t));
+
+	allocate_device_vector((void **)&d_events,					nBody*sizeof(event_data_t));
+	allocate_device_vector((void **)&d_event_counter,				1*sizeof(int));
+
+	/* Total of 9 cudaMalloc */
 }
 
 void copy_to_device(const number_of_bodies *n_bodies, const sim_data_t *sim_data)
@@ -595,6 +706,8 @@ void copy_to_device(const number_of_bodies *n_bodies, const sim_data_t *sim_data
 	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->body_md,	n*sizeof(body_metadata_t));
 	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->epoch,	n*sizeof(ttt_t));
 	copy_vector_to_device((void *)d_event_counter,		(void *)&event_counter,		1*sizeof(int));
+
+	/* Total of 6 cudaMemcpy calls */
 }
 
 void populate_data(const number_of_bodies *n_bodies, sim_data_t *sim_data)
@@ -667,6 +780,35 @@ void deallocate_storage(sim_data_t *sim_data)
 	cudaFree(d_event_counter);
 
 	delete sim_data;
+
+	/* Total of 9 cudaFree */
+}
+
+void deallocate_pinned_storage(sim_data_t *sim_data)
+{
+	for (int i = 0; i < 2; i++)
+	{
+		cudaFreeHost(sim_data->y[i]);
+	}
+	cudaFreeHost(sim_data->p);
+	cudaFreeHost(sim_data->body_md);
+	cudaFreeHost(sim_data->epoch);
+	cudaFreeHost(events);
+
+	for (int i = 0; i < 2; i++)
+	{
+		cudaFree(sim_data->d_y[i]);
+		cudaFree(sim_data->d_yout[i]);
+	}
+	cudaFree(sim_data->d_p);
+	cudaFree(sim_data->d_body_md);
+	cudaFree(sim_data->d_epoch);
+	cudaFree(d_events);
+	cudaFree(d_event_counter);
+
+	delete sim_data;
+
+	/* Total of 9 cudaFree */
 }
 
 void set_kernel_launch_param(int n_data)
@@ -709,22 +851,55 @@ void call_kernel_calc_grav_accel(ttt_t curr_t, number_of_bodies *n_bodies, sim_d
 	}
 }
 
+void call_kernel_calc_grav_accel_int_mul_of_thread_per_block(ttt_t curr_t, number_of_bodies *n_bodies, sim_data_t *sim_data, const vec_t* r, const vec_t* v, vec_t* dy)
+{
+	cudaError_t cudaStatus = cudaSuccess;
+	
+	int n_sink = n_bodies->get_n_self_interacting();
+	if (0 < n_sink) {
+		interaction_bound int_bound = n_bodies->get_self_interacting();
+		set_kernel_launch_param(n_sink);
 
+		kernel_calc_grav_accel_int_mul_of_thread_per_block <<<grid, block>>> (int_bound, sim_data->d_p, r, dy);
+		cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus) {
+			throw string("kernel_calc_grav_accel failed");
+		}
+	}
+
+	n_sink = n_bodies->test_particle;
+	if (0 < n_sink) {
+		interaction_bound int_bound = n_bodies->get_non_interacting();
+		set_kernel_launch_param(n_sink);
+
+		kernel_calc_grav_accel_int_mul_of_thread_per_block <<<grid, block>>> (int_bound, sim_data->d_p, r, dy);
+		cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus) {
+			throw string("kernel_calc_grav_accel failed");
+		}
+	}
+}
+// http://devblogs.nvidia.com/parallelforall/
 int main(int argc, const char** argv)
 {
-	number_of_bodies n_bodies = number_of_bodies(1, 0, 0, 5000, 0, 0, 5000);
+	number_of_bodies n_bodies = number_of_bodies(1, 0, 0, 20 * THREADS_PER_BLOCK - 1, 0, 0, 20 * THREADS_PER_BLOCK);
 	sim_data_t *sim_data = new sim_data_t;
 
 	t = 0.0;
 	event_counter = 0;
 
-	allocate_storage(&n_bodies, sim_data);
+	allocate_pinned_storage(&n_bodies, sim_data);
 	populate_data(&n_bodies, sim_data);
 	copy_to_device(&n_bodies, sim_data);
 
-
 	call_kernel_calc_grav_accel(t, &n_bodies, sim_data, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_yout[1]);
 	call_kernel_calc_grav_accel(t, &n_bodies, sim_data, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_yout[1]);
 
-	deallocate_storage(sim_data);
+	call_kernel_calc_grav_accel_int_mul_of_thread_per_block(t, &n_bodies, sim_data, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_yout[1]);
+	call_kernel_calc_grav_accel_int_mul_of_thread_per_block(t, &n_bodies, sim_data, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_yout[1]);
+
+	deallocate_pinned_storage(sim_data);
+
+	// Needed by nvprof.exe
+	cudaDeviceReset();
 }
