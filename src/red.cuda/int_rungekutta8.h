@@ -42,8 +42,7 @@ private:
 
 	void call_kernel_calc_ytemp_for_fr(int r);
 	void call_kernel_calc_y_np1();
-	void call_kernel_calc_yscale();
 	void call_kernel_calc_error();
-	void call_kernel_calc_scalederror();
+
 	var_t get_max_error(int n_var);
 };

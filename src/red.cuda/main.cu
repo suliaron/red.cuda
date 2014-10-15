@@ -207,10 +207,10 @@ int main(int argc, const char** argv)
 			n_step++;
 
 			// NSIGHT CODE
-			if (2 <= n_step)
-			{
-				break;
-			}
+			//if (2 <= n_step)
+			//{
+			//	break;
+			//}
 			// NSIGHT CODE END
 
 			n_event = ppd->get_n_event();
@@ -244,7 +244,7 @@ int main(int argc, const char** argv)
 				}
 				ppd->print_result_ascii(*result_f);
 				// NSIGHT CODE
-				break;
+				//break;
 				// NSIGHT CODE END
 			}
 		} /* while */
@@ -266,5 +266,8 @@ int main(int argc, const char** argv)
 	}
 	cout << "Total time: " << time(NULL) - start << " s" << endl;
 
-    return (EXIT_SUCCESS);
+	// Needed by nvprof.exe
+	cudaDeviceReset();
+
+	return (EXIT_SUCCESS);
 }

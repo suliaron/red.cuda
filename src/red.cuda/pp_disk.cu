@@ -431,8 +431,10 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 	{
 	case 0:
 		// Copy velocities from previous step
-		kernel_dummy<<<40, 256>>>();
-#if 0 // NSIGHT CODE
+		// NSIGHT CODE
+		//kernel_dummy<<<40, 256>>>();
+		// NSIGHT CODE END
+#if 1
 		cudaMemcpy(dy, v, n * sizeof(vec_t), cudaMemcpyDeviceToDevice);
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {

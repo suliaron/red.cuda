@@ -193,22 +193,6 @@ static __global__
 	}
 }
 
-// For the scaling used to monitor accuracy
-#define TINY	1.0e-30
-// yscale = |y_n| + |dt * f0| + TINY
-static __global__
-	void kernel_calc_yscale(int_t n, var_t *yscale, ttt_t dt, const var_t *y_n, const var_t *f0)
-{
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	int stride = gridDim.x * blockDim.x;
-
-	while (n > tid) {
-		yscale[tid] = fabs(y_n[tid]) + fabs(dt * f0[tid]) + TINY;
-		tid += stride;
-	}
-}
-#undef TINY
-
 // err = f0 + f10 - f11 - f12
 static __global__
 	void kernel_calc_error(int_t n, var_t *err, const var_t *f0, const var_t *f10, const var_t *f11, const var_t *f12)
@@ -218,20 +202,6 @@ static __global__
 
 	while (n > tid) {
 		err[tid] = (f0[tid] + f10[tid] - f11[tid] - f12[tid]);
-		tid += stride;
-	}
-}
-
-// err = f0 + f10 - f11 - f12
-static __global__
-	void kernel_calc_scalederror(int_t n, var_t *err, ttt_t dt, const var_t* yscale, const var_t *f0, const var_t *f10, const var_t *f11, const var_t *f12)
-{
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	int stride = gridDim.x * blockDim.x;
-
-	var_t s = 41.0/840.0 * fabs(dt);
-	while (n > tid) {
-		err[tid] = (s * fabs(f0[tid] + f10[tid] - f11[tid] - f12[tid])) / yscale[tid];
 		tid += stride;
 	}
 }
@@ -385,24 +355,6 @@ void rungekutta8::call_kernel_calc_ytemp_for_fr(int r)
 	}
 }
 
-void rungekutta8::call_kernel_calc_yscale()
-{
-	const int n_var = 4 * ppd->n_bodies->total;
-	calc_grid(n_var, THREADS_PER_BLOCK);
-
-	for (int i = 0; i < 2; i++) {
-		var_t* yscale = d_yscale[i];
-		var_t* y_n    = (var_t*)ppd->sim_data->d_y[i];
-		var_t* f0     = (var_t*)d_f[i][0];
-
-		kernel_calc_yscale<<<grid, block>>>(n_var, yscale, dt_try, y_n, f0);
-		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus) {
-			throw string("kernel_calc_yscale failed");
-		}
-	}
-}
-
 void rungekutta8::call_kernel_calc_error()
 {
 	const int n_var = 4 * ppd->n_bodies->total;
@@ -419,27 +371,6 @@ void rungekutta8::call_kernel_calc_error()
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus) {
 			throw string("kernel_calc_error failed");
-		}
-	}
-}
-
-void rungekutta8::call_kernel_calc_scalederror()
-{
-	const int n_var = 4 * ppd->n_bodies->total;
-	calc_grid(n_var, THREADS_PER_BLOCK);
-
-	for (int i = 0; i < 2; i++) {
-		var_t *err = d_err[i];
-		var_t *yscale= (var_t*)d_yscale[i];
-		var_t *f0  = (var_t*)d_f[i][0];
-		var_t *f10 = (var_t*)d_f[i][10];
-		var_t *f11 = (var_t*)d_f[i][11];
-		var_t *f12 = (var_t*)d_f[i][12];
-
-		kernel_calc_scalederror<<<grid, block>>>(n_var, err, dt_try, yscale, f0, f10, f11, f12);
-		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus) {
-			throw string("kernel_calc_scalederror failed");
 		}
 	}
 }
