@@ -15,7 +15,7 @@
 
 #define SEP			' '
 
-#define THREADS_PER_BLOCK	128
+#define THREADS_PER_BLOCK	256
 
 // These macro functions must be enclosed in parentheses in order to give
 // correct results in the case of a division i.e. 1/SQR(x) -> 1/((x)*(x))

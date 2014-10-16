@@ -668,13 +668,13 @@ void allocate_pinned_storage(const number_of_bodies *n_bodies, sim_data_t *sim_d
 	sim_data->y.resize(2);
 	for (int i = 0; i < 2; i++)
 	{
-		cudaMallocHost((void **)&sim_data->y[i],	nBody * sizeof(vec_t));
+		cudaMallocHost((void **)&sim_data->y[i],	nBody*sizeof(vec_t));
 	}
-	cudaMallocHost((void **)&sim_data->p,			nBody * sizeof(param_t));
-	cudaMallocHost((void **)&sim_data->body_md,		nBody * sizeof(body_metadata_t));
-	cudaMallocHost((void **)&sim_data->epoch,		nBody * sizeof(ttt_t));
+	cudaMallocHost((void **)&sim_data->p,			nBody*sizeof(param_t));
+	cudaMallocHost((void **)&sim_data->body_md,		nBody*sizeof(body_metadata_t));
+	cudaMallocHost((void **)&sim_data->epoch,		nBody*sizeof(ttt_t));
 
-	cudaMallocHost((void **)&events,				nBody * sizeof(event_data_t));
+	cudaMallocHost((void **)&events,				nBody*sizeof(event_data_t));
 
 	sim_data->d_y.resize(2);
 	sim_data->d_yout.resize(2);
@@ -811,9 +811,9 @@ void deallocate_pinned_storage(sim_data_t *sim_data)
 	/* Total of 9 cudaFree */
 }
 
-void set_kernel_launch_param(int n_data)
+void set_kernel_launch_param(int n_tpb, int n_data)
 {
-	int		n_thread = min(THREADS_PER_BLOCK, n_data);
+	int		n_thread = min(n_tpb, n_data);
 	int		n_block = (n_data + n_thread - 1)/n_thread;
 
 	grid.x	= n_block;
@@ -827,26 +827,32 @@ void call_kernel_calc_grav_accel(ttt_t curr_t, number_of_bodies *n_bodies, sim_d
 	int n_sink = n_bodies->get_n_self_interacting();
 	if (0 < n_sink) {
 		interaction_bound int_bound = n_bodies->get_self_interacting();
-		set_kernel_launch_param(n_sink);
 
-		kernel_calc_grav_accel<<<grid, block>>>
-			(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
-		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus) {
-			throw string("kernel_calc_grav_accel failed");
+		for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
+		{
+			set_kernel_launch_param(n_tpb, n_sink);
+			kernel_calc_grav_accel<<<grid, block>>>
+				(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
+			cudaStatus = HANDLE_ERROR(cudaGetLastError());
+			if (cudaSuccess != cudaStatus) {
+				throw string("kernel_calc_grav_accel failed");
+			}
 		}
 	}
 
 	n_sink = n_bodies->test_particle;
 	if (0 < n_sink) {
 		interaction_bound int_bound = n_bodies->get_non_interacting();
-		set_kernel_launch_param(n_sink);
 
-		kernel_calc_grav_accel<<<grid, block>>>
-			(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
-		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus) {
-			throw string("kernel_calc_grav_accel failed");
+		for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
+			{
+			set_kernel_launch_param(n_tpb, n_sink);
+			kernel_calc_grav_accel<<<grid, block>>>
+				(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
+			cudaStatus = HANDLE_ERROR(cudaGetLastError());
+			if (cudaSuccess != cudaStatus) {
+				throw string("kernel_calc_grav_accel failed");
+			}
 		}
 	}
 }
@@ -858,27 +864,34 @@ void call_kernel_calc_grav_accel_int_mul_of_thread_per_block(ttt_t curr_t, numbe
 	int n_sink = n_bodies->get_n_self_interacting();
 	if (0 < n_sink) {
 		interaction_bound int_bound = n_bodies->get_self_interacting();
-		set_kernel_launch_param(n_sink);
 
-		kernel_calc_grav_accel_int_mul_of_thread_per_block <<<grid, block>>> (int_bound, sim_data->d_p, r, dy);
-		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus) {
-			throw string("kernel_calc_grav_accel failed");
+		for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
+		{
+			set_kernel_launch_param(n_tpb, n_sink);
+			kernel_calc_grav_accel_int_mul_of_thread_per_block <<<grid, block>>> (int_bound, sim_data->d_p, r, dy);
+			cudaStatus = HANDLE_ERROR(cudaGetLastError());
+			if (cudaSuccess != cudaStatus) {
+				throw string("kernel_calc_grav_accel failed");
+			}
 		}
 	}
 
 	n_sink = n_bodies->test_particle;
 	if (0 < n_sink) {
 		interaction_bound int_bound = n_bodies->get_non_interacting();
-		set_kernel_launch_param(n_sink);
 
-		kernel_calc_grav_accel_int_mul_of_thread_per_block <<<grid, block>>> (int_bound, sim_data->d_p, r, dy);
-		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus) {
-			throw string("kernel_calc_grav_accel failed");
+		for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
+		{
+			set_kernel_launch_param(n_tpb, n_sink);
+			kernel_calc_grav_accel_int_mul_of_thread_per_block <<<grid, block>>> (int_bound, sim_data->d_p, r, dy);
+			cudaStatus = HANDLE_ERROR(cudaGetLastError());
+			if (cudaSuccess != cudaStatus) {
+				throw string("kernel_calc_grav_accel failed");
+			}
 		}
 	}
 }
+
 // http://devblogs.nvidia.com/parallelforall/
 int main(int argc, const char** argv)
 {
@@ -888,17 +901,15 @@ int main(int argc, const char** argv)
 	t = 0.0;
 	event_counter = 0;
 
-	allocate_pinned_storage(&n_bodies, sim_data);
+	allocate_storage(&n_bodies, sim_data);
 	populate_data(&n_bodies, sim_data);
 	copy_to_device(&n_bodies, sim_data);
 
 	call_kernel_calc_grav_accel(t, &n_bodies, sim_data, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_yout[1]);
-	call_kernel_calc_grav_accel(t, &n_bodies, sim_data, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_yout[1]);
 
 	call_kernel_calc_grav_accel_int_mul_of_thread_per_block(t, &n_bodies, sim_data, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_yout[1]);
-	call_kernel_calc_grav_accel_int_mul_of_thread_per_block(t, &n_bodies, sim_data, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_yout[1]);
 
-	deallocate_pinned_storage(sim_data);
+	deallocate_storage(sim_data);
 
 	// Needed by nvprof.exe
 	cudaDeviceReset();
