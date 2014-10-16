@@ -206,13 +206,6 @@ int main(int argc, const char** argv)
 			sum_time_of_steps += (end_of_step - start_of_step);
 			n_step++;
 
-			// NSIGHT CODE
-			//if (2 <= n_step)
-			//{
-			//	break;
-			//}
-			// NSIGHT CODE END
-
 			n_event = ppd->get_n_event();
 			if (n_event > 0)
 			{
@@ -243,9 +236,6 @@ int main(int argc, const char** argv)
 					n_event_after_last_save = 0;
 				}
 				ppd->print_result_ascii(*result_f);
-				// NSIGHT CODE
-				//break;
-				// NSIGHT CODE END
 			}
 		} /* while */
 		// To avoid duplicate save at the end of the simulation
