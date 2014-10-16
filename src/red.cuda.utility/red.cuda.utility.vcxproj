@@ -20,8 +20,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9136AC9B-7FB0-43F4-968B-0AD558F8B638}</ProjectGuid>
-    <RootNamespace>red.cuda.utility2</RootNamespace>
-    <ProjectName>red.cuda.utility2</ProjectName>
+    <RootNamespace>red.cuda.utility</RootNamespace>
+    <ProjectName>red.cuda.utility</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
