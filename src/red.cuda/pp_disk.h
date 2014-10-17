@@ -23,7 +23,7 @@ public:
 			body_metadata_t body_md;
 		} survivor_t;
 
-	pp_disk(string& path, gas_disk *gd);
+	pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage);
 	~pp_disk();
 
 	//! Copies ODE parameters and variables from the host to the cuda device
@@ -32,10 +32,9 @@ public:
 	void copy_to_host();
 	//! Copies threshold data to the device constant memory
 	void copy_threshold_to_device(const var_t* threshold);
-	//! Copies ODE variables from the cuda device to the host
-	void copy_variables_to_host();
 	//! Copies the event data from the cuda device to the host
 	void copy_event_data_to_host();
+
 	//! Returns the mass of the central star
 	var_t get_mass_of_star();
 	//! Transforms the system to barycentric reference frame
@@ -121,7 +120,13 @@ private:
 	*/
 	void load(string& path);
 	number_of_bodies* get_number_of_bodies(string& path);
+
+	int calculate_n_body_for_storage_allocation();
+	//! Allocates storage for data on the host and device memory
 	void allocate_storage();
+
+	void deallocate_host_storage();
+	void deallocate_device_storage();
 
 	//! Computes the total mass of the system
 	var_t get_total_mass();
@@ -135,6 +140,14 @@ private:
 	//! Sets the grid and block for the kernel launch
 	void set_kernel_launch_param(int n_data);
 	void call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
+
+	//! Calculates the size for the padded storages
+	size_t get_padded_storage_size(size_t size, int n_tpb);
+
+	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
+
+	int		n_tpb;					//!< The number of thread per block to use for kernel launches
+	bool	use_padded_storage;		//!< If true use the padded storage
 
 	dim3	grid;
 	dim3	block;

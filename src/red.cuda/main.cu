@@ -217,11 +217,13 @@ int main(int argc, const char** argv)
 				ppd->clear_event_counter();
 			}
 
-			if (n_step % 100 == 0) 
+			if (n_event_after_last_save > 16)
 			{
-				printf("t: %25.15le, dt: %25.15le ", ppd->t, dt);
-				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
-				cout << ppd->n_collision << " collision(s), " << ppd->n_ejection << " ejection(s), " << ppd->n_hit_centrum << " hit centrum were detected (No. of bodies: " << ppd->n_bodies->total - n_event_after_last_save << ")" << endl;
+				printf("At t: %25.15le Rebuild the vectors and remove inactive bodies", ppd->t);
+				ppd->copy_to_host();
+				// Rebuild the vectors and remove inactive bodies
+				ppd->remove_inactive_bodies();
+				n_event_after_last_save = 0;
 			}
 
 			ps += fabs(dt);
@@ -229,13 +231,14 @@ int main(int argc, const char** argv)
 			{
 				ps = 0.0;
 				ppd->copy_to_host();
-				if (n_event_after_last_save > 16)
-				{
-					// Rebuild the vectors and remove inactive bodies
-					ppd->remove_inactive_bodies();
-					n_event_after_last_save = 0;
-				}
 				ppd->print_result_ascii(*result_f);
+			}
+
+			if (n_step % 100 == 0) 
+			{
+				printf("t: %25.15le, dt: %25.15le ", ppd->t, dt);
+				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
+				cout << ppd->n_collision << " collision(s), " << ppd->n_ejection << " ejection(s), " << ppd->n_hit_centrum << " hit centrum were detected (No. of bodies: " << ppd->n_bodies->total - n_event_after_last_save << ")" << endl;
 			}
 		} /* while */
 		// To avoid duplicate save at the end of the simulation

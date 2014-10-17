@@ -366,11 +366,16 @@ void pp_disk::test_call_kernel_print_sim_data()
 
 void pp_disk::set_kernel_launch_param(int n_data)
 {
-	int		n_thread = min(THREADS_PER_BLOCK, n_data);
+	int		n_thread = min(n_tpb, n_data);
 	int		n_block = (n_data + n_thread - 1)/n_thread;
 
 	grid.x	= n_block;
 	block.x = n_thread;
+}
+
+size_t pp_disk::get_padded_storage_size(size_t size, int n_tpb)
+{
+	return (size + n_tpb - 1)/n_tpb;
 }
 
 void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
@@ -596,9 +601,11 @@ void pp_disk::call_kernel_transform_to(int refBodyId)
 	}
 }
 
-pp_disk::pp_disk(string& path, gas_disk *gd) :
+pp_disk::pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage) :
 	g_disk(gd),
 	d_g_disk(0x0),
+	n_tpb(n_tpb),
+	use_padded_storage(use_padded_storage),
 	t(0.0),
 	sim_data(0x0),
 	n_bodies(0x0),
@@ -615,6 +622,14 @@ pp_disk::pp_disk(string& path, gas_disk *gd) :
 
 pp_disk::~pp_disk()
 {
+	deallocate_host_storage();
+	deallocate_device_storage();
+
+	delete sim_data;
+}
+
+void pp_disk::deallocate_host_storage()
+{
 	for (int i = 0; i < 2; i++)
 	{
 		delete[] sim_data->y[i];
@@ -624,6 +639,14 @@ pp_disk::~pp_disk()
 	delete[] sim_data->epoch;
 	delete[] events;
 
+	if (0x0 != g_disk)
+	{
+		delete[] g_disk;
+	}
+}
+
+void pp_disk::deallocate_device_storage()
+{
 	for (int i = 0; i < 2; i++)
 	{
 		cudaFree(sim_data->d_y[i]);
@@ -635,7 +658,10 @@ pp_disk::~pp_disk()
 	cudaFree(d_events);
 	cudaFree(d_event_counter);
 
-	delete sim_data;
+	if (0x0 != d_g_disk)
+	{
+		cudaFree(g_disk);
+	}
 }
 
 number_of_bodies* pp_disk::get_number_of_bodies(string& path)
@@ -781,81 +807,90 @@ void pp_disk::remove_inactive_bodies()
 	delete sim_data_temp;
 }
 
+int pp_disk::calculate_n_body_for_storage_allocation()
+{
+	if (use_padded_storage)
+	{
+		// The number of self-interacting (SI) bodies alligned to n_tbp
+		int n_prime_SI = get_padded_storage_size(n_bodies->get_n_self_interacting(), n_tpb);
+		// The number of non-self-interacting (NSI) bodies alligned to n_tbp
+		int n_prime_NSI= get_padded_storage_size(n_bodies->get_n_nonself_interacting(), n_tpb);
+		// The number of non-interacting (NI) bodies alligned to n_tbp
+		int n_prime_NI = get_padded_storage_size(n_bodies->test_particle, n_tpb);
+
+		return n_prime_SI + n_prime_NSI + n_prime_NI;
+	}
+	else
+	{
+		return n_bodies->total;
+	}
+}
+
 void pp_disk::allocate_storage()
 {
-	const int nBody = n_bodies->total;
+	int n_body = calculate_n_body_for_storage_allocation();
 
 	sim_data = new sim_data_t;
 
 	sim_data->y.resize(2);
 	for (int i = 0; i < 2; i++)
 	{
-		sim_data->y[i]	= new vec_t[nBody];
+		sim_data->y[i]	= new vec_t[n_body];
 	}
-	sim_data->p	= new param_t[nBody];
-	sim_data->body_md	= new body_metadata_t[nBody];
-	sim_data->epoch		= new ttt_t[nBody];
+	sim_data->p			= new param_t[n_body];
+	sim_data->body_md	= new body_metadata_t[n_body];
+	sim_data->epoch		= new ttt_t[n_body];
 
-	events = new event_data_t[nBody];
+	events = new event_data_t[n_body];
 
 	sim_data->d_y.resize(2);
 	sim_data->d_yout.resize(2);
 	// Allocate device pointer.
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_y[i]),	nBody*sizeof(vec_t));
-		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_yout[i]),	nBody*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_y[i]),	n_body*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_yout[i]),	n_body*sizeof(vec_t));
 	}
-	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_p),			nBody*sizeof(param_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_body_md),		nBody*sizeof(body_metadata_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_epoch),		nBody*sizeof(ttt_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_p),			n_body*sizeof(param_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_body_md),		n_body*sizeof(body_metadata_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_epoch),		n_body*sizeof(ttt_t));
 
-	ALLOCATE_DEVICE_VECTOR((void **)&d_events,					nBody*sizeof(event_data_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,				1*sizeof(int));
+	ALLOCATE_DEVICE_VECTOR((void **)&d_events,					n_body*sizeof(event_data_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,				 1*sizeof(int));
 }
 
 void pp_disk::copy_to_device()
 {
-	const int n = n_bodies->total;
+	int n_body = calculate_n_body_for_storage_allocation();
 
 	for (int i = 0; i < 2; i++)
 	{
-		copy_vector_to_device((void *)sim_data->d_y[i],	(void *)sim_data->y[i],		n*sizeof(vec_t));
+		copy_vector_to_device((void *)sim_data->d_y[i],	(void *)sim_data->y[i],		n_body*sizeof(vec_t));
 	}
-	copy_vector_to_device((void *)sim_data->d_p,		(void *)sim_data->p,		n*sizeof(param_t));
-	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->body_md,	n*sizeof(body_metadata_t));
-	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->epoch,	n*sizeof(ttt_t));
-	copy_vector_to_device((void *)d_event_counter,		(void *)&event_counter,		1*sizeof(int));
+	copy_vector_to_device((void *)sim_data->d_p,		(void *)sim_data->p,		n_body*sizeof(param_t));
+	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->body_md,	n_body*sizeof(body_metadata_t));
+	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->epoch,	n_body*sizeof(ttt_t));
+	copy_vector_to_device((void *)d_event_counter,		(void *)&event_counter,		     1*sizeof(int));
 }
 
 void pp_disk::copy_to_host()
 {
-	const int n = n_bodies->total;
+	int n_body = calculate_n_body_for_storage_allocation();
 
 	for (int i = 0; i < 2; i++)
 	{
-		copy_vector_to_host((void *)sim_data->y[i],		(void *)sim_data->d_y[i],	n*sizeof(vec_t));
+		copy_vector_to_host((void *)sim_data->y[i],		(void *)sim_data->d_y[i],	 n_body*sizeof(vec_t));
 	}
-	copy_vector_to_host((void *)sim_data->p,			(void *)sim_data->d_p,		n*sizeof(param_t));
-	copy_vector_to_host((void *)sim_data->body_md,		(void *)sim_data->d_body_md,n*sizeof(body_metadata_t));
-	copy_vector_to_host((void *)sim_data->epoch,		(void *)sim_data->d_epoch,	n*sizeof(ttt_t));
-	copy_vector_to_host((void *)&event_counter,			(void *)d_event_counter,	1*sizeof(int));
+	copy_vector_to_host((void *)sim_data->p,			(void *)sim_data->d_p,		 n_body*sizeof(param_t));
+	copy_vector_to_host((void *)sim_data->body_md,		(void *)sim_data->d_body_md, n_body*sizeof(body_metadata_t));
+	copy_vector_to_host((void *)sim_data->epoch,		(void *)sim_data->d_epoch,	 n_body*sizeof(ttt_t));
+	copy_vector_to_host((void *)&event_counter,			(void *)d_event_counter,	      1*sizeof(int));
 }
 
 void pp_disk::copy_threshold_to_device(const var_t* threshold)
 {
 	// Calls the copy_constant_to_device in the util.cu
 	copy_constant_to_device(dc_threshold, threshold, THRESHOLD_N*sizeof(var_t));
-}
-
-void pp_disk::copy_variables_to_host()
-{
-	const int n = n_bodies->total;
-
-	for (int i = 0; i < 2; i++)
-	{
-		copy_vector_to_host((void *)sim_data->y[i],		(void *)sim_data->d_y[i],	n*sizeof(vec_t));
-	}
 }
 
 void pp_disk::copy_event_data_to_host()
@@ -965,6 +1000,27 @@ void pp_disk::transform_time()
 	}
 }
 
+void pp_disk::create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v)
+{
+	body_md[k].id = 0;
+	body_md[k].body_type = static_cast<body_type_t>(BODY_TYPE_PADDINGPARTICLE);
+	epoch[k] = 0.0;
+	p[k].mass = 0.0;
+	p[k].radius = 0.0;
+	p[k].density = 0.0;
+	p[k].cd = 0.0;
+
+	body_md[k].mig_type = static_cast<migration_type_t>(MIGRATION_TYPE_NO);
+	body_md[k].mig_stop_at = 0.0;
+
+	r[k].x = 1.0e9 + (var_t)rand() / RAND_MAX * 1.0e9;
+	r[k].y = r[k].x + (var_t)rand() / RAND_MAX * 1.0e9;
+	r[k].z = r[k].y + (var_t)rand() / RAND_MAX * 1.0e9;
+	r[k].w = 0.0;
+
+	v[k].x = v[k].y = v[k].z = v[k].w = 0.0;
+}
+
 void pp_disk::load(string& path)
 {
 	cout << "Loading " << path << " ... ";
@@ -989,44 +1045,85 @@ void pp_disk::load(string& path)
 	if (input) {
 		int_t	type = 0;
 		string	dummy;
-        		
-		for (int i = 0; i < n_bodies->total; i++) { 
+
+		int n_prime_SI = 0;
+		int n_prime_NSI= 0;
+		int n_prime_NI = 0;
+		int n_body = 0;
+		if (use_padded_storage)
+		{
+			// The number of self-interacting (SI) bodies alligned to n_tbp
+			n_prime_SI = get_padded_storage_size(n_bodies->get_n_self_interacting(), n_tpb);
+			// The number of non-self-interacting (NSI) bodies alligned to n_tbp
+			n_prime_NSI= get_padded_storage_size(n_bodies->get_n_nonself_interacting(), n_tpb);
+			// The number of non-interacting (NI) bodies alligned to n_tbp
+			n_prime_NI = get_padded_storage_size(n_bodies->test_particle, n_tpb);
+
+			n_body = n_prime_SI + n_prime_NSI + n_prime_NI;
+		}
+		else
+		{
+			n_body = n_bodies->total;
+		}
+
+		int k = 0;
+		for (int i = 0; i < n_bodies->total; i++, k++)
+		{
+			if (use_padded_storage)
+			{
+				while (n_bodies->get_n_self_interacting() < k && k < n_prime_SI)
+				{
+					create_padding_particle(k, epoch, body_md, p, r, v);
+					k++;
+				}
+				while (n_prime_SI + n_bodies->get_n_nonself_interacting() < k && k < n_prime_SI + n_prime_NSI)
+				{
+					create_padding_particle(k, epoch, body_md, p, r, v);
+					k++;
+				}
+				while (n_prime_SI + n_prime_NSI + n_bodies->test_particle < k)
+				{
+					create_padding_particle(k, epoch, body_md, p, r, v);
+					k++;
+				}
+				continue;
+			}
 			// id
-			input >> body_md[i].id;
+			input >> body_md[k].id;
 			// name
 			input >> dummy;
 			body_names.push_back(dummy);
 			// body type
 			input >> type;
-			body_md[i].body_type = static_cast<body_type_t>(type);
+			body_md[k].body_type = static_cast<body_type_t>(type);
 			// epoch
-			input >> epoch[i];
+			input >> epoch[k];
 
 			// mass
-			input >> p[i].mass;
+			input >> p[k].mass;
 			// radius
-			input >> p[i].radius;
+			input >> p[k].radius;
 			// density
-			input >> p[i].density;
+			input >> p[k].density;
 			// stokes constant
-			input >> p[i].cd;
+			input >> p[k].cd;
 
 			// migration type
 			input >> type;
-			body_md[i].mig_type = static_cast<migration_type_t>(type);
+			body_md[k].mig_type = static_cast<migration_type_t>(type);
 			// migration stop at
-			input >> body_md[i].mig_stop_at;
+			input >> body_md[k].mig_stop_at;
 
 			// position
-			input >> r[i].x;
-			input >> r[i].y;
-			input >> r[i].z;
-			r[i].w = 0.0;
+			input >> r[k].x;
+			input >> r[k].y;
+			input >> r[k].z;
+			r[k].w = 0.0;
 			// velocity
-			input >> v[i].x;
-			input >> v[i].y;
-			input >> v[i].z;
-			v[i].w = 0.0;
+			input >> v[k].x;
+			input >> v[k].y;
+			input >> v[k].z;
+			v[k].w = 0.0;
 		}
         input.close();
 	}

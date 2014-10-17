@@ -21,9 +21,11 @@ public:
 	pp_disk* create_pp_disk();
 	integrator* create_integrator(pp_disk* ppd, ttt_t dt);
 
-	bool	verbose;				//!< print more information to the screen or log file
-	string	printout_dir;			//!<  Printout directory
-	string	input_dir;				//!<  Input directory
+	bool	verbose;				//!< Print more information to the screen or log file
+	string	printout_dir;			//!< Printout directory
+	string	input_dir;				//!< Input directory
+	bool	use_padded_storage;		//!< Use padded storage to store data (default is false)
+	int		n_tpb;					//!< Number of thread per block to use in kernel lunches (default is 64)
 
 	parameter* param;
 	gas_disk*  g_disk;	

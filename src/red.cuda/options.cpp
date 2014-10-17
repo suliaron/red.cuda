@@ -17,6 +17,8 @@ using namespace redutilcu;
 options::options(int argc, const char** argv) :
 	has_gas(false),
 	verbose(false),
+	use_padded_storage(false),
+	n_tpb(64),
 	param(0),
 	g_disk(0)
 {
@@ -47,12 +49,14 @@ void options::print_usage()
 {
 	cout << "Usage: red.cuda <parameterlist>" << endl;
 	cout << "Parameters:" << endl;
-	cout << "     -iDir | --inputDir <directory>         : the directory containig the input files"  << endl;
-	cout << "     -p    | --parameter <filename>         : the file containig the parameters of the simulation"  << endl;
-	cout << "     -gd   | --gas_disk <filename>          : the file containig the parameters of the gas disk"  << endl;
-	cout << "     -ic   | --initial_condition <filename> : the file containig the initial conditions"  << endl;
-	cout << "     -v    | --verbose                      : verbose mode" << endl;
-	cout << "     -h    | --help                         : print this help" << endl;
+	cout << "     -ups   | --use-padded-storage           : use padded storage to store data (default is false)" << endl; 
+	cout << "     -n_tpb | --n_thread-per-block           : the number of thread per block to use in kernel lunches (default is 64)" << endl;
+	cout << "     -iDir  | --inputDir <directory>         : the directory containig the input files"  << endl;
+	cout << "     -p     | --parameter <filename>         : the file containig the parameters of the simulation"  << endl;
+	cout << "     -gd    | --gas_disk <filename>          : the file containig the parameters of the gas disk"  << endl;
+	cout << "     -ic    | --initial_condition <filename> : the file containig the initial conditions"  << endl;
+	cout << "     -v     | --verbose                      : verbose mode" << endl;
+	cout << "     -h     | --help                         : print this help" << endl;
 }
 
 // TODO: implement
@@ -68,7 +72,20 @@ void options::parse_options(int argc, const char** argv)
 		string p = argv[i];
 
 		// Print-out location
-		if (     p == "--inputDir" || p == "-iDir")	{
+		if      (p == "--use-padded-storage" || p == "-ups")
+		{
+			use_padded_storage = true;
+		}
+		else if (p == "--n_thread-per-block" || p == "-n_tpb")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			n_tpb = atoi(argv[i]);
+		}
+		else if (p == "--inputDir" || p == "-iDir")	{
 			i++;
 			input_dir = argv[i];
 			printout_dir = input_dir;
@@ -102,7 +119,7 @@ void options::parse_options(int argc, const char** argv)
 pp_disk* options::create_pp_disk()
 {
 	string path = file::combine_path(input_dir, bodylist_filename);
-	pp_disk* ppd = new pp_disk(path, g_disk);
+	pp_disk* ppd = new pp_disk(path, g_disk, n_tpb, use_padded_storage);
 	if (ppd->g_disk != 0)
 	{
 		ppd->g_disk->calc(ppd->get_mass_of_star());

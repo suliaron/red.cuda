@@ -15,6 +15,8 @@ public:
 	/*  rocky planets and protoplanets.
 	*/
 	int		get_n_self_interacting();
+	//! Calculates the number of non-self-interating bodies (super_planetesimal + planetesimal)
+	int		get_n_nonself_interacting();
 	//! Calculates the number of bodies which feels the drag force, i.e. sum of the number of super-planetesimals and planetesimals.
 	int		get_n_gas_drag();
 	//! Calculates the number of bodies which are experiencing type I migartion, i.e. sum of the number of rocky- and proto-planets.
