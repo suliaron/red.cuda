@@ -833,6 +833,9 @@ void call_kernel_calc_grav_accel(ttt_t curr_t, number_of_bodies *n_bodies, sim_d
 			set_kernel_launch_param(n_tpb, n_sink);
 			kernel_calc_grav_accel<<<grid, block>>>
 				(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
+
+			cudaDeviceSynchronize();
+
 			cudaStatus = HANDLE_ERROR(cudaGetLastError());
 			if (cudaSuccess != cudaStatus) {
 				throw string("kernel_calc_grav_accel failed");
@@ -849,6 +852,9 @@ void call_kernel_calc_grav_accel(ttt_t curr_t, number_of_bodies *n_bodies, sim_d
 			set_kernel_launch_param(n_tpb, n_sink);
 			kernel_calc_grav_accel<<<grid, block>>>
 				(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
+
+			cudaDeviceSynchronize();
+
 			cudaStatus = HANDLE_ERROR(cudaGetLastError());
 			if (cudaSuccess != cudaStatus) {
 				throw string("kernel_calc_grav_accel failed");
@@ -869,6 +875,9 @@ void call_kernel_calc_grav_accel_int_mul_of_thread_per_block(ttt_t curr_t, numbe
 		{
 			set_kernel_launch_param(n_tpb, n_sink);
 			kernel_calc_grav_accel_int_mul_of_thread_per_block <<<grid, block>>> (int_bound, sim_data->d_p, r, dy);
+
+			cudaDeviceSynchronize();
+
 			cudaStatus = HANDLE_ERROR(cudaGetLastError());
 			if (cudaSuccess != cudaStatus) {
 				throw string("kernel_calc_grav_accel failed");
@@ -884,6 +893,9 @@ void call_kernel_calc_grav_accel_int_mul_of_thread_per_block(ttt_t curr_t, numbe
 		{
 			set_kernel_launch_param(n_tpb, n_sink);
 			kernel_calc_grav_accel_int_mul_of_thread_per_block <<<grid, block>>> (int_bound, sim_data->d_p, r, dy);
+
+			cudaDeviceSynchronize();
+
 			cudaStatus = HANDLE_ERROR(cudaGetLastError());
 			if (cudaSuccess != cudaStatus) {
 				throw string("kernel_calc_grav_accel failed");
