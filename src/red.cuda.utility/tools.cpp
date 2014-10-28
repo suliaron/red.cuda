@@ -1,7 +1,10 @@
 #include <cctype>
 #include <ctime>
+#include <string>
 
 #include "tools.h"
+
+using namespace std;
 
 namespace redutilcu
 {

@@ -3,9 +3,15 @@
 #include "device_launch_parameters.h"
 
 // includes Thrust
+#ifdef __GNUC__
+#include "thrust/device_ptr.h"
+#include "thrust/fill.h"
+#include "thrust/extrema.h"
+#else
 #include "thrust\device_ptr.h"
 #include "thrust\fill.h"
 #include "thrust\extrema.h"
+#endif
 
 // includes project
 #include "int_rungekutta4.h"

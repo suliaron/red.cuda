@@ -2,7 +2,7 @@
 #include <iomanip>
 #include <cstdio>
 #include <cstdlib>
-#include <cstdint>
+#include <stdint.h>
 #include <iostream>
 #include <stdlib.h>
 #include <string>
@@ -12,9 +12,15 @@
 #include "device_launch_parameters.h"
 
 // includes Thrust
+#ifdef __GNUC__
+#include "thrust/device_ptr.h"
+#include "thrust/fill.h"
+#include "thrust/extrema.h"
+#else
 #include "thrust\device_ptr.h"
 #include "thrust\fill.h"
 #include "thrust\extrema.h"
+#endif
 
 // includes project
 #include "red_constants.h"
@@ -194,7 +200,7 @@ __global__
 	}
 }
 
-void test_print_position(int n, const vec_t* r)
+static void test_print_position(int n, const vec_t* r)
 {
 	for (int tid = 0; tid < n; tid++)
 	{

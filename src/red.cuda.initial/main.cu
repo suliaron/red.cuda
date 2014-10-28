@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <ctime>
-#include <cstdint>
+#include <stdint.h>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -264,8 +264,8 @@ void print_body_record(
 
 void Emese_data_format_to_red_cuda_format(const string& input_path, const string& output_path)
 {
-	ifstream input(input_path, ios::in | ios::binary);
-	ofstream output(output_path, ios_base::out);
+	ifstream input(input_path.c_str(), ios::in | ios::binary);
+	ofstream output(output_path.c_str(), ios_base::out);
 
 	if (!input)
 	{
@@ -463,7 +463,7 @@ int generate_pp_disk(const string &path, body_disk_t& body_disk)
 	static char sep = ' ';
 	static const int precision = 10;
 
-	ofstream	output(path, ios_base::out);
+	ofstream	output(path.c_str(), ios_base::out);
 	if (output)
 	{
 		for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)

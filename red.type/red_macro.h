@@ -1,5 +1,6 @@
 #pragma once
-
+// includes system
+#include <stdio.h>
 // include CUDA
 #include "cuda_runtime.h"
 

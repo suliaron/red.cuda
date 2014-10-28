@@ -1,15 +1,13 @@
 #pragma once
 
 // includes system
-#include <cstdint>
+#include <stdint.h>
 #include <vector>
 
 // include CUDA
 #include "cuda_runtime.h"
 
 using namespace std;
-
-// General settings for the integrator
 
 //! Type of time variables
 typedef double		ttt_t;
@@ -136,7 +134,7 @@ typedef struct event_data
 			event_name_t	event_name;	//!< Name of the event
 			ttt_t	t;			//!< Time of the event
 			int2_t	id;			//!< ids of the bodies
-			int2_t	idx;		//!< indicies of the bodies
+			int2_t	idx;		//!< indices of the bodies
 			var_t	d;			//!< distance of the bodies
 			vec_t	r1;			//!< Position of body 1
 			vec_t	v1;			//!< Velocity of body 1
