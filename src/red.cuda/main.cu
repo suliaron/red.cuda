@@ -13,9 +13,15 @@
 #include "device_launch_parameters.h"
 
 // includes Thrust
+#ifdef __GNUC__
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/reduce.h>
+#else
+#include "thrust\device_ptr.h"
+#include "thrust\fill.h"
+#include "thrust\extrema.h"
+#endif
 
 // includes project
 #include "int_euler.h"
@@ -219,7 +225,7 @@ int main(int argc, const char** argv)
 
 			if (n_event_after_last_save > 16)
 			{
-				printf("At t: %25.15le Rebuild the vectors and remove inactive bodies", ppd->t);
+				printf("At t: %25.15le Rebuild the vectors and remove inactive bodies\n", ppd->t);
 				ppd->copy_to_host();
 				// Rebuild the vectors and remove inactive bodies
 				ppd->remove_inactive_bodies();
