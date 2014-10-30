@@ -373,16 +373,16 @@ void pp_disk::set_kernel_launch_param(int n_data)
 	block.x = n_thread;
 }
 
-size_t pp_disk::get_padded_storage_size(size_t size, int n_tpb)
-{
-	return (size + n_tpb - 1)/n_tpb;
-}
+//size_t pp_disk::get_padded_storage_size(size_t size, int n_tpb)
+//{
+//	return (size + n_tpb - 1)/n_tpb;
+//}
 
 void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
 	cudaError_t cudaStatus = cudaSuccess;
 	
-	int n_sink = n_bodies->get_n_self_interacting();
+	int n_sink = n_bodies->get_n_SI();
 	if (0 < n_sink) {
 		interaction_bound int_bound = n_bodies->get_self_interacting();
 		set_kernel_launch_param(n_sink);
@@ -395,7 +395,7 @@ void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const ve
 		}
 	}
 
-	n_sink = n_bodies->test_particle;
+	n_sink = n_bodies->n_tp;
 	if (0 < n_sink) {
 		interaction_bound int_bound = n_bodies->get_non_interacting();
 		set_kernel_launch_param(n_sink);
@@ -413,7 +413,7 @@ int pp_disk::call_kernel_check_for_ejection_hit_centrum()
 {
 	cudaError_t cudaStatus = cudaSuccess;
 	
-	int n_total = n_bodies->total;
+	int n_total = n_bodies->get_n_total();
 	interaction_bound int_bound(0, n_total, 0, 0);
 	set_kernel_launch_param(n_total);
 
@@ -622,21 +622,21 @@ pp_disk::pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage)
 
 pp_disk::~pp_disk()
 {
-	deallocate_host_storage();
-	deallocate_device_storage();
+	deallocate_host_storage(sim_data);
+	deallocate_device_storage(sim_data);
 
 	delete sim_data;
 }
 
-void pp_disk::deallocate_host_storage()
+void pp_disk::deallocate_host_storage(sim_data_t *sd)
 {
 	for (int i = 0; i < 2; i++)
 	{
-		delete[] sim_data->y[i];
+		delete[] sd->y[i];
 	}
-	delete[] sim_data->p;
-	delete[] sim_data->body_md;
-	delete[] sim_data->epoch;
+	delete[] sd->p;
+	delete[] sd->body_md;
+	delete[] sd->epoch;
 	delete[] events;
 
 	if (0x0 != g_disk)
@@ -645,16 +645,16 @@ void pp_disk::deallocate_host_storage()
 	}
 }
 
-void pp_disk::deallocate_device_storage()
+void pp_disk::deallocate_device_storage(sim_data_t *sd)
 {
 	for (int i = 0; i < 2; i++)
 	{
-		cudaFree(sim_data->d_y[i]);
-		cudaFree(sim_data->d_yout[i]);
+		cudaFree(sd->d_y[i]);
+		cudaFree(sd->d_yout[i]);
 	}
-	cudaFree(sim_data->d_p);
-	cudaFree(sim_data->d_body_md);
-	cudaFree(sim_data->d_epoch);
+	cudaFree(sd->d_p);
+	cudaFree(sd->d_body_md);
+	cudaFree(sd->d_epoch);
 	cudaFree(d_events);
 	cudaFree(d_event_counter);
 
@@ -666,13 +666,14 @@ void pp_disk::deallocate_device_storage()
 
 number_of_bodies* pp_disk::get_number_of_bodies(string& path)
 {
-	int ns, ngp, nrp, npp, nspl, npl, ntp;
-	ns = ngp = nrp = npp = nspl = npl = ntp = 0;
+	// n_pp : number of padding particle
+	int ns, ngp, nrp, npp, nspl, npl, ntp, n_pp;
+	ns = ngp = nrp = npp = nspl = npl = ntp = n_pp = 0;
 
 	ifstream input(path.c_str());
 	if (input) 
 	{
-		input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp;
+		input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp >> n_pp;
 		input.close();
 	}
 	else 
@@ -684,91 +685,17 @@ number_of_bodies* pp_disk::get_number_of_bodies(string& path)
 
 void pp_disk::remove_inactive_bodies()
 {
+	int old_n_total = n_bodies->get_n_total();
+	n_bodies->update_numbers(sim_data->body_md);
+
 	sim_data_t *sim_data_temp = new sim_data_t;
-
-	int n_save_nBody = n_bodies->total;
-	int n_active_body = 0;
-	int n_inactive_body = 0;
-# if 1 // Find out the number of active/inactive bodies
-	{
-		int		star				= 0;
-		int		giant_planet		= 0;
-		int		rocky_planet		= 0;
-		int		proto_planet		= 0;
-		int		super_planetesimal	= 0;
-		int		planetesimal		= 0;
-		int		test_particle		= 0;
-
-		for (int i = 0; i < n_bodies->total; i++)
-		{
-			if (sim_data->body_md[i].id > 0)
-			{
-				n_active_body++;
-			}
-			// Count the inactive bodies by type
-			else
-			{
-				n_inactive_body++;
-				switch (sim_data->body_md[i].body_type)
-				{
-				case BODY_TYPE_STAR:
-					star++;
-					break;
-				case BODY_TYPE_GIANTPLANET:
-					giant_planet++;
-					break;
-				case BODY_TYPE_ROCKYPLANET:
-					rocky_planet++;
-					break;
-				case BODY_TYPE_PROTOPLANET:
-					proto_planet++;
-					break;
-				case BODY_TYPE_SUPERPLANETESIMAL:
-					super_planetesimal++;
-					break;
-				case BODY_TYPE_PLANETESIMAL:
-					planetesimal++;
-					break;
-				case BODY_TYPE_TESTPARTICLE:
-					test_particle++;
-					break;
-				default:
-					throw string("Undefined body type!");
-				}
-			}
-		}
-		cout << "There are " << star << " inactive star" << endl;
-		cout << "There are " << giant_planet << " inactive giant planet" << endl;
-		cout << "There are " << rocky_planet << " inactive rocky planet" << endl;
-		cout << "There are " << proto_planet << " inactive protoplanet" << endl;
-		cout << "There are " << super_planetesimal << " inactive super planetesimal" << endl;
-		cout << "There are " << planetesimal << " inactive planetesimal" << endl;
-		cout << "There are " << test_particle << " inactive test particle" << endl;
-
-		n_bodies->star -= star;
-		n_bodies->giant_planet -= giant_planet;
-		n_bodies->rocky_planet -= rocky_planet;
-		n_bodies->proto_planet -= proto_planet;
-		n_bodies->super_planetesimal -= super_planetesimal;
-		n_bodies->planetesimal -= planetesimal;
-		n_bodies->test_particle -= test_particle;
-		n_bodies->total = n_active_body;
-	}
-#endif
-
-	sim_data_temp->y.resize(2);
-	for (int i = 0; i < 2; i++)
-	{
-		sim_data_temp->y[i]	= new vec_t[n_bodies->total];
-	}
-	sim_data_temp->p		= new param_t[n_bodies->total];
-	sim_data_temp->body_md	= new body_metadata_t[n_bodies->total];
+	allocate_host_storage(sim_data_temp, n_bodies->get_n_total());
 
 	// Copy the data of active bodies to sim_data_temp
 	int k = 0;
-	for (int i = 0; i < n_save_nBody; i++)
+	for (int i = 0; i < old_n_total; i++)
 	{
-		if (sim_data->body_md[i].id > 0)
+		if (sim_data->body_md[i].id > 0 || sim_data->body_md[i].body_type != BODY_TYPE_PADDINGPARTICLE)
 		{
 			// Copy position
 			sim_data_temp->y[0][k]		= sim_data->y[0][i];
@@ -781,87 +708,127 @@ void pp_disk::remove_inactive_bodies()
 			k++;
 		}
 	}
+	if (n_bodies->get_n_total() != k)
+	{
+		throw string("Error: number of copied bodies does not equal to the number of active bodies.");
+	}
 
 	// Copy the active bodies back to sim_data
-	for (int i = 0; i < n_bodies->total; i++)
+	//for (int i = 0; i < n_bodies->get_n_total(); i++)
+	//{
+	//	// Copy position
+	//	sim_data->y[0][i]		= sim_data_temp->y[0][i];
+	//	// Copy velocity
+	//	sim_data->y[1][i]		= sim_data_temp->y[1][i];
+	//	// Copy parameters
+	//	sim_data->p[i]			= sim_data_temp->p[i];
+	//	// Copy metadata
+	//	sim_data->body_md[i]	= sim_data_temp->body_md[i];
+	//}
+
+	k = 0;
+	int n_prime_SI;
+	int n_prime_NSI;
+	int n_body;
+	if (use_padded_storage)
 	{
+		// The number of self-interacting (SI) bodies alligned to n_tbp
+		n_prime_SI = n_bodies->get_n_prime_SI(n_tpb);
+		// The number of non-self-interacting (NSI) bodies alligned to n_tbp
+		n_prime_NSI= n_bodies->get_n_prime_NSI(n_tpb);
+
+		n_body = n_bodies->get_n_prime_total(n_tpb);
+	}
+	else
+	{
+		n_body = n_bodies->get_n_total();
+	}
+	for (int i = 0; i < n_body; i++, k++)
+	{
+		if (use_padded_storage)
+		{
+			bool fill_padding_particle = false;
+			while (n_bodies->get_n_SI() < k && k < n_prime_SI)
+			{
+				create_padding_particle(k, sim_data->epoch, sim_data->body_md, sim_data->p, sim_data->y[0], sim_data->y[1], fill_padding_particle);
+				k++;
+			}
+			while (n_prime_SI + n_bodies->get_n_NSI() < k && k < n_prime_SI + n_prime_NSI)
+			{
+				create_padding_particle(k, sim_data->epoch, sim_data->body_md, sim_data->p, sim_data->y[0], sim_data->y[1], fill_padding_particle);
+				k++;
+			}
+			while (n_prime_SI + n_prime_NSI + n_bodies->get_n_NI() < k)
+			{
+				create_padding_particle(k, sim_data->epoch, sim_data->body_md, sim_data->p, sim_data->y[0], sim_data->y[1], fill_padding_particle);
+				k++;
+			}
+			if (fill_padding_particle)
+			{
+				continue;
+			}
+		}
 		// Copy position
-		sim_data->y[0][i]		= sim_data_temp->y[0][i];
+		sim_data->y[0][i]	= sim_data_temp->y[0][i];
 		// Copy velocity
-		sim_data->y[1][i]		= sim_data_temp->y[1][i];
+		sim_data->y[1][i]	= sim_data_temp->y[1][i];
 		// Copy parameters
-		sim_data->p[i]			= sim_data_temp->p[i];
+		sim_data->p[i]		= sim_data_temp->p[i];
 		// Copy metadata
-		sim_data->body_md[i]	= sim_data_temp->body_md[i];
+		sim_data->body_md[i]= sim_data_temp->body_md[i];
 	}
 
 	// Copy the active bodies to the device
 	copy_to_device();
 
-	for (int i = 0; i < 2; i++)
-	{
-		delete[] sim_data_temp->y[i];
-	}
-	delete[] sim_data_temp->p;
-	delete[] sim_data_temp->body_md;
+	deallocate_host_storage(sim_data_temp);
 	delete sim_data_temp;
-}
-
-int pp_disk::calculate_n_body_for_storage_allocation()
-{
-	if (use_padded_storage)
-	{
-		// The number of self-interacting (SI) bodies alligned to n_tbp
-		int n_prime_SI = get_padded_storage_size(n_bodies->get_n_self_interacting(), n_tpb);
-		// The number of non-self-interacting (NSI) bodies alligned to n_tbp
-		int n_prime_NSI= get_padded_storage_size(n_bodies->get_n_nonself_interacting(), n_tpb);
-		// The number of non-interacting (NI) bodies alligned to n_tbp
-		int n_prime_NI = get_padded_storage_size(n_bodies->test_particle, n_tpb);
-
-		return n_prime_SI + n_prime_NSI + n_prime_NI;
-	}
-	else
-	{
-		return n_bodies->total;
-	}
 }
 
 void pp_disk::allocate_storage()
 {
-	int n_body = calculate_n_body_for_storage_allocation();
+	int n_body = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
 
 	sim_data = new sim_data_t;
+	allocate_host_storage(sim_data, n_body);
+	allocate_device_storage(sim_data, n_body);
+}
 
-	sim_data->y.resize(2);
+void pp_disk::allocate_host_storage(sim_data_t *sd, int n)
+{
+	sd->y.resize(2);
 	for (int i = 0; i < 2; i++)
 	{
-		sim_data->y[i]	= new vec_t[n_body];
+		sd->y[i]= new vec_t[n];
 	}
-	sim_data->p			= new param_t[n_body];
-	sim_data->body_md	= new body_metadata_t[n_body];
-	sim_data->epoch		= new ttt_t[n_body];
+	sd->p		= new param_t[n];
+	sd->body_md	= new body_metadata_t[n];
+	sd->epoch	= new ttt_t[n];
 
-	events = new event_data_t[n_body];
+	events = new event_data_t[n];
+}
 
-	sim_data->d_y.resize(2);
-	sim_data->d_yout.resize(2);
-	// Allocate device pointer.
+void pp_disk::allocate_device_storage(sim_data_t *sd, int n)
+{
+	sd->d_y.resize(2);
+	sd->d_yout.resize(2);
+
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_y[i]),	n_body*sizeof(vec_t));
-		ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_yout[i]),	n_body*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_y[i]),		n*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_yout[i]),	n*sizeof(vec_t));
 	}
-	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_p),			n_body*sizeof(param_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_body_md),		n_body*sizeof(body_metadata_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sim_data->d_epoch),		n_body*sizeof(ttt_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_p),				n*sizeof(param_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_body_md),		n*sizeof(body_metadata_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_epoch),			n*sizeof(ttt_t));
 
-	ALLOCATE_DEVICE_VECTOR((void **)&d_events,					n_body*sizeof(event_data_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,				 1*sizeof(int));
+	ALLOCATE_DEVICE_VECTOR((void **)&d_events,				n*sizeof(event_data_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,		1*sizeof(int));
 }
 
 void pp_disk::copy_to_device()
 {
-	int n_body = calculate_n_body_for_storage_allocation();
+	int n_body = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -875,7 +842,7 @@ void pp_disk::copy_to_device()
 
 void pp_disk::copy_to_host()
 {
-	int n_body = calculate_n_body_for_storage_allocation();
+	int n_body = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -977,7 +944,7 @@ void pp_disk::transform_to_bc()
 	vec_t* r = sim_data->y[0];
 	vec_t* v = sim_data->y[1];
 	// Transform the bodies coordinates and velocities
-	for (int j = 0; j < n_bodies->total; j++ )
+	for (int j = 0; j < n_bodies->get_n_total(); j++ )
 	{
 		r[j].x -= R0.x;		r[j].y -= R0.y;		r[j].z -= R0.z;
 		v[j].x -= V0.x;		v[j].y -= V0.y;		v[j].z -= V0.z;
@@ -990,7 +957,7 @@ void pp_disk::transform_time()
 {
 	vec_t* v = sim_data->y[1];
 	// Transform the bodies coordinates and velocities
-	for (int j = 0; j < n_bodies->total; j++ )
+	for (int j = 0; j < n_bodies->get_n_total(); j++ )
 	{
 		sim_data->epoch[j] *= constants::Gauss;
 
@@ -1000,8 +967,10 @@ void pp_disk::transform_time()
 	}
 }
 
-void pp_disk::create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v)
+void pp_disk::create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v, bool &b)
 {
+	b = true;
+
 	body_md[k].id = 0;
 	body_md[k].body_type = static_cast<body_type_t>(BODY_TYPE_PADDINGPARTICLE);
 	epoch[k] = 0.0;
@@ -1028,8 +997,9 @@ void pp_disk::load(string& path)
 	ifstream input(path.c_str());
 	if (input) 
 	{
-		int ns, ngp, nrp, npp, nspl, npl, ntp;
-		input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp;
+		// n_pp : number of padding particle
+		int ns, ngp, nrp, npp, nspl, npl, ntp, n_pp;
+		input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp >> n_pp;
 	}
 	else 
 	{
@@ -1048,45 +1018,40 @@ void pp_disk::load(string& path)
 
 		int n_prime_SI = 0;
 		int n_prime_NSI= 0;
-		int n_prime_NI = 0;
-		int n_body = 0;
 		if (use_padded_storage)
 		{
 			// The number of self-interacting (SI) bodies alligned to n_tbp
-			n_prime_SI = get_padded_storage_size(n_bodies->get_n_self_interacting(), n_tpb);
+			n_prime_SI = n_bodies->get_n_prime_SI(n_tpb);
 			// The number of non-self-interacting (NSI) bodies alligned to n_tbp
-			n_prime_NSI= get_padded_storage_size(n_bodies->get_n_nonself_interacting(), n_tpb);
-			// The number of non-interacting (NI) bodies alligned to n_tbp
-			n_prime_NI = get_padded_storage_size(n_bodies->test_particle, n_tpb);
-
-			n_body = n_prime_SI + n_prime_NSI + n_prime_NI;
+			n_prime_NSI= n_bodies->get_n_prime_NSI(n_tpb);
 		}
-		else
-		{
-			n_body = n_bodies->total;
-		}
+		int n_body = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
 
 		int k = 0;
-		for (int i = 0; i < n_bodies->total; i++, k++)
+		for (int i = 0; i < n_bodies->get_n_total(); i++, k++)
 		{
 			if (use_padded_storage)
 			{
-				while (n_bodies->get_n_self_interacting() < k && k < n_prime_SI)
+				bool fill_padding_particle = false;
+				while (n_bodies->get_n_SI() < k && k < n_prime_SI)
 				{
-					create_padding_particle(k, epoch, body_md, p, r, v);
+					create_padding_particle(k, epoch, body_md, p, r, v, fill_padding_particle);
 					k++;
 				}
-				while (n_prime_SI + n_bodies->get_n_nonself_interacting() < k && k < n_prime_SI + n_prime_NSI)
+				while (n_prime_SI + n_bodies->get_n_NSI() < k && k < n_prime_SI + n_prime_NSI)
 				{
-					create_padding_particle(k, epoch, body_md, p, r, v);
+					create_padding_particle(k, epoch, body_md, p, r, v, fill_padding_particle);
 					k++;
 				}
-				while (n_prime_SI + n_prime_NSI + n_bodies->test_particle < k)
+				while (n_prime_SI + n_prime_NSI + n_bodies->get_n_NI() < k)
 				{
-					create_padding_particle(k, epoch, body_md, p, r, v);
+					create_padding_particle(k, epoch, body_md, p, r, v, fill_padding_particle);
 					k++;
 				}
-				continue;
+				if (fill_padding_particle)
+				{
+					continue;
+				}
 			}
 			// id
 			input >> body_md[k].id;
@@ -1141,9 +1106,9 @@ void pp_disk::print_result_ascii(ostream& sout)
 	param_t* p = sim_data->p;
 	body_metadata_t* body_md = sim_data->body_md;
 
-	for (int i = 0; i < n_bodies->total; i++) {
-		// Skip inactive body
-		if (body_md[i].id < 0)
+	for (int i = 0; i < n_bodies->get_n_total(); i++) {
+		// Skip inactive and padding body
+		if (body_md[i].id < 0 || body_md[i].body_type == BODY_TYPE_PADDINGPARTICLE)
 		{
 			continue;
 		}

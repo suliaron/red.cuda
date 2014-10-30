@@ -233,7 +233,7 @@ rungekutta8::rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance)
 	d_err(2),
 	d_yscale(2)
 {
-	const int n = ppd->n_bodies->total;
+	const int n = ppd->n_bodies->get_n_total();
 	const int n_var = NDIM * n;
 	name = "Runge-Kutta-Fehlberg8";
 
@@ -276,7 +276,7 @@ void rungekutta8::call_kernel_calc_ytemp_for_fr(int r)
 {
 	int idx = 0;
 
-	const int n_var = 4 * ppd->n_bodies->total;
+	const int n_var = 4 * ppd->n_bodies->get_n_total();
 	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {
@@ -363,7 +363,7 @@ void rungekutta8::call_kernel_calc_ytemp_for_fr(int r)
 
 void rungekutta8::call_kernel_calc_error()
 {
-	const int n_var = 4 * ppd->n_bodies->total;
+	const int n_var = 4 * ppd->n_bodies->get_n_total();
 	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {
@@ -383,7 +383,7 @@ void rungekutta8::call_kernel_calc_error()
 
 void rungekutta8::call_kernel_calc_y_np1()
 {
-	const int n_var = 4 * ppd->n_bodies->total;
+	const int n_var = 4 * ppd->n_bodies->get_n_total();
 	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {
@@ -448,7 +448,7 @@ ttt_t rungekutta8::step()
 			}
 			call_kernel_calc_error();
 
-			int n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->total : ppd->n_bodies->get_n_massive());
+			int n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_total() : ppd->n_bodies->get_n_massive());
 			max_err = get_max_error(n_var);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/8.0);
 

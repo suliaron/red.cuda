@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-v -n_tpb 64 -iDir C:\Work\Projects\red.cuda.TestRun\Emese_Dvorak\cf_3 -p parameters.txt -ic suli-data-collision-N10001-heliocentric-vecelem-binary.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -ups -n_tpb 64 -iDir C:\Work\Projects\red.cuda.TestRun\Emese_Dvorak\cf_1 -p parameters.txt -ic suli-data-collision-N10001-heliocentric-vecelem-binary.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

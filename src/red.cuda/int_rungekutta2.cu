@@ -32,7 +32,7 @@ rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt) :
 	RKOrder(2),
 	d_f(2)
 {
-	const int n = ppd->n_bodies->total;
+	const int n = ppd->n_bodies->get_n_total();
 	name = "Runge-Kutta2";
 
 	t = ppd->t;
@@ -60,7 +60,7 @@ rungekutta2::~rungekutta2()
 
 void rungekutta2::call_kernel_calc_ytemp_for_fr(int r)
 {
-	const int n_var = NDIM * ppd->n_bodies->total;
+	const int n_var = NDIM * ppd->n_bodies->get_n_total();
 	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {
@@ -79,7 +79,7 @@ void rungekutta2::call_kernel_calc_ytemp_for_fr(int r)
 
 void rungekutta2::call_kernel_calc_y_np1()
 {
-	const int n_var = NDIM * ppd->n_bodies->total;
+	const int n_var = NDIM * ppd->n_bodies->get_n_total();
 	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {

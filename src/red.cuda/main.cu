@@ -166,7 +166,7 @@ int main(int argc, const char** argv)
 {
 	cout << "At " << tools::get_time_stamp() << " starting " << argv[0] << endl;
 
-//	device_query(argc, argv);
+	device_query(argc, argv);
 
 	time_t start = time(NULL);
 	var_t sum_time_of_steps = 0.0;
@@ -223,7 +223,7 @@ int main(int argc, const char** argv)
 				ppd->clear_event_counter();
 			}
 
-			if (n_event_after_last_save > 16)
+			if (n_event_after_last_save >= 16)
 			{
 				printf("At t: %25.15le Rebuild the vectors and remove inactive bodies\n", ppd->t);
 				ppd->copy_to_host();
@@ -244,7 +244,7 @@ int main(int argc, const char** argv)
 			{
 				printf("t: %25.15le, dt: %25.15le ", ppd->t, dt);
 				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
-				cout << ppd->n_collision << " collision(s), " << ppd->n_ejection << " ejection(s), " << ppd->n_hit_centrum << " hit centrum were detected (No. of bodies: " << ppd->n_bodies->total - n_event_after_last_save << ")" << endl;
+				cout << ppd->n_collision << " collision(s), " << ppd->n_ejection << " ejection(s), " << ppd->n_hit_centrum << " hit centrum were detected (No. of bodies: " << ppd->n_bodies->get_n_total() - n_event_after_last_save << ")" << endl;
 			}
 		} /* while */
 		// To avoid duplicate save at the end of the simulation

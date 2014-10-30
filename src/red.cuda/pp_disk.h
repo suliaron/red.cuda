@@ -121,12 +121,13 @@ private:
 	void load(string& path);
 	number_of_bodies* get_number_of_bodies(string& path);
 
-	int calculate_n_body_for_storage_allocation();
 	//! Allocates storage for data on the host and device memory
 	void allocate_storage();
+	void allocate_host_storage(sim_data_t *sd, int n);
+	void allocate_device_storage(sim_data_t *sd, int n);
 
-	void deallocate_host_storage();
-	void deallocate_device_storage();
+	void deallocate_host_storage(sim_data_t *sd);
+	void deallocate_device_storage(sim_data_t *sd);
 
 	//! Computes the total mass of the system
 	var_t get_total_mass();
@@ -142,9 +143,9 @@ private:
 	void call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 
 	//! Calculates the size for the padded storages
-	size_t get_padded_storage_size(size_t size, int n_tpb);
+	//size_t get_padded_storage_size(size_t size, int n_tpb);
 
-	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
+	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v, bool &b);
 
 	int		n_tpb;					//!< The number of thread per block to use for kernel launches
 	bool	use_padded_storage;		//!< If true use the padded storage

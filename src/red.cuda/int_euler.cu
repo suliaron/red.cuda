@@ -28,7 +28,7 @@ euler::euler(pp_disk *ppd, ttt_t dt) :
 	integrator(ppd, dt),
 	d_df(2)
 {
-	const int n = ppd->n_bodies->total;
+	const int n = ppd->n_bodies->get_n_total();
 	name = "Euler";
 
 	t = ppd->t;
@@ -46,7 +46,7 @@ euler::~euler()
 
 void euler::call_kernel_calc_y_np1()
 {
-	const int n_var = NDIM * ppd->n_bodies->total;
+	const int n_var = NDIM * ppd->n_bodies->get_n_total();
 
 	calc_grid(n_var, THREADS_PER_BLOCK);
 	for (int i = 0; i < 2; i++)
