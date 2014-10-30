@@ -499,7 +499,10 @@ int generate_pp_disk(const string &path, body_disk_t& body_disk)
 					generate_pp(&body_disk.pp_d[body_type], param0);
 					body_md.mig_type = body_disk.mig_type[bodyIdx];
 					body_md.mig_stop_at = body_disk.stop_at[bodyIdx];
+
+printf("Printing body %s to file ... ", body_disk.names[bodyIdx].c_str());
 					print_body_record(output, body_disk.names[bodyIdx], epoch, &param0, &body_md, &rVec, &vVec, precision);
+printf("done\r");
 				} /* if */
 				else 
 				{
@@ -518,7 +521,9 @@ int generate_pp_disk(const string &path, body_disk_t& body_disk)
 						return ret_code;
 					}
 
-                    print_body_record(output, body_disk.names[bodyIdx], t, &param, &body_md, &rVec, &vVec, precision);
+printf("Printing body %s to file ... ", body_disk.names[bodyIdx].c_str());
+					print_body_record(output, body_disk.names[bodyIdx], t, &param, &body_md, &rVec, &vVec, precision);
+printf("done\r");
 				} /* else */
 			} /* for */
 		} /* for */
@@ -630,7 +635,7 @@ void set_parameters_of_Dvorak_disk(body_disk_t& disk)
 		set(disk.oe_d[type].item[ORBITAL_ELEMENT_NODE], 0.0, pdf_const);
 		set(disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN], 0.0, 360.0 * constants::DegreeToRadian, pdf_const);
 
-		set(disk.pp_d[type].item[MASS], mCeres, mMoon/10.0, pdf_mass_lognormal);
+		set(disk.pp_d[type].item[MASS], mCeres, mMoon/10.0, pdf_const);
 		set(disk.pp_d[type].item[DENSITY], rhoBasalt, pdf_const);
 		set(disk.pp_d[type].item[DRAG_COEFF], 0.0, pdf_const);
 
@@ -789,12 +794,14 @@ int main(int argc, const char **argv)
 
 	parse_options(argc, argv, outDir, filename);
 
+/*
 	{
 		string input_path = file::combine_path(outDir, filename);
 		string output_path = file::combine_path(outDir, file::get_filename_without_ext(filename) + ".txt");
 		Emese_data_format_to_red_cuda_format(input_path, output_path);
 		return 0;
 	}
+*/
 
 	//{
 	//	set_parameters_of_Two_body_disk(disk);
@@ -803,18 +810,18 @@ int main(int argc, const char **argv)
 	//	return 0;
 	//}
 
-	//{
-	//	set_parameters_of_Dvorak_disk(disk);
-	//	output_path = file::combine_path(outDir, filename);
-	//	generate_pp_disk(output_path, disk);
-	//	return 0;
-	//}
+	{
+		set_parameters_of_Dvorak_disk(disk);
+		output_path = file::combine_path(outDir, filename);
+		generate_pp_disk(output_path, disk);
+		return 0;
+	}
 
 	//{
 	//	set_parameters_of_N1_massive_N3_test(disk);
 	//	output_path = file::combine_path(outDir, filename);
 	//	generate_pp_disk(output_path, disk);
- //   	return 0;
+    //	return 0;
 	//}
 
 

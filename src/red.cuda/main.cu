@@ -166,7 +166,7 @@ int main(int argc, const char** argv)
 {
 	cout << "At " << tools::get_time_stamp() << " starting " << argv[0] << endl;
 
-	device_query(argc, argv);
+//	device_query(argc, argv);
 
 	time_t start = time(NULL);
 	var_t sum_time_of_steps = 0.0;
@@ -218,7 +218,7 @@ int main(int argc, const char** argv)
 				ppd->copy_event_data_to_host();
 				n_event = ppd->handle_collision();
 				n_event_after_last_save += n_event;
-				cout << n_event << " collision event(s) occured" << endl;
+				cout << n_event << " collision event(s) occurred" << endl;
 				ppd->print_event_data(*event_f, *log_f);
 				ppd->clear_event_counter();
 			}

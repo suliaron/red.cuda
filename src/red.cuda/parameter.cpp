@@ -43,7 +43,8 @@ void parameter::parse()
 	Tokenizer line_tokenizer;
 	string line;
 
-	data_tokenizer.set(data, "\n");
+	data_tokenizer.set(data, "\r\n");
+
 	while ((line = data_tokenizer.next()) != "") {
 		line_tokenizer.set(line, "=");
 		string token;

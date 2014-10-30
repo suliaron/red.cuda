@@ -51,10 +51,10 @@ void options::print_usage()
 	cout << "Parameters:" << endl;
 	cout << "     -ups   | --use-padded-storage           : use padded storage to store data (default is false)" << endl; 
 	cout << "     -n_tpb | --n_thread-per-block           : the number of thread per block to use in kernel lunches (default is 64)" << endl;
-	cout << "     -iDir  | --inputDir <directory>         : the directory containig the input files"  << endl;
-	cout << "     -p     | --parameter <filename>         : the file containig the parameters of the simulation"  << endl;
-	cout << "     -gd    | --gas_disk <filename>          : the file containig the parameters of the gas disk"  << endl;
-	cout << "     -ic    | --initial_condition <filename> : the file containig the initial conditions"  << endl;
+	cout << "     -iDir  | --inputDir <directory>         : the directory containing the input files"  << endl;
+	cout << "     -p     | --parameter <filename>         : the file containing the parameters of the simulation"  << endl;
+	cout << "     -gd    | --gas_disk <filename>          : the file containing the parameters of the gas disk"  << endl;
+	cout << "     -ic    | --initial_condition <filename> : the file containing the initial conditions"  << endl;
 	cout << "     -v     | --verbose                      : verbose mode" << endl;
 	cout << "     -h     | --help                         : print this help" << endl;
 }
