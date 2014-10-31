@@ -119,6 +119,7 @@ private:
 		\param path the full path of the data file
 	*/
 	void load(string& path);
+	void read_body_record(ifstream& input, int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 	number_of_bodies* get_number_of_bodies(string& path);
 
 	//! Allocates storage for data on the host and device memory
@@ -145,7 +146,7 @@ private:
 	//! Calculates the size for the padded storages
 	//size_t get_padded_storage_size(size_t size, int n_tpb);
 
-	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v, bool &b);
+	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 
 	int		n_tpb;					//!< The number of thread per block to use for kernel launches
 	bool	use_padded_storage;		//!< If true use the padded storage
@@ -161,5 +162,5 @@ private:
 	vector<event_data_t> sp_events;	//!< Vector on the host containing data for events but  (one colliding pair one occurances)
 	vector<survivor_t>	survivors;	//!< Vector on the host containing data for the survivor body
 
-	vector<string>		body_names;
+	vector<string> body_names;
 };

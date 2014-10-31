@@ -7,18 +7,17 @@
 
 using namespace std;
 
-number_of_bodies::number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_spl, int n_pl, int n_tp) : 
+number_of_bodies::number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_spl, int n_pl, int n_tp, int n_tpb, bool ups) : 
 		n_s(n_s), 
 		n_gp(n_gp), 
 		n_rp(n_rp), 
 		n_pp(n_pp), 
 		n_spl(n_spl), 
 		n_pl(n_pl), 
-		n_tp(n_tp) 
-{
-	sink.x = sink.y = 0;
-	source.x = source.y = 0;
-}
+		n_tp(n_tp),
+		n_tpb(n_tpb),
+		ups(ups)
+{ }
 
 void number_of_bodies::update_numbers(body_metadata_t *body_md)
 {
@@ -33,10 +32,10 @@ void number_of_bodies::update_numbers(body_metadata_t *body_md)
 	int	planetesimal		= 0;
 	int	test_particle		= 0;
 
-	int n_total = get_n_total();
+	int n_total = ups ? get_n_prime_total(n_tpb) : get_n_total();
 	for (int i = 0; i < n_total; i++)
 	{
-		if (body_md[i].id > 0)
+		if (0 < body_md[i].id && BODY_TYPE_PADDINGPARTICLE > body_md[i].body_type)
 		{
 			n_active_body++;
 		}
@@ -80,33 +79,23 @@ void number_of_bodies::update_numbers(body_metadata_t *body_md)
 	cout << "There are " << planetesimal << " inactive planetesimal" << endl;
 	cout << "There are " << test_particle << " inactive test particle" << endl;
 
-	n_s -= star;
-	n_gp -= giant_planet;
-	n_rp -= rocky_planet;
-	n_pp -= proto_planet;
-	super_planetesimal -= super_planetesimal;
-	planetesimal -= planetesimal;
-	test_particle -= test_particle;
-}
-
-int	number_of_bodies::get_n_total()
-{
-	return n_s + n_gp + n_rp + n_pp + n_spl + n_pl + n_tp; 
-}
-
-int	number_of_bodies::get_n_massive()
-{
-	return n_s + n_gp + n_rp + n_pp + n_spl + n_pl;
+	n_s		-= star;
+	n_gp	-= giant_planet;
+	n_rp	-= rocky_planet;
+	n_pp	-= proto_planet;
+	n_spl	-= super_planetesimal;
+	n_pl	-= planetesimal;
+	n_tp	-= test_particle;
 }
 
 int	number_of_bodies::get_n_SI() 
 {
-	return n_s + n_gp + n_rp + n_pp;
+	return (n_s + n_gp + n_rp + n_pp);
 }
 
 int number_of_bodies::get_n_NSI()
 {
-	return n_spl + n_pl;
+	return (n_spl + n_pl);
 }
 
 int	number_of_bodies::get_n_NI()
@@ -114,105 +103,172 @@ int	number_of_bodies::get_n_NI()
 	return n_tp;
 }
 
-int	number_of_bodies::get_n_gas_drag()
+int	number_of_bodies::get_n_total()
 {
-	return n_spl + n_pl;
+	return (n_s + n_gp + n_rp + n_pp + n_spl + n_pl + n_tp); 
 }
 
-int	number_of_bodies::get_n_migrate_typeI()
+int	number_of_bodies::get_n_GD()
 {
-	return n_rp + n_pp;
+	return (n_spl + n_pl);
 }
 
-int	number_of_bodies::get_n_migrate_typeII()
+int	number_of_bodies::get_n_MT1()
+{
+	return (n_rp + n_pp);
+}
+
+int	number_of_bodies::get_n_MT2()
 {
 	return n_gp;
 }
 
-int number_of_bodies::get_n_prime_SI(int n_tpb)
+int	number_of_bodies::get_n_massive()
+{
+	return (get_n_SI() + get_n_NSI());
+}
+
+
+int number_of_bodies::get_n_prime_SI()
 {
 	// The number of self-interacting (SI) bodies alligned to n_tbp
 	return ((get_n_SI() + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
-int number_of_bodies::get_n_prime_NSI(int n_tpb)
+int number_of_bodies::get_n_prime_NSI()
 {
 	// The number of non-self-interacting (NSI) bodies alligned to n_tbp
 	return ((get_n_NSI() + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
-int number_of_bodies::get_n_prime_NI(int n_tpb)
+int number_of_bodies::get_n_prime_NI()
 {
 	// The number of non-interacting (NI) bodies alligned to n_tbp
 	return ((n_tp + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
-int number_of_bodies::get_n_prime_total(int n_tpb)
+int number_of_bodies::get_n_prime_total()
 {
-	return (get_n_prime_SI(n_tpb) + get_n_prime_NSI(n_tpb) + get_n_prime_NI(n_tpb));
+	return (get_n_prime_SI() + get_n_prime_NSI() + get_n_prime_NI());
 }
 
-interaction_bound number_of_bodies::get_self_interacting()
+//int	number_of_bodies::get_n_prime_GD()
+//{
+//	return ((n_spl + n_pl + n_tpb - 1) / n_tpb) * n_tpb;
+//}
+//
+//int	number_of_bodies::get_n_prime_MT1()
+//{
+//	return (n_rp + n_pp);
+//}
+//
+//int	number_of_bodies::get_n_prime_MT2()
+//{
+//	return n_gp;
+//}
+
+int	number_of_bodies::get_n_prime_massive()
 {
-	sink.x		= 0;
-	sink.y		= get_n_SI();
-	source.x	= 0;
-	source.y	= get_n_massive();
-	interaction_bound iBound(sink, source);
-
-	return iBound;
+	return (get_n_prime_SI() + get_n_prime_NSI());
 }
 
-interaction_bound number_of_bodies::get_nonself_interacting()
+
+interaction_bound number_of_bodies::get_bound_SI()
 {
-	sink.x			= get_n_SI();
-	sink.y			= get_n_massive();
-	source.x		= 0;
-	source.y		= get_n_NSI();
-	interaction_bound iBound(sink, source);
+	int2_t sink;
+	int2_t source;
 
-	return iBound;
+	if (ups)
+	{
+		sink.x	 = 0, sink.y   = sink.x + get_n_prime_SI();
+		source.x = 0, source.y = source.x + get_n_prime_massive();
+	}
+	else
+	{
+		sink.x   = 0, sink.y   = sink.x + get_n_SI();
+		source.x = 0, source.y = source.x + get_n_massive();
+	}
+
+	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_non_interacting()
+interaction_bound number_of_bodies::get_bound_NSI()
 {
-	sink.x			= get_n_massive();
-	sink.y			= get_n_total();
-	source.x		= 0;
-	source.y		= get_n_massive();
-	interaction_bound iBound(sink, source);
+	int2_t sink;
+	int2_t source;
 
-	return iBound;
+	if (ups)
+	{
+		sink.x   = get_n_prime_SI(), sink.y   = sink.x + get_n_prime_NSI();
+		source.x = 0,				 source.y = source.x + get_n_prime_SI();;
+	}
+	else
+	{
+		sink.x   = get_n_SI(), sink.y   = sink.x + get_n_NSI();
+		source.x = 0,		   source.y = source.x + get_n_SI();
+	}
+
+	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bodies_gasdrag() {
-	sink.x			= get_n_SI();
-	sink.y			= get_n_massive();
-	source.x		= 0;
-	source.y		= 0;
-	interaction_bound iBound(sink, source);
+interaction_bound number_of_bodies::get_bound_NI()
+{
+	int2_t sink;
+	int2_t source;
 
-	return iBound;
+	if (ups)
+	{
+		sink.x   = get_n_prime_massive(), sink.y   = sink.x + get_n_prime_NI();
+		source.x = 0,				      source.y = source.x + get_n_prime_massive();
+	}
+	else
+	{
+		sink.x   = get_n_massive(), sink.y   = sink.x + get_n_NI();
+		source.x = 0,   	        source.y = source.x + get_n_massive();
+	}
+
+	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bodies_migrate_typeI() {
-	sink.x			= n_s + n_gp;
-	sink.y			= get_n_massive();
-	source.x		= 0;
-	source.y		= 0;
-	interaction_bound iBound(sink, source);
+interaction_bound number_of_bodies::get_bound_GD()
+{
+	int2_t sink;
+	int2_t source;
 
-	return iBound;
+	if (ups)
+	{
+		sink.x   = get_n_prime_SI(), sink.y   = sink.x + n_spl + n_pl;
+		source.x = 0,		         source.y = 0;
+	}
+	else
+	{
+		sink.x   = get_n_SI(), sink.y   = sink.x + n_spl + n_pl;
+		source.x = 0,		   source.y = 0;
+	}
+
+	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bodies_migrate_typeII() {
-	sink.x			= n_s;
-	sink.y			= n_s + n_gp;
-	source.x		= 0;
-	source.y		= 0;
-	interaction_bound iBound(sink, source);
+interaction_bound number_of_bodies::get_bound_MT1()
+{
+	int2_t sink;
+	int2_t source;
 
-	return iBound;
+	sink.x   = n_s + n_gp, sink.y   = sink.x + n_pp + n_rp;
+	source.x = 0,	       source.y = source.x + 0;
+
+	return interaction_bound(sink, source);
+}
+
+interaction_bound number_of_bodies::get_bound_MT2()
+{
+	int2_t sink;
+	int2_t source;
+
+	sink.x   = n_s,   sink.y = sink.x + n_gp;
+	source.x = 0, 	source.y = source.x + 0;
+
+	return interaction_bound(sink, source);
 }
 
 ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies)

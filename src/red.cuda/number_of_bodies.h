@@ -4,7 +4,7 @@
 
 class number_of_bodies {
 public:
-	number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_spl, int n_pl, int n_tp);
+	number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_spl, int n_pl, int n_tp, int n_tpb, bool ups);
 
 	void update_numbers(body_metadata_t *body_md);
 
@@ -20,23 +20,29 @@ public:
 	//! Calculates the number of non-interating bodies (i.e. returns n_tp)
 	int	get_n_NI();
 	//! Calculates the number of bodies which feels the drag force, i.e. sum of the number of super-planetesimals and planetesimals.
-	int	get_n_gas_drag();
+	int	get_n_GD();
 	//! Calculates the number of bodies which are experiencing type I migartion, i.e. sum of the number of rocky- and proto-planets.
-	int	get_n_migrate_typeI();
+	int	get_n_MT1();
 	//! Calculates the number of bodies which are experiencing type II migartion, i.e. the number of giant planets.
-	int	get_n_migrate_typeII();
+	int	get_n_MT2();
 
-	int get_n_prime_SI(int n_tpb);
-	int get_n_prime_NSI(int n_tpb);
-	int get_n_prime_NI(int n_tpb);
-	int get_n_prime_total(int n_tpb);
+	int get_n_prime_total();
+	int	get_n_prime_massive();
 
-	interaction_bound get_self_interacting();
-	interaction_bound get_nonself_interacting();
-	interaction_bound get_non_interacting();
-	interaction_bound get_bodies_gasdrag();
-	interaction_bound get_bodies_migrate_typeI();
-	interaction_bound get_bodies_migrate_typeII();
+	int get_n_prime_SI();
+	int get_n_prime_NSI();
+	int get_n_prime_NI();
+
+	//int	get_n_prime_GD();
+	//int	get_n_prime_MT1();
+	//int	get_n_prime_MT2();
+
+	interaction_bound get_bound_SI();
+	interaction_bound get_bound_NSI();
+	interaction_bound get_bound_NI();
+	interaction_bound get_bound_GD();
+	interaction_bound get_bound_MT1();
+	interaction_bound get_bound_MT2();
 
 	int	n_s;
 	int	n_gp;
@@ -47,7 +53,6 @@ public:
 	int	n_tp;
 
 private:
-
-	int2_t sink;
-	int2_t source;
+	int n_tpb;
+	bool ups;
 };

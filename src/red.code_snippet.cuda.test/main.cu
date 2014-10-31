@@ -403,12 +403,12 @@ public:
 	//! Calculates the number of bodies which are experiencing type II migartion, i.e. the number of giant planets.
 	int		get_n_migrate_typeII();
 
-	interaction_bound get_self_interacting();
-	interaction_bound get_nonself_interacting();
-	interaction_bound get_non_interacting();
-	interaction_bound get_bodies_gasdrag();
-	interaction_bound get_bodies_migrate_typeI();
-	interaction_bound get_bodies_migrate_typeII();
+	interaction_bound get_bound_SI();
+	interaction_bound get_bound_NSI();
+	interaction_bound get_bound_NI();
+	interaction_bound get_bound_GD();
+	interaction_bound get_bound_MT1();
+	interaction_bound get_bound_MT2();
 
 	int		star;
 	int		giant_planet;
@@ -469,7 +469,7 @@ int	number_of_bodies::get_n_migrate_typeII()
 	return giant_planet;
 }
 
-interaction_bound number_of_bodies::get_self_interacting()
+interaction_bound number_of_bodies::get_bound_SI()
 {
 	sink.x		= 0;
 	sink.y		= get_n_self_interacting();
@@ -480,7 +480,7 @@ interaction_bound number_of_bodies::get_self_interacting()
 	return iBound;
 }
 
-interaction_bound number_of_bodies::get_nonself_interacting()
+interaction_bound number_of_bodies::get_bound_NSI()
 {
 	sink.x			= get_n_self_interacting();
 	sink.y			= get_n_massive();
@@ -491,7 +491,7 @@ interaction_bound number_of_bodies::get_nonself_interacting()
 	return iBound;
 }
 
-interaction_bound number_of_bodies::get_non_interacting()
+interaction_bound number_of_bodies::get_bound_NI()
 {
 	sink.x			= get_n_massive();
 	sink.y			= total;
@@ -502,7 +502,7 @@ interaction_bound number_of_bodies::get_non_interacting()
 	return iBound;
 }
 
-interaction_bound number_of_bodies::get_bodies_gasdrag() {
+interaction_bound number_of_bodies::get_bound_GD() {
 	sink.x			= get_n_self_interacting();
 	sink.y			= get_n_massive();
 	source.x		= 0;
@@ -512,7 +512,7 @@ interaction_bound number_of_bodies::get_bodies_gasdrag() {
 	return iBound;
 }
 
-interaction_bound number_of_bodies::get_bodies_migrate_typeI() {
+interaction_bound number_of_bodies::get_bound_MT1() {
 	sink.x			= star + giant_planet;
 	sink.y			= get_n_massive();
 	source.x		= 0;
@@ -522,7 +522,7 @@ interaction_bound number_of_bodies::get_bodies_migrate_typeI() {
 	return iBound;
 }
 
-interaction_bound number_of_bodies::get_bodies_migrate_typeII() {
+interaction_bound number_of_bodies::get_bound_MT2() {
 	sink.x			= star;
 	sink.y			= star + giant_planet;
 	source.x		= 0;
@@ -832,7 +832,7 @@ void call_kernel_calc_grav_accel(ttt_t curr_t, number_of_bodies *n_bodies, sim_d
 	
 	int n_sink = n_bodies->get_n_self_interacting();
 	if (0 < n_sink) {
-		interaction_bound int_bound = n_bodies->get_self_interacting();
+		interaction_bound int_bound = n_bodies->get_bound_SI();
 
 		for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
 		{
@@ -851,7 +851,7 @@ void call_kernel_calc_grav_accel(ttt_t curr_t, number_of_bodies *n_bodies, sim_d
 
 	n_sink = n_bodies->test_particle;
 	if (0 < n_sink) {
-		interaction_bound int_bound = n_bodies->get_non_interacting();
+		interaction_bound int_bound = n_bodies->get_bound_NI();
 
 		for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
 			{
@@ -875,7 +875,7 @@ void call_kernel_calc_grav_accel_int_mul_of_thread_per_block(ttt_t curr_t, numbe
 	
 	int n_sink = n_bodies->get_n_self_interacting();
 	if (0 < n_sink) {
-		interaction_bound int_bound = n_bodies->get_self_interacting();
+		interaction_bound int_bound = n_bodies->get_bound_SI();
 
 		for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
 		{
@@ -893,7 +893,7 @@ void call_kernel_calc_grav_accel_int_mul_of_thread_per_block(ttt_t curr_t, numbe
 
 	n_sink = n_bodies->test_particle;
 	if (0 < n_sink) {
-		interaction_bound int_bound = n_bodies->get_non_interacting();
+		interaction_bound int_bound = n_bodies->get_bound_NI();
 
 		for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
 		{
