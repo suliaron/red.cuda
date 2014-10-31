@@ -55,4 +55,7 @@ public:
 private:
 	int n_tpb;
 	bool ups;
+
+	int2_t sink;
+	int2_t source;
 };

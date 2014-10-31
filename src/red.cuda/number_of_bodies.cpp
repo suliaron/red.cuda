@@ -17,7 +17,10 @@ number_of_bodies::number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_
 		n_tp(n_tp),
 		n_tpb(n_tpb),
 		ups(ups)
-{ }
+{
+    sink.x   = sink.y   = 0;
+    source.x = source.y = 0;
+}
 
 void number_of_bodies::update_numbers(body_metadata_t *body_md)
 {
@@ -32,7 +35,7 @@ void number_of_bodies::update_numbers(body_metadata_t *body_md)
 	int	planetesimal		= 0;
 	int	test_particle		= 0;
 
-	int n_total = ups ? get_n_prime_total(n_tpb) : get_n_total();
+	int n_total = ups ? get_n_prime_total() : get_n_total();
 	for (int i = 0; i < n_total; i++)
 	{
 		if (0 < body_md[i].id && BODY_TYPE_PADDINGPARTICLE > body_md[i].body_type)
@@ -144,7 +147,7 @@ int number_of_bodies::get_n_prime_NSI()
 int number_of_bodies::get_n_prime_NI()
 {
 	// The number of non-interacting (NI) bodies alligned to n_tbp
-	return ((n_tp + n_tpb - 1) / n_tpb) * n_tpb;
+	return ((get_n_NI() + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
 int number_of_bodies::get_n_prime_total()
@@ -175,9 +178,6 @@ int	number_of_bodies::get_n_prime_massive()
 
 interaction_bound number_of_bodies::get_bound_SI()
 {
-	int2_t sink;
-	int2_t source;
-
 	if (ups)
 	{
 		sink.x	 = 0, sink.y   = sink.x + get_n_prime_SI();
@@ -194,9 +194,6 @@ interaction_bound number_of_bodies::get_bound_SI()
 
 interaction_bound number_of_bodies::get_bound_NSI()
 {
-	int2_t sink;
-	int2_t source;
-
 	if (ups)
 	{
 		sink.x   = get_n_prime_SI(), sink.y   = sink.x + get_n_prime_NSI();
@@ -213,9 +210,6 @@ interaction_bound number_of_bodies::get_bound_NSI()
 
 interaction_bound number_of_bodies::get_bound_NI()
 {
-	int2_t sink;
-	int2_t source;
-
 	if (ups)
 	{
 		sink.x   = get_n_prime_massive(), sink.y   = sink.x + get_n_prime_NI();
@@ -232,9 +226,6 @@ interaction_bound number_of_bodies::get_bound_NI()
 
 interaction_bound number_of_bodies::get_bound_GD()
 {
-	int2_t sink;
-	int2_t source;
-
 	if (ups)
 	{
 		sink.x   = get_n_prime_SI(), sink.y   = sink.x + n_spl + n_pl;
@@ -251,9 +242,6 @@ interaction_bound number_of_bodies::get_bound_GD()
 
 interaction_bound number_of_bodies::get_bound_MT1()
 {
-	int2_t sink;
-	int2_t source;
-
 	sink.x   = n_s + n_gp, sink.y   = sink.x + n_pp + n_rp;
 	source.x = 0,	       source.y = source.x + 0;
 
@@ -262,9 +250,6 @@ interaction_bound number_of_bodies::get_bound_MT1()
 
 interaction_bound number_of_bodies::get_bound_MT2()
 {
-	int2_t sink;
-	int2_t source;
-
 	sink.x   = n_s,   sink.y = sink.x + n_gp;
 	source.x = 0, 	source.y = source.x + 0;
 

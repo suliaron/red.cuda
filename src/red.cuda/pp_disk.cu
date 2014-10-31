@@ -382,7 +382,7 @@ void test_print_position(int n, const vec_t* r)
 // Test function: print out all the simulation data contained on the device
 void pp_disk::test_call_kernel_print_sim_data()
 {
-	const int n = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
+	const int n = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
 
 	set_kernel_launch_param(n);
 
@@ -493,7 +493,7 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 {
 	cudaError_t cudaStatus = cudaSuccess;
 
-	int n_total = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
+	int n_total = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
 	switch (i)
 	{
 	case 0:
@@ -686,6 +686,47 @@ pp_disk::~pp_disk()
 	delete sim_data;
 }
 
+void pp_disk::allocate_storage()
+{
+	int n_total = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
+
+	sim_data = new sim_data_t;
+	allocate_host_storage(sim_data, n_total);
+	allocate_device_storage(sim_data, n_total);
+}
+
+void pp_disk::allocate_host_storage(sim_data_t *sd, int n)
+{
+	sd->y.resize(2);
+	for (int i = 0; i < 2; i++)
+	{
+		sd->y[i]= new vec_t[n];
+	}
+	sd->p		= new param_t[n];
+	sd->body_md	= new body_metadata_t[n];
+	sd->epoch	= new ttt_t[n];
+
+	events      = new event_data_t[n];
+}
+
+void pp_disk::allocate_device_storage(sim_data_t *sd, int n)
+{
+	sd->d_y.resize(2);
+	sd->d_yout.resize(2);
+
+	for (int i = 0; i < 2; i++)
+	{
+		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_y[i]),		n*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_yout[i]),	n*sizeof(vec_t));
+	}
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_p),				n*sizeof(param_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_body_md),		n*sizeof(body_metadata_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_epoch),			n*sizeof(ttt_t));
+
+	ALLOCATE_DEVICE_VECTOR((void **)&d_events,				n*sizeof(event_data_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,		1*sizeof(int));
+}
+
 void pp_disk::deallocate_host_storage(sim_data_t *sd)
 {
 	for (int i = 0; i < 2; i++)
@@ -736,7 +777,7 @@ number_of_bodies* pp_disk::get_number_of_bodies(string& path)
 	{
 		throw string("Cannot open " + path + ".");
 	}
-	return new number_of_bodies(ns, ngp, nrp, npp, nspl, npl, ntp);
+    return new number_of_bodies(ns, ngp, nrp, npp, nspl, npl, ntp, n_tpb, use_padded_storage);
 }
 
 void pp_disk::remove_inactive_bodies()
@@ -834,50 +875,9 @@ void pp_disk::remove_inactive_bodies()
 	delete sim_data_temp;
 }
 
-void pp_disk::allocate_storage()
-{
-	int n_body = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
-
-	sim_data = new sim_data_t;
-	allocate_host_storage(sim_data, n_body);
-	allocate_device_storage(sim_data, n_body);
-}
-
-void pp_disk::allocate_host_storage(sim_data_t *sd, int n)
-{
-	sd->y.resize(2);
-	for (int i = 0; i < 2; i++)
-	{
-		sd->y[i]= new vec_t[n];
-	}
-	sd->p		= new param_t[n];
-	sd->body_md	= new body_metadata_t[n];
-	sd->epoch	= new ttt_t[n];
-
-	events = new event_data_t[n];
-}
-
-void pp_disk::allocate_device_storage(sim_data_t *sd, int n)
-{
-	sd->d_y.resize(2);
-	sd->d_yout.resize(2);
-
-	for (int i = 0; i < 2; i++)
-	{
-		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_y[i]),		n*sizeof(vec_t));
-		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_yout[i]),	n*sizeof(vec_t));
-	}
-	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_p),				n*sizeof(param_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_body_md),		n*sizeof(body_metadata_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_epoch),			n*sizeof(ttt_t));
-
-	ALLOCATE_DEVICE_VECTOR((void **)&d_events,				n*sizeof(event_data_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,		1*sizeof(int));
-}
-
 void pp_disk::copy_to_device()
 {
-	int n_body = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
+	int n_body = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -891,7 +891,7 @@ void pp_disk::copy_to_device()
 
 void pp_disk::copy_to_host()
 {
-	int n_body = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
+	int n_body = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -922,7 +922,7 @@ int pp_disk::get_n_event()
 
 int pp_disk::get_n_total_event()
 {
-	return n_collision + n_ejection + n_hit_centrum;
+	return (n_collision + n_ejection + n_hit_centrum);
 }
 
 void pp_disk::clear_event_counter()
@@ -934,7 +934,7 @@ void pp_disk::clear_event_counter()
 var_t pp_disk::get_mass_of_star()
 {
 	body_metadata_t* body_md = sim_data->body_md;
-	int n = use_padded_storage ? n_bodies->get_n_prime_massive(n_tpb) : n_bodies->get_n_massive();
+	int n = use_padded_storage ? n_bodies->get_n_prime_massive() : n_bodies->get_n_massive();
 	for (int j = 0; j < n; j++ )
 	{
 		if (body_md[j].body_type == BODY_TYPE_STAR)
@@ -950,7 +950,7 @@ var_t pp_disk::get_total_mass()
 	var_t totalMass = 0.0;
 
 	param_t* p = sim_data->p;
-	int n = use_padded_storage ? n_bodies->get_n_prime_massive(n_tpb) : n_bodies->get_n_massive();
+	int n = use_padded_storage ? n_bodies->get_n_prime_massive() : n_bodies->get_n_massive();
 	for (int j = 0; j < n; j++ )
 	{
 		totalMass += p[j].mass;
@@ -965,7 +965,7 @@ void pp_disk::compute_bc(vec_t* R0, vec_t* V0)
 	const vec_t* r = sim_data->y[0];
 	const vec_t* v = sim_data->y[1];
 
-	int n = use_padded_storage ? n_bodies->get_n_prime_massive(n_tpb) : n_bodies->get_n_massive();
+	int n = use_padded_storage ? n_bodies->get_n_prime_massive() : n_bodies->get_n_massive();
 	for (int j = 0; j < n; j++ )
 	{
 		var_t m = p[j].mass;
@@ -996,7 +996,7 @@ void pp_disk::transform_to_bc()
 	vec_t* r = sim_data->y[0];
 	vec_t* v = sim_data->y[1];
 	// Transform the bodies coordinates and velocities
-	int n = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
+	int n = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
 	for (int j = 0; j < n; j++ )
 	{
 		r[j].x -= R0.x;		r[j].y -= R0.y;		r[j].z -= R0.z;
@@ -1009,8 +1009,8 @@ void pp_disk::transform_to_bc()
 void pp_disk::transform_time()
 {
 	vec_t* v = sim_data->y[1];
-	// Transform the bodies coordinates and velocities
-	int n = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
+	// Transform the bodies' epochs and velocities
+	int n = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
 	for (int j = 0; j < n; j++ )
 	{
 		sim_data->epoch[j] *= constants::Gauss;
@@ -1111,24 +1111,30 @@ void pp_disk::load(string& path)
 	int n_SI		= n_bodies->get_n_SI();
 	int n_NSI		= n_bodies->get_n_NSI();
 	int n_total		= n_bodies->get_n_total();
-	int n_prime_SI	= n_bodies->get_n_prime_SI(n_tpb);
-	int n_prime_NSI	= n_bodies->get_n_prime_NSI(n_tpb);
-	int n_prime_total=n_bodies->get_n_prime_total(n_tpb); 
-	if (input) {
+	int n_prime_SI	= n_bodies->get_n_prime_SI();
+	int n_prime_NSI	= n_bodies->get_n_prime_NSI();
+	int n_prime_total=n_bodies->get_n_prime_total(); 
 
+    if (input) 
+    {
 		int i = 0;
 		int k = 0;
-		for (i = 0; i < n_SI; i++, k++)
+		for ( ; i < n_SI; i++, k++)
 		{
 			read_body_record(input, k, epoch, body_md, p, r, v);
 		}
-		if (use_padded_storage)
-		{
-			for ( ; k < n_prime_SI; k++)
-			{
-				create_padding_particle(k, epoch, body_md, p, r, v);
-			}
-		}
+        while (use_padded_storage && k < n_prime_SI)
+        {
+			create_padding_particle(k, epoch, body_md, p, r, v);
+            k++;
+        }
+		//if (use_padded_storage)
+		//{
+		//	for ( ; k < n_prime_SI; k++)
+		//	{
+		//		create_padding_particle(k, epoch, body_md, p, r, v);
+		//	}
+		//}
 
 		for ( ; i < n_SI + n_NSI; i++, k++)
 		{
@@ -1155,7 +1161,8 @@ void pp_disk::load(string& path)
 		}
         input.close();
 	}
-	else {
+	else
+    {
 		throw string("Cannot open " + path + ".");
 	}
 
@@ -1169,8 +1176,9 @@ void pp_disk::print_result_ascii(ostream& sout)
 	param_t* p = sim_data->p;
 	body_metadata_t* body_md = sim_data->body_md;
 
-	int n = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
-	for (int i = 0; i < n; i++) {
+	int n = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
+	for (int i = 0; i < n; i++)
+    {
 		// Skip inactive bodies and padding particles and alike
 		if (body_md[i].id < 0 || body_md[i].body_type >= BODY_TYPE_PADDINGPARTICLE)
 		{
