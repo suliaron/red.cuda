@@ -32,17 +32,18 @@ rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt) :
 	RKOrder(2),
 	d_f(2)
 {
-	const int n = ppd->n_bodies->get_n_total();
 	name = "Runge-Kutta2";
+
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 
 	t = ppd->t;
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n_total*sizeof(vec_t));
 		d_f[i].resize(RKOrder);
 		for (int r = 0; r < RKOrder; r++) 
 		{
-			ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n * sizeof(vec_t));
+			ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n_total * sizeof(vec_t));
 		}
 	}
 }
@@ -60,7 +61,9 @@ rungekutta2::~rungekutta2()
 
 void rungekutta2::call_kernel_calc_ytemp_for_fr(int r)
 {
-	const int n_var = NDIM * ppd->n_bodies->get_n_total();
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+	const int n_var = NDIM * n_total;
+
 	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {
@@ -79,7 +82,9 @@ void rungekutta2::call_kernel_calc_ytemp_for_fr(int r)
 
 void rungekutta2::call_kernel_calc_y_np1()
 {
-	const int n_var = NDIM * ppd->n_bodies->get_n_total();
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+	const int n_var = NDIM * n_total;
+
 	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {

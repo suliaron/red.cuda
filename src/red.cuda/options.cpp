@@ -110,7 +110,7 @@ void options::parse_options(int argc, const char** argv)
 			exit(EXIT_SUCCESS);
 		}
 		else {
-			throw string("Invalid switch on command-line.");
+			throw string("Invalid switch on command-line: " + p + ".");
 		}
 		i++;
 	}

@@ -375,39 +375,39 @@ void test_print_position(int n, const vec_t* r)
 // Test function: print out all the simulation data contained on the device
 void pp_disk::test_call_kernel_print_sim_data()
 {
-	const int n = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
+	const int n_total = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
 
-	set_kernel_launch_param(n);
+	set_kernel_launch_param(n_total);
 
-	kernel_print_position<<<grid, block>>>(n, sim_data->d_y[0]);
+	kernel_print_position<<<grid, block>>>(n_total, sim_data->d_y[0]);
 	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus) {
 		throw nbody_exception("kernel_print_position failed", cudaStatus);
 	}
 	cudaDeviceSynchronize();
 
-	kernel_print_velocity<<<grid, block>>>(n, sim_data->d_y[1]);
+	kernel_print_velocity<<<grid, block>>>(n_total, sim_data->d_y[1]);
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus) {
 		throw nbody_exception("kernel_print_velocity failed", cudaStatus);
 	}
 	cudaDeviceSynchronize();
 
-	kernel_print_parameters<<<grid, block>>>(n, sim_data->d_p);
+	kernel_print_parameters<<<grid, block>>>(n_total, sim_data->d_p);
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus) {
 		throw nbody_exception("kernel_print_parameters failed", cudaStatus);
 	}
 	cudaDeviceSynchronize();
 
-	kernel_print_body_metadata<<<grid, block>>>(n, sim_data->d_body_md);
+	kernel_print_body_metadata<<<grid, block>>>(n_total, sim_data->d_body_md);
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus) {
 		throw nbody_exception("kernel_print_body_metadata failed", cudaStatus);
 	}
 	cudaDeviceSynchronize();
 
-	kernel_print_epochs<<<grid, block>>>(n, sim_data->d_epoch);
+	kernel_print_epochs<<<grid, block>>>(n_total, sim_data->d_epoch);
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus) {
 		throw nbody_exception("kernel_print_epochs failed", cudaStatus);
@@ -437,28 +437,48 @@ void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const ve
 {
 	cudaError_t cudaStatus = cudaSuccess;
 	
-	int n_sink = n_bodies->get_n_SI();
-	if (0 < n_sink) {
+	int n_sink = use_padded_storage ? n_bodies->get_n_prime_SI() : n_bodies->get_n_SI();
+	if (0 < n_sink)
+	{
 		interaction_bound int_bound = n_bodies->get_bound_SI();
 		set_kernel_launch_param(n_sink);
 
-		kernel_calc_grav_accel<<<grid, block>>>
-			(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
+		if (use_padded_storage)
+		{
+			kernel_calc_grav_accel_int_mul_of_thread_per_block<<<grid, block>>>
+				(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
+		}
+		else
+		{
+			kernel_calc_grav_accel<<<grid, block>>>
+				(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
+		}
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus) {
+		if (cudaSuccess != cudaStatus)
+		{
 			throw nbody_exception("kernel_calc_grav_accel failed", cudaStatus);
 		}
 	}
 
-	n_sink = n_bodies->n_tp;
-	if (0 < n_sink) {
+	n_sink = use_padded_storage ? n_bodies->get_n_prime_NI() : n_bodies->get_n_NI();
+	if (0 < n_sink)
+	{
 		interaction_bound int_bound = n_bodies->get_bound_NI();
 		set_kernel_launch_param(n_sink);
 
-		kernel_calc_grav_accel<<<grid, block>>>
-			(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
+		if (use_padded_storage)
+		{
+			kernel_calc_grav_accel_int_mul_of_thread_per_block<<<grid, block>>>
+				(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
+		}
+		else
+		{
+			kernel_calc_grav_accel<<<grid, block>>>
+				(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
+		}
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus) {
+		if (cudaSuccess != cudaStatus)
+		{
 			throw nbody_exception("kernel_calc_grav_accel failed", cudaStatus);
 		}
 	}
@@ -468,14 +488,24 @@ int pp_disk::call_kernel_check_for_ejection_hit_centrum()
 {
 	cudaError_t cudaStatus = cudaSuccess;
 	
-	int n_total = n_bodies->get_n_total();
+	int n_total = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
 	interaction_bound int_bound(0, n_total, 0, 0);
 	set_kernel_launch_param(n_total);
 
-	kernel_check_for_ejection_hit_centrum<<<grid, block>>>
-		(t, int_bound, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_body_md, d_events, d_event_counter);
+	if (use_padded_storage)
+	{
+		// TODO: implement kernel
+		//kernel_check_for_ejection_hit_centrum_int_mul_of_thread_per_block<<<grid, block>>>
+			//(t, int_bound, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_body_md, d_events, d_event_counter);			
+	}
+	else
+	{
+		kernel_check_for_ejection_hit_centrum<<<grid, block>>>
+			(t, int_bound, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_body_md, d_events, d_event_counter);
+	}
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
+	if (cudaSuccess != cudaStatus)
+	{
 		throw nbody_exception("kernel_check_for_ejection_hit_centrum failed", cudaStatus);
 	}
 
@@ -486,7 +516,8 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 {
 	cudaError_t cudaStatus = cudaSuccess;
 
-	int n_total = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
+	const int n_total = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
+
 	switch (i)
 	{
 	case 0:
@@ -638,19 +669,19 @@ void pp_disk::calc_phase_after_collision(var_t m1, var_t m2, const vec_t* r1, co
 	v0.z = (m1 * v1->z + m2 * v2->z) / M;
 }
 
-void pp_disk::call_kernel_transform_to(int refBodyId)
-{
-	cudaError_t cudaStatus = cudaSuccess;
-	int	nBodyToCalc = n_bodies->get_n_total();
-
-	set_kernel_launch_param(nBodyToCalc);
-	
-	kernel_transform_to<<<grid, block>>>(nBodyToCalc, refBodyId, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1]);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("kernel_transform_to failed", cudaStatus);
-	}
-}
+//void pp_disk::call_kernel_transform_to(int refBodyId)
+//{
+//	cudaError_t cudaStatus = cudaSuccess;
+//	int	nBodyToCalc = n_bodies->get_n_total();
+//
+//	set_kernel_launch_param(nBodyToCalc);
+//	
+//	kernel_transform_to<<<grid, block>>>(nBodyToCalc, refBodyId, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1]);
+//	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+//	if (cudaSuccess != cudaStatus) {
+//		throw nbody_exception("kernel_transform_to failed", cudaStatus);
+//	}
+//}
 
 pp_disk::pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage) :
 	g_disk(gd),
@@ -944,7 +975,7 @@ var_t pp_disk::get_total_mass()
 
 	param_t* p = sim_data->p;
 	int n = use_padded_storage ? n_bodies->get_n_prime_massive() : n_bodies->get_n_massive();
-	for (int j = 0; j < n; j++ )
+	for (int j = n - 1; j >= 0; j--)
 	{
 		totalMass += p[j].mass;
 	}

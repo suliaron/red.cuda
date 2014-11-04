@@ -37,8 +37,6 @@ private:
 	vector<vector <vec_t*> >	d_f;
 	//! Holds the leading local truncation error for each variable
 	vector<var_t*>				d_err;
-	//! Holds the values against which the error is scaled
-	vector<var_t*>				d_yscale;
 
 	void call_kernel_calc_ytemp_for_fr(int r);
 	void call_kernel_calc_y_np1();

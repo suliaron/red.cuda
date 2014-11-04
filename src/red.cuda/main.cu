@@ -161,6 +161,7 @@ int device_query(int argc, const char **argv)
 //--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Release\TwoBody -p parameters.txt -ic TwoBody.txt
 
 //--verbose -iDir C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run01 -p parameters.txt -ic run01.txt
+//-v -ups -n_tpb 64 -iDir C:\Work\Projects\red.cuda.TestRun\Emese_Dvorak\cf_1 -p parameters.txt -ic suli-data-collision-N10001-heliocentric-vecelem-binary.txt
 //-v C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -p parameters.txt -ic run01.txt -ic Run_cf_5.txt
 int main(int argc, const char** argv)
 {
@@ -178,14 +179,15 @@ int main(int argc, const char** argv)
 		integrator *intgr = opt.create_integrator(ppd, 0.001);
 
 		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
-		string result_filename = "trace_t_result" + adapt + intgr->name + ".txt";
+		string ups = (opt.use_padded_storage == true ? "ups_" : "");
+		string result_filename = "result" + adapt + ups + intgr->name + ".txt";
 		string path = file::combine_path(opt.printout_dir, result_filename);
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
 
-		path = file::combine_path(opt.printout_dir, "trace_t_event.txt");
+		path = file::combine_path(opt.printout_dir, ups + "event.txt");
 		ostream* event_f = new ofstream(path.c_str(), ios::out);
 
-		path = file::combine_path(opt.printout_dir, "trace_t_log.txt");
+		path = file::combine_path(opt.printout_dir, ups + "log.txt");
 		ostream* log_f = new ofstream(path.c_str(), ios::out);
 
 		ttt_t ps = 0;
@@ -193,6 +195,7 @@ int main(int argc, const char** argv)
 		int n_event = 0;
 		int n_event_after_last_save = 0;
 		ppd->print_result_ascii(*result_f);
+		time_t time_info_start = clock();
 		while (ppd->t <= opt.param->stop_time)
 		{
 			n_event = ppd->call_kernel_check_for_ejection_hit_centrum();
@@ -240,8 +243,9 @@ int main(int argc, const char** argv)
 				ppd->print_result_ascii(*result_f);
 			}
 
-			if (n_step % 100 == 0) 
+			if ((clock() - time_info_start) / (double)CLOCKS_PER_SEC > 2.0) 
 			{
+				time_info_start = clock();
 				printf("t: %25.15le, dt: %25.15le ", ppd->t, dt);
 				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
 				cout << ppd->n_collision << " collision(s), " << ppd->n_ejection << " ejection(s), " << ppd->n_hit_centrum << " hit centrum were detected (No. of bodies: " << ppd->n_bodies->get_n_total() - n_event_after_last_save << ")" << endl;

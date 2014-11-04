@@ -58,6 +58,8 @@ public:
 	*/
 	void print_event_data(ostream& sout, ostream& log_f);
 
+	bool get_ups()		{ return use_padded_storage; }
+
 	//! Returns the number of events during the last step
 	int get_n_event();
 

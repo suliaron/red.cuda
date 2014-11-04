@@ -72,23 +72,24 @@ rungekutta4::rungekutta4(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance)
 	d_f(2),
 	d_err(2)
 {
-	const int n = ppd->n_bodies->get_n_total();
-	const int n_var = NDIM * n;
 	name = "Runge-Kutta4";
+
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 
 	t = ppd->t;
 	RKOrder = 4;
 	r_max = adaptive ? RKOrder + 1 : RKOrder;
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n * sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n_total * sizeof(vec_t));
 		d_f[i].resize(r_max);
 		for (int r = 0; r < r_max; r++) 
 		{
-			ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n * sizeof(vec_t));
+			ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n_total * sizeof(vec_t));
 		}
 		if (adaptive)
 		{
+			static const int n_var = NDIM * n_total;
 			ALLOCATE_DEVICE_VECTOR((void**) &(d_err[i]), n_var * sizeof(var_t));
 		}
 	}
@@ -111,7 +112,9 @@ rungekutta4::~rungekutta4()
 
 void rungekutta4::call_kernel_calc_ytemp_for_fr(int r)
 {
-	const int n_var = 4 * ppd->n_bodies->get_n_total();
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+	const int n_var = NDIM * n_total;
+
 	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {
@@ -129,7 +132,8 @@ void rungekutta4::call_kernel_calc_ytemp_for_fr(int r)
 
 void rungekutta4::call_kernel_calc_yHat()
 {
-	const int n_var = 4 * ppd->n_bodies->get_n_total();
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+	const int n_var = NDIM * n_total;
 
 	for (int i = 0; i < 2; i++) {
 		var_t *y_n	 = (var_t*)ppd->sim_data->d_y[i];
@@ -150,7 +154,8 @@ void rungekutta4::call_kernel_calc_yHat()
 
 void rungekutta4::call_kernel_calc_error()
 {
-	const int n_var = 4 * ppd->n_bodies->get_n_total();
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+	const int n_var = NDIM * n_total;
 
 	for (int i = 0; i < 2; i++) {
 		var_t *f4  = (var_t*)d_f[i][3];
@@ -205,7 +210,15 @@ ttt_t rungekutta4::step()
 			// calculate: d_err = h(f4 - f5)
 			call_kernel_calc_error();
 
-			int n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_total() : ppd->n_bodies->get_n_massive());
+			int n_var = 0;
+			if (ppd->get_ups())
+			{
+				n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_prime_massive());
+			}
+			else
+			{
+				n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_total() : ppd->n_bodies->get_n_massive());
+			}
 			max_err = get_max_error(n_var);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/4.0);
 
@@ -217,7 +230,6 @@ ttt_t rungekutta4::step()
 				}
 				break;
 			}
-
 		}
 		iter++;
 	} while (adaptive && max_err > tolerance);

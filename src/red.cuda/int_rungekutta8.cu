@@ -230,28 +230,27 @@ rungekutta8::rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance)
 	adaptive(adaptive),
 	tolerance(tolerance),
 	d_f(2),
-	d_err(2),
-	d_yscale(2)
+	d_err(2)
 {
-	const int n = ppd->n_bodies->get_n_total();
-	const int n_var = NDIM * n;
 	name = "Runge-Kutta-Fehlberg8";
+
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 
 	t = ppd->t;
 	RKOrder = 7;
 	r_max = adaptive ? RKOrder + 6 : RKOrder + 4;
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n * sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n_total*sizeof(vec_t));
 		d_f[i].resize(r_max);
 		for (int r = 0; r < r_max; r++) 
 		{
-			ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n * sizeof(vec_t));
+			ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n_total*sizeof(vec_t));
 		}
 		if (adaptive)
 		{
-			ALLOCATE_DEVICE_VECTOR((void**) &(d_err[i]), n_var * sizeof(var_t));
-			ALLOCATE_DEVICE_VECTOR((void**) &(d_yscale[i]), n_var * sizeof(var_t));
+			static const int n_var = NDIM * n_total;
+			ALLOCATE_DEVICE_VECTOR((void**) &(d_err[i]), n_var*sizeof(var_t));
 		}
 	}
 }
@@ -267,18 +266,18 @@ rungekutta8::~rungekutta8()
 		if (adaptive)
 		{
 			cudaFree(d_err[i]);
-			cudaFree(d_yscale[i]);
 		}
 	}
 }
 
 void rungekutta8::call_kernel_calc_ytemp_for_fr(int r)
 {
-	int idx = 0;
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+	const int n_var = NDIM * n_total;
 
-	const int n_var = 4 * ppd->n_bodies->get_n_total();
 	calc_grid(n_var, THREADS_PER_BLOCK);
 
+	int idx = 0;
 	for (int i = 0; i < 2; i++) {
 
 		var_t* y_n   = (var_t*)ppd->sim_data->d_y[i];
@@ -363,7 +362,9 @@ void rungekutta8::call_kernel_calc_ytemp_for_fr(int r)
 
 void rungekutta8::call_kernel_calc_error()
 {
-	const int n_var = 4 * ppd->n_bodies->get_n_total();
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+	const int n_var = NDIM * n_total;
+
 	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {
@@ -383,7 +384,9 @@ void rungekutta8::call_kernel_calc_error()
 
 void rungekutta8::call_kernel_calc_y_np1()
 {
-	const int n_var = 4 * ppd->n_bodies->get_n_total();
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+	const int n_var = NDIM * n_total;
+
 	calc_grid(n_var, THREADS_PER_BLOCK);
 
 	for (int i = 0; i < 2; i++) {
@@ -408,6 +411,8 @@ void rungekutta8::call_kernel_calc_y_np1()
 
 ttt_t rungekutta8::step()
 {
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+
 	// Calculate initial differentials and store them into d_f[][0]
 	int r = 0;
 	ttt_t ttemp = ppd->t + c[r] * dt_try;
@@ -448,15 +453,18 @@ ttt_t rungekutta8::step()
 			}
 			call_kernel_calc_error();
 
-			int n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_total() : ppd->n_bodies->get_n_massive());
+			int n_var = 0;
+			if (ppd->get_ups())
+			{
+				n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_prime_massive());
+			}
+			else
+			{
+				n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_total() : ppd->n_bodies->get_n_massive());
+			}
 			max_err = get_max_error(n_var);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/8.0);
 
-			// NOTE: introduce collision_monitor_accuracy_level variable: 
-			// level 0: if collision was detected do not refine the stepsize, but exit the loop
-			// level 1: if collision was detected refine the stepsize once, after that exit the loop
-			// level 2: if collision was detected refine the stepsize until the required accuracy is reached, than exit the loop
-			// Were there collisions?
 			if (ppd->get_n_event() > 0)
 			{
 				if (dt_try < dt_did)
