@@ -383,25 +383,41 @@ int main(int argc, const char** argv)
 
 // Measure the execution time of the kernel computing the gravitational acceleleration
 
-class number_of_bodies {
+class number_of_bodies
+{
 public:
-	number_of_bodies(int star, int giant_planet, int rocky_planet, int proto_planet, int super_planetesimal, int planetesimal, int test_particle);
+	number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_spl, int n_pl, int n_tp, int n_tpb, bool ups);
 
-	int		get_n_total();
+	void update_numbers(body_metadata_t *body_md);
+
+	int	get_n_total();
 	//! Calculates the number of bodies with mass, i.e. sum of the number of stars, giant planets, 
 	/*  rocky planets, protoplanets, super-planetesimals and planetesimals.
 	*/
-	int		get_n_massive();
-	//! Calculates the number of bodies which are self-interacting, i.e. sum of the number of stars, giant planets, 
-	/*  rocky planets and protoplanets.
-	*/
-	int		get_n_self_interacting();
+	int	get_n_massive();
+	//! Calculates the number of bodies which are self-interacting (i.e. it returns n_s + n_gp + n_rp + n_pp)
+	int	get_n_SI();
+	//! Calculates the number of non-self-interacting bodies (i.e. it returns n_spl + n_pl)
+	int	get_n_NSI();
+	//! Calculates the number of non-interacting bodies (i.e. returns n_tp)
+	int	get_n_NI();
 	//! Calculates the number of bodies which feels the drag force, i.e. sum of the number of super-planetesimals and planetesimals.
-	int		get_n_gas_drag();
-	//! Calculates the number of bodies which are experiencing type I migartion, i.e. sum of the number of rocky- and proto-planets.
-	int		get_n_migrate_typeI();
-	//! Calculates the number of bodies which are experiencing type II migartion, i.e. the number of giant planets.
-	int		get_n_migrate_typeII();
+	int	get_n_GD();
+	//! Calculates the number of bodies which are experiencing type I migration, i.e. sum of the number of rocky- and proto-planets.
+	int	get_n_MT1();
+	//! Calculates the number of bodies which are experiencing type II migration, i.e. the number of giant planets.
+	int	get_n_MT2();
+
+	int get_n_prime_total();
+	int	get_n_prime_massive();
+
+	int get_n_prime_SI();
+	int get_n_prime_NSI();
+	int get_n_prime_NI();
+
+	//int	get_n_prime_GD();
+	//int	get_n_prime_MT1();
+	//int	get_n_prime_MT2();
 
 	interaction_bound get_bound_SI();
 	interaction_bound get_bound_NSI();
@@ -410,126 +426,269 @@ public:
 	interaction_bound get_bound_MT1();
 	interaction_bound get_bound_MT2();
 
-	int		star;
-	int		giant_planet;
-	int		rocky_planet;
-	int		proto_planet;
-	int		super_planetesimal;
-	int		planetesimal;
-	int		test_particle;
-	int		total;
+	int	n_s;
+	int	n_gp;
+	int	n_rp;
+	int	n_pp;
+	int	n_spl;
+	int	n_pl;
+	int	n_tp;
 
 private:
-	int2_t		sink;
-	int2_t		source;
+	int n_tpb;
+	bool ups;
+
+	int2_t sink;
+	int2_t source;
 };
 
-number_of_bodies::number_of_bodies(int star, int giant_planet, int rocky_planet, int proto_planet, int super_planetesimal, int planetesimal, int test_particle) : 
-		star(star), 
-		giant_planet(giant_planet), 
-		rocky_planet(rocky_planet), 
-		proto_planet(proto_planet), 
-		super_planetesimal(super_planetesimal), 
-		planetesimal(planetesimal), 
-		test_particle(test_particle) 
+number_of_bodies::number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_spl, int n_pl, int n_tp, int n_tpb, bool ups) :
+		n_s(n_s),
+		n_gp(n_gp),
+		n_rp(n_rp),
+		n_pp(n_pp),
+		n_spl(n_spl),
+		n_pl(n_pl),
+		n_tp(n_tp),
+		n_tpb(n_tpb),
+		ups(ups)
 {
-	total = star + giant_planet + rocky_planet + proto_planet + super_planetesimal + planetesimal + test_particle;
-	sink.x = sink.y = 0;
-	source.x = source.y = 0;
+    sink.x   = sink.y   = 0;
+    source.x = source.y = 0;
+}
+
+void number_of_bodies::update_numbers(body_metadata_t *body_md)
+{
+	int n_active_body		= 0;
+	int n_inactive_body		= 0;
+
+	int	star				= 0;
+	int	giant_planet		= 0;
+	int	rocky_planet		= 0;
+	int	proto_planet		= 0;
+	int	super_planetesimal	= 0;
+	int	planetesimal		= 0;
+	int	test_particle		= 0;
+
+	int n_total = ups ? get_n_prime_total() : get_n_total();
+	for (int i = 0; i < n_total; i++)
+	{
+		if (0 < body_md[i].id && BODY_TYPE_PADDINGPARTICLE > body_md[i].body_type)
+		{
+			n_active_body++;
+		}
+		// Count the inactive bodies by type
+		else
+		{
+			n_inactive_body++;
+			switch (body_md[i].body_type)
+			{
+			case BODY_TYPE_STAR:
+				star++;
+				break;
+			case BODY_TYPE_GIANTPLANET:
+				giant_planet++;
+				break;
+			case BODY_TYPE_ROCKYPLANET:
+				rocky_planet++;
+				break;
+			case BODY_TYPE_PROTOPLANET:
+				proto_planet++;
+				break;
+			case BODY_TYPE_SUPERPLANETESIMAL:
+				super_planetesimal++;
+				break;
+			case BODY_TYPE_PLANETESIMAL:
+				planetesimal++;
+				break;
+			case BODY_TYPE_TESTPARTICLE:
+				test_particle++;
+				break;
+			default:
+				throw string("Undefined body type!");
+			}
+		}
+	}
+	cout << "There are " << star << " inactive star" << endl;
+	cout << "There are " << giant_planet << " inactive giant planet" << endl;
+	cout << "There are " << rocky_planet << " inactive rocky planet" << endl;
+	cout << "There are " << proto_planet << " inactive protoplanet" << endl;
+	cout << "There are " << super_planetesimal << " inactive super planetesimal" << endl;
+	cout << "There are " << planetesimal << " inactive planetesimal" << endl;
+	cout << "There are " << test_particle << " inactive test particle" << endl;
+
+	n_s		-= star;
+	n_gp	-= giant_planet;
+	n_rp	-= rocky_planet;
+	n_pp	-= proto_planet;
+	n_spl	-= super_planetesimal;
+	n_pl	-= planetesimal;
+	n_tp	-= test_particle;
+}
+
+int	number_of_bodies::get_n_SI()
+{
+	return (n_s + n_gp + n_rp + n_pp);
+}
+
+int number_of_bodies::get_n_NSI()
+{
+	return (n_spl + n_pl);
+}
+
+int	number_of_bodies::get_n_NI()
+{
+	return n_tp;
 }
 
 int	number_of_bodies::get_n_total()
 {
-	total = star + giant_planet + rocky_planet + proto_planet + super_planetesimal + planetesimal + test_particle; 
-	return total;
+	return (n_s + n_gp + n_rp + n_pp + n_spl + n_pl + n_tp);
+}
+
+int	number_of_bodies::get_n_GD()
+{
+	return (n_spl + n_pl);
+}
+
+int	number_of_bodies::get_n_MT1()
+{
+	return (n_rp + n_pp);
+}
+
+int	number_of_bodies::get_n_MT2()
+{
+	return n_gp;
 }
 
 int	number_of_bodies::get_n_massive()
 {
-	return star + giant_planet + rocky_planet + proto_planet + super_planetesimal + planetesimal;
+	return (get_n_SI() + get_n_NSI());
 }
 
-int	number_of_bodies::get_n_self_interacting() 
+
+int number_of_bodies::get_n_prime_SI()
 {
-	return star + giant_planet + rocky_planet + proto_planet;
+	// The number of self-interacting (SI) bodies aligned to n_tbp
+	return ((get_n_SI() + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
-int	number_of_bodies::get_n_gas_drag()
+int number_of_bodies::get_n_prime_NSI()
 {
-	return super_planetesimal + planetesimal;
+	// The number of non-self-interacting (NSI) bodies aligned to n_tbp
+	return ((get_n_NSI() + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
-int	number_of_bodies::get_n_migrate_typeI()
+int number_of_bodies::get_n_prime_NI()
 {
-	return rocky_planet + proto_planet;
+	// The number of non-interacting (NI) bodies aligned to n_tbp
+	return ((get_n_NI() + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
-int	number_of_bodies::get_n_migrate_typeII()
+int number_of_bodies::get_n_prime_total()
 {
-	return giant_planet;
+	return (get_n_prime_SI() + get_n_prime_NSI() + get_n_prime_NI());
 }
+
+//int	number_of_bodies::get_n_prime_GD()
+//{
+//	return ((n_spl + n_pl + n_tpb - 1) / n_tpb) * n_tpb;
+//}
+//
+//int	number_of_bodies::get_n_prime_MT1()
+//{
+//	return (n_rp + n_pp);
+//}
+//
+//int	number_of_bodies::get_n_prime_MT2()
+//{
+//	return n_gp;
+//}
+
+int	number_of_bodies::get_n_prime_massive()
+{
+	return (get_n_prime_SI() + get_n_prime_NSI());
+}
+
 
 interaction_bound number_of_bodies::get_bound_SI()
 {
-	sink.x		= 0;
-	sink.y		= get_n_self_interacting();
-	source.x	= 0;
-	source.y	= get_n_massive();
-	interaction_bound iBound(sink, source);
+	if (ups)
+	{
+		sink.x	 = 0, sink.y   = sink.x + get_n_prime_SI();
+		source.x = 0, source.y = source.x + get_n_prime_massive();
+	}
+	else
+	{
+		sink.x   = 0, sink.y   = sink.x + get_n_SI();
+		source.x = 0, source.y = source.x + get_n_massive();
+	}
 
-	return iBound;
+	return interaction_bound(sink, source);
 }
 
 interaction_bound number_of_bodies::get_bound_NSI()
 {
-	sink.x			= get_n_self_interacting();
-	sink.y			= get_n_massive();
-	source.x		= 0;
-	source.y		= get_n_self_interacting();
-	interaction_bound iBound(sink, source);
+	if (ups)
+	{
+		sink.x   = get_n_prime_SI(), sink.y   = sink.x + get_n_prime_NSI();
+		source.x = 0,				 source.y = source.x + get_n_prime_SI();;
+	}
+	else
+	{
+		sink.x   = get_n_SI(), sink.y   = sink.x + get_n_NSI();
+		source.x = 0,		   source.y = source.x + get_n_SI();
+	}
 
-	return iBound;
+	return interaction_bound(sink, source);
 }
 
 interaction_bound number_of_bodies::get_bound_NI()
 {
-	sink.x			= get_n_massive();
-	sink.y			= total;
-	source.x		= 0;
-	source.y		= get_n_massive();
-	interaction_bound iBound(sink, source);
+	if (ups)
+	{
+		sink.x   = get_n_prime_massive(), sink.y   = sink.x + get_n_prime_NI();
+		source.x = 0,				      source.y = source.x + get_n_prime_massive();
+	}
+	else
+	{
+		sink.x   = get_n_massive(), sink.y   = sink.x + get_n_NI();
+		source.x = 0,   	        source.y = source.x + get_n_massive();
+	}
 
-	return iBound;
+	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bound_GD() {
-	sink.x			= get_n_self_interacting();
-	sink.y			= get_n_massive();
-	source.x		= 0;
-	source.y		= 0;
-	interaction_bound iBound(sink, source);
+interaction_bound number_of_bodies::get_bound_GD()
+{
+	if (ups)
+	{
+		sink.x   = get_n_prime_SI(), sink.y   = sink.x + n_spl + n_pl;
+		source.x = 0,		         source.y = 0;
+	}
+	else
+	{
+		sink.x   = get_n_SI(), sink.y   = sink.x + n_spl + n_pl;
+		source.x = 0,		   source.y = 0;
+	}
 
-	return iBound;
+	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bound_MT1() {
-	sink.x			= star + giant_planet;
-	sink.y			= get_n_massive();
-	source.x		= 0;
-	source.y		= 0;
-	interaction_bound iBound(sink, source);
+interaction_bound number_of_bodies::get_bound_MT1()
+{
+	sink.x   = n_s + n_gp, sink.y   = sink.x + n_pp + n_rp;
+	source.x = 0,	       source.y = source.x + 0;
 
-	return iBound;
+	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bound_MT2() {
-	sink.x			= star;
-	sink.y			= star + giant_planet;
-	source.x		= 0;
-	source.y		= 0;
-	interaction_bound iBound(sink, source);
+interaction_bound number_of_bodies::get_bound_MT2()
+{
+	sink.x   = n_s,   sink.y = sink.x + n_gp;
+	source.x = 0, 	source.y = source.x + 0;
 
-	return iBound;
+	return interaction_bound(sink, source);
 }
 
 ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies)
@@ -546,13 +705,13 @@ ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies)
 	};
 
 	stream << "Number of bodies:" << endl;
-	stream << setw(20) << body_type_name[0] << ": " << n_bodies->star << endl;
-	stream << setw(20) << body_type_name[1] << ": " << n_bodies->giant_planet << endl;
-	stream << setw(20) << body_type_name[2] << ": " << n_bodies->rocky_planet << endl;
-	stream << setw(20) << body_type_name[3] << ": " << n_bodies->proto_planet << endl;
-	stream << setw(20) << body_type_name[4] << ": " << n_bodies->super_planetesimal << endl;
-	stream << setw(20) << body_type_name[5] << ": " << n_bodies->planetesimal << endl;
-	stream << setw(20) << body_type_name[6] << ": " << n_bodies->test_particle << endl;
+	stream << setw(20) << body_type_name[0] << ": " << n_bodies->n_s << endl;
+	stream << setw(20) << body_type_name[1] << ": " << n_bodies->n_gp << endl;
+	stream << setw(20) << body_type_name[2] << ": " << n_bodies->n_rp << endl;
+	stream << setw(20) << body_type_name[3] << ": " << n_bodies->n_pp << endl;
+	stream << setw(20) << body_type_name[4] << ": " << n_bodies->n_spl << endl;
+	stream << setw(20) << body_type_name[5] << ": " << n_bodies->n_pl << endl;
+	stream << setw(20) << body_type_name[6] << ": " << n_bodies->n_tp << endl;
 		
 	return stream;
 }
@@ -634,9 +793,9 @@ int *d_event_counter;
 //}
 
 
-void allocate_storage(const number_of_bodies *n_bodies, sim_data_t *sim_data)
+void allocate_storage(number_of_bodies *n_bodies, sim_data_t *sim_data)
 {
-	const int nBody = n_bodies->total;
+	int nBody = n_bodies->get_n_total();
 
 	sim_data->y.resize(2);
 	for (int i = 0; i < 2; i++)
@@ -667,9 +826,9 @@ void allocate_storage(const number_of_bodies *n_bodies, sim_data_t *sim_data)
 	/* Total of 9 cudaMalloc */
 }
 
-void allocate_pinned_storage(const number_of_bodies *n_bodies, sim_data_t *sim_data)
+void allocate_pinned_storage(number_of_bodies *n_bodies, sim_data_t *sim_data)
 {
-	const int nBody = n_bodies->total;
+	int nBody = n_bodies->get_n_total();
 
 	sim_data->y.resize(2);
 	for (int i = 0; i < 2; i++)
@@ -700,9 +859,9 @@ void allocate_pinned_storage(const number_of_bodies *n_bodies, sim_data_t *sim_d
 	/* Total of 9 cudaMalloc */
 }
 
-void copy_to_device(const number_of_bodies *n_bodies, const sim_data_t *sim_data)
+void copy_to_device(number_of_bodies *n_bodies, const sim_data_t *sim_data)
 {
-	const int n = n_bodies->total;
+	int n = n_bodies->get_n_total();
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -732,7 +891,7 @@ void populate_data(const number_of_bodies *n_bodies, sim_data_t *sim_data)
 		sim_data->y[j][idx].z = 0.0;
 	}
 
-	for (int i = 0; i < n_bodies->proto_planet; i++, idx++)
+	for (int i = 0; i < n_bodies->n_pp; i++, idx++)
 	{
 		sim_data->body_md[idx].body_type = BODY_TYPE_ROCKYPLANET;
 		sim_data->body_md[idx].id = idx+1;
@@ -747,7 +906,7 @@ void populate_data(const number_of_bodies *n_bodies, sim_data_t *sim_data)
 		}
 	}
 
-	for (int i = 0; i < n_bodies->test_particle; i++, idx++)
+	for (int i = 0; i < n_bodies->n_tp; i++, idx++)
 	{
 		sim_data->body_md[idx].body_type = BODY_TYPE_TESTPARTICLE;
 		sim_data->body_md[idx].id = idx+1;
@@ -830,7 +989,7 @@ void call_kernel_calc_grav_accel(ttt_t curr_t, number_of_bodies *n_bodies, sim_d
 {
 	cudaError_t cudaStatus = cudaSuccess;
 	
-	int n_sink = n_bodies->get_n_self_interacting();
+	int n_sink = n_bodies->get_n_SI();
 	if (0 < n_sink) {
 		interaction_bound int_bound = n_bodies->get_bound_SI();
 
@@ -849,7 +1008,7 @@ void call_kernel_calc_grav_accel(ttt_t curr_t, number_of_bodies *n_bodies, sim_d
 		}
 	}
 
-	n_sink = n_bodies->test_particle;
+	n_sink = n_bodies->n_tp;
 	if (0 < n_sink) {
 		interaction_bound int_bound = n_bodies->get_bound_NI();
 
@@ -873,7 +1032,7 @@ void call_kernel_calc_grav_accel_int_mul_of_thread_per_block(ttt_t curr_t, numbe
 {
 	cudaError_t cudaStatus = cudaSuccess;
 	
-	int n_sink = n_bodies->get_n_self_interacting();
+	int n_sink = n_bodies->get_n_SI();
 	if (0 < n_sink) {
 		interaction_bound int_bound = n_bodies->get_bound_SI();
 
@@ -891,7 +1050,7 @@ void call_kernel_calc_grav_accel_int_mul_of_thread_per_block(ttt_t curr_t, numbe
 		}
 	}
 
-	n_sink = n_bodies->test_particle;
+	n_sink = n_bodies->n_tp;
 	if (0 < n_sink) {
 		interaction_bound int_bound = n_bodies->get_bound_NI();
 
@@ -913,7 +1072,7 @@ void call_kernel_calc_grav_accel_int_mul_of_thread_per_block(ttt_t curr_t, numbe
 // http://devblogs.nvidia.com/parallelforall/
 int main(int argc, const char** argv)
 {
-	number_of_bodies n_bodies = number_of_bodies(1, 0, 0, 20 * THREADS_PER_BLOCK - 1, 0, 0, 20 * THREADS_PER_BLOCK);
+	number_of_bodies n_bodies = number_of_bodies(1, 0, 0, 20 * THREADS_PER_BLOCK - 1, 0, 0, 20 * THREADS_PER_BLOCK, 64, false);
 	sim_data_t *sim_data = new sim_data_t;
 
 	t = 0.0;

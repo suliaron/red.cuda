@@ -42,13 +42,6 @@ static __host__ __device__
 /****************** KERNEL functions begins here ******************/
 
 static __global__
-	void kernel_dummy()
-{
-	const int i = blockIdx.x * blockDim.x + threadIdx.x;
-	int k = i*i;
-}
-
-static __global__
 	void kernel_check_for_ejection_hit_centrum
 	(
 		ttt_t t, 
@@ -782,12 +775,12 @@ number_of_bodies* pp_disk::get_number_of_bodies(string& path)
 
 void pp_disk::remove_inactive_bodies()
 {
-	int old_n_total = use_padded_storage ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total();
+	int old_n_total = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
 	// Update the numbers after counting the eliminated bodies
-	n_bodies->update_numbers(sim_data->body_md, n_tpb, use_padded_storage);
+	n_bodies->update_numbers(sim_data->body_md);
 
 	sim_data_t *sim_data_temp = new sim_data_t;
-	// Only the data of the active bodies will be temprarily stored
+	// Only the data of the active bodies will be temporarily stored
 	allocate_host_storage(sim_data_temp, n_bodies->get_n_total());
 
 	vec_t* r = sim_data->y[0];
@@ -817,9 +810,9 @@ void pp_disk::remove_inactive_bodies()
 	int n_SI		= n_bodies->get_n_SI();
 	int n_NSI		= n_bodies->get_n_NSI();
 	int n_total		= n_bodies->get_n_total();
-	int n_prime_SI	= n_bodies->get_n_prime_SI(n_tpb);
-	int n_prime_NSI	= n_bodies->get_n_prime_NSI(n_tpb);
-	int n_prime_total=n_bodies->get_n_prime_total(n_tpb); 
+	int n_prime_SI	= n_bodies->get_n_prime_SI();
+	int n_prime_NSI	= n_bodies->get_n_prime_NSI();
+	int n_prime_total=n_bodies->get_n_prime_total();
 
 	k = 0;
 	int i = 0;
