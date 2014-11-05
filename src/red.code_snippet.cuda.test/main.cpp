@@ -1,4 +1,5 @@
 // includes system
+#include <iomanip>
 #include <iostream>
 #include <string>
 
@@ -97,7 +98,7 @@ int main(int argc, const char** argv)
 }
 #endif
 
-# if 0
+#if 0
 /*
  *  Basic example of an exception
  */
@@ -112,4 +113,25 @@ int main(int argc, const char** argv)
 		cerr << "Error: " << msg << endl;
 	}
 }
+#endif
+
+#if 1
+
+int main(int argc, const char** argv)
+{
+	var_t a = -123456789.0123456789;
+	var_t b =  1.234567890123456789;
+
+	cout.precision(16);
+	cout.setf(ios::right);
+	cout.setf(ios::scientific);
+
+	cout << "0        1         2         3         4         5" << endl;
+	cout << "12345678901234567890123456789012345678901234567890" << endl;
+	cout << setw(25) << a << setw(25) << b << endl;
+	cout << setw(25) << b << setw(25) << a << endl;
+
+	return 0;
+}
+
 #endif
