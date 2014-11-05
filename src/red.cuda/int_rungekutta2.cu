@@ -19,6 +19,10 @@ static __global__
 
 	while (n > tid) {
 		result[tid] = a[tid] + b_factor * b[tid];
+// DEBUG CODE
+//printf("tid: %4d, a: %20.16lf, b_factor: %20.16lf, b: %20.16lf result: %20.16lf\n", tid, a[tid], b_factor, b[tid], result[tid]);
+// END DEBUG CODE
+
 		tid += stride;
 	}
 }
@@ -68,10 +72,14 @@ void rungekutta2::call_kernel_calc_ytemp_for_fr(int r)
 
 	for (int i = 0; i < 2; i++) {
 		var_t *y_n	  = (var_t*)ppd->sim_data->d_y[i];
-		var_t *fr	  = (var_t*)d_f[i][r];
+		var_t *fr	  = (var_t*)d_f[i][r-1];
 		var_t* result = (var_t*)d_ytemp[i];
 
 		kernel_sum_vector<<<grid, block>>>(n_var, y_n, fr, a[r] * dt_try, result);
+// DEBUG CODE
+//		cudaDeviceSynchronize();
+// END DEBUG CODE
+
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus)
 		{

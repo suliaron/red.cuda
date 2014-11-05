@@ -4,8 +4,8 @@ name = this is the name of the simulation
 description = this is the description of the simulation
 
 frame_center = bary
-integrator = rk2
-# tolerance = 1.0e-10
+integrator = rkf8
+tolerance = 1.0e-10
 error_check_for_tp = false # default value
 
 start_time = 0.0  # year

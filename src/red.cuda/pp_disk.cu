@@ -38,6 +38,11 @@ static __host__ __device__
 
 /****************** DEVICE functions ends   here ******************/
 
+static __device__
+	void d_print_vector(int i, const vec_t* v)
+{
+	printf("[%d]: (%20.16lf, %20.16lf, %20.16lf, %20.16lf)\n", i, v->x, v->y, v->z, v->w);
+}
 
 /****************** KERNEL functions begins here ******************/
 
@@ -56,7 +61,7 @@ static __global__
 {
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
-	// Ignore the star and the inactive bodies
+	// Ignore the star, the padding particles (whose id = 0) and the inactive bodies (whose id < 0)
 	if (i < int_bound.sink.y && body_md[i].id > 0 && body_md[i].body_type != BODY_TYPE_STAR)
 	{
 		unsigned int k = 0;
@@ -136,12 +141,22 @@ static __global__
 		{
 			continue;
 		}
+// DEBUG CODE
+//printf("t: %20.16lf, i: %4d, j: %4d\n", t, i, j);
+// END DEBUG CODE
+
 		// 3 FLOP
 		dVec.x = r[j].x - r[i].x;
 		dVec.y = r[j].y - r[i].y;
 		dVec.z = r[j].z - r[i].z;
+
 		// 5 FLOP
 		dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+
+// DEBUG CODE
+//d_print_vector(0, &dVec);
+// END DEBUG CODE
+
 		// 20 FLOP
 		var_t d = sqrt(dVec.w);								// = r
 		// 2 FLOP
@@ -150,6 +165,10 @@ static __global__
 		a[i].x += dVec.w * dVec.x;
 		a[i].y += dVec.w * dVec.y;
 		a[i].z += dVec.w * dVec.z;
+
+// DEBUG CODE
+//d_print_vector(i, &a[i]);
+// END DEBUG CODE
 
 		if (i > 0 && i > j && d < dc_threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
 		{
@@ -212,12 +231,20 @@ static __global__
 				{
 					continue;
 				}
+// DEBUG CODE
+//printf("t: %20.16lf, i: %4d, j: %4d\n", t, i, j);
+// END DEBUG CODE
 				// 3 FLOP
 				dVec.x = r[j].x - r[i].x;
 				dVec.y = r[j].y - r[i].y;
 				dVec.z = r[j].z - r[i].z;
 				// 5 FLOP
 				dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+
+// DEBUG CODE
+//d_print_vector(0, &dVec);
+// END DEBUG CODE
+
 				// 20 FLOP
 				var_t d = sqrt(dVec.w);								// = r
 				// 2 FLOP
@@ -226,6 +253,10 @@ static __global__
 				a[i].x += dVec.w * dVec.x;
 				a[i].y += dVec.w * dVec.y;
 				a[i].z += dVec.w * dVec.z;
+
+// DEBUG CODE
+//d_print_vector(i, &a[i]);
+// END DEBUG CODE
 
 				// Check for collision - ignore the star (i > 0 criterium)
 				// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
@@ -258,10 +289,6 @@ static __global__
 				}
 			}
 			// 36 FLOP
-			// With the used time unit k = 1
-			//a[i].x *= K2;
-			//a[i].y *= K2;
-			//a[i].z *= K2;
 		}
 	}
 }
@@ -534,6 +561,9 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 		}
 		// Calculate accelerations originated from the gravitational force
 		call_kernel_calc_grav_accel(curr_t, r, v, dy);
+// DEBUG CODE
+//		cudaDeviceSynchronize();
+// END DEBUG CODE
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus)
 		{
@@ -1062,7 +1092,7 @@ void pp_disk::create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body
 
 	r[k].x = 1.0e9 + (var_t)rand() / RAND_MAX * 1.0e9;
 	r[k].y = r[k].x + (var_t)rand() / RAND_MAX * 1.0e9;
-	r[k].z = r[k].y + (var_t)rand() / RAND_MAX * 1.0e9;
+	r[k].z = 0.0;
 	r[k].w = 0.0;
 
 	v[k].x = v[k].y = v[k].z = v[k].w = 0.0;
@@ -1152,36 +1182,25 @@ void pp_disk::load(string& path)
 			create_padding_particle(k, epoch, body_md, p, r, v);
             k++;
         }
-		//if (use_padded_storage)
-		//{
-		//	for ( ; k < n_prime_SI; k++)
-		//	{
-		//		create_padding_particle(k, epoch, body_md, p, r, v);
-		//	}
-		//}
 
 		for ( ; i < n_SI + n_NSI; i++, k++)
 		{
 			read_body_record(input, k, epoch, body_md, p, r, v);
 		}
-		if (use_padded_storage)
+		while (use_padded_storage && k < n_prime_SI + n_prime_NSI)
 		{
-			for ( ; k < n_prime_SI + n_prime_NSI; k++)
-			{
-				create_padding_particle(k, epoch, body_md, p, r, v);
-			}
+			create_padding_particle(k, epoch, body_md, p, r, v);
+			k++;
 		}
 
 		for ( ; i < n_total; i++, k++)
 		{
 			read_body_record(input, k, epoch, body_md, p, r, v);
 		}
-		if (use_padded_storage)
+		while (use_padded_storage && k < n_prime_total)
 		{
-			for ( ; k < n_prime_total; k++)
-			{
-				create_padding_particle(k, epoch, body_md, p, r, v);
-			}
+			create_padding_particle(k, epoch, body_md, p, r, v);
+			k++;
 		}
         input.close();
 	}

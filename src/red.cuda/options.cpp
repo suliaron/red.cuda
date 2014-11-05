@@ -71,7 +71,6 @@ void options::parse_options(int argc, const char** argv)
 	while (i < argc) {
 		string p = argv[i];
 
-		// Print-out location
 		if      (p == "--use-padded-storage" || p == "-ups")
 		{
 			use_padded_storage = true;
@@ -123,6 +122,7 @@ pp_disk* options::create_pp_disk()
 	if (ppd->g_disk != 0)
 	{
 		ppd->g_disk->calc(ppd->get_mass_of_star());
+		//ppd->print_result_ascii(cout);
 	}
 	if (param->fr_cntr == FRAME_CENTER_BARY)
 	{
