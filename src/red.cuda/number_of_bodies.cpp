@@ -69,6 +69,9 @@ void number_of_bodies::update_numbers(body_metadata_t *body_md)
 			case BODY_TYPE_TESTPARTICLE:
 				test_particle++;
 				break;
+			case BODY_TYPE_PADDINGPARTICLE:
+				n_inactive_body--;
+				break;
 			default:
 				throw string("Undefined body type!");
 			}

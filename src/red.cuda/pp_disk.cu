@@ -141,21 +141,12 @@ static __global__
 		{
 			continue;
 		}
-// DEBUG CODE
-//printf("t: %20.16lf, i: %4d, j: %4d\n", t, i, j);
-// END DEBUG CODE
-
 		// 3 FLOP
 		dVec.x = r[j].x - r[i].x;
 		dVec.y = r[j].y - r[i].y;
 		dVec.z = r[j].z - r[i].z;
-
 		// 5 FLOP
 		dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
-
-// DEBUG CODE
-//d_print_vector(0, &dVec);
-// END DEBUG CODE
 
 		// 20 FLOP
 		var_t d = sqrt(dVec.w);								// = r
@@ -165,10 +156,6 @@ static __global__
 		a[i].x += dVec.w * dVec.x;
 		a[i].y += dVec.w * dVec.y;
 		a[i].z += dVec.w * dVec.z;
-
-// DEBUG CODE
-//d_print_vector(i, &a[i]);
-// END DEBUG CODE
 
 		if (i > 0 && i > j && d < dc_threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
 		{
@@ -231,19 +218,12 @@ static __global__
 				{
 					continue;
 				}
-// DEBUG CODE
-//printf("t: %20.16lf, i: %4d, j: %4d\n", t, i, j);
-// END DEBUG CODE
 				// 3 FLOP
 				dVec.x = r[j].x - r[i].x;
 				dVec.y = r[j].y - r[i].y;
 				dVec.z = r[j].z - r[i].z;
 				// 5 FLOP
 				dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
-
-// DEBUG CODE
-//d_print_vector(0, &dVec);
-// END DEBUG CODE
 
 				// 20 FLOP
 				var_t d = sqrt(dVec.w);								// = r
@@ -253,10 +233,6 @@ static __global__
 				a[i].x += dVec.w * dVec.x;
 				a[i].y += dVec.w * dVec.y;
 				a[i].z += dVec.w * dVec.z;
-
-// DEBUG CODE
-//d_print_vector(i, &a[i]);
-// END DEBUG CODE
 
 				// Check for collision - ignore the star (i > 0 criterium)
 				// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
@@ -287,32 +263,8 @@ static __global__
 					events[k].r2 = r[mergerIdx];
 					events[k].v2 = v[mergerIdx];
 				}
-			}
-			// 36 FLOP
+			} // 36 FLOP
 		}
-	}
-}
-
-static __global__
-	void	kernel_transform_to(
-								int n,
-								int refBodyId,
-								const param_t *p,
-								vec_t* r, 
-								vec_t* v
-								)
-{
-	int	bodyIdx = blockIdx.x * blockDim.x + threadIdx.x;
-	if (n > bodyIdx && refBodyId != bodyIdx)
-	{
-		vec_t rVec = vector_subtract((vec_t*)(&r[bodyIdx]), (vec_t*)(&r[refBodyId]));
-		vec_t vVec = vector_subtract((vec_t*)(&v[bodyIdx]), (vec_t*)(&v[refBodyId]));
-		r[bodyIdx].x = rVec.x;
-		r[bodyIdx].y = rVec.y;
-		r[bodyIdx].z = rVec.z;
-		v[bodyIdx].x = vVec.x;
-		v[bodyIdx].y = vVec.y;
-		v[bodyIdx].z = vVec.z;
 	}
 }
 
@@ -511,6 +463,63 @@ void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const ve
 	}
 }
 
+bool pp_disk::check_for_ejection_hit_centrum()
+{
+	// Number of ejection + hit centrum events
+	int n_event = call_kernel_check_for_ejection_hit_centrum();
+
+	if (n_event > 0)
+	{
+		copy_event_data_to_host();
+		// handle_ejection_hit_centrum() will create sp_events vector which will explicitly written to the disk via print_event_data()
+		handle_ejection_hit_centrum();
+
+		cout << n_ejection[   EVENT_COUNTER_NAME_LAST_STEP] << " ejection ";
+		cout << n_hit_centrum[EVENT_COUNTER_NAME_LAST_STEP] << " hit_centrum event(s) occured" << endl;
+
+		n_ejection[   EVENT_COUNTER_NAME_LAST_STEP] = 0;
+		n_hit_centrum[EVENT_COUNTER_NAME_LAST_STEP] = 0;
+
+		return true;
+	}
+
+	return false;
+}
+
+bool pp_disk::check_for_collision()
+{
+	// Number of collision
+	int n_event = get_n_event();
+
+	if (n_event > 0)
+	{
+		copy_event_data_to_host();
+		// handle_collision() will create sp_events vector which will explicitly written to the disk via print_event_data()
+		handle_collision();
+		cout << n_collision[EVENT_COUNTER_NAME_LAST_STEP] << " collision event(s) occurred" << endl;
+
+		n_collision[EVENT_COUNTER_NAME_LAST_STEP] = 0;
+
+		return true;
+	}
+
+	return false;
+}
+
+bool pp_disk::check_for_rebuild_vectors(int n)
+{
+	if (n_event[EVENT_COUNTER_NAME_LAST_CLEAR] >= n)
+	{
+		copy_to_host();
+		// Rebuild the vectors and remove inactive bodies
+		remove_inactive_bodies();
+		set_event_counter(EVENT_COUNTER_NAME_LAST_CLEAR, 0);
+		return true;
+	}
+
+	return false;
+}
+
 int pp_disk::call_kernel_check_for_ejection_hit_centrum()
 {
 	cudaError_t cudaStatus = cudaSuccess;
@@ -561,9 +570,6 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 		}
 		// Calculate accelerations originated from the gravitational force
 		call_kernel_calc_grav_accel(curr_t, r, v, dy);
-// DEBUG CODE
-//		cudaDeviceSynchronize();
-// END DEBUG CODE
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus)
 		{
@@ -573,7 +579,25 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 	}
 }
 
-int pp_disk::handle_collision()
+void pp_disk::increment_event_counter(int *e)
+{
+	for (int i = 0; i < EVENT_COUNTER_NAME_N; i++)
+	{
+		e[i]++;
+		// Increment the total number of events
+		n_event[i]++;
+	}
+}
+
+void pp_disk::set_event_counter(event_counter_name_t field, int value)
+{
+	n_hit_centrum[field] = value;
+	n_ejection[field]    = value;
+	n_collision[field]   = value;
+	n_event[field]       = value;
+}
+
+void pp_disk::handle_collision()
 {
 	create_sp_events();
 
@@ -582,36 +606,29 @@ int pp_disk::handle_collision()
 	for (int i = 0; i < sp_events.size(); i++)
 	{
 		handle_collision_pair(i, &sp_events[i]);
-		n_collision++;
+		increment_event_counter(n_collision);
 	}
-
-	return sp_events.size();
 }
 
-int2_t pp_disk::handle_ejection_hit_centrum()
+void pp_disk::handle_ejection_hit_centrum()
 {
 	sp_events.resize(event_counter);
 	survivors.resize(event_counter);
 
-	int2_t number = {0, 0};
-
 	for (int i = 0; i < event_counter; i++)
 	{
+		// The events must be copied into sp_events since the print_event_data() write the content of the sp_events to disk.
 		sp_events[i] = events[i];
 		if (sp_events[i].event_name == EVENT_NAME_EJECTION)
 		{
-			n_ejection++;
-			number.x++;
+			increment_event_counter(n_ejection);
 		}
 		else
 		{
 			handle_collision_pair(i, &sp_events[i]);
-			n_hit_centrum++;
-			number.y++;
+			increment_event_counter(n_hit_centrum);
 		}
 	}
-
-	return number;
 }
 
 void pp_disk::create_sp_events()
@@ -699,20 +716,6 @@ void pp_disk::calc_phase_after_collision(var_t m1, var_t m2, const vec_t* r1, co
 	v0.z = (m1 * v1->z + m2 * v2->z) / M;
 }
 
-//void pp_disk::call_kernel_transform_to(int refBodyId)
-//{
-//	cudaError_t cudaStatus = cudaSuccess;
-//	int	nBodyToCalc = n_bodies->get_n_total();
-//
-//	set_kernel_launch_param(nBodyToCalc);
-//	
-//	kernel_transform_to<<<grid, block>>>(nBodyToCalc, refBodyId, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1]);
-//	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-//	if (cudaSuccess != cudaStatus) {
-//		throw nbody_exception("kernel_transform_to failed", cudaStatus);
-//	}
-//}
-
 pp_disk::pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage) :
 	g_disk(gd),
 	d_g_disk(0x0),
@@ -721,12 +724,19 @@ pp_disk::pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage)
 	t(0.0),
 	sim_data(0x0),
 	n_bodies(0x0),
-	n_hit_centrum(0),
-	n_ejection(0),
-	n_collision(0),
 	event_counter(0),
-	d_event_counter(0x0)
+	d_event_counter(0x0),
+	events(0x0),
+	d_events(0x0)
 {
+	for (int i = 0; i < EVENT_COUNTER_NAME_N; i++)
+	{
+		n_hit_centrum[i] = 0;
+		n_ejection[i]    = 0;
+		n_collision[i]   = 0;
+		n_event[i]       = 0;
+	}
+
 	n_bodies = get_number_of_bodies(path);
 	allocate_storage();
 	load(path);
@@ -738,6 +748,13 @@ pp_disk::~pp_disk()
 	deallocate_device_storage(sim_data);
 
 	delete sim_data;
+
+	delete[] events;
+
+	if (0x0 != g_disk)
+	{
+		delete[] g_disk;
+	}
 }
 
 void pp_disk::allocate_storage()
@@ -747,6 +764,8 @@ void pp_disk::allocate_storage()
 	sim_data = new sim_data_t;
 	allocate_host_storage(sim_data, n_total);
 	allocate_device_storage(sim_data, n_total);
+
+	events = new event_data_t[n_total];
 }
 
 void pp_disk::allocate_host_storage(sim_data_t *sd, int n)
@@ -759,8 +778,6 @@ void pp_disk::allocate_host_storage(sim_data_t *sd, int n)
 	sd->p		= new param_t[n];
 	sd->body_md	= new body_metadata_t[n];
 	sd->epoch	= new ttt_t[n];
-
-	events      = new event_data_t[n];
 }
 
 void pp_disk::allocate_device_storage(sim_data_t *sd, int n)
@@ -790,12 +807,6 @@ void pp_disk::deallocate_host_storage(sim_data_t *sd)
 	delete[] sd->p;
 	delete[] sd->body_md;
 	delete[] sd->epoch;
-	delete[] events;
-
-	if (0x0 != g_disk)
-	{
-		delete[] g_disk;
-	}
 }
 
 void pp_disk::deallocate_device_storage(sim_data_t *sd)
@@ -844,22 +855,17 @@ void pp_disk::remove_inactive_bodies()
 	// Only the data of the active bodies will be temporarily stored
 	allocate_host_storage(sim_data_temp, n_bodies->get_n_total());
 
-	vec_t* r = sim_data->y[0];
-	vec_t* v = sim_data->y[1];
-	param_t* p = sim_data->p;
-	body_metadata_t* body_md = sim_data->body_md;
-	ttt_t* epoch = sim_data->epoch;
-
 	// Copy the data of active bodies to sim_data_temp
+	int i = 0;
 	int k = 0;
-	for (int i = 0; i < old_n_total; i++)
+	for ( ; i < old_n_total; i++)
 	{
 		if (0 < sim_data->body_md[i].id && BODY_TYPE_PADDINGPARTICLE > sim_data->body_md[i].body_type)
 		{
-			sim_data_temp->y[0][k]		= r[i];
-			sim_data_temp->y[1][k]		= v[i];
-			sim_data_temp->p[k]			= p[i];
-			sim_data_temp->body_md[k]	= body_md[i];
+			sim_data_temp->y[0][k]		= sim_data->y[0][i];
+			sim_data_temp->y[1][k]		= sim_data->y[1][i];
+			sim_data_temp->p[k]			= sim_data->p[i];
+			sim_data_temp->body_md[k]	= sim_data->body_md[i];
 			k++;
 		}
 	}
@@ -876,51 +882,45 @@ void pp_disk::remove_inactive_bodies()
 	int n_prime_total=n_bodies->get_n_prime_total();
 
 	k = 0;
-	int i = 0;
-	for (i = 0; i < n_SI; i++, k++)
+	i = 0;
+	for ( ; i < n_SI; i++, k++)
 	{
-		r[i]		= sim_data_temp->y[0][i];
-		v[i]		= sim_data_temp->y[1][i];
-		p[i]		= sim_data_temp->p[i];
-		body_md[i]	= sim_data_temp->body_md[i];
+		sim_data->y[0][k]	 = sim_data_temp->y[0][i];
+		sim_data->y[1][k]	 = sim_data_temp->y[1][i];
+		sim_data->p[k]		 = sim_data_temp->p[i];
+		sim_data->body_md[k] = sim_data_temp->body_md[i];
 	}
-	if (use_padded_storage)
-	{
-		for ( ; k < n_prime_SI; k++)
-		{
-			create_padding_particle(k, epoch, body_md, p, r, v);
-		}
-	}
+    while (use_padded_storage && k < n_prime_SI)
+    {
+		create_padding_particle(k, sim_data->epoch, sim_data->body_md, sim_data->p, sim_data->y[0], sim_data->y[1]);
+        k++;
+    }
 
 	for ( ; i < n_SI + n_NSI; i++, k++)
 	{
-		r[i]		= sim_data_temp->y[0][i];
-		v[i]		= sim_data_temp->y[1][i];
-		p[i]		= sim_data_temp->p[i];
-		body_md[i]	= sim_data_temp->body_md[i];
+		sim_data->y[0][k]	 = sim_data_temp->y[0][i];
+		sim_data->y[1][k]	 = sim_data_temp->y[1][i];
+		sim_data->p[k]		 = sim_data_temp->p[i];
+		sim_data->body_md[k] = sim_data_temp->body_md[i];
 	}
-	if (use_padded_storage)
-	{
-		for ( ; k < n_prime_SI + n_prime_NSI; k++)
-		{
-			create_padding_particle(k, epoch, body_md, p, r, v);
-		}
-	}
+    while (use_padded_storage && k < n_prime_SI + n_prime_NSI)
+    {
+		create_padding_particle(k, sim_data->epoch, sim_data->body_md, sim_data->p, sim_data->y[0], sim_data->y[1]);
+        k++;
+    }
 
 	for ( ; i < n_total; i++, k++)
 	{
-		r[i]		= sim_data_temp->y[0][i];
-		v[i]		= sim_data_temp->y[1][i];
-		p[i]		= sim_data_temp->p[i];
-		body_md[i]	= sim_data_temp->body_md[i];
+		sim_data->y[0][k]	 = sim_data_temp->y[0][i];
+		sim_data->y[1][k]	 = sim_data_temp->y[1][i];
+		sim_data->p[k]		 = sim_data_temp->p[i];
+		sim_data->body_md[k] = sim_data_temp->body_md[i];
 	}
-	if (use_padded_storage)
-	{
-		for ( ; k < n_prime_total; k++)
-		{
-			create_padding_particle(k, epoch, body_md, p, r, v);
-		}
-	}
+    while (use_padded_storage && k < n_prime_total)
+    {
+		create_padding_particle(k, sim_data->epoch, sim_data->body_md, sim_data->p, sim_data->y[0], sim_data->y[1]);
+        k++;
+    }
 
 	// Copy the active bodies to the device
 	copy_to_device();
@@ -976,7 +976,7 @@ int pp_disk::get_n_event()
 
 int pp_disk::get_n_total_event()
 {
-	return (n_collision + n_ejection + n_hit_centrum);
+	return (n_collision[EVENT_COUNTER_NAME_TOTAL] + n_ejection[EVENT_COUNTER_NAME_TOTAL] + n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]);
 }
 
 void pp_disk::clear_event_counter()
@@ -1107,6 +1107,11 @@ void pp_disk::read_body_record(ifstream& input, int k, ttt_t* epoch, body_metada
 	input >> body_md[k].id;
 	// name
 	input >> dummy;
+	// The names must be less than or equal to 30 chars
+	if (dummy.length() > 30)
+	{
+		dummy = dummy.substr(0, 30);
+	}
 	body_names.push_back(dummy);
 	// body type
 	input >> type;
@@ -1114,14 +1119,8 @@ void pp_disk::read_body_record(ifstream& input, int k, ttt_t* epoch, body_metada
 	// epoch
 	input >> epoch[k];
 
-	// mass
-	input >> p[k].mass;
-	// radius
-	input >> p[k].radius;
-	// density
-	input >> p[k].density;
-	// stokes constant
-	input >> p[k].cd;
+	// mass, radius density and stokes coefficient
+	input >> p[k].mass >> p[k].radius >> p[k].density >> p[k].cd;
 
 	// migration type
 	input >> type;
@@ -1130,15 +1129,11 @@ void pp_disk::read_body_record(ifstream& input, int k, ttt_t* epoch, body_metada
 	input >> body_md[k].mig_stop_at;
 
 	// position
-	input >> r[k].x;
-	input >> r[k].y;
-	input >> r[k].z;
-	r[k].w = 0.0;
+	input >> r[k].x >> r[k].y >> r[k].z;
 	// velocity
-	input >> v[k].x;
-	input >> v[k].y;
-	input >> v[k].z;
-	v[k].w = 0.0;
+	input >> v[k].x >> v[k].y >> v[k].z;
+
+	r[k].w = v[k].w = 0.0;
 }
 
 void pp_disk::load(string& path)
@@ -1214,6 +1209,13 @@ void pp_disk::load(string& path)
 
 void pp_disk::print_result_ascii(ostream& sout)
 {
+	static int int_t_w  =  8;
+	static int var_t_w  = 25;
+
+	sout.precision(16);
+	sout.setf(ios::right);
+	sout.setf(ios::scientific);
+
 	vec_t* r = sim_data->y[0];
 	vec_t* v = sim_data->y[1];
 	param_t* p = sim_data->p;
@@ -1223,26 +1225,26 @@ void pp_disk::print_result_ascii(ostream& sout)
 	for (int i = 0; i < n; i++)
     {
 		// Skip inactive bodies and padding particles and alike
-		if (body_md[i].id < 0 || body_md[i].body_type >= BODY_TYPE_PADDINGPARTICLE)
+		if (body_md[i].id <= 0 || body_md[i].body_type >= BODY_TYPE_PADDINGPARTICLE)
 		{
 			continue;
 		}
-		sout << body_md[i].id << SEP
-			 << body_names[i] << SEP
-			 << body_md[i].body_type << SEP 
-			 << t << SEP
-			 << p[i].mass << SEP
-			 << p[i].radius << SEP
-			 << p[i].density << SEP
-			 << p[i].cd << SEP
-			 << body_md[i].mig_type << SEP
-			 << body_md[i].mig_stop_at << SEP
-			 << r[i].x << SEP
-			 << r[i].y << SEP
-			 << r[i].z << SEP
-			 << v[i].x << SEP
-			 << v[i].y << SEP
-			 << v[i].z << endl;
+		sout << setw(int_t_w) << body_md[i].id << SEP
+			 << setw(     30) << body_names[i] << SEP
+			 << setw(      2) << body_md[i].body_type << SEP 
+			 << setw(var_t_w) << t << SEP
+			 << setw(var_t_w) << p[i].mass << SEP
+			 << setw(var_t_w) << p[i].radius << SEP
+			 << setw(var_t_w) << p[i].density << SEP
+			 << setw(var_t_w) << p[i].cd << SEP
+			 << setw(      2) << body_md[i].mig_type << SEP
+			 << setw(var_t_w) << body_md[i].mig_stop_at << SEP
+			 << setw(var_t_w) << r[i].x << SEP
+			 << setw(var_t_w) << r[i].y << SEP
+			 << setw(var_t_w) << r[i].z << SEP
+			 << setw(var_t_w) << v[i].x << SEP
+			 << setw(var_t_w) << v[i].y << SEP
+			 << setw(var_t_w) << v[i].z << endl;
     }
 	sout.flush();
 }
@@ -1254,51 +1256,61 @@ void pp_disk::print_result_binary(ostream& sout)
 
 void pp_disk::print_event_data(ostream& sout, ostream& log_f)
 {
-	static char sep = ' ';
+	static int int_t_w =  8;
+	static int var_t_w = 25;
 	static char *e_names[] = {"NONE", "HIT_CENTRUM", "EJECTION", "CLOSE_ENCOUNTER", "COLLISION"};
+
+	sout.precision(16);
+	sout.setf(ios::right);
+	sout.setf(ios::scientific);
+
+	log_f.precision(16);
+	log_f.setf(ios::right);
+	log_f.setf(ios::scientific);
 
 	for (int i = 0; i < sp_events.size(); i++)
 	{
-		sout << setw(16) << e_names[sp_events[i].event_name] << sep
-			 << setw(24) << setprecision(16) << sp_events[i].t << sep
-			 << setw(24) << setprecision(16) << sp_events[i].d << sep
-			 << setw( 8) << sp_events[i].id.x << sep
-			 << setw( 8) << sp_events[i].id.y << sep
-			 << setw(24) << setprecision(10) << sim_data->p[sp_events[i].idx.x].mass << sep
-			 << setw(24) << setprecision(10) << sim_data->p[sp_events[i].idx.x].density << sep
-			 << setw(24) << setprecision(10) << sim_data->p[sp_events[i].idx.x].radius << sep
-			 << setw(24) << setprecision(10) << sp_events[i].r1.x << sep
-			 << setw(24) << setprecision(10) << sp_events[i].r1.y << sep
-			 << setw(24) << setprecision(10) << sp_events[i].r1.z << sep
-			 << setw(24) << setprecision(10) << sp_events[i].v1.x << sep
-			 << setw(24) << setprecision(10) << sp_events[i].v1.y << sep
-			 << setw(24) << setprecision(10) << sp_events[i].v1.z << sep
-			 << setw(24) << setprecision(10) << sim_data->p[sp_events[i].idx.y].mass << sep
-			 << setw(24) << setprecision(10) << sim_data->p[sp_events[i].idx.y].density << sep
-			 << setw(24) << setprecision(10) << sim_data->p[sp_events[i].idx.y].radius << sep
-			 << setw(24) << setprecision(10) << sp_events[i].r2.x << sep
-			 << setw(24) << setprecision(10) << sp_events[i].r2.y << sep
-			 << setw(24) << setprecision(10) << sp_events[i].r2.z << sep
-			 << setw(24) << setprecision(10) << sp_events[i].v2.x << sep
-			 << setw(24) << setprecision(10) << sp_events[i].v2.y << sep
-			 << setw(24) << setprecision(10) << sp_events[i].v2.z << sep
-			 << setw( 8) << survivors[i].body_md.id << sep
-			 << setw(24) << setprecision(10) << survivors[i].p.mass << sep
-			 << setw(24) << setprecision(10) << survivors[i].p.density << sep
-			 << setw(24) << setprecision(10) << survivors[i].p.radius << sep
-			 << setw(24) << setprecision(10) << survivors[i].r.x << sep
-			 << setw(24) << setprecision(10) << survivors[i].r.y << sep
-			 << setw(24) << setprecision(10) << survivors[i].r.z << sep
-			 << setw(24) << setprecision(10) << survivors[i].v.x << sep
-			 << setw(24) << setprecision(10) << survivors[i].v.y << sep
-			 << setw(24) << setprecision(10) << survivors[i].v.z << sep << endl;
-
+		sout << setw(16)      << e_names[sp_events[i].event_name] << SEP
+			 << setw(var_t_w) << sp_events[i].t << SEP
+			 << setw(var_t_w) << sp_events[i].d << SEP
+			 << setw(int_t_w) << sp_events[i].id.x << SEP
+			 << setw(int_t_w) << sp_events[i].id.y << SEP
+			 << setw(var_t_w) << sim_data->p[sp_events[i].idx.x].mass << SEP
+			 << setw(var_t_w) << sim_data->p[sp_events[i].idx.x].density << SEP
+			 << setw(var_t_w) << sim_data->p[sp_events[i].idx.x].radius << SEP
+			 << setw(var_t_w) << sp_events[i].r1.x << SEP
+			 << setw(var_t_w) << sp_events[i].r1.y << SEP
+			 << setw(var_t_w) << sp_events[i].r1.z << SEP
+			 << setw(var_t_w) << sp_events[i].v1.x << SEP
+			 << setw(var_t_w) << sp_events[i].v1.y << SEP
+			 << setw(var_t_w) << sp_events[i].v1.z << SEP
+			 << setw(var_t_w) << sim_data->p[sp_events[i].idx.y].mass << SEP
+			 << setw(var_t_w) << sim_data->p[sp_events[i].idx.y].density << SEP
+			 << setw(var_t_w) << sim_data->p[sp_events[i].idx.y].radius << SEP
+			 << setw(var_t_w) << sp_events[i].r2.x << SEP
+			 << setw(var_t_w) << sp_events[i].r2.y << SEP
+			 << setw(var_t_w) << sp_events[i].r2.z << SEP
+			 << setw(var_t_w) << sp_events[i].v2.x << SEP
+			 << setw(var_t_w) << sp_events[i].v2.y << SEP
+			 << setw(var_t_w) << sp_events[i].v2.z << SEP
+			 << setw(int_t_w) << survivors[i].body_md.id << SEP
+			 << setw(var_t_w) << survivors[i].p.mass << SEP
+			 << setw(var_t_w) << survivors[i].p.density << SEP
+			 << setw(var_t_w) << survivors[i].p.radius << SEP
+			 << setw(var_t_w) << survivors[i].r.x << SEP
+			 << setw(var_t_w) << survivors[i].r.y << SEP
+			 << setw(var_t_w) << survivors[i].r.z << SEP
+			 << setw(var_t_w) << survivors[i].v.x << SEP
+			 << setw(var_t_w) << survivors[i].v.y << SEP
+			 << setw(var_t_w) << survivors[i].v.z << SEP << endl;
 		if (log_f)
 		{
-			log_f << tools::get_time_stamp() << sep 
-				  << e_names[sp_events[i].event_name] << sep
-			      << setw( 8) << sp_events[i].id.x << sep
-			      << setw( 8) << sp_events[i].id.y << sep << endl;
+			log_f << tools::get_time_stamp() << SEP 
+				  << e_names[sp_events[i].event_name] << SEP
+			      << setw(int_t_w) << sp_events[i].id.x << SEP
+			      << setw(int_t_w) << sp_events[i].id.y << SEP << endl;
 		}
 	}
+	sout.flush();
+	log_f.flush();
 }

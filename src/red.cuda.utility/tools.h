@@ -13,5 +13,6 @@ namespace redutilcu
 		void trim_left(string& str);
 		void trim(string& str);
 		string get_time_stamp();
+		string convert_time_t(time_t t);
 	} /* tools */
 } /* redutilcu_tools */

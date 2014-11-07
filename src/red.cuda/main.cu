@@ -8,7 +8,6 @@
 
 // includes CUDA
 #include "cuda.h"
-#include "helper_cuda.h"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
@@ -36,122 +35,52 @@
 using namespace std;
 using namespace redutilcu;
 
-int device_query(int argc, const char **argv)
+void create_result_filename(options &opt, integrator *intgr, string &path)
 {
-    printf(" CUDA Device Query (Runtime API) version (CUDART static linking)\n\n");
+	string adapt = (opt.param->adaptive == true ? "_a_" : "_");
+	string ups = (opt.use_padded_storage == true ? "ups_" : "");
+	string result_filename = "result_2" + adapt + ups + intgr->name + ".txt";
+	path = file::combine_path(opt.printout_dir, result_filename);
+}
 
-    int deviceCount = 0;
-    cudaError_t error_id = cudaGetDeviceCount(&deviceCount);
+void create_event_filename(options &opt, integrator *intgr, string &path)
+{
+	string ups = (opt.use_padded_storage == true ? "ups_" : "");
+	path = file::combine_path(opt.printout_dir, ups + "event_2.txt");
+}
 
-    if (error_id != cudaSuccess)
-    {
-        printf("cudaGetDeviceCount returned %d\n-> %s\n", (int)error_id, cudaGetErrorString(error_id));
-		printf("Result = FAIL\n");
-        exit(EXIT_FAILURE);
-    }
+void create_log_filename(options &opt, integrator *intgr, string &path)
+{
+	string ups = (opt.use_padded_storage == true ? "ups_" : "");
+	path = file::combine_path(opt.printout_dir, ups + "log_2.txt");
+}
 
-    // This function call returns 0 if there are no CUDA capable devices.
-    if (deviceCount == 0)
-    {
-        printf("There are no available device(s) that support CUDA\n");
-    }
-    else
-    {
-        printf("Detected %d CUDA Capable device(s)\n", deviceCount);
-    }
+ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* time_of_one_step)
+{
+	clock_t start_of_step = clock();
+	ttt_t dt = intgr->step();
+	clock_t end_of_step = clock();
 
-    int dev, driverVersion = 0, runtimeVersion = 0;
+	*time_of_one_step = (end_of_step - start_of_step);
+	*sum_time_of_steps += *time_of_one_step;
 
-    for (dev = 0; dev < deviceCount; ++dev)
-    {
-        cudaSetDevice(dev);
-        cudaDeviceProp deviceProp;
-        cudaGetDeviceProperties(&deviceProp, dev);
+	return dt;
+}
 
-        printf("\nDevice %d: \"%s\"\n", dev, deviceProp.name);
+void print_info(const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* sum_time_of_steps, clock_t* time_of_one_step, time_t* time_info_start)
+{
+	cout.setf(ios::right);
+	cout.setf(ios::scientific);
 
-        // Console log
-        cudaDriverGetVersion(&driverVersion);
-        cudaRuntimeGetVersion(&runtimeVersion);
-        printf("  CUDA Driver Version / Runtime Version          %d.%d / %d.%d\n", driverVersion/1000, (driverVersion%100)/10, runtimeVersion/1000, (runtimeVersion%100)/10);
-        printf("  CUDA Capability Major/Minor version number:    %d.%d\n", deviceProp.major, deviceProp.minor);
-
-        printf("  Total amount of global memory:                 %.0f MBytes (%llu bytes)\n", (float)deviceProp.totalGlobalMem/1048576.0f, (unsigned long long) deviceProp.totalGlobalMem);
-
-        printf("  (%2d) Multiprocessors, (%3d) CUDA Cores/MP:     %d CUDA Cores\n",
-               deviceProp.multiProcessorCount,
-               _ConvertSMVer2Cores(deviceProp.major, deviceProp.minor),
-               _ConvertSMVer2Cores(deviceProp.major, deviceProp.minor) * deviceProp.multiProcessorCount);
-        printf("  GPU Clock rate:                                %.0f MHz (%0.2f GHz)\n", deviceProp.clockRate * 1e-3f, deviceProp.clockRate * 1e-6f);
-
-        printf("  Total amount of constant memory:               %lu bytes\n", deviceProp.totalConstMem);
-        printf("  Total amount of shared memory per block:       %lu bytes\n", deviceProp.sharedMemPerBlock);
-        printf("  Total number of registers available per block: %d\n", deviceProp.regsPerBlock);
-        printf("  Warp size:                                     %d\n", deviceProp.warpSize);
-        printf("  Maximum number of threads per multiprocessor:  %d\n", deviceProp.maxThreadsPerMultiProcessor);
-        printf("  Maximum number of threads per block:           %d\n", deviceProp.maxThreadsPerBlock);
-        printf("  Max dimension size of a thread block (x,y,z): (%d, %d, %d)\n",
-               deviceProp.maxThreadsDim[0],
-               deviceProp.maxThreadsDim[1],
-               deviceProp.maxThreadsDim[2]);
-        printf("  Max dimension size of a grid size    (x,y,z): (%d, %d, %d)\n",
-               deviceProp.maxGridSize[0],
-               deviceProp.maxGridSize[1],
-               deviceProp.maxGridSize[2]);
-	}
-
-    printf("\n");
-    std::string sProfileString = "deviceQuery, CUDA Driver = CUDART";
-    char cTemp[16];
-
-    // driver version
-    sProfileString += ", CUDA Driver Version = ";
-#ifdef WIN32
-    sprintf_s(cTemp, 10, "%d.%d", driverVersion/1000, (driverVersion%100)/10);
-#else
-    sprintf(cTemp, "%d.%d", driverVersion/1000, (driverVersion%100)/10);
-#endif
-    sProfileString +=  cTemp;
-
-    // Runtime version
-    sProfileString += ", CUDA Runtime Version = ";
-#ifdef WIN32
-    sprintf_s(cTemp, 10, "%d.%d", runtimeVersion/1000, (runtimeVersion%100)/10);
-#else
-    sprintf(cTemp, "%d.%d", runtimeVersion/1000, (runtimeVersion%100)/10);
-#endif
-    sProfileString +=  cTemp;
-
-    // Device count
-    sProfileString += ", NumDevs = ";
-#ifdef WIN32
-    sprintf_s(cTemp, 10, "%d", deviceCount);
-#else
-    sprintf(cTemp, "%d", deviceCount);
-#endif
-    sProfileString += cTemp;
-
-    // Print Out all device Names
-    for (dev = 0; dev < deviceCount; ++dev)
-    {
-#ifdef _WIN32
-        sprintf_s(cTemp, 13, ", Device%d = ", dev);
-#else
-        sprintf(cTemp, ", Device%d = ", dev);
-#endif
-        cudaDeviceProp deviceProp;
-        cudaGetDeviceProperties(&deviceProp, dev);
-        sProfileString += cTemp;
-        sProfileString += deviceProp.name;
-    }
-
-    sProfileString += "\n";
-    printf("%s", sProfileString.c_str());
-
-	printf("Result = PASS\n");
-
-    // finish
-    return (EXIT_SUCCESS);
+	*time_info_start = clock();
+	cout << "t: " << setprecision(10) << setw(16) << ppd->t 
+		 << ", dt: " << setprecision(10) << setw(16)  << dt;
+	cout << ", dt_cpu: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
+	cout << ", dt_avg: " << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s";
+	cout << ", Nc: " << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL]
+	     << ", Ne: " << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL]
+		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
+		 << ", N : " << setw(6) << ppd->n_bodies->get_n_total() << endl;
 }
 
 //http://stackoverflow.com/questions/11666049/cuda-kernel-results-different-in-release-mode
@@ -161,81 +90,46 @@ int device_query(int argc, const char **argv)
 //--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Release\TwoBody -p parameters.txt -ic TwoBody.txt
 
 //--verbose -iDir C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run01 -p parameters.txt -ic run01.txt
-//-v -ups -n_tpb 64 -iDir C:\Work\Projects\red.cuda.TestRun\Emese_Dvorak\cf_1 -p parameters.txt -ic suli-data-collision-N10001-heliocentric-vecelem-binary.txt
+//-v -n_tpb 64 -iDir C:\Work\Projects\red.cuda.TestRun\Emese_Dvorak\cf_5 -p parameters.txt -ic suli-data-collision-N10001-heliocentric-vecelem-binary.txt
 //-v C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -p parameters.txt -ic run01.txt -ic Run_cf_5.txt
-int main(int argc, const char** argv)
+int main(int argc, const char** argv, const char** env)
 {
-	cout << "At " << tools::get_time_stamp() << " starting " << argv[0] << endl;
-
-	device_query(argc, argv);
-
 	time_t start = time(NULL);
-	var_t sum_time_of_steps = 0.0;
-	int_t n_step = 0;
+
+	ostream* log_f;
 	try
 	{
 		options opt = options(argc, argv);
 		pp_disk *ppd = opt.create_pp_disk();
 		integrator *intgr = opt.create_integrator(ppd, 0.001);
 
-		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
-		string ups = (opt.use_padded_storage == true ? "ups_" : "");
-		string result_filename = "result" + adapt + ups + intgr->name + ".txt";
-		string path = file::combine_path(opt.printout_dir, result_filename);
+		if (opt.verbose)
+		{
+			file::log_start_cmd(cout, argc, argv, env);
+			device_query(cout);
+		}
+
+		string path;
+		create_result_filename(opt, intgr, path);
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
 
-		path = file::combine_path(opt.printout_dir, ups + "event.txt");
+		create_event_filename(opt, intgr, path);
 		ostream* event_f = new ofstream(path.c_str(), ios::out);
 
-		path = file::combine_path(opt.printout_dir, ups + "log.txt");
-		ostream* log_f = new ofstream(path.c_str(), ios::out);
+		create_log_filename(opt, intgr, path);
+		log_f = new ofstream(path.c_str(), ios::out);
+		file::log_start_cmd(*log_f, argc, argv, env);
+		device_query(*log_f);
 
 		ttt_t ps = 0;
-		ttt_t dt = 0;
-		int n_event = 0;
-		int n_event_after_last_save = 0;
-		ppd->print_result_ascii(*result_f);
+		clock_t sum_time_of_steps = 0.0;
+		clock_t time_of_one_step  = 0.0;
+
 		time_t time_info_start = clock();
+
+		ppd->print_result_ascii(*result_f);
 		while (ppd->t <= opt.param->stop_time)
 		{
-			n_event = ppd->call_kernel_check_for_ejection_hit_centrum();
-			if (n_event > 0)
-			{
-				ppd->copy_event_data_to_host();
-				int2_t n_eh = ppd->handle_ejection_hit_centrum();
-				n_event_after_last_save += n_event;
-				cout << n_eh.x << " ejection " << n_eh.y << " hit_centrum event(s) occured" << endl;
-				ppd->print_event_data(*event_f, *log_f);
-				ppd->clear_event_counter();
-			}
-
-			clock_t start_of_step = clock();
-			dt = intgr->step();
-			clock_t end_of_step = clock();
-			sum_time_of_steps += (end_of_step - start_of_step);
-			n_step++;
-
-			n_event = ppd->get_n_event();
-			if (n_event > 0)
-			{
-				ppd->copy_event_data_to_host();
-				n_event = ppd->handle_collision();
-				n_event_after_last_save += n_event;
-				cout << n_event << " collision event(s) occurred" << endl;
-				ppd->print_event_data(*event_f, *log_f);
-				ppd->clear_event_counter();
-			}
-
-			if (n_event_after_last_save >= 16)
-			{
-				printf("At t: %25.15le Rebuild the vectors and remove inactive bodies\n", ppd->t);
-				ppd->copy_to_host();
-				// Rebuild the vectors and remove inactive bodies
-				ppd->remove_inactive_bodies();
-				n_event_after_last_save = 0;
-			}
-
-			ps += fabs(dt);
 			if (fabs(ps) >= opt.param->output_interval)
 			{
 				ps = 0.0;
@@ -243,12 +137,29 @@ int main(int argc, const char** argv)
 				ppd->print_result_ascii(*result_f);
 			}
 
+			if (ppd->check_for_ejection_hit_centrum())
+			{
+				ppd->print_event_data(*event_f, *log_f);
+				ppd->clear_event_counter();
+			}
+
+			ttt_t dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
+			ps += fabs(dt);
+
+			if (ppd->check_for_collision())
+			{
+				ppd->print_event_data(*event_f, *log_f);
+				ppd->clear_event_counter();
+			}
+
+			if (ppd->check_for_rebuild_vectors(8))
+			{
+				file::log_rebuild_vectors(*log_f, ppd->t);
+			}
+
 			if ((clock() - time_info_start) / (double)CLOCKS_PER_SEC > 2.0) 
 			{
-				time_info_start = clock();
-				printf("t: %25.15le, dt: %25.15le ", ppd->t, dt);
-				cout << "Time for one step: " << (end_of_step - start_of_step) / (double)CLOCKS_PER_SEC << " s, avg: " << sum_time_of_steps / (double)CLOCKS_PER_SEC / n_step << " s" << endl;
-				cout << ppd->n_collision << " collision(s), " << ppd->n_ejection << " ejection(s), " << ppd->n_hit_centrum << " hit centrum were detected (No. of bodies: " << ppd->n_bodies->get_n_total() - n_event_after_last_save << ")" << endl;
+				print_info(ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
 			}
 		} /* while */
 		// To avoid duplicate save at the end of the simulation
@@ -261,13 +172,17 @@ int main(int argc, const char** argv)
 	} /* try */
 	catch (const nbody_exception& ex)
 	{
+		file::log_message(*log_f, "Error: " + string(ex.what()));
 		cerr << "Error: " << ex.what() << endl;
 	}
 	catch (const string& msg)
 	{
+		file::log_message(*log_f, "Error: " + msg);
 		cerr << "Error: " << msg << endl;
 	}
-	cout << "Total time: " << time(NULL) - start << " s" << endl;
+	file::log_message(*log_f, " Total time: " + tools::convert_time_t(time(NULL) - start) + " s");
+
+	cout << " Total time: " << time(NULL) - start << " s" << endl;
 
 	// Needed by nvprof.exe
 	cudaDeviceReset();

@@ -2,6 +2,7 @@
 
 #include "red_type.h"
 
+int device_query(ostream& sout);
 void allocate_device_vector(void **d_ptr, size_t size, const char *file, int line);
 #define ALLOCATE_DEVICE_VECTOR(d_ptr, size) (allocate_device_vector(d_ptr, size, __FILE__, __LINE__))
 

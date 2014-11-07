@@ -1,7 +1,11 @@
+// includes system
+#include <iostream>
+#include <sstream>
 #include <cctype>
 #include <ctime>
 #include <string>
 
+// includes project
 #include "tools.h"
 
 using namespace std;
@@ -66,6 +70,17 @@ string get_time_stamp()
 	strftime(time_stamp, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
 
 	return string(time_stamp);
+}
+
+string convert_time_t(time_t t)
+{
+	string result;
+
+	ostringstream convert;	// stream used for the conversion
+	convert << t;			// insert the textual representation of 't' in the characters in the stream
+	result = convert.str();
+
+	return result;
 }
 
 } /* tools */

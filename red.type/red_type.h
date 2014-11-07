@@ -73,6 +73,14 @@ typedef enum body_type
 			BODY_TYPE_N
 		} body_type_t;
 
+typedef enum event_counter_name
+		{
+			EVENT_COUNTER_NAME_TOTAL,
+			EVENT_COUNTER_NAME_LAST_CLEAR,
+			EVENT_COUNTER_NAME_LAST_STEP,
+			EVENT_COUNTER_NAME_N
+		} event_counter_name_t;
+
 // int4_t gets aligned to 16 bytes.
 typedef struct __builtin_align__(16) _int4
 		{

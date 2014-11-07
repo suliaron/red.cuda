@@ -1,9 +1,11 @@
 // includes system
+#include <iomanip>
 #include <fstream>
 
 // includes project
 #include "file_util.h"
 #include "tools.h"
+#include "red_macro.h"
 
 namespace redutilcu
 {
@@ -102,5 +104,50 @@ void load_ascii_file(const string& path, string& result)
 	}
 	file.close();
 }
+
+void log_start_cmd(ostream& sout, int argc, const char** argv, const char** env)
+{
+	sout << tools::get_time_stamp() << " starting " << argv[0] << endl;
+	sout << "Commad line arguments: " << endl;
+	for (int i = 1; i < argc; i++)
+	{
+		sout << argv[i] << SEP;
+	}
+	sout << endl << endl;
+
+	while (*env)
+	{
+		string s = *env;
+#ifdef __GNUC__
+		// TODO
+#else
+		if(      s.find("COMPUTERNAME=") < s.length())
+		{
+			sout << s << endl;
+		}
+		else if (s.find("OS=") < s.length())
+		{
+			sout << s << endl;
+		}
+		else if (s.find("USERNAME=") < s.length())
+		{
+			sout << s << endl;
+		}
+		env++;
+#endif
+	}
+	sout << endl;
+}
+
+void log_rebuild_vectors(ostream& sout, ttt_t t)
+{
+	sout << tools::get_time_stamp() << " Rebuild the vectors and remove inactive bodies " << " t: " << scientific << std::setprecision(16) << t << endl;
+}
+
+void log_message(ostream& sout, string msg)
+{
+	sout << tools::get_time_stamp() << msg << endl;
+}
+
 } /* file */
 } /* redutilcu */

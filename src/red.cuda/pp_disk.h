@@ -68,12 +68,22 @@ public:
 
 	//! Clears the event_counter (sets to 0)
 	void clear_event_counter();
+	//! Sets all event counter to a specific value
+	/*
+		\param field Sets this field
+		\param value The value to set the field
+	*/
+	void set_event_counter(event_counter_name_t field, int value);
 
 	//! From the events it will create a vector containing one entry for each colliding pair with the earliest collision time
 	void create_sp_events();
 
-	int handle_collision();
-	int2_t handle_ejection_hit_centrum();
+	bool check_for_ejection_hit_centrum();
+	bool check_for_collision();
+	bool check_for_rebuild_vectors(int n);
+
+	void handle_collision();
+	void handle_ejection_hit_centrum();
 	void handle_collision_pair(int i, event_data_t *collision);
 	void calc_phase_after_collision(var_t m1, var_t m2, const vec_t* r1, const vec_t* v1, const vec_t* r2, const vec_t* v2, vec_t& r0, vec_t& v0);
 
@@ -81,11 +91,6 @@ public:
 	int call_kernel_check_for_ejection_hit_centrum();
 	//! Test function: print out all the simulation data contained on the device
 	void test_call_kernel_print_sim_data();
-	//! Transforms the system to a reference frame with the reference body in the origin
-	/*
-		\param refBodyId the id o
-	*/
-	void call_kernel_transform_to(int refBodyId);
 	//! Calculates the differentials of variables
 	/*!
 		This function is called by the integrator when calculation of the differentials is necessary
@@ -111,11 +116,13 @@ public:
 
 	ttt_t		t;
 
-	int	n_ejection;					//! Total number of ejections
-	int n_hit_centrum;				//! Total number of hit centrum
-	int n_collision;				//! Total number of collisions
+	int n_ejection[EVENT_COUNTER_NAME_N];		//!< Number of ejection
+	int n_hit_centrum[EVENT_COUNTER_NAME_N];	//!< Number of hit centrum
+	int n_collision[EVENT_COUNTER_NAME_N];		//!< Number of collision
+	int n_event[EVENT_COUNTER_NAME_N];          //!< Number of total events
 
 private:
+	void increment_event_counter(int *e);
 	//! Loads the initial position and velocity of the bodies (second input version).
 	/*   
 		\param path the full path of the data file
@@ -145,13 +152,10 @@ private:
 	void set_kernel_launch_param(int n_data);
 	void call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 
-	//! Calculates the size for the padded storages
-	//size_t get_padded_storage_size(size_t size, int n_tpb);
-
 	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 
 	int		n_tpb;					//!< The number of thread per block to use for kernel launches
-	bool	use_padded_storage;		//!< If true use the padded storage
+	bool	use_padded_storage;		//!< If true use the padded storage scheme
 
 	dim3	grid;
 	dim3	block;
