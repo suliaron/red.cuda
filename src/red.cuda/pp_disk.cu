@@ -65,22 +65,23 @@ static __global__
 	if (i < int_bound.sink.y && body_md[i].id > 0 && body_md[i].body_type != BODY_TYPE_STAR)
 	{
 		unsigned int k = 0;
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		//vec_t dVec = {0.0, 0.0, 0.0, 0.0};
 
-		// Calculate the distance from the star
+		// Calculate the distance from the barycenter
 		// 3 FLOP
-		dVec.x = r[i].x - r[0].x;
-		dVec.y = r[i].y - r[0].y;
-		dVec.z = r[i].z - r[0].z;
+		//dVec.x = r[i].x - r[0].x;
+		//dVec.y = r[i].y - r[0].y;
+		//dVec.z = r[i].z - r[0].z;
 		// 5 FLOP
-		dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
-		if (dVec.w > SQR(dc_threshold[THRESHOLD_EJECTION_DISTANCE]))
+		//dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+		var_t r2 = SQR(r[i].x) + SQR(r[i].y) + SQR(r[i].z);
+		if (r2 > dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED])
 		{
 			k = atomicAdd(event_counter, 1);
 			//printf("t = %20.10le d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
 
 			events[k].event_name = EVENT_NAME_EJECTION;
-			events[k].d = sqrt(dVec.w);
+			events[k].d = sqrt(r2); //sqrt(dVec.w);
 			events[k].t = t;
 			events[k].id.x = body_md[0].id;
 			events[k].id.y = body_md[i].id;
@@ -93,13 +94,13 @@ static __global__
 			// Make the body inactive
 			body_md[i].id *= -1;
 		}
-		else if (dVec.w < SQR(dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]))
+		else if (r2 < SQR(dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED]))
 		{
 			k = atomicAdd(event_counter, 1);
 			//printf("t = %20.10le d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
 
 			events[k].event_name = EVENT_NAME_HIT_CENTRUM;
-			events[k].d = sqrt(dVec.w);
+			events[k].d = sqrt(r2); //sqrt(dVec.w);
 			events[k].t = t;
 			events[k].id.x = body_md[0].id;
 			events[k].id.y = body_md[i].id;
@@ -334,9 +335,11 @@ static __global__
 static __global__
 	void kernel_print_constant_memory()
 {
-	printf("dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] : %lf\n", dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
-	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE   ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE]);
-	printf("dc_threshold[THRESHOLD_COLLISION_FACTOR    ] : %lf\n", dc_threshold[THRESHOLD_COLLISION_FACTOR]);
+	printf("dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE        ] : %lf\n", dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
+	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE           ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE]);
+	printf("dc_threshold[THRESHOLD_COLLISION_FACTOR            ] : %lf\n", dc_threshold[THRESHOLD_COLLISION_FACTOR]);
+	printf("dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] : %lf\n", dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED]);
+	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED   ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED]);
 }
 
 /****************** KERNEL functions ends  here  ******************/
@@ -528,17 +531,9 @@ int pp_disk::call_kernel_check_for_ejection_hit_centrum()
 	interaction_bound int_bound(0, n_total, 0, 0);
 	set_kernel_launch_param(n_total);
 
-	if (use_padded_storage)
-	{
-		// TODO: implement kernel
-		//kernel_check_for_ejection_hit_centrum_int_mul_of_thread_per_block<<<grid, block>>>
-			//(t, int_bound, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_body_md, d_events, d_event_counter);			
-	}
-	else
-	{
-		kernel_check_for_ejection_hit_centrum<<<grid, block>>>
-			(t, int_bound, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_body_md, d_events, d_event_counter);
-	}
+	kernel_check_for_ejection_hit_centrum<<<grid, block>>>
+		(t, int_bound, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_body_md, d_events, d_event_counter);
+
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus)
 	{
@@ -570,6 +565,9 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 		}
 		// Calculate accelerations originated from the gravitational force
 		call_kernel_calc_grav_accel(curr_t, r, v, dy);
+// DEBUG CODE
+//		cudaDeviceSynchronize();
+// END DEBUG CODE
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus)
 		{
@@ -608,6 +606,13 @@ void pp_disk::handle_collision()
 		handle_collision_pair(i, &sp_events[i]);
 		increment_event_counter(n_collision);
 	}
+// DEBUG CODE
+	//cout << "n_collision: ";
+	//for (int i = 0; i < EVENT_COUNTER_NAME_N; i++) 
+	//{
+	//		cout << setw(5) << n_collision[i] << (i == EVENT_COUNTER_NAME_N - 1 ? "\n" : ",");
+	//}
+// END DEBUG CODE
 }
 
 void pp_disk::handle_ejection_hit_centrum()
@@ -631,31 +636,73 @@ void pp_disk::handle_ejection_hit_centrum()
 	}
 }
 
+//void pp_disk::create_sp_events()
+//{
+//	sp_events.resize(event_counter);
+//
+//	sp_events[0] = events[0];
+//	int k = 0;
+//	// Iterates over all collisions
+//	for (int i = 1; i < event_counter; i++)
+//	{
+//		if (sp_events[k].id.x == events[i].id.x && sp_events[k].id.y == events[i].id.y)
+//		{
+//			if (sp_events[k].t > events[i].t)
+//			{
+//				sp_events[k] = events[i];
+//			}
+//			continue;
+//		}
+//		else
+//		{
+//			k++;
+//			sp_events[k] = events[i];
+//		}
+//	}
+//	sp_events.resize(k+1);
+//	survivors.resize(k+1);
+//}
+
+
 void pp_disk::create_sp_events()
 {
 	sp_events.resize(event_counter);
 
-	sp_events[0] = events[0];
-	int k = 0;
-	// Iterates over all collisions
-	for (int i = 1; i < event_counter; i++)
+	bool *processed = new bool[event_counter];
+	for (int i = 0; i < event_counter; i++)
 	{
-		if (sp_events[k].id.x == events[i].id.x && sp_events[k].id.y == events[i].id.y)
+		processed[i] = false;
+	}
+
+	int n = 0;
+	for (int k = 0; k < event_counter; k++)
+	{
+		if (processed[k] == false)
 		{
-			if (sp_events[k].t > events[i].t)
-			{
-				sp_events[k] = events[i];
-			}
-			continue;
+			processed[k] = true;
+			sp_events[n] = events[k];
 		}
 		else
 		{
-			k++;
-			sp_events[k] = events[i];
+			continue;
 		}
+		for (int i = k + 1; i < event_counter; i++)
+		{
+			if (sp_events[n].id.x == events[i].id.x && sp_events[n].id.y == events[i].id.y)
+			{
+				processed[i] = true;
+				if (sp_events[n].t > events[i].t)
+				{
+					sp_events[n] = events[i];
+				}
+			}
+		}
+		n++;
 	}
-	sp_events.resize(k+1);
-	survivors.resize(k+1);
+	delete[] processed;
+
+	sp_events.resize(n);
+	survivors.resize(n);
 }
 
 void pp_disk::handle_collision_pair(int i, event_data_t *collision)
@@ -688,8 +735,19 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 	sim_data->p[survivIdx].density = density;
 	sim_data->p[survivIdx].radius  = radius;
 
-	// Make the merged body inactive
+	// Make the merged body inactive 
 	sim_data->body_md[mergerIdx].id *= -1;
+	// Set its parameters to zero
+	sim_data->p[mergerIdx].mass	   = 0.0;
+	sim_data->p[mergerIdx].density = 0.0;
+	sim_data->p[mergerIdx].radius  = 0.0;
+	// and push it radialy extremly far away with zero velocity
+	sim_data->y[0][mergerIdx].x = 1.0e9 * r0.x;
+	sim_data->y[0][mergerIdx].y = 1.0e9 * r0.y;
+	sim_data->y[0][mergerIdx].z = 1.0e9 * r0.z;
+	sim_data->y[1][mergerIdx].x = 0.0;
+	sim_data->y[1][mergerIdx].y = 0.0;
+	sim_data->y[1][mergerIdx].z = 0.0;
 
 	// Store the data of the survivor
 	survivors[i].r = r0;
@@ -700,6 +758,10 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 	copy_vector_to_device((void **)&sim_data->d_y[0][survivIdx],	(void *)&r0,							sizeof(vec_t));
 	copy_vector_to_device((void **)&sim_data->d_y[1][survivIdx],	(void *)&v0,							sizeof(vec_t));
 	copy_vector_to_device((void **)&sim_data->d_p[survivIdx],		(void *)&sim_data->p[survivIdx],		sizeof(param_t));
+
+	copy_vector_to_device((void **)&sim_data->d_y[0][mergerIdx],	(void *)&sim_data->y[0][mergerIdx],		sizeof(vec_t));
+	copy_vector_to_device((void **)&sim_data->d_y[1][mergerIdx],	(void *)&sim_data->y[1][mergerIdx],		sizeof(vec_t));
+	copy_vector_to_device((void **)&sim_data->d_p[mergerIdx],		(void *)&sim_data->p[mergerIdx],		sizeof(param_t));
 	copy_vector_to_device((void **)&sim_data->d_body_md[mergerIdx],	(void *)&sim_data->body_md[mergerIdx],	sizeof(body_metadata_t));
 }
 

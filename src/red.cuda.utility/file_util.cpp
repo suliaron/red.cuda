@@ -108,7 +108,7 @@ void load_ascii_file(const string& path, string& result)
 void log_start_cmd(ostream& sout, int argc, const char** argv, const char** env)
 {
 	sout << tools::get_time_stamp() << " starting " << argv[0] << endl;
-	sout << "Commad line arguments: " << endl;
+	sout << "Command line arguments: " << endl;
 	for (int i = 1; i < argc; i++)
 	{
 		sout << argv[i] << SEP;

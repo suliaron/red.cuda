@@ -115,7 +115,7 @@ int main(int argc, const char** argv)
 }
 #endif
 
-#if 1
+#if 0
 
 int main(int argc, const char** argv)
 {
@@ -132,6 +132,132 @@ int main(int argc, const char** argv)
 	cout << setw(25) << b << setw(25) << a << endl;
 
 	return 0;
+}
+
+#endif
+
+#if 1
+/*
+ *  Detect collisions from events array 
+ *  Working hypothesis: collisions happen only between two bodies.
+ */
+typedef struct survivor
+	{
+		vec_t			r;
+		vec_t			v;
+		param_t			p;
+		body_metadata_t body_md;
+	} survivor_t;
+
+int event_counter = 10;
+
+event_data_t* events;			//!< Vector on the host containing data for events (one colliding pair multiple occurances)
+vector<event_data_t> sp_events;	//!< Vector on the host containing data for events but  (one colliding pair one occurances)
+vector<survivor_t>	survivors;	//!< Vector on the host containing data for the survivor body
+
+void create_sp_events()
+{
+	bool *processed = new bool[event_counter];
+	sp_events.resize(event_counter);
+
+	for (int i = 0; i < event_counter; i++)
+	{
+		processed[i] = false;
+	}
+
+	int n = 0;
+	for (int k = 0; k < event_counter; k++)
+	{
+		if (processed[k] == false)
+		{
+			processed[k] = true;
+			sp_events[n] = events[k];
+		}
+		else
+		{
+			continue;
+		}
+		for (int i = k + 1; i < event_counter; i++)
+		{
+			if (sp_events[n].id.x == events[i].id.x && sp_events[n].id.y == events[i].id.y)
+			{
+				processed[i] = true;
+				if (sp_events[n].t > events[i].t)
+				{
+					sp_events[n] = events[i];
+				}
+			}
+		}
+		n++;
+	}
+
+	sp_events.resize(n);
+	survivors.resize(n);
+}
+
+int main(int argc, char **argv[])
+{
+	events = new event_data_t[event_counter];
+
+	int i, j, k, l, m, n;
+
+	i =   1, j =   2;
+	k =  10, l =  12;
+	m = 100, n = 102;
+
+	events[0].event_name = EVENT_NAME_COLLISION;
+	events[0].t = 0.3;
+	events[0].id.x = i;
+	events[0].id.y = j;
+
+	events[1].event_name = EVENT_NAME_COLLISION;
+	events[1].t = 0.1;
+	events[1].id.x = i;
+	events[1].id.y = j;
+
+	events[2].event_name = EVENT_NAME_COLLISION;
+	events[2].t = 0.35;
+	events[2].id.x = k;
+	events[2].id.y = l;
+
+	events[3].event_name = EVENT_NAME_COLLISION;
+	events[3].t = 0.32;
+	events[3].id.x = i;
+	events[3].id.y = j;
+
+	events[4].event_name = EVENT_NAME_COLLISION;
+	events[4].t = 0.254;
+	events[4].id.x = k;
+	events[4].id.y = l;
+
+	events[5].event_name = EVENT_NAME_COLLISION;
+	events[5].t = 0.5634;
+	events[5].id.x = i;
+	events[5].id.y = j;
+
+	events[6].event_name = EVENT_NAME_COLLISION;
+	events[6].t = 0.342324;
+	events[6].id.x = m;
+	events[6].id.y = n;
+
+	events[7].event_name = EVENT_NAME_COLLISION;
+	events[7].t = 0.5678901;
+	events[7].id.x = k;
+	events[7].id.y = l;
+
+	events[8].event_name = EVENT_NAME_COLLISION;
+	events[8].t = 0.1234;
+	events[8].id.x = i;
+	events[8].id.y = j;
+
+	events[9].event_name = EVENT_NAME_COLLISION;
+	events[9].t = 0.1234;
+	events[9].id.x = m;
+	events[9].id.y = n;
+
+	create_sp_events();
+
+	delete[] events;
 }
 
 #endif

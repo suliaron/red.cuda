@@ -39,20 +39,26 @@ void create_result_filename(options &opt, integrator *intgr, string &path)
 {
 	string adapt = (opt.param->adaptive == true ? "_a_" : "_");
 	string ups = (opt.use_padded_storage == true ? "ups_" : "");
-	string result_filename = "result_2" + adapt + ups + intgr->name + ".txt";
+	string result_filename = "result_3" + adapt + ups + intgr->name + ".txt";
 	path = file::combine_path(opt.printout_dir, result_filename);
 }
 
 void create_event_filename(options &opt, integrator *intgr, string &path)
 {
 	string ups = (opt.use_padded_storage == true ? "ups_" : "");
-	path = file::combine_path(opt.printout_dir, ups + "event_2.txt");
+	path = file::combine_path(opt.printout_dir, ups + "event_3.txt");
 }
 
 void create_log_filename(options &opt, integrator *intgr, string &path)
 {
 	string ups = (opt.use_padded_storage == true ? "ups_" : "");
-	path = file::combine_path(opt.printout_dir, ups + "log_2.txt");
+	path = file::combine_path(opt.printout_dir, ups + "log_3.txt");
+}
+
+void create_info_filename(options &opt, integrator *intgr, string &path)
+{
+	string ups = (opt.use_padded_storage == true ? "ups_" : "");
+	path = file::combine_path(opt.printout_dir, ups + "info_3.txt");
 }
 
 ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* time_of_one_step)
@@ -67,20 +73,41 @@ ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* time_of_one_s
 	return dt;
 }
 
-void print_info(const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* sum_time_of_steps, clock_t* time_of_one_step, time_t* time_info_start)
+void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* sum_time_of_steps, clock_t* time_of_one_step, time_t* time_info_start)
 {
 	cout.setf(ios::right);
 	cout.setf(ios::scientific);
 
+	sout.setf(ios::right);
+	sout.setf(ios::scientific);
+
+	number_of_bodies* nb = ppd->n_bodies; 
+
 	*time_info_start = clock();
-	cout << "t: " << setprecision(10) << setw(16) << ppd->t 
-		 << ", dt: " << setprecision(10) << setw(16)  << dt;
-	cout << ", dt_cpu: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
-	cout << ", dt_avg: " << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s";
+	cout << tools::get_time_stamp() << " t: " << setprecision(6) << setw(12) << ppd->t 
+		 << ", dt: " << setprecision(6) << setw(12)  << dt;
+	cout << ", dT_cpu: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
+	cout << ", dT_avg: " << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s";
 	cout << ", Nc: " << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL]
 	     << ", Ne: " << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL]
 		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
-		 << ", N : " << setw(6) << ppd->n_bodies->get_n_total() << endl;
+		 << ", N : " << setw(6) << nb->get_n_total() << "(" << setw(6) << nb->get_n_total_inactive() << ")" << endl;
+
+	sout << tools::get_time_stamp() << " t: " << setprecision(6) << setw(12) << ppd->t 
+		 << ", dt: " << setprecision(6) << setw(12)  << dt;
+	sout << ", dT_cpu: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
+	sout << ", dT_avg: " << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s";
+	sout << ", Nc: " << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL]
+	     << ", Ne: " << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL]
+		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
+		 << ", N : " << setw(6) << nb->get_n_total() << "(" << setw(6) << nb->get_n_total_inactive() << ")"
+	     << ", N_st: " << setw(5) << nb->n_s   << "(" << setw(5) << nb->n_i_s << ")"
+		 << ", N_gp: " << setw(5) << nb->n_gp  << "(" << setw(5) << nb->n_i_gp << ")"
+		 << ", N_rp: " << setw(5) << nb->n_rp  << "(" << setw(5) << nb->n_i_rp << ")"
+		 << ", N_pp: " << setw(5) << nb->n_pp  << "(" << setw(5) << nb->n_i_pp << ")"
+		 << ", N_sp: " << setw(5) << nb->n_spl << "(" << setw(5) << nb->n_i_spl << ")"
+		 << ", N_pl: " << setw(5) << nb->n_pl  << "(" << setw(5) << nb->n_i_pl << ")"
+		 << ", N_tp: " << setw(5) << nb->n_tp  << "(" << setw(5) << nb->n_i_tp << ")" << endl;	
 }
 
 //http://stackoverflow.com/questions/11666049/cuda-kernel-results-different-in-release-mode
@@ -118,10 +145,15 @@ int main(int argc, const char** argv, const char** env)
 
 		create_log_filename(opt, intgr, path);
 		log_f = new ofstream(path.c_str(), ios::out);
+
+		create_info_filename(opt, intgr, path);
+		ostream* info_f = new ofstream(path.c_str(), ios::out);
+
 		file::log_start_cmd(*log_f, argc, argv, env);
 		device_query(*log_f);
 
 		ttt_t ps = 0;
+		ttt_t dt = 0;
 		clock_t sum_time_of_steps = 0.0;
 		clock_t time_of_one_step  = 0.0;
 
@@ -143,7 +175,7 @@ int main(int argc, const char** argv, const char** env)
 				ppd->clear_event_counter();
 			}
 
-			ttt_t dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
+			dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
 			ps += fabs(dt);
 
 			if (ppd->check_for_collision())
@@ -157,11 +189,13 @@ int main(int argc, const char** argv, const char** env)
 				file::log_rebuild_vectors(*log_f, ppd->t);
 			}
 
-			if ((clock() - time_info_start) / (double)CLOCKS_PER_SEC > 2.0) 
+			if ((clock() - time_info_start) / (double)CLOCKS_PER_SEC > 5.0) 
 			{
-				print_info(ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
+				print_info(*info_f, ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
 			}
 		} /* while */
+		print_info(*info_f, ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
+
 		// To avoid duplicate save at the end of the simulation
 		if (ps > 0.0)
 		{

@@ -162,18 +162,20 @@ void parameter::set_param(string& key, string& value)
 			throw string("Invalid number at: " + key);
 		}
 		threshold[THRESHOLD_EJECTION_DISTANCE] = atof(value.c_str());
+		threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED] = SQR(threshold[THRESHOLD_EJECTION_DISTANCE]);
 	}
     else if (key == "hit_centrum") {
 		if (!tools::is_number(value)) {
 			throw string("Invalid number at: " + key);
 		}
-		threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]  = atof(value.c_str());
+		threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] = atof(value.c_str());
+		threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
 	}
     else if (key == "collision_factor") {
 		if (!tools::is_number(value)) {
 			throw string("Invalid number at: " + key);
 		}
-		threshold[THRESHOLD_COLLISION_FACTOR]  = atof(value.c_str());
+		threshold[THRESHOLD_COLLISION_FACTOR] = atof(value.c_str());
 	}
 	else {
 		throw string("Invalid parameter :" + key + ".");
@@ -202,7 +204,7 @@ ostream& operator<<(ostream& stream, const parameter* p)
 			"INTEGRATOR_RUNGEKUTTA2",
 			"INTEGRATOR_RUNGEKUTTA4",
 			"INTEGRATOR_RUNGEKUTTAFEHLBERG78",
-			"INTEGRATOR_RUNGEKUTTANYSTROM",
+			"INTEGRATOR_RUNGEKUTTANYSTROM"
 		};
 	const char* frame_center_name[] = 
 		{
@@ -215,6 +217,8 @@ ostream& operator<<(ostream& stream, const parameter* p)
 			"THRESHOLD_HIT_CENTRUM_DISTANCE",
 			"THRESHOLD_EJECTION_DISTANCE",
 			"THRESHOLD_COLLISION_FACTOR",
+			"THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED",
+			"THRESHOLD_EJECTION_DISTANCE_SQUARED"
 		};
 
 	stream << "simulation name: " << p->simulation_name << endl;

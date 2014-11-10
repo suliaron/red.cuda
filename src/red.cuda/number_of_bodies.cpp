@@ -18,6 +18,7 @@ number_of_bodies::number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_
 		n_tpb(n_tpb),
 		ups(ups)
 {
+	n_i_s = n_i_gp = n_i_rp = n_i_pp = n_i_spl = n_i_pl = n_i_tp = 0;
     sink.x   = sink.y   = 0;
     source.x = source.y = 0;
 }
@@ -49,24 +50,31 @@ void number_of_bodies::update_numbers(body_metadata_t *body_md)
 			switch (body_md[i].body_type)
 			{
 			case BODY_TYPE_STAR:
+				n_i_s++;
 				star++;
 				break;
 			case BODY_TYPE_GIANTPLANET:
+				n_i_gp++;
 				giant_planet++;
 				break;
 			case BODY_TYPE_ROCKYPLANET:
+				n_i_rp++;
 				rocky_planet++;
 				break;
 			case BODY_TYPE_PROTOPLANET:
+				n_i_pp++;
 				proto_planet++;
 				break;
 			case BODY_TYPE_SUPERPLANETESIMAL:
+				n_i_spl++;
 				super_planetesimal++;
 				break;
 			case BODY_TYPE_PLANETESIMAL:
+				n_i_pl++;
 				planetesimal++;
 				break;
 			case BODY_TYPE_TESTPARTICLE:
+				n_i_tp++;
 				test_particle++;
 				break;
 			case BODY_TYPE_PADDINGPARTICLE:
@@ -112,6 +120,11 @@ int	number_of_bodies::get_n_NI()
 int	number_of_bodies::get_n_total()
 {
 	return (n_s + n_gp + n_rp + n_pp + n_spl + n_pl + n_tp); 
+}
+
+int	number_of_bodies::get_n_total_inactive()
+{
+	return (n_i_s + n_i_gp + n_rp + n_i_pp + n_i_spl + n_i_pl + n_i_tp); 
 }
 
 int	number_of_bodies::get_n_GD()

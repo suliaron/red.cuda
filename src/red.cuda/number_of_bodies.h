@@ -9,6 +9,7 @@ public:
 	void update_numbers(body_metadata_t *body_md);
 
 	int	get_n_total();
+	int	get_n_total_inactive();
 	//! Calculates the number of bodies with mass, i.e. sum of the number of stars, giant planets, 
 	/*  rocky planets, protoplanets, super-planetesimals and planetesimals.
 	*/
@@ -44,13 +45,21 @@ public:
 	interaction_bound get_bound_MT1();
 	interaction_bound get_bound_MT2();
 
-	int	n_s;
-	int	n_gp;
-	int	n_rp;
-	int	n_pp;
-	int	n_spl;
-	int	n_pl;
-	int	n_tp;
+	int	n_s;			//!< Number of star
+	int	n_gp;			//!< Number of giant planet
+	int	n_rp;			//!< Number of rocky planet
+	int	n_pp;			//!< Number of protoplanet
+	int	n_spl;			//!< Number of super-planetesimal
+	int	n_pl;			//!< Number of planetesimal
+	int	n_tp;			//!< Number of test particle
+
+	int	n_i_s;			//!< Number of inactive star
+	int	n_i_gp;			//!< Number of inactive giant planet
+	int	n_i_rp;			//!< Number of inactive rocky planet
+	int	n_i_pp;			//!< Number of inactive protoplanet
+	int	n_i_spl;		//!< Number of inactive super-planetesimal
+	int	n_i_pl;			//!< Number of inactive planetesimal
+	int	n_i_tp;			//!< Number of inactive test particle
 
 private:
 	int n_tpb;
