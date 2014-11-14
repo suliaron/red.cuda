@@ -34,6 +34,9 @@
       <Project>{9136ac9b-7fb0-43f4-968b-0ad558f8b638}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="random.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{AA7E756C-9F56-4B61-9DBC-05B03C794490}</ProjectGuid>
     <RootNamespace>red.cuda.initial</RootNamespace>
