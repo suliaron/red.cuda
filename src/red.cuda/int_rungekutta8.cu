@@ -214,22 +214,22 @@ static __global__
 	}
 }
 
-static __global__
-	void kernel_calc_ytemp(int n, int r, const var_t *y_n, const var_t **f, var_t *ytemp)
-{
-	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-	if (n > tid)
-	{
-		var_t dy = 0;
-		for (int i = 0; i < r; i++)
-		{
-			// TODO
-			dy += dc_a[r][i] * f[r][i];
-		}
-		ytemp[tid] += dy;
-	}
-}
+//static __global__
+//	void kernel_calc_ytemp(int n, int r, const var_t *y_n, const var_t **f, var_t *ytemp)
+//{
+//	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
+//
+//	if (n > tid)
+//	{
+//		var_t dy = 0;
+//		for (int i = 0; i < r; i++)
+//		{
+//			// TODO
+//			dy += dc_a[r][i] * f[r][i];
+//		}
+//		ytemp[tid] += dy;
+//	}
+//}
 
 // err = f0 + f10 - f11 - f12
 static __global__
