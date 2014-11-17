@@ -38,6 +38,9 @@ public:
 	distribution_base(unsigned int seed, var_t x_min, var_t x_max);
 	~distribution_base();
 
+	var_t get_x_min() { return x_min; }
+	var_t get_x_max() { return x_max; }
+
 	virtual var_t get_next() = 0;
 
 protected:
