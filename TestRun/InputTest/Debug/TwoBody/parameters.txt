@@ -1,5 +1,5 @@
 # lines beginning with # are comments and ignored
-# this is a test file for the solaris.cuda parameters
+# this is a test file for the red.cuda parameters
 name = this is the name of the simulation
 description = this is the description of the simulation
 
@@ -9,8 +9,8 @@ tolerance = 1.0e-10
 error_check_for_tp = false # default value
 
 start_time = 0.0  # year
-length = 1.0  # year
-output_interval = 0.02 # year
+length = 10000.0  # year
+output_interval = 10.0 # year
 
 ejection = 100.0 # AU
 hit_centrum = 0.1 # [AU]

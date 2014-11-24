@@ -1,13 +1,10 @@
+#pragma once
+
 // includes, system 
 
 // includes, project
-
-typedef double var_t;
-#ifndef PI
-#define PI		3.1415926535897932384626433832795
-#endif
-
-#define SQR(x)	((x)*(x))
+#include "red_macro.h"
+#include "red_type.h"
 
 class red_random
 {

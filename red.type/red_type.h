@@ -20,6 +20,7 @@ typedef int			int_t;
 //! Type of integer tuples variables
 typedef int2		int2_t;
 
+
 typedef enum frame_center
 		{
 			FRAME_CENTER_BARY,
@@ -83,6 +84,22 @@ typedef enum event_counter_name
 			EVENT_COUNTER_NAME_N
 		} event_counter_name_t;
 
+typedef struct orbelem
+		{
+			//! Semimajor-axis of the body
+			var_t sma;
+			//! Eccentricity of the body
+			var_t ecc;
+			//! Inclination of the body
+			var_t inc;
+			//! Argument of the pericenter
+			var_t peri;
+			//! Longitude of the ascending node
+			var_t node;
+			//! Mean anomaly
+			var_t mean;
+		} orbelem_t;
+
 // int4_t gets aligned to 16 bytes.
 typedef struct __builtin_align__(16) _int4
 		{
@@ -128,6 +145,7 @@ typedef struct __builtin_align__(16) body_metadata
 
 typedef struct sim_data
 		{
+			orbelem_t*		oe;				//!< Host vector of the orbital elements
 			vector<vec_t*>	y;				//!< Host vectors of initial position and velocity of the bodies on the host
 			vector<vec_t*>	d_y;			//!< Device vectors of ODE variables at the beginning of the step (at time t)
 			vector<vec_t*>	d_yout;			//!< Device vectors of ODE variables at the end of the step (at time tout)

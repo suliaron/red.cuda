@@ -93,5 +93,8 @@
     <ClInclude Include="int_rungekutta8.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="int_rungekutta5.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

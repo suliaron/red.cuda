@@ -5,6 +5,7 @@
 
 // includes project
 #include "red_type.h"
+#include "red_constants.h"
 
 using namespace std;
 
@@ -197,6 +198,12 @@ void create_sp_events()
 
 int main(int argc, char **argv[])
 {
+	{
+		var_t f = constants::GramPerCm2ToSolarPerAu2;
+		cout << "1 g/cm2 = 1 " << f << " M_s/AU2" << endl;
+		return 0;
+	}
+
 	events = new event_data_t[event_counter];
 
 	int i, j, k, l, m, n;

@@ -191,6 +191,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="gas_disk.h" />
     <ClInclude Include="int_rungekutta2.h" />
     <ClInclude Include="int_rungekutta4.h" />
+    <ClInclude Include="int_rungekutta5.h" />
     <ClInclude Include="int_rungekutta8.h" />
     <ClInclude Include="nbody_exception.h" />
     <ClInclude Include="number_of_bodies.h" />
