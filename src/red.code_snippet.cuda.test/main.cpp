@@ -180,7 +180,7 @@ void create_sp_events()
 		}
 		for (int i = k + 1; i < event_counter; i++)
 		{
-			if (sp_events[n].id.x == events[i].id.x && sp_events[n].id.y == events[i].id.y)
+			if (sp_events[n].id1 == events[i].id1 && sp_events[n].id2 == events[i].id2)
 			{
 				processed[i] = true;
 				if (sp_events[n].t > events[i].t)
@@ -214,53 +214,53 @@ int main(int argc, char **argv[])
 
 	events[0].event_name = EVENT_NAME_COLLISION;
 	events[0].t = 0.3;
-	events[0].id.x = i;
-	events[0].id.y = j;
+	events[0].id1 = i;
+	events[0].id2 = j;
 
 	events[1].event_name = EVENT_NAME_COLLISION;
 	events[1].t = 0.1;
-	events[1].id.x = i;
-	events[1].id.y = j;
+	events[1].id1 = i;
+	events[1].id2 = j;
 
 	events[2].event_name = EVENT_NAME_COLLISION;
 	events[2].t = 0.35;
-	events[2].id.x = k;
-	events[2].id.y = l;
+	events[2].id1 = k;
+	events[2].id2 = l;
 
 	events[3].event_name = EVENT_NAME_COLLISION;
 	events[3].t = 0.32;
-	events[3].id.x = i;
-	events[3].id.y = j;
+	events[3].id1 = i;
+	events[3].id2 = j;
 
 	events[4].event_name = EVENT_NAME_COLLISION;
 	events[4].t = 0.254;
-	events[4].id.x = k;
-	events[4].id.y = l;
+	events[4].id1 = k;
+	events[4].id2 = l;
 
 	events[5].event_name = EVENT_NAME_COLLISION;
 	events[5].t = 0.5634;
-	events[5].id.x = i;
-	events[5].id.y = j;
+	events[5].id1 = i;
+	events[5].id2 = j;
 
 	events[6].event_name = EVENT_NAME_COLLISION;
 	events[6].t = 0.342324;
-	events[6].id.x = m;
-	events[6].id.y = n;
+	events[6].id1 = m;
+	events[6].id2 = n;
 
 	events[7].event_name = EVENT_NAME_COLLISION;
 	events[7].t = 0.5678901;
-	events[7].id.x = k;
-	events[7].id.y = l;
+	events[7].id1 = k;
+	events[7].id2 = l;
 
 	events[8].event_name = EVENT_NAME_COLLISION;
 	events[8].t = 0.1234;
-	events[8].id.x = i;
-	events[8].id.y = j;
+	events[8].id1 = i;
+	events[8].id2 = j;
 
 	events[9].event_name = EVENT_NAME_COLLISION;
 	events[9].t = 0.1234;
-	events[9].id.x = m;
-	events[9].id.y = n;
+	events[9].id1 = m;
+	events[9].id2 = n;
 
 	create_sp_events();
 

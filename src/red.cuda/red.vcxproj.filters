@@ -55,6 +55,9 @@
     <CudaCompile Include="int_rungekutta8.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
+    <CudaCompile Include="int_rungekutta5.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nbody_exception.h">

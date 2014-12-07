@@ -65,15 +65,8 @@ static __global__
 	if (i < int_bound.sink.y && body_md[i].id > 0 && body_md[i].body_type != BODY_TYPE_STAR)
 	{
 		unsigned int k = 0;
-		//vec_t dVec = {0.0, 0.0, 0.0, 0.0};
 
 		// Calculate the distance from the barycenter
-		// 3 FLOP
-		//dVec.x = r[i].x - r[0].x;
-		//dVec.y = r[i].y - r[0].y;
-		//dVec.z = r[i].z - r[0].z;
-		// 5 FLOP
-		//dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
 		var_t r2 = SQR(r[i].x) + SQR(r[i].y) + SQR(r[i].z);
 		if (r2 > dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED])
 		{
@@ -83,10 +76,10 @@ static __global__
 			events[k].event_name = EVENT_NAME_EJECTION;
 			events[k].d = sqrt(r2); //sqrt(dVec.w);
 			events[k].t = t;
-			events[k].id.x = body_md[0].id;
-			events[k].id.y = body_md[i].id;
-			events[k].idx.x = 0;
-			events[k].idx.y = i;
+			events[k].id1 = body_md[0].id;
+			events[k].id2 = body_md[i].id;
+			events[k].idx1 = 0;
+			events[k].idx2 = i;
 			events[k].r1 = r[0];
 			events[k].v1 = v[0];
 			events[k].r2 = r[i];
@@ -102,10 +95,10 @@ static __global__
 			events[k].event_name = EVENT_NAME_HIT_CENTRUM;
 			events[k].d = sqrt(r2); //sqrt(dVec.w);
 			events[k].t = t;
-			events[k].id.x = body_md[0].id;
-			events[k].id.y = body_md[i].id;
-			events[k].idx.x = 0;
-			events[k].idx.y = i;
+			events[k].id1 = body_md[0].id;
+			events[k].id2 = body_md[i].id;
+			events[k].idx1 = 0;
+			events[k].idx2 = i;
 			events[k].r1 = r[0];
 			events[k].v1 = v[0];
 			events[k].r2 = r[i];
@@ -175,10 +168,10 @@ static __global__
 			events[k].event_name = EVENT_NAME_COLLISION;
 			events[k].d = d;
 			events[k].t = t;
-			events[k].id.x = body_md[survivIdx].id;
-			events[k].id.y = body_md[mergerIdx].id;
-			events[k].idx.x = survivIdx;
-			events[k].idx.y = mergerIdx;
+			events[k].id1 = body_md[survivIdx].id;
+			events[k].id2 = body_md[mergerIdx].id;
+			events[k].idx1 = survivIdx;
+			events[k].idx2 = mergerIdx;
 			events[k].r1 = r[survivIdx];
 			events[k].v1 = v[survivIdx];
 			events[k].r2 = r[mergerIdx];
@@ -255,10 +248,10 @@ static __global__
 					events[k].event_name = EVENT_NAME_COLLISION;
 					events[k].d = d;
 					events[k].t = t;
-					events[k].id.x = body_md[survivIdx].id;
-					events[k].id.y = body_md[mergerIdx].id;
-					events[k].idx.x = survivIdx;
-					events[k].idx.y = mergerIdx;
+					events[k].id1 = body_md[survivIdx].id;
+					events[k].id2 = body_md[mergerIdx].id;
+					events[k].idx1 = survivIdx;
+					events[k].idx2 = mergerIdx;
 					events[k].r1 = r[survivIdx];
 					events[k].v1 = v[survivIdx];
 					events[k].r2 = r[mergerIdx];
@@ -636,34 +629,6 @@ void pp_disk::handle_ejection_hit_centrum()
 	}
 }
 
-//void pp_disk::create_sp_events()
-//{
-//	sp_events.resize(event_counter);
-//
-//	sp_events[0] = events[0];
-//	int k = 0;
-//	// Iterates over all collisions
-//	for (int i = 1; i < event_counter; i++)
-//	{
-//		if (sp_events[k].id.x == events[i].id.x && sp_events[k].id.y == events[i].id.y)
-//		{
-//			if (sp_events[k].t > events[i].t)
-//			{
-//				sp_events[k] = events[i];
-//			}
-//			continue;
-//		}
-//		else
-//		{
-//			k++;
-//			sp_events[k] = events[i];
-//		}
-//	}
-//	sp_events.resize(k+1);
-//	survivors.resize(k+1);
-//}
-
-
 void pp_disk::create_sp_events()
 {
 	sp_events.resize(event_counter);
@@ -688,7 +653,7 @@ void pp_disk::create_sp_events()
 		}
 		for (int i = k + 1; i < event_counter; i++)
 		{
-			if (sp_events[n].id.x == events[i].id.x && sp_events[n].id.y == events[i].id.y)
+			if (sp_events[n].id1 == events[i].id1 && sp_events[n].id2 == events[i].id2)
 			{
 				processed[i] = true;
 				if (sp_events[n].t > events[i].t)
@@ -707,16 +672,21 @@ void pp_disk::create_sp_events()
 
 void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 {
-	int survivIdx = collision->idx.x;
-	int mergerIdx = collision->idx.y;
+	int survivIdx = collision->idx1;
+	int mergerIdx = collision->idx2;
 
 	// Calculate position and velocitiy of the new object
 	vec_t r0 = {0.0, 0.0, 0.0, 0.0};
 	vec_t v0 = {0.0, 0.0, 0.0, 0.0};
+	
+	collision->p1 = sim_data->p[survivIdx];
+	collision->p2 = sim_data->p[mergerIdx];
 
-	var_t m_surviv = sim_data->p[survivIdx].mass;
-	var_t m_merger = sim_data->p[mergerIdx].mass;
+	var_t m_surviv = collision->p1.mass;
+	var_t m_merger = collision->p2.mass;
 	calc_phase_after_collision(m_surviv, m_merger, &(collision->r1), &(collision->v1), &(collision->r2), &(collision->v2), r0, v0);
+	collision->rs = r0;
+	collision->vs = v0;
 
 	if (BODY_TYPE_SUPERPLANETESIMAL == sim_data->body_md[mergerIdx].body_type)
 	{
@@ -734,6 +704,7 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 	sim_data->p[survivIdx].mass	   = mass;
 	sim_data->p[survivIdx].density = density;
 	sim_data->p[survivIdx].radius  = radius;
+	collision->ps = sim_data->p[survivIdx];
 
 	// Make the merged body inactive 
 	sim_data->body_md[mergerIdx].id *= -1;
@@ -750,10 +721,10 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 	sim_data->y[1][mergerIdx].z = 0.0;
 
 	// Store the data of the survivor
-	survivors[i].r = r0;
-	survivors[i].v = v0;
-	survivors[i].p = sim_data->p[survivIdx];
-	survivors[i].body_md = sim_data->body_md[survivIdx];
+	//survivors[i].r = r0;
+	//survivors[i].v = v0;
+	//survivors[i].p = sim_data->p[survivIdx];
+	//survivors[i].body_md = sim_data->body_md[survivIdx];
 
 	copy_vector_to_device((void **)&sim_data->d_y[0][survivIdx],	(void *)&r0,							sizeof(vec_t));
 	copy_vector_to_device((void **)&sim_data->d_y[1][survivIdx],	(void *)&v0,							sizeof(vec_t));
@@ -1335,42 +1306,42 @@ void pp_disk::print_event_data(ostream& sout, ostream& log_f)
 		sout << setw(16)      << e_names[sp_events[i].event_name] << SEP
 			 << setw(var_t_w) << sp_events[i].t << SEP
 			 << setw(var_t_w) << sp_events[i].d << SEP
-			 << setw(int_t_w) << sp_events[i].id.x << SEP
-			 << setw(int_t_w) << sp_events[i].id.y << SEP
-			 << setw(var_t_w) << sim_data->p[sp_events[i].idx.x].mass << SEP
-			 << setw(var_t_w) << sim_data->p[sp_events[i].idx.x].density << SEP
-			 << setw(var_t_w) << sim_data->p[sp_events[i].idx.x].radius << SEP
-			 << setw(var_t_w) << sp_events[i].r1.x << SEP
+			 << setw(int_t_w) << sp_events[i].id1 << SEP		/* id of the survivor */
+			 << setw(int_t_w) << sp_events[i].id2 << SEP		/* id of the merger */
+			 << setw(var_t_w) << sp_events[i].p1.mass << SEP	/* parameters of the survivor before the event */
+			 << setw(var_t_w) << sp_events[i].p1.density << SEP
+			 << setw(var_t_w) << sp_events[i].p1.radius << SEP
+			 << setw(var_t_w) << sp_events[i].r1.x << SEP		/* position of the survivor before the event */
 			 << setw(var_t_w) << sp_events[i].r1.y << SEP
 			 << setw(var_t_w) << sp_events[i].r1.z << SEP
-			 << setw(var_t_w) << sp_events[i].v1.x << SEP
+			 << setw(var_t_w) << sp_events[i].v1.x << SEP		/* velocity of the survivor before the event */
 			 << setw(var_t_w) << sp_events[i].v1.y << SEP
 			 << setw(var_t_w) << sp_events[i].v1.z << SEP
-			 << setw(var_t_w) << sim_data->p[sp_events[i].idx.y].mass << SEP
-			 << setw(var_t_w) << sim_data->p[sp_events[i].idx.y].density << SEP
-			 << setw(var_t_w) << sim_data->p[sp_events[i].idx.y].radius << SEP
-			 << setw(var_t_w) << sp_events[i].r2.x << SEP
+			 << setw(var_t_w) << sp_events[i].p2.mass << SEP	/* parameters of the merger before the event */
+			 << setw(var_t_w) << sp_events[i].p2.density << SEP
+			 << setw(var_t_w) << sp_events[i].p2.radius << SEP
+			 << setw(var_t_w) << sp_events[i].r2.x << SEP		/* position of the merger before the event */
 			 << setw(var_t_w) << sp_events[i].r2.y << SEP
 			 << setw(var_t_w) << sp_events[i].r2.z << SEP
-			 << setw(var_t_w) << sp_events[i].v2.x << SEP
+			 << setw(var_t_w) << sp_events[i].v2.x << SEP		/* velocity of the merger before the event */
 			 << setw(var_t_w) << sp_events[i].v2.y << SEP
 			 << setw(var_t_w) << sp_events[i].v2.z << SEP
-			 << setw(int_t_w) << survivors[i].body_md.id << SEP
-			 << setw(var_t_w) << survivors[i].p.mass << SEP
-			 << setw(var_t_w) << survivors[i].p.density << SEP
-			 << setw(var_t_w) << survivors[i].p.radius << SEP
-			 << setw(var_t_w) << survivors[i].r.x << SEP
-			 << setw(var_t_w) << survivors[i].r.y << SEP
-			 << setw(var_t_w) << survivors[i].r.z << SEP
-			 << setw(var_t_w) << survivors[i].v.x << SEP
-			 << setw(var_t_w) << survivors[i].v.y << SEP
-			 << setw(var_t_w) << survivors[i].v.z << SEP << endl;
+			 /*<< setw(int_t_w) << survivors[i].body_md.id << SEP*/
+			 << setw(var_t_w) << sp_events[i].ps.mass << SEP	/* parameters of the survivor after the event */
+			 << setw(var_t_w) << sp_events[i].ps.density << SEP
+			 << setw(var_t_w) << sp_events[i].ps.radius << SEP
+			 << setw(var_t_w) << sp_events[i].rs.x << SEP		/* position of the survivor after the event */
+			 << setw(var_t_w) << sp_events[i].rs.y << SEP
+			 << setw(var_t_w) << sp_events[i].rs.z << SEP
+			 << setw(var_t_w) << sp_events[i].vs.x << SEP		/* velocity of the survivor after the event */
+			 << setw(var_t_w) << sp_events[i].vs.y << SEP
+			 << setw(var_t_w) << sp_events[i].vs.z << SEP << endl;
 		if (log_f)
 		{
 			log_f << tools::get_time_stamp() << SEP 
 				  << e_names[sp_events[i].event_name] << SEP
-			      << setw(int_t_w) << sp_events[i].id.x << SEP
-			      << setw(int_t_w) << sp_events[i].id.y << SEP << endl;
+			      << setw(int_t_w) << sp_events[i].id1 << SEP
+			      << setw(int_t_w) << sp_events[i].id2 << SEP << endl;
 		}
 	}
 	sout.flush();

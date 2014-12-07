@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-v -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Release\TwoBody -p parameters.txt -ic TwoBody.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -iDir C:\Work\Projects\red.cuda\TestRun\Emese_Coll_Test -p parameters.txt -ic coll_test.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-v -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Debug\TwoBody -p parameters.txt -ic TwoBody.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -n_tpb 64 -iDir C:\Work\red.cuda.Results\Dvorak\2D\NewRun\Run_cf1.0 -p parameters.txt -ic run_04.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

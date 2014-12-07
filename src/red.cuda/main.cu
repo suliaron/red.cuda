@@ -39,26 +39,26 @@ void create_result_filename(options &opt, integrator *intgr, string &path)
 {
 	string adapt = (opt.param->adaptive == true ? "_a_" : "_");
 	string ups = (opt.use_padded_storage == true ? "ups_" : "");
-	string result_filename = "result_3" + adapt + ups + intgr->name + ".txt";
+	string result_filename = "result_4" + adapt + ups + intgr->name + ".txt";
 	path = file::combine_path(opt.printout_dir, result_filename);
 }
 
 void create_event_filename(options &opt, integrator *intgr, string &path)
 {
 	string ups = (opt.use_padded_storage == true ? "ups_" : "");
-	path = file::combine_path(opt.printout_dir, ups + "event_3.txt");
+	path = file::combine_path(opt.printout_dir, ups + "event_4.txt");
 }
 
 void create_log_filename(options &opt, integrator *intgr, string &path)
 {
 	string ups = (opt.use_padded_storage == true ? "ups_" : "");
-	path = file::combine_path(opt.printout_dir, ups + "log_3.txt");
+	path = file::combine_path(opt.printout_dir, ups + "log_4.txt");
 }
 
 void create_info_filename(options &opt, integrator *intgr, string &path)
 {
 	string ups = (opt.use_padded_storage == true ? "ups_" : "");
-	path = file::combine_path(opt.printout_dir, ups + "info_3.txt");
+	path = file::combine_path(opt.printout_dir, ups + "info_4.txt");
 }
 
 ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* time_of_one_step)
@@ -123,7 +123,7 @@ int main(int argc, const char** argv, const char** env)
 {
 	time_t start = time(NULL);
 
-	ostream* log_f;
+	ostream* log_f = 0x0;
 	try
 	{
 		options opt = options(argc, argv);
@@ -178,7 +178,7 @@ int main(int argc, const char** argv, const char** env)
 			dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
 			ps += fabs(dt);
 
-			if (ppd->check_for_collision())
+			if (opt.param->threshold[THRESHOLD_COLLISION_FACTOR] > 0.0 && ppd->check_for_collision())
 			{
 				ppd->print_event_data(*event_f, *log_f);
 				ppd->clear_event_counter();
@@ -206,12 +206,18 @@ int main(int argc, const char** argv, const char** env)
 	} /* try */
 	catch (const nbody_exception& ex)
 	{
-		file::log_message(*log_f, "Error: " + string(ex.what()));
+		if (0x0 != log_f)
+		{
+			file::log_message(*log_f, "Error: " + string(ex.what()));
+		}
 		cerr << "Error: " << ex.what() << endl;
 	}
 	catch (const string& msg)
 	{
-		file::log_message(*log_f, "Error: " + msg);
+		if (0x0 != log_f)
+		{
+			file::log_message(*log_f, "Error: " + msg);
+		}
 		cerr << "Error: " << msg << endl;
 	}
 	file::log_message(*log_f, " Total time: " + tools::convert_time_t(time(NULL) - start) + " s");

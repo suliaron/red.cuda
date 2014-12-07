@@ -112,6 +112,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_20,sm_20</CodeGeneration>
       <Include>%(Include)</Include>
+      <AdditionalOptions>-fmad=false %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -171,6 +172,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile Include="int_euler.cu" />
     <CudaCompile Include="int_rungekutta2.cu" />
     <CudaCompile Include="int_rungekutta4.cu" />
+    <CudaCompile Include="int_rungekutta5.cu" />
     <CudaCompile Include="int_rungekutta8.cu" />
     <CudaCompile Include="main.cu" />
     <CudaCompile Include="pp_disk.cu" />
@@ -191,7 +193,9 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="gas_disk.h" />
     <ClInclude Include="int_rungekutta2.h" />
     <ClInclude Include="int_rungekutta4.h" />
-    <ClInclude Include="int_rungekutta5.h" />
+    <ClInclude Include="int_rungekutta5.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="int_rungekutta8.h" />
     <ClInclude Include="nbody_exception.h" />
     <ClInclude Include="number_of_bodies.h" />

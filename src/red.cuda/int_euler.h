@@ -19,7 +19,7 @@ public:
 	ttt_t	step();
 
 private:
-	void	call_kernel_calc_y_np1();
+	void	call_kernel_calc_y_np1(int n_var);
 
 	vector<vec_t*> d_df;		/*!< Differentials on the device */
 };

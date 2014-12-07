@@ -23,8 +23,8 @@ public:
 	ttt_t step();
 
 private:
-	void call_kernel_calc_ytemp_for_fr(int r);
-	void call_kernel_calc_y_np1();
+	void call_kernel_calc_ytemp_for_fr(int n_var, int r);
+	void call_kernel_calc_y_np1(int n_var);
 
 	//! The order of the embedded RK formulae
 	int	RKOrder;

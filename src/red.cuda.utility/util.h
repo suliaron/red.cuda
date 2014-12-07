@@ -8,5 +8,6 @@ void allocate_device_vector(void **d_ptr, size_t size, const char *file, int lin
 
 void copy_vector_to_device(void* dst, const void *src, size_t count);
 void copy_vector_to_host(void* dst, const void *src, size_t count);
+void copy_vector_d2d(void* dst, const void *src, size_t count);
 
 void copy_constant_to_device(const void* dst, const void *src, size_t count);

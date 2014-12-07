@@ -42,6 +42,7 @@ typedef enum integrator_type
 			INTEGRATOR_EULER,
 			INTEGRATOR_RUNGEKUTTA2,
 			INTEGRATOR_RUNGEKUTTA4,
+			INTEGRATOR_RUNGEKUTTA5,
 			INTEGRATOR_RUNGEKUTTAFEHLBERG78,
 			INTEGRATOR_RUNGEKUTTANYSTROM,
 		} integrator_type_t;
@@ -160,14 +161,28 @@ typedef struct sim_data
 typedef struct event_data
 		{
 			event_name_t	event_name;	//!< Name of the event
+
 			ttt_t	t;			//!< Time of the event
-			int2_t	id;			//!< ids of the bodies
-			int2_t	idx;		//!< indices of the bodies
+			//int2_t	id;			//!< ids of the bodies, x: is the survivor, y is the merger
+			//int2_t	idx;		//!< indices of the bodies, x: is the survivor, y is the merger
 			var_t	d;			//!< distance of the bodies
-			vec_t	r1;			//!< Position of body 1
-			vec_t	v1;			//!< Velocity of body 1
-			vec_t	r2;			//!< Position of body 2
-			vec_t	v2;			//!< Velocity of body 2
+
+			int		id1;		//!< Id of the survivor
+			int		idx1;		//!< Index of the survivor
+			param_t p1;			//!< Parameters of the survivor before the event
+			vec_t	r1;			//!< Position of survisor
+			vec_t	v1;			//!< Velocity of survisor
+
+			int		id2;		//!< Id of the merger
+			int		idx2;		//!< Index of the merger
+			param_t p2;			//!< Parameters of the merger before the event
+			vec_t	r2;			//!< Position of merger
+			vec_t	v2;			//!< Velocity of merger
+
+			int		idxs;		//!< Index of the survivor
+			param_t ps;			//!< Parameters of the survivor after the event
+			vec_t	rs;			//!< Position of survivor after the event
+			vec_t	vs;			//!< Velocity of survivor after the event
 		} event_data_t;
 
 struct interaction_bound

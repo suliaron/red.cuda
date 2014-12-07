@@ -172,6 +172,16 @@ void copy_vector_to_host(void* dst, const void *src, size_t count)
 	}
 }
 
+void copy_vector_d2d(void* dst, const void *src, size_t count)
+{
+	cudaMemcpy(dst, src, count, cudaMemcpyDeviceToDevice);
+	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("cudaMemcpy failed (copy_vector_d2d)");
+	}
+}
+
 void copy_constant_to_device(const void* dst, const void *src, size_t count)
 {
 	cudaMemcpyToSymbol(dst, src, count);

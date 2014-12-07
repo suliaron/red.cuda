@@ -9,6 +9,7 @@
 #include "int_euler.h"
 #include "int_rungekutta2.h"
 #include "int_rungekutta4.h"
+#include "int_rungekutta5.h"
 #include "int_rungekutta8.h"
 #include "util.h"
 
@@ -156,8 +157,12 @@ integrator* options::create_integrator(pp_disk* ppd, ttt_t dt)
 	case INTEGRATOR_RUNGEKUTTA4:
 		intgr = new rungekutta4(ppd, dt, param->adaptive, param->tolerance);
 		break;
+	case INTEGRATOR_RUNGEKUTTA5:
+		intgr = new rungekutta5(ppd, dt, param->adaptive, param->tolerance);
+		break;
 	case INTEGRATOR_RUNGEKUTTAFEHLBERG78:
 		intgr = new rungekutta8(ppd, dt, param->adaptive, param->tolerance);
+		//intgr = new c_rungekutta8(ppd, dt, param->adaptive, param->tolerance);
 		break;
 	case INTEGRATOR_RUNGEKUTTANYSTROM:
 		throw string("Requested integrator is not implemented.");

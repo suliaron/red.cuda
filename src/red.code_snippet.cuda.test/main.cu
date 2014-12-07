@@ -133,10 +133,10 @@ static __global__
 					events[k].event_name = EVENT_NAME_COLLISION;
 					events[k].d = d;
 					events[k].t = t;
-					events[k].id.x = body_md[survivIdx].id;
-					events[k].id.y = body_md[mergerIdx].id;
-					events[k].idx.x = survivIdx;
-					events[k].idx.y = mergerIdx;
+					events[k].id1 = body_md[survivIdx].id;
+					events[k].id2 = body_md[mergerIdx].id;
+					events[k].idx1 = survivIdx;
+					events[k].idx2 = mergerIdx;
 					events[k].r1 = r[survivIdx];
 					events[k].v1 = v[survivIdx];
 					events[k].r2 = r[mergerIdx];
@@ -155,10 +155,24 @@ static __global__
 __global__
 	void kernel_print_array(int n, const var_t* v)
 {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i < n)
+	printf("v: %p\n", v);
+
+	for (int i = 0; i < n; i++)
 	{
 		printf("v[%4d] : %20.16lf\n", i, v[i]);
+	}
+}
+
+__global__
+	void kernel_print_array(int n, int k, var_t** v)
+{
+	printf("k: %2d\n", k);
+	printf("v: %p\n", v);
+	printf("v[%2d]: %p\n", k, v[k]);
+
+	for (int i = 0; i < n; i++)
+	{
+		printf("v[%2d][%2d] : %20.16lf\n", k, i, v[k][i]);
 	}
 }
 
@@ -381,6 +395,8 @@ int main(int argc, const char** argv)
 }
 #endif
 
+#if 0
+
 // Measure the execution time of the kernel computing the gravitational acceleleration
 
 class number_of_bodies
@@ -566,7 +582,6 @@ int	number_of_bodies::get_n_massive()
 	return (get_n_SI() + get_n_NSI());
 }
 
-
 int number_of_bodies::get_n_prime_SI()
 {
 	// The number of self-interacting (SI) bodies aligned to n_tbp
@@ -590,26 +605,10 @@ int number_of_bodies::get_n_prime_total()
 	return (get_n_prime_SI() + get_n_prime_NSI() + get_n_prime_NI());
 }
 
-//int	number_of_bodies::get_n_prime_GD()
-//{
-//	return ((n_spl + n_pl + n_tpb - 1) / n_tpb) * n_tpb;
-//}
-//
-//int	number_of_bodies::get_n_prime_MT1()
-//{
-//	return (n_rp + n_pp);
-//}
-//
-//int	number_of_bodies::get_n_prime_MT2()
-//{
-//	return n_gp;
-//}
-
 int	number_of_bodies::get_n_prime_massive()
 {
 	return (get_n_prime_SI() + get_n_prime_NSI());
 }
-
 
 interaction_bound number_of_bodies::get_bound_SI()
 {
@@ -751,47 +750,6 @@ event_data_t* events;
 event_data_t* d_events;
 int event_counter;
 int *d_event_counter;
-
-//void _allocate_device_vector(void **d_ptr, size_t size, const char *file, int line)
-//{
-//	cudaMalloc(d_ptr, size);
-//	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-//	if (cudaSuccess != cudaStatus)
-//	{
-//		throw string("cudaMalloc failed (allocate_device_vector)");
-//	}
-//}
-//
-//void _copy_vector_to_device(void* dst, const void *src, size_t count)
-//{
-//	cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice);
-//	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-//	if (cudaSuccess != cudaStatus)
-//	{
-//		throw string("cudaMemcpy failed (copy_vector_to_device)");
-//	}
-//}
-//
-//void _copy_vector_to_host(void* dst, const void *src, size_t count)
-//{
-//	cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost);
-//	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-//	if (cudaSuccess != cudaStatus)
-//	{
-//		throw string("cudaMemcpy failed (copy_vector_to_host)");
-//	}
-//}
-//
-//void _copy_constant_to_device(const void* dst, const void *src, size_t count)
-//{
-//	cudaMemcpyToSymbol(dst, src, count);
-//	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-//	if (cudaSuccess != cudaStatus)
-//	{
-//		throw string("cudaMemcpyToSymbol failed (copy_constant_to_device)");
-//	}
-//}
-
 
 void allocate_storage(number_of_bodies *n_bodies, sim_data_t *sim_data)
 {
@@ -1091,3 +1049,119 @@ int main(int argc, const char** argv)
 	// Needed by nvprof.exe
 	cudaDeviceReset();
 }
+#endif
+
+#if 1
+
+static __global__
+	void kernel_print_memory_address(int n, var_t* adr)
+{
+	for (int i = 0; i < n; i++)
+	{
+		printf("adr[%2d]: %p\n", i, adr[i]);
+	}
+}
+
+static __global__
+	void kernel_populate(int n, var_t value, var_t* dst)
+{
+	for (int i = 0; i < n; i++)
+	{
+		dst[i] = value;
+	}
+}
+
+int main()
+{
+	vector<vector <vec_t*> >	d_f(2);
+	vec_t** d_dydt;
+
+	const int n_total = 2;
+	const int r_max = 3;
+
+	// ALLOCATION
+	ALLOCATE_DEVICE_VECTOR((void**)&d_dydt, 2*r_max*sizeof(vec_t*));
+	for (int i = 0; i < 2; i++)
+	{
+		d_f[i].resize(r_max);
+		for (int r = 0; r < r_max; r++) 
+		{
+			ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n_total*sizeof(vec_t));
+			copy_vector_to_device((void*)&d_dydt[i*r_max + r], &d_f[i][r], sizeof(var_t*));
+		}
+	}
+	// ALLOCATION END
+
+	// PRINT ALLOCATED ADDRESSES
+	for (int i = 0; i < 2; i++)
+	{
+		for (int r = 0; r < r_max; r++) 
+		{
+			printf("d_f[%d][%2d]: %p\n", i, r, d_f[i][r]);
+		}
+	}
+
+	kernel_print_memory_address<<<1, 1>>>(2*r_max, (var_t*)d_dydt);
+	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("kernel_print_memory_address failed");
+	}
+	cudaDeviceSynchronize();
+	// PRINT ALLOCATED ADDRESSES END
+
+	// POPULATE ALLOCATED STORAGE
+	for (int i = 0; i < 2; i++)
+	{
+		for (int r = 0; r < r_max; r++) 
+		{
+			kernel_populate<<<1, 1>>>(n_total, pow(-1.0, i) * r, (var_t*)d_f[i][r]);
+		}
+	}	
+	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("kernel_populate failed");
+	}
+	cudaDeviceSynchronize();
+	// POPULATE ALLOCATED STORAGE END
+
+	// PRINT DATA
+	printf("d_f[][]:\n");
+	for (int i = 0; i < 2; i++)
+	{
+		for (int r = 0; r < r_max; r++) 
+		{
+			kernel_print_array<<<1, 1>>>(n_total, (var_t*)d_f[i][r]);
+			cudaStatus = HANDLE_ERROR(cudaGetLastError());
+			if (cudaSuccess != cudaStatus)
+			{
+				throw string("kernel_print_array failed");
+			}
+			cudaDeviceSynchronize();
+		}
+	}
+	// PRINT DATA END
+
+	// PRINT DATA
+	printf("d_dydt[]:\n");
+	for (int i = 0; i < 2; i++)
+	{
+		for (int r = 0; r < r_max; r++) 
+		{
+			var_t** d_ptr = (var_t**)d_dydt;
+			kernel_print_array<<<1, 1>>>(n_total, i*r_max + r, d_ptr);
+			cudaStatus = HANDLE_ERROR(cudaGetLastError());
+			if (cudaSuccess != cudaStatus)
+			{
+				throw string("kernel_print_array failed");
+			}
+			cudaDeviceSynchronize();
+		}
+	}	
+	// PRINT DATA END
+
+	cudaDeviceReset();
+}
+
+#endif

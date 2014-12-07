@@ -24,9 +24,9 @@ public:
 	ttt_t step();
 
 private:
-	void call_kernel_calc_ytemp_for_fr(int r);
-	void call_kernel_calc_yHat();
-	void call_kernel_calc_error();
+	void call_kernel_calc_ytemp(int n_var,int r);
+	void call_kernel_calc_y_np1(int n_var);
+	void call_kernel_calc_error(int n_var);
 
 	var_t get_max_error(int n_var);
 
@@ -41,6 +41,7 @@ private:
 
 	//! Holds the derivatives for the differential equations
 	vector<vector <vec_t*> >	d_f;
+	vec_t** d_dydt;
 	//! Holds the leading local truncation error for each variable
 	vector<var_t*>				d_err;
 };

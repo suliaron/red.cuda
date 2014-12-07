@@ -24,9 +24,9 @@ public:
 	ttt_t step();
 
 private:
-	void call_kernel_calc_ytemp_for_fr(int r);
-	void call_kernel_calc_yHat();
-	void call_kernel_calc_error();
+	void call_kernel_calc_ytemp_for_fr(int n_var, int r);
+	void call_kernel_calc_yHat(int n_var);
+	void call_kernel_calc_error(int n_var);
 
 	var_t get_max_error(int n_var);
 

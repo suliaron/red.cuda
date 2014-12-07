@@ -20,9 +20,13 @@ parameter::parameter(string& dir, string& filename, bool verbose) :
 	tolerance(1.0e-10),
 	start_time(0.0),
 	simulation_length(0.0),
-	output_interval(0.0),
-	threshold()			/* syntax for zeroing the array */
+	output_interval(0.0)
 {
+	for (int i = 0; i < THRESHOLD_N; i++)
+	{
+		threshold[i] = -1.0;
+	}
+
 	string path = file::combine_path(dir, filename);
 	file::load_ascii_file(path, data);
 	parse();
@@ -107,6 +111,9 @@ void parameter::set_param(string& key, string& value)
 		}
 		else if (value == "rk4" || value == "rungekutta4")	{
 			int_type = INTEGRATOR_RUNGEKUTTA4;
+		}
+		else if (value == "rk5" || value == "rungekutta5")	{
+			int_type = INTEGRATOR_RUNGEKUTTA5;
 		}
 		else if (value == "rkf8" || value == "rungekuttafehlberg8")	{
 			int_type = INTEGRATOR_RUNGEKUTTAFEHLBERG78;
@@ -203,6 +210,7 @@ ostream& operator<<(ostream& stream, const parameter* p)
 			"INTEGRATOR_EULER"
 			"INTEGRATOR_RUNGEKUTTA2",
 			"INTEGRATOR_RUNGEKUTTA4",
+			"INTEGRATOR_RUNGEKUTTA5",
 			"INTEGRATOR_RUNGEKUTTAFEHLBERG78",
 			"INTEGRATOR_RUNGEKUTTANYSTROM"
 		};
