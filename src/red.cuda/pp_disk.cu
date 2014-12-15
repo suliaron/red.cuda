@@ -1326,7 +1326,6 @@ void pp_disk::print_event_data(ostream& sout, ostream& log_f)
 			 << setw(var_t_w) << sp_events[i].v2.x << SEP		/* velocity of the merger before the event */
 			 << setw(var_t_w) << sp_events[i].v2.y << SEP
 			 << setw(var_t_w) << sp_events[i].v2.z << SEP
-			 /*<< setw(int_t_w) << survivors[i].body_md.id << SEP*/
 			 << setw(var_t_w) << sp_events[i].ps.mass << SEP	/* parameters of the survivor after the event */
 			 << setw(var_t_w) << sp_events[i].ps.density << SEP
 			 << setw(var_t_w) << sp_events[i].ps.radius << SEP

@@ -282,6 +282,30 @@ void print_body_record(ofstream &sout, string name, var_t epoch, param_t *p, bod
     sout.flush();
 }
 
+void print_body_record_Emese(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v)
+{
+	static int int_t_w  = 25;
+	static int var_t_w  = 25;
+
+	sout.precision(16);
+	sout.setf(ios::left);
+	sout.setf(ios::scientific);
+
+	sout << setw(int_t_w) << body_md->id
+		 << setw(     25) << name
+		 << setw(     25) << body_md->body_type
+		 << setw(var_t_w) << r->x
+		 << setw(var_t_w) << r->y
+		 << setw(var_t_w) << r->z
+		 << setw(var_t_w) << v->x
+		 << setw(var_t_w) << v->y
+		 << setw(var_t_w) << v->z
+		 << setw(var_t_w) << p->mass
+		 << setw(var_t_w) << p->radius << endl;
+
+    sout.flush();
+}
+
 void print_oe_record(ofstream &sout, orbelem_t* oe)
 {
 	static int var_t_w  = 15;

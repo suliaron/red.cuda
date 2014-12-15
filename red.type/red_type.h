@@ -163,8 +163,6 @@ typedef struct event_data
 			event_name_t	event_name;	//!< Name of the event
 
 			ttt_t	t;			//!< Time of the event
-			//int2_t	id;			//!< ids of the bodies, x: is the survivor, y is the merger
-			//int2_t	idx;		//!< indices of the bodies, x: is the survivor, y is the merger
 			var_t	d;			//!< distance of the bodies
 
 			int		id1;		//!< Id of the survivor
@@ -179,7 +177,6 @@ typedef struct event_data
 			vec_t	r2;			//!< Position of merger
 			vec_t	v2;			//!< Velocity of merger
 
-			int		idxs;		//!< Index of the survivor
 			param_t ps;			//!< Parameters of the survivor after the event
 			vec_t	rs;			//!< Position of survivor after the event
 			vec_t	vs;			//!< Velocity of survivor after the event
