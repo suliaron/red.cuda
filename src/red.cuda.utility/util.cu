@@ -1,4 +1,5 @@
 // includes system
+#include <ostream>
 #include <string>
 
 // includes project

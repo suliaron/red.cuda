@@ -1,8 +1,9 @@
 // includes system
+#include <cctype>
+#include <cmath>
+#include <ctime>
 #include <iostream>
 #include <sstream>
-#include <cctype>
-#include <ctime>
 #include <string>
 
 // includes project
