@@ -1,3 +1,5 @@
+// includes system
+#include <cmath>
 
 // includes, project
 #include "nebula.h"
