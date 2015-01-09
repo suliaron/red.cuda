@@ -224,12 +224,20 @@ void log_start_cmd(ostream& sout, int argc, const char** argv, const char** env)
 		string s = *env;
 #ifdef __GNUC__
 		// TODO
-#else
-		if(      s.find("COMPUTERNAME=") < s.length())
+		if(      s.find("HOSTNAME=") < s.length())
 		{
 			sout << s << endl;
 		}
-		else if (s.find("OS=") < s.length())
+		else if (s.find("USER=") < s.length())
+		{
+			sout << s << endl;
+		}
+		else if (s.find("OSTYPE=") < s.length())
+		{
+			sout << s << endl;
+		}
+#else
+		if(      s.find("COMPUTERNAME=") < s.length())
 		{
 			sout << s << endl;
 		}
@@ -237,8 +245,12 @@ void log_start_cmd(ostream& sout, int argc, const char** argv, const char** env)
 		{
 			sout << s << endl;
 		}
-		env++;
+		else if (s.find("OS=") < s.length())
+		{
+			sout << s << endl;
+		}
 #endif
+		env++;
 	}
 	sout << endl;
 }
