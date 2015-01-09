@@ -1,4 +1,5 @@
 // includes, system 
+#include <cmath>
 #include <fstream>		// ofstream
 #include <string>		// string
 #include <sstream>		// ostringstream

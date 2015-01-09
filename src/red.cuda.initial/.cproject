@@ -99,10 +99,10 @@
 								<inputType id="nvcc.compiler.input.c.1339743156" superClass="nvcc.compiler.input.c"/>
 							</tool>
 							<tool id="nvcc.linker.base.84943200" name="NVCC Linker" superClass="nvcc.linker.base">
-								<option id="nvcc.linker.option.libs.1412385973" superClass="nvcc.linker.option.libs" valueType="libs">
+								<option id="nvcc.linker.option.libs.1412385973" name="Libraries (-l)" superClass="nvcc.linker.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="redutilcu"/>
 								</option>
-								<option id="nvcc.linker.option.paths.1104476646" superClass="nvcc.linker.option.paths" valueType="libPaths">
+								<option id="nvcc.linker.option.paths.1104476646" name="Library search path (-L)" superClass="nvcc.linker.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="/ssd_bavu/suli/Work/Projects/red.cuda/src/red.cuda.utility/Release"/>
 								</option>
 								<inputType id="nvcc.linker.input.993477067" superClass="nvcc.linker.input">
