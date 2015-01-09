@@ -38,6 +38,7 @@ tokenizer.o \
 int_euler.o \
 int_rungekutta2.o \
 int_rungekutta4.o \
+int_rungekutta5.o \
 int_rungekutta8.o \
 main.o \
 pp_disk.o
