@@ -1188,6 +1188,66 @@ int main()
 #if 1
 int main(int argc, const char** argv)
 {
+	cudaError_t cudaStatus = cudaSuccess;
+
+	int n_device = 0;
+	int id_active_dev = -1;
+
+	cudaStatus = cudaGetDeviceCount(&n_device);
+	if (cudaSuccess != cudaStatus)
+	{
+		printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+		exit(0);
+	}
+	printf("The number of CUDA device(s) : %2d\n", n_device);
+
+	if (1 > n_device)
+	{
+		printf("No CUDA device was found. Exiting to system.\n");
+		exit(0);
+	}
+
+    for (int dev = 0; dev < n_device; ++dev)
+    {
+		printf("Setting the device id: %2d\n", dev);
+        cudaStatus = cudaSetDevice(dev);
+		if (cudaSuccess != cudaStatus)
+		{
+			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+			exit(0);
+		}
+		cudaStatus = cudaGetDevice(&id_active_dev);
+		if (cudaSuccess != cudaStatus)
+		{
+			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+			exit(0);
+		}
+		printf("The id of the active device: %2d\n", id_active_dev);
+
+        cudaDeviceProp deviceProp;
+        cudaStatus = cudaGetDeviceProperties(&deviceProp, dev);
+		if (cudaSuccess != cudaStatus)
+		{
+			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+			exit(0);
+		}
+
+        cout << "The code runs on " << deviceProp.name << " device:" << endl;
+		//[domain]:[bus]:[device].
+		cout << "The PCI domain ID of the device : " << deviceProp.pciDomainID << endl;
+		cout << "The PCI bus ID of the device    : " << deviceProp.pciBusID << endl;
+		cout << "The PCI device ID of the device : " << deviceProp.pciDeviceID << endl;
+
+		char pciBusId[255];
+		cudaStatus = cudaDeviceGetPCIBusId(pciBusId, 255, dev);
+		if (cudaSuccess != cudaStatus)
+		{
+			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+			exit(0);
+		}
+		cout << "Identifier string for the device in the following format [domain]:[bus]:[device].[function]: " << pciBusId << endl;
+	}
+
 	//! the hit centrum distance: inside this limit the body is considered to have hitted the central body and removed from the simulation [AU]
 	//! the ejection distance: beyond this limit the body is removed from the simulation [AU]
 	//! two bodies collide when their mutual distance is smaller than the sum of their radii multiplied by this number. Real physical collision corresponds to the value of 1.0.
