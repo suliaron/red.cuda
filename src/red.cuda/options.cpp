@@ -49,7 +49,7 @@ options::options(int argc, const char** argv) :
 	}
 
 	// Set the desired id of the device
-	if (n_device > id_a_dev)
+	if (n_device > id_a_dev && 0 <= id_a_dev)
 	{
 		id_active_device = id_a_dev;
         cudaSetDevice(id_active_device);
@@ -58,6 +58,10 @@ options::options(int argc, const char** argv) :
 		{
 			throw string("cudaSetDevice() failed");
 		}
+	}
+	else
+	{
+		throw string("The requested device id does not exist!");
 	}
 
 	if (parameters_filename.length() == 0)
