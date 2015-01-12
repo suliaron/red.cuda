@@ -117,13 +117,13 @@ $(RED)/%.o : $(RED)/%.cu
 	@echo ''
 
 # compile and generate dependency info
-$(RED_TEST)/%.o : $(RED_TEST)/%.cpp
-	@echo 'Building file: $<'
-	@echo 'Invoking $(NVCC) Compiler'
-	$(NVCC) -c $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
-	$(NVCC) -M -odir "" $(NVCC_FLAGS) $(INCLUDES) -o "$(@:%.o=%.d)" $<
-	@echo 'Finished building: $<'
-	@echo ''
+#$(RED_TEST)/%.o : $(RED_TEST)/%.cpp
+#	@echo 'Building file: $<'
+#	@echo 'Invoking $(NVCC) Compiler'
+#	$(NVCC) -c $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+#	$(NVCC) -M -odir "" $(NVCC_FLAGS) $(INCLUDES) -o "$(@:%.o=%.d)" $<
+#	@echo 'Finished building: $<'
+#	@echo ''
 
 # compile and generate dependency info
 $(RED_TEST)/%.o : $(RED_TEST)/%.cu
