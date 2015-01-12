@@ -44,7 +44,7 @@ public:
 	//! the ejection distance: beyond this limit the body is removed from the simulation [AU]
 	//! two bodies collide when their mutual distance is smaller than the sum of their radii multiplied by this number. Real physical collision corresponds to the value of 1.0.
 	//! Contains the threshold values: hit_centrum_dst, ejection_dst, collision_factor
-	var_t thrshld[THRESHOLD_N];
+	var_t threshold[THRESHOLD_N];
 
 	// Input/Output streams
 	friend ostream& operator<<(ostream& stream, const parameter* param);
