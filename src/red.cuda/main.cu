@@ -31,6 +31,8 @@
 #include "nbody_exception.h"
 #include "options.h"
 #include "red_type.h"
+#include "red_constants.h"
+
 
 using namespace std;
 using namespace redutilcu;
@@ -133,7 +135,10 @@ int main(int argc, const char** argv, const char** env)
 		if (opt.verbose)
 		{
 			file::log_start_cmd(cout, argc, argv, env);
-			device_query(cout);
+			if (0 <= id_active_device)
+			{
+				device_query(cout, id_active_device);
+			}
 		}
 
 		string path;

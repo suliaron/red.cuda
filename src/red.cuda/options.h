@@ -26,6 +26,7 @@ public:
 	string	input_dir;				//!< Input directory
 	bool	use_padded_storage;		//!< Use padded storage to store data (default is false)
 	int		n_tpb;					//!< Number of thread per block to use in kernel lunches (default is 64)
+	int		id_a_dev;				//!< The id of the device which will execute the code
 
 	parameter* param;
 	gas_disk*  g_disk;	

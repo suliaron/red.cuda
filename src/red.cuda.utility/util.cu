@@ -46,7 +46,7 @@ inline int _ConvertSMVer2Cores(int major, int minor)
 }
 // end of GPU Architecture definitions
 
-int device_query(ostream& sout)
+int device_query(ostream& sout, int id_dev)
 {
     int deviceCount = 0;
     cudaError_t error_id = cudaGetDeviceCount(&deviceCount);
@@ -66,31 +66,27 @@ int device_query(ostream& sout)
 
     int dev, driverVersion = 0, runtimeVersion = 0;
 
-    for (dev = 0; dev < deviceCount; ++dev)
-    {
-        cudaSetDevice(dev);
-        cudaDeviceProp deviceProp;
-        cudaGetDeviceProperties(&deviceProp, dev);
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, id_dev);
 
-        sout << "The code runs on " << deviceProp.name << " device:" << endl;
+    sout << "The code runs on " << deviceProp.name << " device:" << endl;
 
-        // Console log
-        cudaDriverGetVersion(&driverVersion);
-        cudaRuntimeGetVersion(&runtimeVersion);
-		sout << "  CUDA Driver Version / Runtime Version          " << driverVersion/1000 << "." << (driverVersion%100)/10 << " / " << runtimeVersion/1000 << "." << (runtimeVersion%100)/10 << endl;
-		sout << "  CUDA Capability Major/Minor version number:    " << deviceProp.major << "." << deviceProp.minor << endl;
-		sout << "  Total amount of global memory:                 " << deviceProp.totalGlobalMem/1048576.0f << " MBytes" << endl;
-		sout << "  " << deviceProp.multiProcessorCount <<  " Multiprocessors, " << _ConvertSMVer2Cores(deviceProp.major, deviceProp.minor) << " CUDA Cores/MP:     " << _ConvertSMVer2Cores(deviceProp.major, deviceProp.minor) * deviceProp.multiProcessorCount << " CUDA Cores" << endl;
-		sout << "  GPU Clock rate:                                " << deviceProp.clockRate * 1e-3f << ".0 MHz" << endl;
-		sout << "  Total amount of constant memory:               " << deviceProp.totalConstMem << " bytes" << endl;
-		sout << "  Total amount of shared memory per block:       " << deviceProp.sharedMemPerBlock << " bytes" << endl;
-		sout << "  Total number of registers available per block: " << deviceProp.regsPerBlock << endl;
-		sout << "  Warp size:                                     " << deviceProp.warpSize << endl;
-		sout << "  Maximum number of threads per multiprocessor:  " << deviceProp.maxThreadsPerMultiProcessor << endl;
-		sout << "  Maximum number of threads per block:           " << deviceProp.maxThreadsPerBlock << endl;
-		sout << "  Max dimension size of a thread block (x,y,z): (" << deviceProp.maxThreadsDim[0] << "," << deviceProp.maxThreadsDim[1] << "," << deviceProp.maxThreadsDim[2] << ")" << endl;
-		sout << "  Max dimension size of a grid size    (x,y,z): (" <<deviceProp.maxGridSize[0] << "," << deviceProp.maxGridSize[1] << "," << deviceProp.maxGridSize[2] << ")" << endl << endl;
-	}
+    // Console log
+    cudaDriverGetVersion(&driverVersion);
+    cudaRuntimeGetVersion(&runtimeVersion);
+	sout << "  CUDA Driver Version / Runtime Version          " << driverVersion/1000 << "." << (driverVersion%100)/10 << " / " << runtimeVersion/1000 << "." << (runtimeVersion%100)/10 << endl;
+	sout << "  CUDA Capability Major/Minor version number:    " << deviceProp.major << "." << deviceProp.minor << endl;
+	sout << "  Total amount of global memory:                 " << deviceProp.totalGlobalMem/1048576.0f << " MBytes" << endl;
+	sout << "  " << deviceProp.multiProcessorCount <<  " Multiprocessors, " << _ConvertSMVer2Cores(deviceProp.major, deviceProp.minor) << " CUDA Cores/MP:     " << _ConvertSMVer2Cores(deviceProp.major, deviceProp.minor) * deviceProp.multiProcessorCount << " CUDA Cores" << endl;
+	sout << "  GPU Clock rate:                                " << deviceProp.clockRate * 1e-3f << ".0 MHz" << endl;
+	sout << "  Total amount of constant memory:               " << deviceProp.totalConstMem << " bytes" << endl;
+	sout << "  Total amount of shared memory per block:       " << deviceProp.sharedMemPerBlock << " bytes" << endl;
+	sout << "  Total number of registers available per block: " << deviceProp.regsPerBlock << endl;
+	sout << "  Warp size:                                     " << deviceProp.warpSize << endl;
+	sout << "  Maximum number of threads per multiprocessor:  " << deviceProp.maxThreadsPerMultiProcessor << endl;
+	sout << "  Maximum number of threads per block:           " << deviceProp.maxThreadsPerBlock << endl;
+	sout << "  Max dimension size of a thread block (x,y,z): (" << deviceProp.maxThreadsDim[0] << "," << deviceProp.maxThreadsDim[1] << "," << deviceProp.maxThreadsDim[2] << ")" << endl;
+	sout << "  Max dimension size of a grid size    (x,y,z): (" <<deviceProp.maxGridSize[0] << "," << deviceProp.maxGridSize[1] << "," << deviceProp.maxGridSize[2] << ")" << endl << endl;
 
     std::string sProfileString = "deviceQuery, CUDA Driver = CUDART";
     char cTemp[16];
@@ -185,7 +181,7 @@ void copy_vector_d2d(void* dst, const void *src, size_t count)
 
 void copy_constant_to_device(const void* dst, const void *src, size_t count)
 {
-	cudaMemcpyToSymbol(dst, src, count);
+	cudaMemcpyToSymbol(dst, src, count, 0, cudaMemcpyHostToDevice);
 	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus)
 	{

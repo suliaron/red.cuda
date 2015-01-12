@@ -12,6 +12,8 @@
 #include "int_rungekutta5.h"
 #include "int_rungekutta8.h"
 #include "util.h"
+#include "red_constants.h"
+#include "red_macro.h"
 
 using namespace redutilcu;
 
@@ -25,6 +27,39 @@ options::options(int argc, const char** argv) :
 {
 	create_default_options();
 	parse_options(argc, argv);
+
+	cudaError_t cudaStatus = cudaSuccess;
+
+	int n_device = 0;
+	cudaGetDeviceCount(&n_device);
+	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("cudaGetDeviceCount() failed");
+	}
+	if (verbose)
+	{
+		printf("The number of CUDA device(s) : %2d\n", n_device);
+	}
+	if (1 > n_device)
+	{
+		printf("No CUDA device was found. The code will execute on the CPU. Implementation is missing.\n");
+		// TODO : implement the CPU code
+		exit(0);
+	}
+
+	// Set the desired id of the device
+	if (n_device > id_a_dev)
+	{
+		id_active_device = id_a_dev;
+        cudaSetDevice(id_active_device);
+		cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus)
+		{
+			throw string("cudaSetDevice() failed");
+		}
+	}
+
 	if (parameters_filename.length() == 0)
 	{
 		throw string("Missing filename for -p | --parameter!");
@@ -50,19 +85,22 @@ void options::print_usage()
 {
 	cout << "Usage: red.cuda <parameterlist>" << endl;
 	cout << "Parameters:" << endl;
-	cout << "     -ups   | --use-padded-storage           : use padded storage to store data (default is false)" << endl; 
-	cout << "     -n_tpb | --n_thread-per-block           : the number of thread per block to use in kernel lunches (default is 64)" << endl;
-	cout << "     -iDir  | --inputDir <directory>         : the directory containing the input files"  << endl;
-	cout << "     -p     | --parameter <filename>         : the file containing the parameters of the simulation"  << endl;
-	cout << "     -gd    | --gas_disk <filename>          : the file containing the parameters of the gas disk"  << endl;
-	cout << "     -ic    | --initial_condition <filename> : the file containing the initial conditions"  << endl;
-	cout << "     -v     | --verbose                      : verbose mode" << endl;
-	cout << "     -h     | --help                         : print this help" << endl;
+	cout << "     -ups    | --use-padded-storage           : use padded storage to store data (default is false)" << endl; 
+	cout << "     -n_tpb  | --n_thread-per-block           : the number of thread per block to use in kernel lunches (default is 64)" << endl;
+	cout << "     -iDir   | --inputDir <directory>         : the directory containing the input files"  << endl;
+	cout << "     -p      | --parameter <filename>         : the file containing the parameters of the simulation"  << endl;
+	cout << "     -gd     | --gas_disk <filename>          : the file containing the parameters of the gas disk"  << endl;
+	cout << "     -ic     | --initial_condition <filename> : the file containing the initial conditions"  << endl;
+	cout << "     -id_dev | --id_active_device             : the id of the device which will execute the code" << endl;
+	cout << "     -v      | --verbose                      : verbose mode" << endl;
+	cout << "     -h      | --help                         : print this help" << endl;
 }
 
 // TODO: implement
 void options::create_default_options()
 {
+	use_padded_storage = false;
+	n_tpb = 64;
 }
 
 void options::parse_options(int argc, const char** argv)
@@ -75,6 +113,15 @@ void options::parse_options(int argc, const char** argv)
 		if      (p == "--use-padded-storage" || p == "-ups")
 		{
 			use_padded_storage = true;
+		}
+		else if (p == "--id_active_device" || p == "-id_dev")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			id_a_dev = atoi(argv[i]);
 		}
 		else if (p == "--n_thread-per-block" || p == "-n_tpb")
 		{

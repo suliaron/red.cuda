@@ -4,6 +4,8 @@
 #include "red_type.h"
 #include "red_macro.h"
 
+int		id_active_device = -1;
+
 namespace constants
 {
 	const int_t	 CheckForSM			      = 100;

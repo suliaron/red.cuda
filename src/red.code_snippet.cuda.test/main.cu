@@ -1246,6 +1246,8 @@ int main(int argc, const char** argv)
 			exit(0);
 		}
 		cout << "Identifier string for the device in the following format [domain]:[bus]:[device].[function]: " << pciBusId << endl;
+
+		device_query(cout, dev);
 	}
 
 	//! the hit centrum distance: inside this limit the body is considered to have hitted the central body and removed from the simulation [AU]
