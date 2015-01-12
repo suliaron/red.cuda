@@ -43,10 +43,10 @@ static __global__
 	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED   ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED]);
 }
 
-void copy_threshold_to_device(const var_t* threshold)
+void copy_threshold_to_device(const var_t* thrshld)
 {
 	// Calls the copy_constant_to_device in the util.cu
-	copy_constant_to_device(dc_threshold, threshold, THRESHOLD_N*sizeof(var_t));
+	copy_constant_to_device(dc_threshold, thrshld, THRESHOLD_N*sizeof(var_t));
 }
 
 static __global__
@@ -1192,13 +1192,17 @@ int main(int argc, const char** argv)
 	//! the ejection distance: beyond this limit the body is removed from the simulation [AU]
 	//! two bodies collide when their mutual distance is smaller than the sum of their radii multiplied by this number. Real physical collision corresponds to the value of 1.0.
 	//! Contains the threshold values: hit_centrum_dst, ejection_dst, collision_factor
-	var_t threshold[THRESHOLD_N];
-	threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]         = 0.1;
-	threshold[THRESHOLD_EJECTION_DISTANCE]            = 100.0;
-	threshold[THRESHOLD_COLLISION_FACTOR]             = 5.0;
-	threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
-	threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED]    = SQR(threshold[THRESHOLD_EJECTION_DISTANCE]);
+	var_t thrshld[THRESHOLD_N];
+	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]         = 0.1;
+	thrshld[THRESHOLD_EJECTION_DISTANCE]            = 100.0;
+	thrshld[THRESHOLD_COLLISION_FACTOR]             = 5.0;
+	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]);
+	thrshld[THRESHOLD_EJECTION_DISTANCE_SQUARED]    = SQR(thrshld[THRESHOLD_EJECTION_DISTANCE]);
 
-	copy_constant_to_device(dc_threshold, threshold
+	copy_constant_to_device(dc_threshold, thrshld,  THRESHOLD_N*sizeof(var_t));
+
+	kernel_print_constant_memory<<<1, 1>>>();
+
+	cudaDeviceSynchronize();
 }
 #endif
