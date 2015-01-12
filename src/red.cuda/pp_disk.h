@@ -31,7 +31,7 @@ public:
 	//! Copies ODE parameters and variables from the cuda device to the host
 	void copy_to_host();
 	//! Copies threshold data to the device constant memory
-	void copy_threshold_to_device(const var_t* threshold);
+	void copy_threshold_to_device(const var_t* thrshld);
 	//! Copies the event data from the cuda device to the host
 	void copy_event_data_to_host();
 

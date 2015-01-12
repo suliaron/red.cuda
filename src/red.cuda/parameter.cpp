@@ -24,7 +24,7 @@ parameter::parameter(string& dir, string& filename, bool verbose) :
 {
 	for (int i = 0; i < THRESHOLD_N; i++)
 	{
-		threshold[i] = -1.0;
+		thrshld[i] = -1.0;
 	}
 
 	string path = file::combine_path(dir, filename);
@@ -168,21 +168,21 @@ void parameter::set_param(string& key, string& value)
 		if (!tools::is_number(value)) {
 			throw string("Invalid number at: " + key);
 		}
-		threshold[THRESHOLD_EJECTION_DISTANCE] = atof(value.c_str());
-		threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED] = SQR(threshold[THRESHOLD_EJECTION_DISTANCE]);
+		thrshld[THRESHOLD_EJECTION_DISTANCE] = atof(value.c_str());
+		thrshld[THRESHOLD_EJECTION_DISTANCE_SQUARED] = SQR(thrshld[THRESHOLD_EJECTION_DISTANCE]);
 	}
     else if (key == "hit_centrum") {
 		if (!tools::is_number(value)) {
 			throw string("Invalid number at: " + key);
 		}
-		threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] = atof(value.c_str());
-		threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
+		thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE] = atof(value.c_str());
+		thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]);
 	}
     else if (key == "collision_factor") {
 		if (!tools::is_number(value)) {
 			throw string("Invalid number at: " + key);
 		}
-		threshold[THRESHOLD_COLLISION_FACTOR] = atof(value.c_str());
+		thrshld[THRESHOLD_COLLISION_FACTOR] = atof(value.c_str());
 	}
 	else {
 		throw string("Invalid parameter :" + key + ".");
@@ -239,7 +239,7 @@ ostream& operator<<(ostream& stream, const parameter* p)
 	stream << "simulation length: " << p->simulation_length << endl;
 	stream << "simulation output interval: " << p->output_interval << endl;
 	for (int i = 0; i < THRESHOLD_N; i++) {
-		stream << "simulation threshold[" << threshold_name[i] << "]: " << p->threshold[i] << endl;
+		stream << "simulation threshold[" << threshold_name[i] << "]: " << p->thrshld[i] << endl;
 	}
 
 	return stream;

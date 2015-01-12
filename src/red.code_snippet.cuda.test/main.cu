@@ -28,7 +28,26 @@
 #include "red_macro.h"
 #include "redutilcu.h"
 
+__constant__ var_t dc_threshold[THRESHOLD_N];
+
+
 using namespace std;
+
+static __global__
+	void kernel_print_constant_memory()
+{
+	printf("dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE        ] : %lf\n", dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
+	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE           ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE]);
+	printf("dc_threshold[THRESHOLD_COLLISION_FACTOR            ] : %lf\n", dc_threshold[THRESHOLD_COLLISION_FACTOR]);
+	printf("dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] : %lf\n", dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED]);
+	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED   ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED]);
+}
+
+void copy_threshold_to_device(const var_t* threshold)
+{
+	// Calls the copy_constant_to_device in the util.cu
+	copy_constant_to_device(dc_threshold, threshold, THRESHOLD_N*sizeof(var_t));
+}
 
 static __global__
 	void	kernel_calc_grav_accel_int_mul_of_thread_per_block
@@ -1051,7 +1070,7 @@ int main(int argc, const char** argv)
 }
 #endif
 
-#if 1
+#if 0
 
 static __global__
 	void kernel_print_memory_address(int n, var_t* adr)
@@ -1164,4 +1183,22 @@ int main()
 	cudaDeviceReset();
 }
 
+#endif
+
+#if 1
+int main(int argc, const char** argv)
+{
+	//! the hit centrum distance: inside this limit the body is considered to have hitted the central body and removed from the simulation [AU]
+	//! the ejection distance: beyond this limit the body is removed from the simulation [AU]
+	//! two bodies collide when their mutual distance is smaller than the sum of their radii multiplied by this number. Real physical collision corresponds to the value of 1.0.
+	//! Contains the threshold values: hit_centrum_dst, ejection_dst, collision_factor
+	var_t threshold[THRESHOLD_N];
+	threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]         = 0.1;
+	threshold[THRESHOLD_EJECTION_DISTANCE]            = 100.0;
+	threshold[THRESHOLD_COLLISION_FACTOR]             = 5.0;
+	threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
+	threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED]    = SQR(threshold[THRESHOLD_EJECTION_DISTANCE]);
+
+	copy_constant_to_device(dc_threshold, threshold
+}
 #endif

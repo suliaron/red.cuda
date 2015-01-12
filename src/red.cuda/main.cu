@@ -178,7 +178,7 @@ int main(int argc, const char** argv, const char** env)
 			dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
 			ps += fabs(dt);
 
-			if (opt.param->threshold[THRESHOLD_COLLISION_FACTOR] > 0.0 && ppd->check_for_collision())
+			if (opt.param->thrshld[THRESHOLD_COLLISION_FACTOR] > 0.0 && ppd->check_for_collision())
 			{
 				ppd->print_event_data(*event_f, *log_f);
 				ppd->clear_event_counter();

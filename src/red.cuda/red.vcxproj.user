@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-v -n_tpb 64 -iDir C:\Work\red.cuda.Results\Dvorak\2D\NewRun\Run_cf1.0 -p parameters.txt -ic run_04.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -n_tpb 64 -iDir C:\Work\red.cuda.Results\Dvorak\2D\NewRun\Test -p parameters.txt -ic run_04.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

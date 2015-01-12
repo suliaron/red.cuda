@@ -990,10 +990,10 @@ void pp_disk::copy_to_host()
 	copy_vector_to_host((void *)&event_counter,			(void *)d_event_counter,	      1*sizeof(int));
 }
 
-void pp_disk::copy_threshold_to_device(const var_t* threshold)
+void pp_disk::copy_threshold_to_device(const var_t* thrshld)
 {
 	// Calls the copy_constant_to_device in the util.cu
-	copy_constant_to_device(dc_threshold, threshold, THRESHOLD_N*sizeof(var_t));
+	copy_constant_to_device(dc_threshold, thrshld, THRESHOLD_N*sizeof(var_t));
 }
 
 void pp_disk::copy_event_data_to_host()

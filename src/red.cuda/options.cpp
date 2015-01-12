@@ -133,7 +133,7 @@ pp_disk* options::create_pp_disk()
 	}
 	ppd->transform_time();
 	ppd->copy_to_device();
-	ppd->copy_threshold_to_device(param->threshold);
+	ppd->copy_threshold_to_device(param->thrshld);
 
 	//ppd->test_call_kernel_print_sim_data();
 
