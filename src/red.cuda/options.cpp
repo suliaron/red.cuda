@@ -51,8 +51,8 @@ options::options(int argc, const char** argv) :
 	// Set the desired id of the device
 	if (n_device > id_a_dev && 0 <= id_a_dev)
 	{
-		id_active_device = id_a_dev;
-        cudaSetDevice(id_active_device);
+		device::id_active = id_a_dev;
+        cudaSetDevice(device::id_active);
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus)
 		{

@@ -1186,12 +1186,13 @@ int main()
 #endif
 
 #if 1
+
+int device::id_active = -1;
 int main(int argc, const char** argv)
 {
 	cudaError_t cudaStatus = cudaSuccess;
 
 	int n_device = 0;
-	int id_active_dev = -1;
 
 	cudaStatus = cudaGetDeviceCount(&n_device);
 	if (cudaSuccess != cudaStatus)
@@ -1216,13 +1217,13 @@ int main(int argc, const char** argv)
 			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
 			exit(0);
 		}
-		cudaStatus = cudaGetDevice(&id_active_dev);
+		cudaStatus = cudaGetDevice(&device::id_active);
 		if (cudaSuccess != cudaStatus)
 		{
 			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
 			exit(0);
 		}
-		printf("The id of the active device: %2d\n", id_active_dev);
+		printf("The id of the active device: %2d\n", device::id_active);
 
         cudaDeviceProp deviceProp;
         cudaStatus = cudaGetDeviceProperties(&deviceProp, dev);

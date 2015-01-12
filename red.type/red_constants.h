@@ -4,7 +4,10 @@
 #include "red_type.h"
 #include "red_macro.h"
 
-int		id_active_device = -1;
+namespace device
+{
+	extern int	id_active;
+}
 
 namespace constants
 {

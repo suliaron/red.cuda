@@ -121,6 +121,8 @@ void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, 
 //--verbose -iDir C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run01 -p parameters.txt -ic run01.txt
 //-v -n_tpb 64 -iDir C:\Work\Projects\red.cuda.TestRun\Emese_Dvorak\cf_5 -p parameters.txt -ic suli-data-collision-N10001-heliocentric-vecelem-binary.txt
 //-v C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -p parameters.txt -ic run01.txt -ic Run_cf_5.txt
+
+int device::id_active = -1;
 int main(int argc, const char** argv, const char** env)
 {
 	time_t start = time(NULL);
@@ -135,9 +137,9 @@ int main(int argc, const char** argv, const char** env)
 		if (opt.verbose)
 		{
 			file::log_start_cmd(cout, argc, argv, env);
-			if (0 <= id_active_device)
+			if (0 <= device::id_active)
 			{
-				device_query(cout, id_active_device);
+				device_query(cout, device::id_active);
 			}
 		}
 
@@ -155,7 +157,7 @@ int main(int argc, const char** argv, const char** env)
 		ostream* info_f = new ofstream(path.c_str(), ios::out);
 
 		file::log_start_cmd(*log_f, argc, argv, env);
-		device_query(*log_f);
+		device_query(*log_f, device::id_active);
 
 		ttt_t ps = 0;
 		ttt_t dt = 0;
