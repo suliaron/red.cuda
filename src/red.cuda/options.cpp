@@ -23,7 +23,8 @@ options::options(int argc, const char** argv) :
 	use_padded_storage(false),
 	n_tpb(64),
 	param(0),
-	g_disk(0)
+	g_disk(0),
+	id_a_dev(0)
 {
 	create_default_options();
 	parse_options(argc, argv);
@@ -61,7 +62,7 @@ options::options(int argc, const char** argv) :
 	}
 	else
 	{
-		throw string("The requested device id does not exist!");
+		throw string("The device with the requested id does not exist!");
 	}
 
 	if (parameters_filename.length() == 0)

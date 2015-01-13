@@ -143,8 +143,6 @@ int main(int argc, const char** argv, const char** env)
 			}
 		}
 
-		return 0;
-
 		string path;
 		create_result_filename(opt, intgr, path);
 		ostream* result_f = new ofstream(path.c_str(), ios::out);
