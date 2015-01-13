@@ -13,7 +13,8 @@ RM = rm -f
 
 # Options for the nvcc compiler
 # NVCC_FLAGS := -Xcompiler -Wall -G -g -O0 -gencode arch=compute_20,code=sm_20 -fmad=false
-NVCC_FLAGS := -Xcompiler -Wall -O2 -gencode arch=compute_20,code=sm_20 -fmad=false
+# NVCC_FLAGS := -Xcompiler -Wall -O2 -gencode arch=compute_20,code=sm_20 -fmad=false
+NVCC_FLAGS := -Xcompiler -Wall -O2 -fmad=false
 
 # Paths
 SRC         := src

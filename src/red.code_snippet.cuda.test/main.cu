@@ -1183,7 +1183,7 @@ int main()
 
 void cpy_cnstnt_to_dvc(const void* dst, const void *src, size_t count)
 {
-	cudaMemcpyToSymbol(dst, src, count, 0, cudaMemcpyHostToDevice);
+	cudaMemcpyToSymbol(dst, src, count);
 	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus)
 	{
@@ -1275,7 +1275,7 @@ int main(int argc, const char** argv)
 	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]);
 	thrshld[THRESHOLD_EJECTION_DISTANCE_SQUARED]    = SQR(thrshld[THRESHOLD_EJECTION_DISTANCE]);
 
-	cpy_cnstnt_to_dvc(dc_threshold, thrshld,  THRESHOLD_N*sizeof(var_t));
+	cpy_cnstnt_to_dvc(dc_threshold, thrshld, THRESHOLD_N*sizeof(var_t));
 
 	kernel_print_constant_memory<<<1, 1>>>();
 
