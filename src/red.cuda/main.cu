@@ -33,46 +33,28 @@
 #include "red_type.h"
 #include "red_constants.h"
 
-
 using namespace std;
 using namespace redutilcu;
 
-void create_result_filename(options &opt, integrator *intgr, string &path)
+void open_streams(const options& opt, const integrator* intgr, ostream** result_f, ostream** info_f, ostream** event_f, ostream** log_f)
 {
-	string adapt = (opt.param->adaptive == true ? "_a_" : "_");
-	string ups = (opt.use_padded_storage == true ? "ups_" : "");
-	string result_filename = "result_4" + adapt + ups + intgr->name + ".txt";
-	path = file::combine_path(opt.printout_dir, result_filename);
-}
+	string path;
 
-void create_event_filename(options &opt, integrator *intgr, string &path)
-{
-	string ups = (opt.use_padded_storage == true ? "ups_" : "");
-	path = file::combine_path(opt.printout_dir, ups + "event_4.txt");
-}
+	{
+		string adapt = (opt.param->adaptive == true ? "a_" : "");
+		string result_filename = opt.result_filename + adapt + intgr->short_name + ".txt";
+		path = file::combine_path(opt.printout_dir, result_filename);
+		*result_f = new ofstream(path.c_str(), ios::out);
+	}
 
-void create_log_filename(options &opt, integrator *intgr, string &path)
-{
-	string ups = (opt.use_padded_storage == true ? "ups_" : "");
-	path = file::combine_path(opt.printout_dir, ups + "log_4.txt");
-}
+	path = file::combine_path(opt.printout_dir, opt.info_filename);
+	*info_f = new ofstream(path.c_str(), ios::out);
 
-void create_info_filename(options &opt, integrator *intgr, string &path)
-{
-	string ups = (opt.use_padded_storage == true ? "ups_" : "");
-	path = file::combine_path(opt.printout_dir, ups + "info_4.txt");
-}
+	path = file::combine_path(opt.printout_dir, opt.event_filename);
+	*event_f = new ofstream(path.c_str(), ios::out);
 
-ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* time_of_one_step)
-{
-	clock_t start_of_step = clock();
-	ttt_t dt = intgr->step();
-	clock_t end_of_step = clock();
-
-	*time_of_one_step = (end_of_step - start_of_step);
-	*sum_time_of_steps += *time_of_one_step;
-
-	return dt;
+	path = file::combine_path(opt.printout_dir, opt.log_filename);
+	*log_f = new ofstream(path.c_str(), ios::out);
 }
 
 void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* sum_time_of_steps, clock_t* time_of_one_step, time_t* time_info_start)
@@ -112,6 +94,18 @@ void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, 
 		 << ", N_tp: " << setw(5) << nb->n_tp  << "(" << setw(5) << nb->n_i_tp << ")" << endl;	
 }
 
+ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* time_of_one_step)
+{
+	clock_t start_of_step = clock();
+	ttt_t dt = intgr->step();
+	clock_t end_of_step = clock();
+
+	*time_of_one_step = (end_of_step - start_of_step);
+	*sum_time_of_steps += *time_of_one_step;
+
+	return dt;
+}
+
 //http://stackoverflow.com/questions/11666049/cuda-kernel-results-different-in-release-mode
 //http://developer.download.nvidia.com/assets/cuda/files/NVIDIA-CUDA-Floating-Point.pdf
 
@@ -122,42 +116,31 @@ void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, 
 //-v -n_tpb 64 -iDir C:\Work\Projects\red.cuda.TestRun\Emese_Dvorak\cf_5 -p parameters.txt -ic suli-data-collision-N10001-heliocentric-vecelem-binary.txt
 //-v C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -p parameters.txt -ic run01.txt -ic Run_cf_5.txt
 
-int device::id_active = -1;
 int main(int argc, const char** argv, const char** env)
 {
 	time_t start = time(NULL);
 
+	ostream* result_f = 0x0;
+	ostream* info_f = 0x0;
+	ostream* event_f = 0x0;
 	ostream* log_f = 0x0;
 	try
 	{
 		options opt = options(argc, argv);
 		pp_disk *ppd = opt.create_pp_disk();
 		integrator *intgr = opt.create_integrator(ppd, 0.001);
+		open_streams(opt, intgr, &result_f, &info_f, &event_f, &log_f);
 
+		file::log_start_cmd(*log_f, argc, argv, env);
 		if (opt.verbose)
 		{
 			file::log_start_cmd(cout, argc, argv, env);
-			if (0 <= device::id_active)
+			if (0 <= opt.id_a_dev)
 			{
-				device_query(cout, device::id_active);
+				device_query(cout, opt.id_a_dev);
 			}
 		}
-
-		string path;
-		create_result_filename(opt, intgr, path);
-		ostream* result_f = new ofstream(path.c_str(), ios::out);
-
-		create_event_filename(opt, intgr, path);
-		ostream* event_f = new ofstream(path.c_str(), ios::out);
-
-		create_log_filename(opt, intgr, path);
-		log_f = new ofstream(path.c_str(), ios::out);
-
-		create_info_filename(opt, intgr, path);
-		ostream* info_f = new ofstream(path.c_str(), ios::out);
-
-		file::log_start_cmd(*log_f, argc, argv, env);
-		device_query(*log_f, device::id_active);
+		device_query(*log_f, opt.id_a_dev);
 
 		ttt_t ps = 0;
 		ttt_t dt = 0;
@@ -227,9 +210,11 @@ int main(int argc, const char** argv, const char** env)
 		}
 		cerr << "Error: " << msg << endl;
 	}
-	file::log_message(*log_f, " Total time: " + tools::convert_time_t(time(NULL) - start) + " s");
-
-	cout << " Total time: " << time(NULL) - start << " s" << endl;
+	if (0x0 != log_f)
+	{
+		file::log_message(*log_f, " Total time: " + tools::convert_time_t(time(NULL) - start) + " s");
+	}
+	cout << "Total time: " << time(NULL) - start << " s" << endl;
 
 	// Needed by nvprof.exe
 	cudaDeviceReset();

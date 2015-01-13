@@ -32,6 +32,7 @@ euler::euler(pp_disk *ppd, ttt_t dt) :
 	d_df(2)
 {
 	name = "Euler";
+	short_name = "E";
 
 	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 

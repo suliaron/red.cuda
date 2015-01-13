@@ -37,6 +37,7 @@ rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt) :
 	d_f(2)
 {
 	name = "Runge-Kutta2";
+	short_name = "RK2";
 
 	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 

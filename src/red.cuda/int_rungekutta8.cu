@@ -337,6 +337,7 @@ rungekutta8::rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance)
 	d_err(2)
 {
 	name = "Runge-Kutta-Fehlberg8";
+	short_name = "RKF8";
 
 	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 

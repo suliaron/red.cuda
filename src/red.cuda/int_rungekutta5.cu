@@ -92,7 +92,6 @@ static __global__
 }
 } /* rk5_kernel */
 
-
 rungekutta5::rungekutta5(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance) :
 	integrator(ppd, dt),
 	adaptive(adaptive),
@@ -102,6 +101,7 @@ rungekutta5::rungekutta5(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance)
 	d_err(2)
 {
 	name = "Runge-Kutta5";
+	short_name = "RK5";
 
 	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 

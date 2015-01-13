@@ -4,11 +4,6 @@
 #include "red_type.h"
 #include "red_macro.h"
 
-namespace device
-{
-	extern int	id_active;
-}
-
 namespace constants
 {
 	const int_t	 CheckForSM			      = 100;

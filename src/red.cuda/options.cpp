@@ -52,8 +52,7 @@ options::options(int argc, const char** argv) :
 	// Set the desired id of the device
 	if (n_device > id_a_dev && 0 <= id_a_dev)
 	{
-		device::id_active = id_a_dev;
-        cudaSetDevice(device::id_active);
+        cudaSetDevice(id_a_dev);
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus)
 		{
@@ -90,13 +89,18 @@ void options::print_usage()
 {
 	cout << "Usage: red.cuda <parameterlist>" << endl;
 	cout << "Parameters:" << endl;
+	cout << "     -id_dev | --id_active_device             : the id of the device which will execute the code" << endl;
 	cout << "     -ups    | --use-padded-storage           : use padded storage to store data (default is false)" << endl; 
 	cout << "     -n_tpb  | --n_thread-per-block           : the number of thread per block to use in kernel lunches (default is 64)" << endl;
 	cout << "     -iDir   | --inputDir <directory>         : the directory containing the input files"  << endl;
 	cout << "     -p      | --parameter <filename>         : the file containing the parameters of the simulation"  << endl;
 	cout << "     -gd     | --gas_disk <filename>          : the file containing the parameters of the gas disk"  << endl;
 	cout << "     -ic     | --initial_condition <filename> : the file containing the initial conditions"  << endl;
-	cout << "     -id_dev | --id_active_device             : the id of the device which will execute the code" << endl;
+	cout << "     -info   | --info-filename                : the name of the file where the runtime output of the code will be stored (default is info.txt)" << endl;
+	cout << "     -event  | --event-filename               : the name of the file where the details of each event will be stored (default is event.txt)" << endl;
+	cout << "     -log    | --log-filename                 : the name of the file where the details of the execution of the code will be stored (default is log.txt)" << endl;
+	cout << "     -result | --result-filename              : the name of the file where the simlation data for a time instance will be stored (default is result_[...].txt" << endl;
+	cout << "                                                where [...] contains data describing the integrator)" << endl;
 	cout << "     -v      | --verbose                      : verbose mode" << endl;
 	cout << "     -h      | --help                         : print this help" << endl;
 }
@@ -104,8 +108,13 @@ void options::print_usage()
 // TODO: implement
 void options::create_default_options()
 {
-	use_padded_storage = false;
-	n_tpb = 64;
+	//input_dir = ".";
+	//printout_dir = input_dir;
+
+	info_filename   = "info.txt";
+	event_filename  = "event.txt";
+	log_filename    = "log.txt";
+	result_filename = "result_";
 }
 
 void options::parse_options(int argc, const char** argv)
@@ -115,11 +124,7 @@ void options::parse_options(int argc, const char** argv)
 	while (i < argc) {
 		string p = argv[i];
 
-		if      (p == "--use-padded-storage" || p == "-ups")
-		{
-			use_padded_storage = true;
-		}
-		else if (p == "--id_active_device" || p == "-id_dev")
+		if (     p == "--id_active_device" || p == "-id_dev")
 		{
 			i++;
 			if (!tools::is_number(argv[i])) 
@@ -127,6 +132,10 @@ void options::parse_options(int argc, const char** argv)
 				throw string("Invalid number at: " + p);
 			}
 			id_a_dev = atoi(argv[i]);
+		}
+		else if (p == "--use-padded-storage" || p == "-ups")
+		{
+			use_padded_storage = true;
 		}
 		else if (p == "--n_thread-per-block" || p == "-n_tpb")
 		{
@@ -153,6 +162,22 @@ void options::parse_options(int argc, const char** argv)
 		else if (p == "--initial_conditions" || p == "-ic") {
 			i++;
 			bodylist_filename = argv[i];
+		}
+		else if (p == "--info-filename" || p == "-info") {
+			i++;
+			info_filename = argv[i];
+		}
+		else if (p == "--event-filename" || p == "-event") {
+			i++;
+			event_filename = argv[i];
+		}
+		else if (p == "--log-filename" || p == "-log") {
+			i++;
+			log_filename = argv[i];
+		}
+		else if (p == "--result-filename" || p == "-result") {
+			i++;
+			result_filename = argv[i];
 		}
 		else if (p == "--verbose" || p == "-v") {
 			verbose = true;

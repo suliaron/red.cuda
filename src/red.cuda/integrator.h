@@ -31,6 +31,7 @@ public:
 	bool_t error_check_for_tp;
 
 	string name;
+	string short_name;
 protected:
 	void	calc_grid(int nData, int threads_per_block);
 

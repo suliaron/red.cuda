@@ -31,6 +31,11 @@ public:
 	parameter* param;
 	gas_disk*  g_disk;	
 
+	string info_filename;
+	string event_filename;
+	string log_filename;
+	string result_filename;
+
 private:
 	//! holds the path of the file containing the parameters of the simulation
 	string parameters_filename;
