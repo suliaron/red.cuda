@@ -43,12 +43,6 @@ static __global__
 	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED   ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED]);
 }
 
-void copy_threshold_to_device(const var_t* thrshld)
-{
-	// Calls the copy_constant_to_device in the util.cu
-	copy_constant_to_device(dc_threshold, thrshld, THRESHOLD_N*sizeof(var_t));
-}
-
 static __global__
 	void	kernel_calc_grav_accel_int_mul_of_thread_per_block
 	(
