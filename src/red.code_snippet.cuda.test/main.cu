@@ -1191,11 +1191,11 @@ void cpy_cnstnt_to_dvc(const void* dst, const void *src, size_t count)
 	}
 }
 
-int device::id_active = -1;
 int main(int argc, const char** argv)
 {
 	cudaError_t cudaStatus = cudaSuccess;
 
+	int id_active = -1;
 	int n_device = 0;
 
 	cudaStatus = cudaGetDeviceCount(&n_device);
@@ -1221,13 +1221,13 @@ int main(int argc, const char** argv)
 			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
 			exit(0);
 		}
-		cudaStatus = cudaGetDevice(&device::id_active);
+		cudaStatus = cudaGetDevice(&id_active);
 		if (cudaSuccess != cudaStatus)
 		{
 			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
 			exit(0);
 		}
-		printf("The id of the active device: %2d\n", device::id_active);
+		printf("The id of the active device: %2d\n", id_active);
 
         cudaDeviceProp deviceProp;
         cudaStatus = cudaGetDeviceProperties(&deviceProp, dev);
