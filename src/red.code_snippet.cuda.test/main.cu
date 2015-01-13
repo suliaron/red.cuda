@@ -1187,6 +1187,16 @@ int main()
 
 #if 1
 
+void cpy_cnstnt_to_dvc(const void* dst, const void *src, size_t count)
+{
+	cudaMemcpyToSymbol(dst, src, count, 0, cudaMemcpyHostToDevice);
+	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("cudaMemcpyToSymbol failed (copy_constant_to_device)");
+	}
+}
+
 int device::id_active = -1;
 int main(int argc, const char** argv)
 {
@@ -1251,6 +1261,15 @@ int main(int argc, const char** argv)
 		device_query(cout, dev);
 	}
 
+	// Copy data to the global device memory
+	var_t* tmp = new var_t[1024];
+	var_t* d_tmp = 0x0;
+	ALLOCATE_DEVICE_VECTOR((void **)&(d_tmp), 1024*sizeof(var_t));
+	printf("ALLOCATE_DEVICE_VECTOR succeeded\n");
+	copy_vector_to_device(d_tmp, tmp, 1024*sizeof(var_t));
+	printf("copy_vector_to_device succeeded\n");
+
+
 	//! the hit centrum distance: inside this limit the body is considered to have hitted the central body and removed from the simulation [AU]
 	//! the ejection distance: beyond this limit the body is removed from the simulation [AU]
 	//! two bodies collide when their mutual distance is smaller than the sum of their radii multiplied by this number. Real physical collision corresponds to the value of 1.0.
@@ -1262,7 +1281,7 @@ int main(int argc, const char** argv)
 	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]);
 	thrshld[THRESHOLD_EJECTION_DISTANCE_SQUARED]    = SQR(thrshld[THRESHOLD_EJECTION_DISTANCE]);
 
-	copy_constant_to_device(dc_threshold, thrshld,  THRESHOLD_N*sizeof(var_t));
+	cpy_cnstnt_to_dvc(dc_threshold, thrshld,  THRESHOLD_N*sizeof(var_t));
 
 	kernel_print_constant_memory<<<1, 1>>>();
 
