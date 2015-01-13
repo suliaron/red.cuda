@@ -1251,6 +1251,15 @@ int main(int argc, const char** argv)
 		device_query(cout, dev);
 	}
 
+	// Copy data to the global device memory
+	var_t* tmp = new var_t[1024];
+	var_t* d_tmp = 0x0;
+	ALLOCATE_DEVICE_VECTOR((void **)&(d_tmp), 1024*sizeof(var_t));
+	printf("ALLOCATE_DEVICE_VECTOR succeeded\n");
+	copy_vector_to_device(d_tmp, tmp, 1024*sizeof(var_t));
+	printf("copy_vector_to_device succeeded\n");
+
+
 	//! the hit centrum distance: inside this limit the body is considered to have hitted the central body and removed from the simulation [AU]
 	//! the ejection distance: beyond this limit the body is removed from the simulation [AU]
 	//! two bodies collide when their mutual distance is smaller than the sum of their radii multiplied by this number. Real physical collision corresponds to the value of 1.0.
