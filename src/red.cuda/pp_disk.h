@@ -23,7 +23,7 @@ public:
 			body_metadata_t body_md;
 		} survivor_t;
 
-	pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage);
+	pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage, bool cpu);
 	~pp_disk();
 
 	//! Copies ODE parameters and variables from the host to the cuda device
@@ -32,6 +32,8 @@ public:
 	void copy_to_host();
 	//! Copies threshold data to the device constant memory
 	void copy_threshold_to_device(const var_t* thrshld);
+	//! Copies threshold data
+	void copy_threshold(const var_t* thrshld);
 	//! Copies the event data from the cuda device to the host
 	void copy_event_data_to_host();
 
@@ -89,6 +91,7 @@ public:
 
 	//! Check all bodies against ejection and hit centrum criterium
 	int call_kernel_check_for_ejection_hit_centrum();
+	int cpu_check_for_ejection_hit_centrum();
 	//! Test function: print out all the simulation data contained on the device
 	void test_call_kernel_print_sim_data();
 	//! Calculates the differentials of variables
@@ -151,14 +154,20 @@ private:
 	//! Sets the grid and block for the kernel launch
 	void set_kernel_launch_param(int n_data);
 	void call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
+	void cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
+	void cpu_calc_grav_accel_SI(ttt_t t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
+	void cpu_calc_grav_accel_NI(ttt_t t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
 
 	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 
 	int		n_tpb;					//!< The number of thread per block to use for kernel launches
 	bool	use_padded_storage;		//!< If true use the padded storage scheme
+	bool	cpu;					//!< If true than execute the code on the cpu
 
 	dim3	grid;
 	dim3	block;
+
+	var_t threshold[THRESHOLD_N];
 
 	int	event_counter;				//! Number of events occured during the last check
 	int* d_event_counter;			//! Number of events occured during the last check (stored on the devive)

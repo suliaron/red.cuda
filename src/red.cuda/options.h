@@ -22,6 +22,7 @@ public:
 	integrator* create_integrator(pp_disk* ppd, ttt_t dt);
 
 	bool	verbose;				//!< Print more information to the screen or log file
+	bool	cpu;					//!< Execute the code on the cpu if required by the user or if no GPU is installed
 	string	printout_dir;			//!< Printout directory
 	string	input_dir;				//!< Input directory
 	bool	use_padded_storage;		//!< Use padded storage to store data (default is false)

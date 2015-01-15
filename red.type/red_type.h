@@ -148,6 +148,7 @@ typedef struct sim_data
 		{
 			orbelem_t*		oe;				//!< Host vector of the orbital elements
 			vector<vec_t*>	y;				//!< Host vectors of initial position and velocity of the bodies on the host
+			vector<vec_t*>	y_out;			//!< Host vectors of ODE variables at the end of the step (at time tout)
 			vector<vec_t*>	d_y;			//!< Device vectors of ODE variables at the beginning of the step (at time t)
 			vector<vec_t*>	d_yout;			//!< Device vectors of ODE variables at the end of the step (at time tout)
 			param_t			*p;				//!< Host vector of body parameters

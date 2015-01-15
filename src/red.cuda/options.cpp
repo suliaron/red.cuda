@@ -19,6 +19,7 @@ using namespace redutilcu;
 
 options::options(int argc, const char** argv) :
 	has_gas(false),
+	cpu(false),
 	verbose(false),
 	use_padded_storage(false),
 	n_tpb(64),
@@ -44,13 +45,17 @@ options::options(int argc, const char** argv) :
 	}
 	if (1 > n_device)
 	{
-		printf("No CUDA device was found. The code will execute on the CPU. Implementation is missing.\n");
-		// TODO : implement the CPU code
-		exit(0);
+		printf("No CUDA device was found. The code will execute on the CPU. Implementation is in progress.\n");
+		cpu = true;
+	}
+
+	if (cpu)
+	{
+		use_padded_storage = false;
 	}
 
 	// Set the desired id of the device
-	if (n_device > id_a_dev && 0 <= id_a_dev)
+	if (!cpu && n_device > id_a_dev && 0 <= id_a_dev)
 	{
         cudaSetDevice(id_a_dev);
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
@@ -102,15 +107,12 @@ void options::print_usage()
 	cout << "     -result | --result-filename              : the name of the file where the simlation data for a time instance will be stored (default is result_[...].txt" << endl;
 	cout << "                                                where [...] contains data describing the integrator)" << endl;
 	cout << "     -v      | --verbose                      : verbose mode" << endl;
+	cout << "     -cpu    | --cpu                          : Execute the code on the cpu if required by the user or if no GPU is installed (default is false)" << endl;
 	cout << "     -h      | --help                         : print this help" << endl;
 }
 
-// TODO: implement
 void options::create_default_options()
 {
-	//input_dir = ".";
-	//printout_dir = input_dir;
-
 	info_filename   = "info.txt";
 	event_filename  = "event.txt";
 	log_filename    = "log.txt";
@@ -121,7 +123,8 @@ void options::parse_options(int argc, const char** argv)
 {
 	int i = 1;
 
-	while (i < argc) {
+	while (i < argc)
+	{
 		string p = argv[i];
 
 		if (     p == "--id_active_device" || p == "-id_dev")
@@ -146,47 +149,62 @@ void options::parse_options(int argc, const char** argv)
 			}
 			n_tpb = atoi(argv[i]);
 		}
-		else if (p == "--inputDir" || p == "-iDir")	{
+		else if (p == "--inputDir" || p == "-iDir")
+		{
 			i++;
 			input_dir = argv[i];
 			printout_dir = input_dir;
 		}
-		else if (p =="--parameters" || p == "-p") {
+		else if (p =="--parameters" || p == "-p")
+		{
 			i++;
 			parameters_filename = argv[i];
 		}
-		else if (p == "--gas_disk" || p == "-gd") {
+		else if (p == "--gas_disk" || p == "-gd")
+		{
 			i++;
 			gasdisk_filename = argv[i];
 		}
-		else if (p == "--initial_conditions" || p == "-ic") {
+		else if (p == "--initial_conditions" || p == "-ic")
+		{
 			i++;
 			bodylist_filename = argv[i];
 		}
-		else if (p == "--info-filename" || p == "-info") {
+		else if (p == "--info-filename" || p == "-info")
+		{
 			i++;
 			info_filename = argv[i];
 		}
-		else if (p == "--event-filename" || p == "-event") {
+		else if (p == "--event-filename" || p == "-event")
+		{
 			i++;
 			event_filename = argv[i];
 		}
-		else if (p == "--log-filename" || p == "-log") {
+		else if (p == "--log-filename" || p == "-log")
+		{
 			i++;
 			log_filename = argv[i];
 		}
-		else if (p == "--result-filename" || p == "-result") {
+		else if (p == "--result-filename" || p == "-result")
+		{
 			i++;
 			result_filename = argv[i];
 		}
-		else if (p == "--verbose" || p == "-v") {
+		else if (p == "--verbose" || p == "-v")
+		{
 			verbose = true;
 		}
-		else if (p == "--help" || p == "-h") {
+		else if (p == "--cpu" || p == "-cpu")
+		{
+			cpu = true;
+		}
+		else if (p == "--help" || p == "-h")
+		{
 			print_usage();
 			exit(EXIT_SUCCESS);
 		}
-		else {
+		else
+		{
 			throw string("Invalid switch on command-line: " + p + ".");
 		}
 		i++;
@@ -196,7 +214,7 @@ void options::parse_options(int argc, const char** argv)
 pp_disk* options::create_pp_disk()
 {
 	string path = file::combine_path(input_dir, bodylist_filename);
-	pp_disk* ppd = new pp_disk(path, g_disk, n_tpb, use_padded_storage);
+	pp_disk* ppd = new pp_disk(path, g_disk, n_tpb, use_padded_storage, cpu);
 	if (ppd->g_disk != 0)
 	{
 		ppd->g_disk->calc(ppd->get_mass_of_star());
@@ -209,11 +227,17 @@ pp_disk* options::create_pp_disk()
 		//ppd->print_result_ascii(cout);
 	}
 	ppd->transform_time();
-	ppd->copy_to_device();
-	ppd->copy_threshold_to_device(param->thrshld);
 
-	//ppd->test_call_kernel_print_sim_data();
-
+	if (!cpu)
+	{
+		ppd->copy_to_device();
+		ppd->copy_threshold_to_device(param->thrshld);
+		//ppd->test_call_kernel_print_sim_data();
+	}
+	else
+	{
+		ppd->copy_threshold(param->thrshld);
+	}
 	ppd->t = param->start_time;
 
 	return ppd;

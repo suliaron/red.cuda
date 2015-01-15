@@ -135,7 +135,7 @@ int main(int argc, const char** argv, const char** env)
 		if (opt.verbose)
 		{
 			file::log_start_cmd(cout, argc, argv, env);
-			if (0 <= opt.id_a_dev)
+			if (!opt.cpu)
 			{
 				device_query(cout, opt.id_a_dev);
 			}
@@ -155,7 +155,7 @@ int main(int argc, const char** argv, const char** env)
 			if (fabs(ps) >= opt.param->output_interval)
 			{
 				ps = 0.0;
-				ppd->copy_to_host();
+				if (!opt.cpu) ppd->copy_to_host();
 				ppd->print_result_ascii(*result_f);
 			}
 
@@ -189,7 +189,7 @@ int main(int argc, const char** argv, const char** env)
 		// To avoid duplicate save at the end of the simulation
 		if (ps > 0.0)
 		{
-			ppd->copy_to_host();
+			if (!opt.cpu) ppd->copy_to_host();
 			ppd->print_result_ascii(*result_f);
 		}
 
