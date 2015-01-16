@@ -31,10 +31,11 @@ static __global__
 }
 } /* rk2_kernel */
 
-rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt) :
-	integrator(ppd, dt),
+rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt, bool cpu) :
+	integrator(ppd, dt, cpu),
 	RKOrder(2),
-	d_f(2)
+	d_f(2),
+	h_f(2)
 {
 	name = "Runge-Kutta2";
 	short_name = "RK2";
@@ -44,11 +45,26 @@ rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt) :
 	t = ppd->t;
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n_total*sizeof(vec_t));
-		d_f[i].resize(RKOrder);
+		if (!cpu)
+		{
+			ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n_total*sizeof(vec_t));
+			d_f[i].resize(RKOrder);
+		}
+		else
+		{
+			h_ytemp[i] = new vec_t[n_total];
+			h_f[i].resize(RKOrder);
+		}
 		for (int r = 0; r < RKOrder; r++) 
 		{
-			ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n_total * sizeof(vec_t));
+			if (!cpu)
+			{
+				ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n_total * sizeof(vec_t));
+			}
+			else
+			{
+				h_f[i][r] = new vec_t[n_total];
+			}
 		}
 	}
 }
@@ -59,7 +75,14 @@ rungekutta2::~rungekutta2()
 	{
 		for (int r = 0; r < RKOrder; r++) 
 		{
-			cudaFree(d_f[i][r]);
+			if (!cpu)
+			{
+				cudaFree(d_f[i][r]);
+			}
+			else
+			{
+				delete[] h_f[i][r];
+			}
 		}
 	}
 }
@@ -110,7 +133,7 @@ ttt_t rungekutta2::step()
 	// Calculate initial differentials f1 = f(tn, yn) and store them into d_f[][0]
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calc_dy(i, r, ttemp, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_f[i][r]);
+		ppd->calc_dydx(i, r, ttemp, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_f[i][r]);
 	}
 
 	r = 1;
@@ -120,7 +143,7 @@ ttt_t rungekutta2::step()
 	// Calculate f2 = f(tn + 1/2*h, yn + 1/2*h*f1) = d_f[][1]
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calc_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
+		ppd->calc_dydx(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
 	}
 
 	dt_did = dt_try;

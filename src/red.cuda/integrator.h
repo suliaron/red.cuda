@@ -17,7 +17,7 @@ using namespace std;
 class integrator
 {
 public:
-	integrator(pp_disk *ppd, ttt_t dt);
+	integrator(pp_disk *ppd, ttt_t dt, bool cpu);
 	~integrator();
 
 	void update_counters(int iter);
@@ -27,8 +27,7 @@ public:
 
 	virtual ttt_t step() = 0;
 
-	//! Check the error also for the test particle
-	bool_t error_check_for_tp;
+	bool_t error_check_for_tp;	//!< Check the error also for the test particles
 
 	string name;
 	string short_name;
@@ -37,10 +36,12 @@ protected:
 
 	pp_disk*	ppd;
 
+	bool	cpu;				//!< If true than execute the code on the cpu
+
 	dim3	grid;
 	dim3	block;
 
-	ttt_t t;					/*!< Actual time of the integrator */
+	ttt_t t;					//!< Actual time of the integrator
 	ttt_t dt_try;
 	ttt_t dt_did;
 	ttt_t dt_next;
@@ -49,6 +50,8 @@ protected:
 	int n_passed_step;
 	int n_tried_step;
 
-	//! Holds the temporary solution approximation along the step
-	vector<vec_t*>	d_ytemp;
+	vector<vec_t*>	d_ytemp;	//!< On the DEVICE holds the temporary solution approximation along the step
+	vector<vec_t*>	h_ytemp;	//!< On the HOST holds the temporary solution approximation along the step
+	
+	vector<vec_t*>	ytemp;	    //!< Holds the temporary solution approximation along the step (either in the host or device memory)
 };

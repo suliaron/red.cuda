@@ -1179,7 +1179,7 @@ int main()
 
 #endif
 
-#if 1
+#if 0
 
 void cpy_cnstnt_to_dvc(const void* dst, const void *src, size_t count)
 {
@@ -1280,5 +1280,29 @@ int main(int argc, const char** argv)
 	kernel_print_constant_memory<<<1, 1>>>();
 
 	cudaDeviceSynchronize();
+
+	return 0;
+}
+#endif
+
+#if 1
+int main(int argc, const char** argv)
+{
+	vec_t* ptr = 0x0;
+	size_t size = 1024 * sizeof(vec_t);
+	bool cpu = !true;
+
+	ALLOCATE_VECTOR((void **)&(ptr), size, cpu);
+
+	if (cpu)
+	{
+		delete[] ptr;
+	}
+	else
+	{
+		cudaFree(ptr);
+	}
+
+	return 0;
 }
 #endif

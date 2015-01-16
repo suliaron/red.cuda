@@ -15,14 +15,6 @@ class pp_disk
 {
 public:
 
-	typedef struct survivor
-		{
-			vec_t			r;
-			vec_t			v;
-			param_t			p;
-			body_metadata_t body_md;
-		} survivor_t;
-
 	pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage, bool cpu);
 	~pp_disk();
 
@@ -104,7 +96,10 @@ public:
 		\param v Device vector with velocity variables
 		\param dy Device vector that will hold the differentials
 	*/
-	void calc_dy(int i, int rr, ttt_t curr_t, const vec_t *r, const vec_t *v, vec_t* dy);
+	void calc_dydx(int i, int rr, ttt_t curr_t, const vec_t *r, const vec_t *v, vec_t* dy);
+
+	//! Swaps the yout with the y variable, i.e. at the end of an integration step the output will be the input of the next step
+	void swap();
 
 	void remove_inactive_bodies();
 
@@ -175,7 +170,6 @@ private:
 	event_data_t* events;			//!< Vector on the host containing data for events (one colliding pair multiple occurances)
 	event_data_t* d_events;			//!< Vector on the device containing data for events (one colliding pair multiple occurances)
 	vector<event_data_t> sp_events;	//!< Vector on the host containing data for events but  (one colliding pair one occurances)
-	vector<survivor_t>	survivors;	//!< Vector on the host containing data for the survivor body
 
 	vector<string> body_names;
 };

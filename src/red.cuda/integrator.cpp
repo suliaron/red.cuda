@@ -10,27 +10,45 @@
 #include "integrator.h"
 #include "red_constants.h"
 #include "red_type.h"
+#include "redutilcu.h"
 
 using namespace std;
 
-integrator::integrator(pp_disk *ppd, ttt_t dt) : 
+integrator::integrator(pp_disk *ppd, ttt_t dt, bool cpu) : 
 	ppd(ppd),
-	error_check_for_tp(false),
 	dt_try(dt * constants::Gauss), // Transfor time unit
+	cpu(cpu),
+	error_check_for_tp(false),
 	dt_did(0.0),
 	dt_next(0.0),
 	n_failed_step(0),
 	n_passed_step(0),
 	n_tried_step(0),
-	d_ytemp(2)
+	d_ytemp(2),
+	h_ytemp(2),
+	ytemp(2)
 {
+	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+	size_t size = n_total * sizeof(vec_t);
+
+	for (int i = 0; i < 2; i++)
+	{
+		ALLOCATE_VECTOR((void**)&(ytemp), size, cpu);
+	}
 }
 
 integrator::~integrator()
 {
 	for (int i = 0; i < 2; i++)
 	{
-		cudaFree(d_ytemp[i]);
+		if (!cpu)
+		{
+			cudaFree(d_ytemp[i]);
+		}
+		else
+		{
+			delete[] h_ytemp[i];
+		}
 	}
 }
 

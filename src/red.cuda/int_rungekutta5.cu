@@ -92,8 +92,8 @@ static __global__
 }
 } /* rk5_kernel */
 
-rungekutta5::rungekutta5(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance) :
-	integrator(ppd, dt),
+rungekutta5::rungekutta5(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, bool cpu) :
+	integrator(ppd, dt, cpu),
 	adaptive(adaptive),
 	tolerance(tolerance),
 	d_f(2),
@@ -212,7 +212,7 @@ ttt_t rungekutta5::step()
 	ttt_t ttemp = ppd->t + c[r] * dt_try;
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calc_dy(i, r, ttemp, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_f[i][r]);
+		ppd->calc_dydx(i, r, ttemp, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_f[i][r]);
 	}
 
 	var_t max_err = 0.0;
@@ -229,7 +229,7 @@ ttt_t rungekutta5::step()
 			call_kernel_calc_ytemp(n_var_total, r);
 			for (int i = 0; i < 2; i++)
 			{
-				ppd->calc_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
+				ppd->calc_dydx(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
 			}
 		}
 		call_kernel_calc_y_np1(n_var_total);
@@ -242,7 +242,7 @@ ttt_t rungekutta5::step()
 				call_kernel_calc_ytemp(n_var_total, r);
 				for (int i = 0; i < 2; i++)
 				{
-					ppd->calc_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
+					ppd->calc_dydx(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
 				}
 			}
 

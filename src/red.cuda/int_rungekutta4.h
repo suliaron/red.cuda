@@ -18,7 +18,7 @@ public:
 	static var_t bh[];
 	static ttt_t c[];
 
-	rungekutta4(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance);
+	rungekutta4(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, bool cpu);
 	~rungekutta4();
 
 	ttt_t step();

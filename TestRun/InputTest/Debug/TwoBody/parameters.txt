@@ -4,12 +4,12 @@ name = this is the name of the simulation
 description = this is the description of the simulation
 
 frame_center = bary
-integrator = rkf8
-tolerance = 1.0e-10
+integrator = euler
+# tolerance = 1.0e-10
 error_check_for_tp = false # default value
 
 start_time = 0.0  # year
-length = 100.0  # year
+length = 10.0  # year
 output_interval = 0.1 # year
 
 ejection = 100.0 # AU

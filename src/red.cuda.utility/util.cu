@@ -139,6 +139,27 @@ int device_query(ostream& sout, int id_dev)
     return (EXIT_SUCCESS);
 }
 
+void allocate_vector(void **ptr, size_t size, bool cpu, const char *file, int line)
+{
+	if (cpu)
+	{
+		allocate_host_vector(ptr, size, file, line);
+	}
+	else
+	{
+		allocate_device_vector(ptr, size, file, line);
+	}
+}
+
+void allocate_host_vector(void **h_ptr, size_t size, const char *file, int line)
+{
+	*h_ptr = (void *)malloc(size);
+	if (0x0 == h_ptr)
+	{
+		throw string("malloc failed (allocate_host_vector)");
+	}
+}
+
 void allocate_device_vector(void **d_ptr, size_t size, const char *file, int line)
 {
 	cudaMalloc(d_ptr, size);

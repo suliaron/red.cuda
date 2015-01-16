@@ -41,8 +41,10 @@ void open_streams(const options& opt, const integrator* intgr, ostream** result_
 	string path;
 
 	{
-		string adapt = (opt.param->adaptive == true ? "a_" : "");
-		string result_filename = opt.result_filename + adapt + intgr->short_name + ".txt";
+		string ext = file::get_extension(opt.result_filename);
+
+		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
+		string result_filename = file::get_filename_without_ext(opt.result_filename) + adapt + intgr->short_name + "." + ext;
 		path = file::combine_path(opt.printout_dir, result_filename);
 		*result_f = new ofstream(path.c_str(), ios::out);
 	}
@@ -116,6 +118,8 @@ ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* time_of_one_s
 //-v -n_tpb 64 -iDir C:\Work\Projects\red.cuda.TestRun\Emese_Dvorak\cf_5 -p parameters.txt -ic suli-data-collision-N10001-heliocentric-vecelem-binary.txt
 //-v C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -p parameters.txt -ic run01.txt -ic Run_cf_5.txt
 
+//-v -cpu -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Debug\TwoBody -info c_i.txt -event c_e.txt -log c_l.txt -result c_ -p parameters.txt -ic TwoBody.txt
+
 int main(int argc, const char** argv, const char** env)
 {
 	time_t start = time(NULL);
@@ -140,7 +144,10 @@ int main(int argc, const char** argv, const char** env)
 				device_query(cout, opt.id_a_dev);
 			}
 		}
-		device_query(*log_f, opt.id_a_dev);
+		if (!opt.cpu)
+		{
+			device_query(*log_f, opt.id_a_dev);
+		}
 
 		ttt_t ps = 0;
 		ttt_t dt = 0;
@@ -155,7 +162,10 @@ int main(int argc, const char** argv, const char** env)
 			if (fabs(ps) >= opt.param->output_interval)
 			{
 				ps = 0.0;
-				if (!opt.cpu) ppd->copy_to_host();
+				if (!opt.cpu)
+				{
+					ppd->copy_to_host();
+				}
 				ppd->print_result_ascii(*result_f);
 			}
 

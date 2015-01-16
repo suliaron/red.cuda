@@ -72,8 +72,8 @@ static __global__
 } /* rk4_kernel */
 
 
-rungekutta4::rungekutta4(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance) :
-	integrator(ppd, dt),
+rungekutta4::rungekutta4(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, bool cpu) :
+	integrator(ppd, dt, cpu),
 	adaptive(adaptive),
 	tolerance(tolerance),
 	d_f(2),
@@ -184,7 +184,7 @@ ttt_t rungekutta4::step()
 	// Calculate f1 = f(tn, yn) = d_f[][0]
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calc_dy(i, r, ttemp, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_f[i][r]);
+		ppd->calc_dydx(i, r, ttemp, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_f[i][r]);
 	}
 
 	var_t max_err = 0.0;
@@ -201,7 +201,7 @@ ttt_t rungekutta4::step()
 			call_kernel_calc_ytemp_for_fr(n_var_total, r);
 			for (int i = 0; i < 2; i++)
 			{
-				ppd->calc_dy(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
+				ppd->calc_dydx(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
 			}
 		}
 		// yHat_(n+1) = yn + dt*(1/6*f1 + 1/3*f2 + 1/3*f3 + 1/6*f4) + O(dt^5)
@@ -214,7 +214,7 @@ ttt_t rungekutta4::step()
 			// Calculate f5 = f(tn + c5 * dt,  yn + dt*(1/6*f1 + 1/3*f2 + 1/3*f3 + 1/6*f4)) = d_f[][4]
 			for (int i = 0; i < 2; i++)
 			{
-				ppd->calc_dy(i, r, ttemp, ppd->sim_data->d_yout[0], ppd->sim_data->d_yout[1], d_f[i][r]);
+				ppd->calc_dydx(i, r, ttemp, ppd->sim_data->d_yout[0], ppd->sim_data->d_yout[1], d_f[i][r]);
 			}
 
 			int n_var = 0;

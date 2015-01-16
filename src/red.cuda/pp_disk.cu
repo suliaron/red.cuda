@@ -436,7 +436,7 @@ void pp_disk::cpu_calc_grav_accel_SI(ttt_t t, interaction_bound int_bound, const
 				// Check for collision - ignore the star (i > 0 criterium)
 				// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
 				// If i < j is the condition than test particles can not collide with massive bodies
-				if (i > 0 && i > j && d < dc_threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
+				if (i > 0 && i > j && d < threshold[THRESHOLD_COLLISION_FACTOR] * (p[i].radius + p[j].radius))
 				{
 					int k = *event_counter;
 
@@ -584,15 +584,17 @@ bool pp_disk::check_for_ejection_hit_centrum()
 bool pp_disk::check_for_collision()
 {
 	// Number of collision
-	int n_event = get_n_event();
+	int n_event = cpu ? event_counter : get_n_event();
 
 	if (n_event > 0)
 	{
-		copy_event_data_to_host();
+		if (!cpu)
+		{
+			copy_event_data_to_host();
+		}
 		// handle_collision() will create sp_events vector which will explicitly written to the disk via print_event_data()
 		handle_collision();
 		cout << n_collision[EVENT_COUNTER_NAME_LAST_STEP] << " collision event(s) occurred" << endl;
-
 		n_collision[EVENT_COUNTER_NAME_LAST_STEP] = 0;
 
 		return true;
@@ -636,7 +638,7 @@ int pp_disk::cpu_check_for_ejection_hit_centrum()
 
 			// Calculate the distance from the barycenter
 			var_t r2 = SQR(r[i].x) + SQR(r[i].y) + SQR(r[i].z);
-			if (r2 > dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED])
+			if (r2 > threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED])
 			{
 				k = event_counter;
 				//printf("t = %20.10le d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
@@ -656,7 +658,7 @@ int pp_disk::cpu_check_for_ejection_hit_centrum()
 				body_md[i].id *= -1;
 				event_counter++;
 			}
-			else if (r2 < SQR(dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED]))
+			else if (r2 < SQR(threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED]))
 			{
 				k = event_counter;
 				//printf("t = %20.10le d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
@@ -702,7 +704,7 @@ int pp_disk::call_kernel_check_for_ejection_hit_centrum()
 	return get_n_event();
 }
 
-void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
+void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
 	cudaError_t cudaStatus = cudaSuccess;
 
@@ -753,6 +755,21 @@ void pp_disk::calc_dy(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* 
 	}
 }
 
+void pp_disk::swap()
+{
+	for (int i = 0; i < 2; i++)
+	{
+		if (!cpu)
+		{
+			::swap(sim_data->d_yout[i], sim_data->d_y[i]);
+		}
+		else
+		{
+			::swap(sim_data->yout[i], sim_data->y[i]);
+		}
+	}
+}
+
 void pp_disk::increment_event_counter(int *e)
 {
 	for (int i = 0; i < EVENT_COUNTER_NAME_N; i++)
@@ -794,7 +811,6 @@ void pp_disk::handle_collision()
 void pp_disk::handle_ejection_hit_centrum()
 {
 	sp_events.resize(event_counter);
-	survivors.resize(event_counter);
 
 	for (int i = 0; i < event_counter; i++)
 	{
@@ -850,7 +866,6 @@ void pp_disk::create_sp_events()
 	delete[] processed;
 
 	sp_events.resize(n);
-	survivors.resize(n);
 }
 
 void pp_disk::handle_collision_pair(int i, event_data_t *collision)
@@ -990,14 +1005,14 @@ void pp_disk::allocate_host_storage(sim_data_t *sd, int n)
 	sd->y.resize(2);
 	if (cpu)
 	{
-		sd->y_out.resize(2);
+		sd->yout.resize(2);
 	}
 	for (int i = 0; i < 2; i++)
 	{
 		sd->y[i]= new vec_t[n];
 		if (cpu)
 		{
-			sd->y_out[i] = new vec_t[n];
+			sd->yout[i] = new vec_t[n];
 		}
 	}
 	sd->p		= new param_t[n];
@@ -1030,7 +1045,7 @@ void pp_disk::deallocate_host_storage(sim_data_t *sd)
 		delete[] sd->y[i];
 		if (cpu)
 		{
-			delete[] sd->y_out[i];
+			delete[] sd->yout[i];
 		}
 	}
 	delete[] sd->p;
