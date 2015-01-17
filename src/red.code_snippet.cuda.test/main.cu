@@ -1294,14 +1294,7 @@ int main(int argc, const char** argv)
 
 	ALLOCATE_VECTOR((void **)&(ptr), size, cpu);
 
-	if (cpu)
-	{
-		delete[] ptr;
-	}
-	else
-	{
-		cudaFree(ptr);
-	}
+	FREE_VECTOR((void *)ptr, cpu);
 
 	return 0;
 }

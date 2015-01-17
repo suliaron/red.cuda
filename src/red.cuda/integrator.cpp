@@ -33,23 +33,14 @@ integrator::integrator(pp_disk *ppd, ttt_t dt, bool cpu) :
 
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_VECTOR((void**)&(ytemp), size, cpu);
+		ALLOCATE_VECTOR((void**)&(ytemp[i]), size, cpu);
 	}
 }
 
 integrator::~integrator()
 {
-	for (int i = 0; i < 2; i++)
-	{
-		if (!cpu)
-		{
-			cudaFree(d_ytemp[i]);
-		}
-		else
-		{
-			delete[] h_ytemp[i];
-		}
-	}
+	FREE_VECTOR(ytemp[0], cpu);
+	FREE_VECTOR(ytemp[1], cpu);
 }
 
 void integrator::update_counters(int iter)

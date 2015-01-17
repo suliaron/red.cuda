@@ -23,11 +23,21 @@ public:
 	ttt_t step();
 
 private:
+	void cpu_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor, var_t* result);
+
+	void cpu_calc_ytemp_for_fr(int n_var, int r);
+	void cpu_calc_y_np1(int n_var);
+
 	void call_kernel_calc_ytemp_for_fr(int n_var, int r);
 	void call_kernel_calc_y_np1(int n_var);
 
+	void calc_ytemp_for_fr(int n_var, int r);
+	void calc_y_np1(int n_var);
+
 	int	RKOrder;		//!< The order of the embedded RK formulae
 
-	vector<vector <vec_t*> >	d_f;	//!< On the DEVICE it holds the derivatives for the differential equations
-	vector<vector <vec_t*> >	h_f;	//!< On the HOST it holds the derivatives for the differential equations
+	//vector<vector <vec_t*> >	d_f;	//!< On the DEVICE it holds the derivatives for the differential equations
+	//vector<vector <vec_t*> >	h_f;	//!< On the HOST it holds the derivatives for the differential equations
+
+	vector<vector <vec_t*> >	dydx;	//!< Differentials (either in the HOST or the DEVICE memory)
 };

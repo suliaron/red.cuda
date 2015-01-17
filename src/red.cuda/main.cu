@@ -111,15 +111,6 @@ ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* time_of_one_s
 //http://stackoverflow.com/questions/11666049/cuda-kernel-results-different-in-release-mode
 //http://developer.download.nvidia.com/assets/cuda/files/NVIDIA-CUDA-Floating-Point.pdf
 
-//--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Debug\TwoBody -p parameters.txt -ic TwoBody.txt
-//--verbose -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Release\TwoBody -p parameters.txt -ic TwoBody.txt
-
-//--verbose -iDir C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run01 -p parameters.txt -ic run01.txt
-//-v -n_tpb 64 -iDir C:\Work\Projects\red.cuda.TestRun\Emese_Dvorak\cf_5 -p parameters.txt -ic suli-data-collision-N10001-heliocentric-vecelem-binary.txt
-//-v C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -p parameters.txt -ic run01.txt -ic Run_cf_5.txt
-
-//-v -cpu -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Debug\TwoBody -info c_i.txt -event c_e.txt -log c_l.txt -result c_ -p parameters.txt -ic TwoBody.txt
-
 int main(int argc, const char** argv, const char** env)
 {
 	time_t start = time(NULL);

@@ -170,6 +170,33 @@ void allocate_device_vector(void **d_ptr, size_t size, const char *file, int lin
 	}
 }
 
+void free_vector(void *ptr, bool cpu, const char *file, int line)
+{
+	if (cpu)
+	{
+		free_host_vector(ptr, file, line);
+	}
+	else
+	{
+		free_device_vector(ptr, file, line);
+	}
+}
+
+void free_host_vector(void *ptr, const char *file, int line)
+{
+	delete[] ptr;
+}
+
+void free_device_vector(void *ptr, const char *file, int line)
+{
+	cudaFree(ptr);
+	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("cudaFree failed (free_device_vector)");
+	}
+}
+
 void copy_vector_to_device(void* dst, const void *src, size_t count)
 {
 	cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice);

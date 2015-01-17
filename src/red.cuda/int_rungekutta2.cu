@@ -31,11 +31,19 @@ static __global__
 }
 } /* rk2_kernel */
 
+void rungekutta2::cpu_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor, var_t* result)
+{
+	for (int i = 0; i < n; i++)
+	{
+		result[i] = a[i] + b_factor * b[i];
+	}
+}
+
+
 rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt, bool cpu) :
 	integrator(ppd, dt, cpu),
 	RKOrder(2),
-	d_f(2),
-	h_f(2)
+	dydx(2)
 {
 	name = "Runge-Kutta2";
 	short_name = "RK2";
@@ -45,26 +53,10 @@ rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt, bool cpu) :
 	t = ppd->t;
 	for (int i = 0; i < 2; i++)
 	{
-		if (!cpu)
-		{
-			ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n_total*sizeof(vec_t));
-			d_f[i].resize(RKOrder);
-		}
-		else
-		{
-			h_ytemp[i] = new vec_t[n_total];
-			h_f[i].resize(RKOrder);
-		}
+		dydx[i].resize(RKOrder);
 		for (int r = 0; r < RKOrder; r++) 
 		{
-			if (!cpu)
-			{
-				ALLOCATE_DEVICE_VECTOR((void**) &(d_f[i][r]), n_total * sizeof(vec_t));
-			}
-			else
-			{
-				h_f[i][r] = new vec_t[n_total];
-			}
+			ALLOCATE_VECTOR((void**)&(dydx[i][r]), n_total*sizeof(vec_t), cpu);
 		}
 	}
 }
@@ -75,14 +67,7 @@ rungekutta2::~rungekutta2()
 	{
 		for (int r = 0; r < RKOrder; r++) 
 		{
-			if (!cpu)
-			{
-				cudaFree(d_f[i][r]);
-			}
-			else
-			{
-				delete[] h_f[i][r];
-			}
+			FREE_VECTOR(dydx[i][r], cpu);
 		}
 	}
 }
@@ -92,8 +77,8 @@ void rungekutta2::call_kernel_calc_ytemp_for_fr(int n_var, int r)
 	for (int i = 0; i < 2; i++)
 	{
 		var_t *y_n	  = (var_t*)ppd->sim_data->d_y[i];
-		var_t *fr	  = (var_t*)d_f[i][r-1];
-		var_t* result = (var_t*)d_ytemp[i];
+		var_t *fr	  = (var_t*)dydx[i][r-1];
+		var_t* result = (var_t*)ytemp[i];
 
 		rk2_kernel::sum_vector<<<grid, block>>>(n_var, y_n, fr, a[r] * dt_try, result);
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
@@ -110,7 +95,7 @@ void rungekutta2::call_kernel_calc_y_np1(int n_var)
 	{
 		var_t *y_n	 = (var_t*)ppd->sim_data->d_y[i];
 		var_t *y_np1 = (var_t*)ppd->sim_data->d_yout[i];
-		var_t *f2	 = (var_t*)d_f[i][1];
+		var_t *f2	 = (var_t*)dydx[i][1];
 
 		rk2_kernel::sum_vector<<<grid, block>>>(n_var, y_n, f2, b[1] * dt_try, y_np1);
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
@@ -121,41 +106,94 @@ void rungekutta2::call_kernel_calc_y_np1(int n_var)
 	}
 }
 
+void rungekutta2::cpu_calc_ytemp_for_fr(int n_var, int r)
+{
+	for (int i = 0; i < 2; i++)
+	{
+		var_t *y_n	  = (var_t*)ppd->sim_data->y[i];
+		var_t *fr	  = (var_t*)dydx[i][r-1];
+		var_t* result = (var_t*)ytemp[i];
+
+		cpu_sum_vector(n_var, y_n, fr, a[r] * dt_try, result);
+	}
+}
+
+void rungekutta2::cpu_calc_y_np1(int n_var)
+{
+	for (int i = 0; i < 2; i++)
+	{
+		var_t *y_n	 = (var_t*)ppd->sim_data->y[i];
+		var_t *y_np1 = (var_t*)ppd->sim_data->yout[i];
+		var_t *f2	 = (var_t*)dydx[i][1];
+
+		cpu_sum_vector(n_var, y_n, f2, b[1] * dt_try, y_np1);
+	}
+}
+
+void rungekutta2::calc_ytemp_for_fr(int n_var, int r)
+{
+	if (!cpu)
+	{
+		call_kernel_calc_ytemp_for_fr(n_var, r);
+	}
+	else
+	{
+		cpu_calc_ytemp_for_fr(n_var, r);
+	}
+}
+
+void rungekutta2::calc_y_np1(int n_var)
+{
+	if (!cpu)
+	{
+		call_kernel_calc_y_np1(n_var);
+	}
+	else
+	{
+		cpu_calc_y_np1(n_var);
+	}
+}
+
 ttt_t rungekutta2::step()
 {
 	// Set the kernel launch parameters
 	const int n_body_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 	const int n_var_total = NDIM * n_body_total;
-	calc_grid(n_var_total, THREADS_PER_BLOCK);
+	if (!cpu)
+	{
+		calc_grid(n_var_total, THREADS_PER_BLOCK);
+	}
 
 	int r = 0;
 	ttt_t ttemp = ppd->t + c[r] * dt_try;
-	// Calculate initial differentials f1 = f(tn, yn) and store them into d_f[][0]
+	// Calculate initial differentials f1 = f(tn, yn) and store them into dydx[][0]
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calc_dydx(i, r, ttemp, ppd->sim_data->d_y[0], ppd->sim_data->d_y[1], d_f[i][r]);
+		const vec_t *coor = cpu ? ppd->sim_data->y[0] : ppd->sim_data->d_y[0];
+		const vec_t *velo = cpu ? ppd->sim_data->y[1] : ppd->sim_data->d_y[1];
+
+		ppd->calc_dydx(i, r, ttemp, coor, velo, dydx[i][r]);
 	}
 
 	r = 1;
 	ttemp = ppd->t + c[r] * dt_try;
-	call_kernel_calc_ytemp_for_fr(n_var_total, r);
+
+	calc_ytemp_for_fr(n_var_total, r);
 
 	// Calculate f2 = f(tn + 1/2*h, yn + 1/2*h*f1) = d_f[][1]
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calc_dydx(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
+		ppd->calc_dydx(i, r, ttemp, ytemp[0], ytemp[1], dydx[i][r]);
 	}
+	calc_y_np1(n_var_total);
 
 	dt_did = dt_try;
-	call_kernel_calc_y_np1(n_var_total);
+	dt_next = dt_try;
 
 	update_counters(1);
 
 	ppd->t += dt_did;
-	for (int i = 0; i < 2; i++)
-	{
-		swap(ppd->sim_data->d_yout[i], ppd->sim_data->d_y[i]);
-	}
+	ppd->swap();
 
 	return dt_did;
 }

@@ -11,6 +11,12 @@ void allocate_device_vector(void **d_ptr, size_t size,           const char *fil
 #define ALLOCATE_DEVICE_VECTOR(d_ptr, size)      (allocate_device_vector(d_ptr, size,      __FILE__, __LINE__))
 #define ALLOCATE_VECTOR(       ptr,   size, cpu) (allocate_vector(       ptr,   size, cpu, __FILE__, __LINE__))
 
+void free_vector(       void *ptr, bool cpu, const char *file, int line);
+void free_host_vector(  void *ptr,           const char *file, int line);
+void free_device_vector(void *ptr,           const char *file, int line);
+
+#define FREE_VECTOR(ptr, cpu) (free_vector(ptr, cpu, __FILE__, __LINE__))
+
 void copy_vector_to_device(void* dst, const void *src, size_t count);
 void copy_vector_to_host(void* dst, const void *src, size_t count);
 void copy_vector_d2d(void* dst, const void *src, size_t count);

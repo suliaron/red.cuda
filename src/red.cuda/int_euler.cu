@@ -60,16 +60,8 @@ euler::euler(pp_disk *ppd, ttt_t dt, bool cpu) :
 
 euler::~euler()
 {
-	if (!cpu)
-	{
-		cudaFree(dydx[0]);
-		cudaFree(dydx[1]);
-	}
-	else
-	{
-		delete[] dydx[0];
-		delete[] dydx[1];
-	}
+	FREE_VECTOR(dydx[0], cpu);
+	FREE_VECTOR(dydx[1], cpu);
 }
 
 void euler::call_kernel_calc_y_np1(int n_var)
@@ -112,13 +104,13 @@ ttt_t euler::step()
 	}
 
 	t = ppd->t;
-	// Calculate initial differentials and store them into f
+	// Calculate initial differentials and store them into dydx
 	for (int i = 0; i < 2; i++)
 	{
-		const vec_t *r = cpu ? ppd->sim_data->y[0] : ppd->sim_data->d_y[0];
-		const vec_t *v = cpu ? ppd->sim_data->y[1] : ppd->sim_data->d_y[1];
+		const vec_t *coor = cpu ? ppd->sim_data->y[0] : ppd->sim_data->d_y[0];
+		const vec_t *velo = cpu ? ppd->sim_data->y[1] : ppd->sim_data->d_y[1];
 
-		ppd->calc_dydx(i, 0, t, r, v, dydx[i]);
+		ppd->calc_dydx(i, 0, t, coor, velo, dydx[i]);
 	}
 	calc_y_np1(n_var_total);
 
