@@ -161,7 +161,7 @@ void allocate_host_storage(sim_data_t *sd, int n)
 	{
 		sd->y[i]= new vec_t[n];
 	}
-	sd->oe		= new orbelem_t[n];
+	sd->h_oe	= new orbelem_t[n];
 	sd->p		= new param_t[n];
 	sd->body_md	= new body_metadata_t[n];
 	sd->epoch	= new ttt_t[n];
@@ -173,7 +173,7 @@ void deallocate_host_storage(sim_data_t *sd)
 	{
 		delete[] sd->y[i];
 	}
-	delete[] sd->oe;
+	delete[] sd->h_oe;
 	delete[] sd->p;
 	delete[] sd->body_md;
 	delete[] sd->epoch;
@@ -212,7 +212,7 @@ void print(string &path, int n, sim_data_t *sd)
 	{		
 		for (int i = 0; i < n; i++)
 		{
-			file::print_oe_record(output, &sd->oe[i]);
+			file::print_oe_record(output, &sd->h_oe[i]);
 		}
 		output.close();
 	}

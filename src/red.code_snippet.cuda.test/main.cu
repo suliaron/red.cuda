@@ -1288,6 +1288,9 @@ int main(int argc, const char** argv)
 #if 1
 int main(int argc, const char** argv)
 {
+	sim_data_t sd;
+	event_data_t ed;
+
 	vec_t* ptr = 0x0;
 	size_t size = 1024 * sizeof(vec_t);
 	bool cpu = !true;

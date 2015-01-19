@@ -27,18 +27,11 @@ static __global__
 }
 } /* euler_kernel */
 
-void euler::cpu_calc_y_np1(int n_var)
+void euler::cpu_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor, var_t* result)
 {
-	for (int i = 0; i < 2; i++)
-	{	
-		var_t *y_n	 = (var_t*)ppd->sim_data->y[i];
-		var_t *y_np1 = (var_t*)ppd->sim_data->yout[i];
-		var_t *f0	 = (var_t*)dydx[i];
-
-		for (int j = 0; j < n_var; j++)
-		{
-			y_np1[j] = y_n[j] + dt_try * f0[j];
-		}
+	for (int tid = 0; tid < n; tid++)
+	{
+		result[tid] = a[tid] + b_factor * b[tid];
 	}
 }
 
@@ -64,32 +57,28 @@ euler::~euler()
 	FREE_VECTOR(dydx[1], cpu);
 }
 
-void euler::call_kernel_calc_y_np1(int n_var)
+void euler::calc_y_np1(int n_var)
 {
 	for (int i = 0; i < 2; i++)
 	{	
-		var_t *y_n	 = (var_t*)ppd->sim_data->d_y[i];
-		var_t *y_np1 = (var_t*)ppd->sim_data->d_yout[i];
+		var_t *y_n	 = (var_t*)ppd->sim_data->y[i];
+		var_t *y_np1 = (var_t*)ppd->sim_data->yout[i];
 		var_t *f0	 = (var_t*)dydx[i];
 
-		euler_kernel::sum_vector<<<grid, block>>>(n_var, y_n, f0, dt_try, y_np1);
-		cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus) 
+		if (!cpu)
 		{
-			throw nbody_exception("kernel_sum_vector failed", cudaStatus);
-		}
-	}
-}
+			euler_kernel::sum_vector<<<grid, block>>>(n_var, y_n, f0, dt_try, y_np1);
 
-void euler::calc_y_np1(int n_var_total)
-{
-	if (!cpu)
-	{
-		call_kernel_calc_y_np1(n_var_total);
-	}
-	else
-	{
-		cpu_calc_y_np1(n_var_total);
+			cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+			if (cudaSuccess != cudaStatus) 
+			{
+				throw nbody_exception("euler_kernel::sum_vector failed", cudaStatus);
+			}
+		}
+		else
+		{
+			cpu_sum_vector(n_var, y_n, f0, dt_try, y_np1);
+		}
 	}
 }
 
@@ -105,11 +94,10 @@ ttt_t euler::step()
 
 	t = ppd->t;
 	// Calculate initial differentials and store them into dydx
+	const vec_t *coor = ppd->sim_data->y[0];
+	const vec_t *velo = ppd->sim_data->y[1];
 	for (int i = 0; i < 2; i++)
 	{
-		const vec_t *coor = cpu ? ppd->sim_data->y[0] : ppd->sim_data->d_y[0];
-		const vec_t *velo = cpu ? ppd->sim_data->y[1] : ppd->sim_data->d_y[1];
-
 		ppd->calc_dydx(i, 0, t, coor, velo, dydx[i]);
 	}
 	calc_y_np1(n_var_total);

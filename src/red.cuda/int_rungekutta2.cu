@@ -169,9 +169,8 @@ ttt_t rungekutta2::step()
 	// Calculate initial differentials f1 = f(tn, yn) and store them into dydx[][0]
 	for (int i = 0; i < 2; i++)
 	{
-		const vec_t *coor = cpu ? ppd->sim_data->y[0] : ppd->sim_data->d_y[0];
-		const vec_t *velo = cpu ? ppd->sim_data->y[1] : ppd->sim_data->d_y[1];
-
+		const vec_t *coor = ppd->sim_data->y[0];
+		const vec_t *velo = ppd->sim_data->y[1];
 		ppd->calc_dydx(i, r, ttemp, coor, velo, dydx[i][r]);
 	}
 

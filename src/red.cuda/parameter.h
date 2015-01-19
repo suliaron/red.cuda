@@ -50,6 +50,7 @@ public:
 	friend ostream& operator<<(ostream& stream, const parameter* param);
 
 private:
+	void create_default_parameters();
 	void parse();
 	void set_param(string& key, string& value);
 	void transform_time();

@@ -39,23 +39,37 @@ using namespace redutilcu;
 void open_streams(const options& opt, const integrator* intgr, ostream** result_f, ostream** info_f, ostream** event_f, ostream** log_f)
 {
 	string path;
+	string prefix;
+	string ext = "txt";
 
+	if (opt.ef)
 	{
-		string ext = file::get_extension(opt.result_filename);
-
-		string adapt = (opt.param->adaptive == true ? "_a_" : "_");
-		string result_filename = file::get_filename_without_ext(opt.result_filename) + adapt + intgr->short_name + "." + ext;
-		path = file::combine_path(opt.printout_dir, result_filename);
-		*result_f = new ofstream(path.c_str(), ios::out);
+		char sep = '_';
+		string config;
+#ifdef _DEBUG
+		config = "D";
+#else
+		config = "R";
+#endif
+		string dev = opt.cpu ? "cpu" : "gpu";
+		// as: adaptive step-size, fs: fix step-size
+		string adapt = opt.param->adaptive == true ? "as" : "fs";
+		// ps: padded storage, ns: normal storage
+		string strorage = opt.use_padded_storage == true ? "ps" : "ns";
+		string int_name = intgr->short_name;
+		prefix = config + sep + dev + sep + strorage + sep + adapt + sep + int_name + sep;
 	}
 
-	path = file::combine_path(opt.printout_dir, opt.info_filename);
+	path = file::combine_path(opt.printout_dir, prefix + opt.result_filename) + "." + ext;
+	*result_f = new ofstream(path.c_str(), ios::out);
+
+	path = file::combine_path(opt.printout_dir, prefix + opt.info_filename) + "." + ext;
 	*info_f = new ofstream(path.c_str(), ios::out);
 
-	path = file::combine_path(opt.printout_dir, opt.event_filename);
+	path = file::combine_path(opt.printout_dir, prefix + opt.event_filename) + "." + ext;
 	*event_f = new ofstream(path.c_str(), ios::out);
 
-	path = file::combine_path(opt.printout_dir, opt.log_filename);
+	path = file::combine_path(opt.printout_dir, prefix + opt.log_filename) + "." + ext;
 	*log_f = new ofstream(path.c_str(), ios::out);
 }
 
@@ -142,8 +156,8 @@ int main(int argc, const char** argv, const char** env)
 
 		ttt_t ps = 0;
 		ttt_t dt = 0;
-		clock_t sum_time_of_steps = 0.0;
-		clock_t time_of_one_step  = 0.0;
+		clock_t sum_time_of_steps = 0;
+		clock_t time_of_one_step  = 0;
 
 		time_t time_info_start = clock();
 

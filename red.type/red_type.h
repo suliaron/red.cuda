@@ -7,18 +7,20 @@
 // include CUDA
 #include "cuda_runtime.h"
 
+#include "red_constants.h"
+
 using namespace std;
 
 //! Type of time variables
-typedef double		ttt_t;
+typedef double ttt_t;
 //! Type of variables
-typedef double		var_t;
+typedef double var_t;
 //! Type of boolean variables
-typedef bool		bool_t;
+typedef bool   bool_t;
 //! Type of integer variables
-typedef int			int_t;
+typedef int    int_t;
 //! Type of integer tuples variables
-typedef int2		int2_t;
+typedef int2   int2_t;
 
 
 typedef enum frame_center
@@ -57,6 +59,14 @@ typedef enum event_name
 			EVENT_NAME_N
 		} event_name_t;
 
+typedef enum event_counter_name
+		{
+			EVENT_COUNTER_NAME_TOTAL,
+			EVENT_COUNTER_NAME_LAST_CLEAR,
+			EVENT_COUNTER_NAME_LAST_STEP,
+			EVENT_COUNTER_NAME_N
+		} event_counter_name_t;
+
 typedef enum migration_type
 		{
 			MIGRATION_TYPE_NO,
@@ -76,14 +86,6 @@ typedef enum body_type
 			BODY_TYPE_PADDINGPARTICLE,
 			BODY_TYPE_N
 		} body_type_t;
-
-typedef enum event_counter_name
-		{
-			EVENT_COUNTER_NAME_TOTAL,
-			EVENT_COUNTER_NAME_LAST_CLEAR,
-			EVENT_COUNTER_NAME_LAST_STEP,
-			EVENT_COUNTER_NAME_N
-		} event_counter_name_t;
 
 typedef struct orbelem
 		{
@@ -146,17 +148,76 @@ typedef struct __builtin_align__(16) body_metadata
 
 typedef struct sim_data
 		{
-			orbelem_t*		oe;				//!< Host vector of the orbital elements
-			vector<vec_t*>	y;				//!< Host vectors of initial position and velocity of the bodies on the host
-			vector<vec_t*>	yout;			//!< Host vectors of ODE variables at the end of the step (at time tout)
-			vector<vec_t*>	d_y;			//!< Device vectors of ODE variables at the beginning of the step (at time t)
-			vector<vec_t*>	d_yout;			//!< Device vectors of ODE variables at the end of the step (at time tout)
-			param_t			*p;				//!< Host vector of body parameters
-			param_t			*d_p;			//!< Device vector of body parameters
-			body_metadata_t *body_md; 		//!< Host vector of additional body parameters
-			body_metadata_t *d_body_md; 	//!< Device vector of additional body parameters
-			ttt_t			*epoch;			//!< Host vector of epoch of the bodies
-			ttt_t			*d_epoch;		//!< Device vector of epoch of the bodies
+			vector<vec_t*>	 y;				//!< Vectors of initial position and velocity of the bodies on the host (either in the DEVICE or HOST memory)
+			vector<vec_t*>	 yout;			//!< Vectors of ODE variables at the end of the step (at time tout) (either in the DEVICE or HOST memory)
+			param_t*		 p;   			//!< Vector of body parameters (either in the DEVICE or HOST memory)
+			body_metadata_t* body_md; 		//!< Vector of additional body parameters (either in the DEVICE or HOST memory)
+			ttt_t*			 epoch;			//!< Vector of epoch of the bodies (either in the DEVICE or HOST memory)
+
+			vector<vec_t*>	 d_y;			//!< Device vectors of ODE variables at the beginning of the step (at time t)
+			vector<vec_t*>	 d_yout;		//!< Device vectors of ODE variables at the end of the step (at time tout)
+			param_t*		 d_p;			//!< Device vector of body parameters
+			body_metadata_t* d_body_md; 	//!< Device vector of additional body parameters
+			ttt_t*			 d_epoch;		//!< Device vector of epoch of the bodies
+
+			vector<vec_t*>	 h_y;			//!< Host vectors of initial position and velocity of the bodies on the host
+			vector<vec_t*>	 h_yout;		//!< Host vectors of ODE variables at the end of the step (at time tout)
+			param_t*		 h_p;			//!< Host vector of body parameters
+			body_metadata_t* h_body_md; 	//!< Host vector of additional body parameters
+			ttt_t*			 h_epoch;		//!< Host vector of epoch of the bodies
+
+			orbelem_t*		 h_oe;			//!< Host vector of the orbital elements
+
+			sim_data()
+			{
+				p = d_p = h_p = 0x0;
+				body_md = d_body_md = h_body_md = 0x0;
+				epoch = d_epoch = h_epoch = 0x0;
+				h_oe = 0x0;
+			}
+
+			void create_aliases(bool cpu)
+			{
+				for (int i = 0; i < 2; i++)
+				{
+					y[i]    = cpu ? h_y[i]    : d_y[i];
+					yout[i] = cpu ? h_yout[i] : d_yout[i];
+				}
+				p       = cpu ? h_p       : d_p;
+				body_md = cpu ? h_body_md : d_body_md;
+				epoch   = cpu ? h_epoch   : d_epoch;
+			}
+
+			void allocate_host_storage(int n)
+			{
+				h_y.resize(2);
+				h_yout.resize(2);
+
+				for (int i = 0; i < 2; i++)
+				{
+					h_y[i]    = new vec_t[n];
+					h_yout[i] = new vec_t[n];
+				}
+				h_p       = new param_t[n];
+				h_body_md = new body_metadata_t[n];
+				h_epoch   = new ttt_t[n];
+			}
+
+			void allocate_device_storage(int n)
+			{
+				d_y.resize(2);
+				d_yout.resize(2);
+
+				for (int i = 0; i < 2; i++)
+				{
+					ALLOCATE_DEVICE_VECTOR((void **)&(d_y[i]),		n*sizeof(vec_t));
+					ALLOCATE_DEVICE_VECTOR((void **)&(d_yout[i]),	n*sizeof(vec_t));
+				}
+				ALLOCATE_DEVICE_VECTOR((void **)&(d_p),			    n*sizeof(param_t));
+				ALLOCATE_DEVICE_VECTOR((void **)&(d_body_md),		n*sizeof(body_metadata_t));
+				ALLOCATE_DEVICE_VECTOR((void **)&(d_epoch),		    n*sizeof(ttt_t));
+			}
+
 		} sim_data_t;
 
 typedef struct event_data
@@ -181,6 +242,24 @@ typedef struct event_data
 			param_t ps;			//!< Parameters of the survivor after the event
 			vec_t	rs;			//!< Position of survivor after the event
 			vec_t	vs;			//!< Velocity of survivor after the event
+
+			event_data()
+			{
+				event_name = EVENT_NAME_NONE;
+				t = 0.0;
+				d = 0.0;
+
+				id1 = idx1 = 0;
+				id2 = idx2 = 0;
+				
+				param_t p_zero = {0.0, 0.0, 0.0, 0.0};
+				vec_t v_zero = {0.0, 0.0, 0.0, 0.0};
+
+				p1 = p2 = ps = p_zero;
+				r1 = r2 = rs = v_zero;
+				v1 = v2 = vs = v_zero;
+			}
+
 		} event_data_t;
 
 struct interaction_bound

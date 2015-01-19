@@ -238,7 +238,7 @@ void populate_Dvorak_disk(body_disk_t& disk, sim_data_t *sd)
 			sd->epoch[  bodyIdx] = epoch;
 			sd->body_md[bodyIdx] = body_md;
 			sd->p[      bodyIdx] = param;
-			sd->oe[     bodyIdx] = oe;
+			sd->h_oe[   bodyIdx] = oe;
 		} /* for */
 	} /* for */
 }
@@ -331,7 +331,7 @@ void create_Dvorak_disk(string dir, string filename, body_disk_t& disk)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->p[i].mass);
-			int ret_code = tools::calculate_phase(mu, &sim_data->oe[i], &rVec, &vVec);
+			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			if (1 == ret_code)
 			{
 				cerr << "Could not calculate the phase." << endl;

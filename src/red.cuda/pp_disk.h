@@ -22,9 +22,7 @@ public:
 	void copy_to_device();
 	//! Copies ODE parameters and variables from the cuda device to the host
 	void copy_to_host();
-	//! Copies threshold data to the device constant memory
-	void copy_threshold_to_device(const var_t* thrshld);
-	//! Copies threshold data
+	//! Copies threshold data (either into HOST or DEVICE memory depending on the cpu boolean value)
 	void copy_threshold(const var_t* thrshld);
 	//! Copies the event data from the cuda device to the host
 	void copy_event_data_to_host();
@@ -114,13 +112,13 @@ public:
 
 	ttt_t		t;
 
-	int n_ejection[EVENT_COUNTER_NAME_N];		//!< Number of ejection
-	int n_hit_centrum[EVENT_COUNTER_NAME_N];	//!< Number of hit centrum
-	int n_collision[EVENT_COUNTER_NAME_N];		//!< Number of collision
-	int n_event[EVENT_COUNTER_NAME_N];          //!< Number of total events
+	int n_ejection[   EVENT_COUNTER_NAME_N];   //!< Number of ejection
+	int n_hit_centrum[EVENT_COUNTER_NAME_N];   //!< Number of hit centrum
+	int n_collision[  EVENT_COUNTER_NAME_N];   //!< Number of collision
+	int n_event[      EVENT_COUNTER_NAME_N];   //!< Number of total events
 
 private:
-	void increment_event_counter(int *e);
+	void increment_event_counter(int *event_counter);
 	//! Loads the initial position and velocity of the bodies (second input version).
 	/*   
 		\param path the full path of the data file

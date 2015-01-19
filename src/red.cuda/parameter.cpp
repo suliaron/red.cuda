@@ -12,20 +12,9 @@ using namespace redutilcu;
 
 parameter::parameter(string& dir, string& filename, bool verbose) :
 	filename(filename),
-	verbose(verbose),
-	adaptive(false),
-	error_check_for_tp(false),
-	fr_cntr(FRAME_CENTER_BARY),
-	int_type(INTEGRATOR_EULER),
-	tolerance(1.0e-10),
-	start_time(0.0),
-	simulation_length(0.0),
-	output_interval(0.0)
+	verbose(verbose)
 {
-	for (int i = 0; i < THRESHOLD_N; i++)
-	{
-		thrshld[i] = -1.0;
-	}
+	create_default_parameters();
 
 	string path = file::combine_path(dir, filename);
 	file::load_ascii_file(path, data);
@@ -38,6 +27,23 @@ parameter::parameter(string& dir, string& filename, bool verbose) :
 
 parameter::~parameter() 
 {
+}
+
+void parameter::create_default_parameters()
+{
+	adaptive           = false;
+	error_check_for_tp = false;
+	fr_cntr            = FRAME_CENTER_BARY;
+	int_type           = INTEGRATOR_EULER;
+	tolerance          = 1.0e-10;
+	start_time         = 0.0;
+	simulation_length  = 0.0;
+	output_interval    = 0.0;
+
+	for (int i = 0; i < THRESHOLD_N; i++)
+	{
+		thrshld[i] = -1.0;
+	}
 }
 
 void parameter::parse()
