@@ -104,7 +104,7 @@ void options::print_usage()
 	cout << "     -info   | --info-filename                : the name of the file where the runtime output of the code will be stored (default is info.txt)" << endl;
 	cout << "     -event  | --event-filename               : the name of the file where the details of each event will be stored (default is event.txt)" << endl;
 	cout << "     -log    | --log-filename                 : the name of the file where the details of the execution of the code will be stored (default is log.txt)" << endl;
-	cout << "     -result | --result-filename              : the name of the file where the simlation data for a time instance will be stored (default is result_[...].txt" << endl;
+	cout << "     -result | --result-filename              : the name of the file where the simlation data for a time instance will be stored (default is result.txt" << endl;
 	cout << "                                                where [...] contains data describing the integrator)" << endl;
 	cout << "     -v      | --verbose                      : verbose mode" << endl;
 	cout << "     -cpu    | --cpu                          : Execute the code on the cpu if required by the user or if no GPU is installed (default is false)" << endl;
@@ -119,9 +119,11 @@ void options::create_default_options()
 	use_padded_storage = false;
 	n_tpb              = 64;
 
-	info_filename      = "info.txt";
-	event_filename     = "event.txt";
-	log_filename       = "log.txt";
+	ef                 = false;
+
+	info_filename      = "info";
+	event_filename     = "event";
+	log_filename       = "log";
 	result_filename    = "result";
 }
 
@@ -199,6 +201,10 @@ void options::parse_options(int argc, const char** argv)
 		else if (p == "--verbose" || p == "-v")
 		{
 			verbose = true;
+		}
+		else if (p == "-ef")
+		{
+			ef = true;
 		}
 		else if (p == "--cpu" || p == "-cpu")
 		{

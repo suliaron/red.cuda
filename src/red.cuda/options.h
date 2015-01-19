@@ -29,6 +29,8 @@ public:
 	int		n_tpb;					//!< Number of thread per block to use in kernel lunches (default is 64)
 	int		id_a_dev;				//!< The id of the device which will execute the code
 
+	bool	ef;						//!< Extend the file names with command line information. Only for developer and debugger purposes.
+
 	parameter* param;
 	gas_disk*  g_disk;	
 
