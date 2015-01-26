@@ -236,3 +236,27 @@ void copy_constant_to_device(const void* dst, const void *src, size_t count)
 		throw string("cudaMemcpyToSymbol failed (copy_constant_to_device)");
 	}
 }
+
+void print_array(int n, var_t *data, bool cpu)
+{
+	var_t* h_data = 0x0;
+
+	if (!cpu)
+	{
+		h_data = new var_t[n];
+		copy_vector_to_host(h_data, data, n * sizeof(var_t));
+	}
+	else
+	{
+		h_data = data;
+	}
+	for (int i = 0; i < n; i++)
+	{
+		printf("[%2d]: %20.16lf\n", i, h_data[i]);
+	}
+
+	if (!cpu)
+	{
+		delete[] h_data;
+	}
+}

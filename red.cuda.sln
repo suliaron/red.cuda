@@ -5,7 +5,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda", "src\red.cuda\re
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.code_snippet.cuda", "src\red.code_snippet.cuda.test\red.code_snippet.cuda.vcxproj", "{081F97DE-F35B-4C85-A4E7-243AB36E7C08}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.initial", "src\red.cuda.initial\red.cuda.vcxproj", "{AA7E756C-9F56-4B61-9DBC-05B03C794490}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.initial", "src\red.cuda.initial\red.cuda.initial.vcxproj", "{AA7E756C-9F56-4B61-9DBC-05B03C794490}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.utility", "src\red.cuda.utility\red.cuda.utility.vcxproj", "{9136AC9B-7FB0-43F4-968B-0AD558F8B638}"
 EndProject

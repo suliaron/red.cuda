@@ -22,3 +22,5 @@ void copy_vector_to_host(void* dst, const void *src, size_t count);
 void copy_vector_d2d(void* dst, const void *src, size_t count);
 
 void copy_constant_to_device(const void* dst, const void *src, size_t count);
+
+void print_array(int n, var_t *data, bool cpu);

@@ -7,8 +7,6 @@
 // include CUDA
 #include "cuda_runtime.h"
 
-#include "red_constants.h"
-
 using namespace std;
 
 //! Type of time variables
@@ -186,36 +184,6 @@ typedef struct sim_data
 				p       = cpu ? h_p       : d_p;
 				body_md = cpu ? h_body_md : d_body_md;
 				epoch   = cpu ? h_epoch   : d_epoch;
-			}
-
-			void allocate_host_storage(int n)
-			{
-				h_y.resize(2);
-				h_yout.resize(2);
-
-				for (int i = 0; i < 2; i++)
-				{
-					h_y[i]    = new vec_t[n];
-					h_yout[i] = new vec_t[n];
-				}
-				h_p       = new param_t[n];
-				h_body_md = new body_metadata_t[n];
-				h_epoch   = new ttt_t[n];
-			}
-
-			void allocate_device_storage(int n)
-			{
-				d_y.resize(2);
-				d_yout.resize(2);
-
-				for (int i = 0; i < 2; i++)
-				{
-					ALLOCATE_DEVICE_VECTOR((void **)&(d_y[i]),		n*sizeof(vec_t));
-					ALLOCATE_DEVICE_VECTOR((void **)&(d_yout[i]),	n*sizeof(vec_t));
-				}
-				ALLOCATE_DEVICE_VECTOR((void **)&(d_p),			    n*sizeof(param_t));
-				ALLOCATE_DEVICE_VECTOR((void **)&(d_body_md),		n*sizeof(body_metadata_t));
-				ALLOCATE_DEVICE_VECTOR((void **)&(d_epoch),		    n*sizeof(ttt_t));
 			}
 
 		} sim_data_t;

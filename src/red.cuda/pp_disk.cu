@@ -952,26 +952,30 @@ pp_disk::pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage,
 
 	n_bodies = get_number_of_bodies(path);
 	allocate_storage();
+	sim_data->create_aliases(cpu);
 	load(path);
 }
 
 pp_disk::~pp_disk()
 {
 	deallocate_host_storage(sim_data);
-	deallocate_device_storage(sim_data);
-
-	delete sim_data;
-
 	delete[] events;
 
-	if (0x0 != d_g_disk)
+	if (!cpu)
 	{
-		cudaFree(d_g_disk);
+		deallocate_device_storage(sim_data);
+		cudaFree(d_events);
+		cudaFree(d_event_counter);
 	}
+	delete sim_data;
 
 	if (0x0 != g_disk)
 	{
 		delete[] g_disk;
+	}
+	if (0x0 != d_g_disk)
+	{
+		cudaFree(d_g_disk);
 	}
 }
 
@@ -985,16 +989,13 @@ void pp_disk::allocate_storage()
 	sim_data->y.resize(2);
 	sim_data->yout.resize(2);
 
-	//allocate_host_storage(sim_data, n_total);
-	sim_data->allocate_host_storage(n_total);
+	allocate_host_storage(sim_data, n_total);
 	if (!cpu)
 	{
-		sim_data->allocate_device_storage(n_total);
+		allocate_device_storage(sim_data, n_total);
 		ALLOCATE_VECTOR((void **)&d_events,				n_total*sizeof(event_data_t), cpu);
 		ALLOCATE_VECTOR((void **)&d_event_counter,		      1*sizeof(int), cpu);
-		//allocate_device_storage(sim_data, n_total);
 	}
-	sim_data->create_aliases(cpu);
 
 	events = new event_data_t[n_total];
 }
@@ -1021,42 +1022,36 @@ void pp_disk::allocate_device_storage(sim_data_t *sd, int n)
 
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_VECTOR((void **)&(sd->d_y[i]),		n*sizeof(vec_t), cpu);
-		ALLOCATE_VECTOR((void **)&(sd->d_yout[i]),	n*sizeof(vec_t), cpu);
+		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_y[i]),		n*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_yout[i]),	n*sizeof(vec_t));
 	}
-	ALLOCATE_VECTOR((void **)&(sd->d_p),			n*sizeof(param_t), cpu);
-	ALLOCATE_VECTOR((void **)&(sd->d_body_md),		n*sizeof(body_metadata_t), cpu);
-	ALLOCATE_VECTOR((void **)&(sd->d_epoch),		n*sizeof(ttt_t), cpu);
-
-	ALLOCATE_VECTOR((void **)&d_events,				n*sizeof(event_data_t), cpu);
-	ALLOCATE_VECTOR((void **)&d_event_counter,		1*sizeof(int), cpu);
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_p),				n*sizeof(param_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_body_md),		n*sizeof(body_metadata_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_epoch),			n*sizeof(ttt_t));
 }
 
 void pp_disk::deallocate_host_storage(sim_data_t *sd)
 {
 	for (int i = 0; i < 2; i++)
 	{
-		FREE_VECTOR(sd->h_y[i], cpu);
-		FREE_VECTOR(sd->h_yout[i], cpu);
+		delete[] sd->h_y[i];
+		delete[] sd->h_yout[i];
 	}
-	FREE_VECTOR(sd->h_p, cpu);
-	FREE_VECTOR(sd->h_body_md, cpu);
-	FREE_VECTOR(sd->h_epoch, cpu);
+	delete[] sd->h_p;
+	delete[] sd->h_body_md;
+	delete[] sd->h_epoch;
 }
 
 void pp_disk::deallocate_device_storage(sim_data_t *sd)
 {
 	for (int i = 0; i < 2; i++)
 	{
-		FREE_VECTOR(sd->d_y[i], cpu);
-		FREE_VECTOR(sd->d_yout[i], cpu);
+		cudaFree(sd->d_y[i]);
+		cudaFree(sd->d_yout[i]);
 	}
-	FREE_VECTOR(sd->d_p, cpu);
-	FREE_VECTOR(sd->d_body_md, cpu);
-	FREE_VECTOR(sd->d_epoch, cpu);
-
-	FREE_VECTOR(d_events, cpu);
-	FREE_VECTOR(d_event_counter, cpu);
+	cudaFree(sd->d_p);
+	cudaFree(sd->d_body_md);
+	cudaFree(sd->d_epoch);
 }
 
 number_of_bodies* pp_disk::get_number_of_bodies(string& path)

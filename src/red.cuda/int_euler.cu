@@ -25,7 +25,7 @@ static __global__
 		tid += stride;
 	}
 }
-} /* euler_kernel */
+} /* namespace euler_kernel */
 
 void euler::cpu_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor, var_t* result)
 {
@@ -84,11 +84,12 @@ void euler::calc_y_np1(int n_var)
 
 ttt_t euler::step()
 {
-	// Set the kernel launch parameters
 	const int n_body_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 	const int n_var_total = NDIM * n_body_total;
+
 	if (!cpu)
 	{
+		// Set the kernel launch parameters
 		calc_grid(n_var_total, THREADS_PER_BLOCK);
 	}
 

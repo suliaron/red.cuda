@@ -72,7 +72,7 @@
     <TargetName>redutilcu</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <TargetName>redutilcu2</TargetName>
+    <TargetName>redutilcu</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetName>redcudautil</TargetName>
