@@ -13,7 +13,7 @@ using namespace std;
 class euler : public integrator
 {
 public:
-	euler(pp_disk *ppd, ttt_t dt, bool cpu);
+	euler(pp_disk *ppd, ttt_t dt, computing_device_t comp_dev);
 	~euler();
 
 	ttt_t	step();
@@ -21,6 +21,4 @@ public:
 private:
 	void cpu_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor, var_t* result);
 	void calc_y_np1(int n_var);
-
-	vector<vec_t*> dydx;	//!< Differentials (either in the HOST or the DEVICE memory)
 };

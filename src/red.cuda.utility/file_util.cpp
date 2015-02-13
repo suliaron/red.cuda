@@ -296,6 +296,17 @@ void print_body_record(ofstream &sout, string name, var_t epoch, param_t *p, bod
 
 void print_body_record_Emese(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v)
 {
+	const char* body_type_name[] = 
+	{
+		"STAR",
+		"GIANTPLANET",
+		"ROCKYPLANET",
+		"PROTOPLANET",
+		"SUPERPLANETESIMAL",
+		"PLANETESIMAL",
+		"TESTPARTICLE",
+	};
+
 	static int int_t_w  = 25;
 	static int var_t_w  = 25;
 
@@ -303,17 +314,18 @@ void print_body_record_Emese(ofstream &sout, string name, var_t epoch, param_t *
 	sout.setf(ios::left);
 	sout.setf(ios::scientific);
 
-	sout << setw(int_t_w) << body_md->id
+	// NOTE: Emese start the ids from 0, red starts from 1.
+	sout << setw(int_t_w) << noshowpos << body_md->id - 1
 		 << setw(     25) << name
-		 << setw(     25) << body_md->body_type
-		 << setw(var_t_w) << r->x
-		 << setw(var_t_w) << r->y
-		 << setw(var_t_w) << r->z
-		 << setw(var_t_w) << v->x
-		 << setw(var_t_w) << v->y
-		 << setw(var_t_w) << v->z
-		 << setw(var_t_w) << p->mass
-		 << setw(var_t_w) << p->radius << endl;
+		 << setw(     25) << noshowpos << body_type_name[body_md->body_type]
+		 << setw(var_t_w) << showpos << r->x
+		 << setw(var_t_w) << showpos << r->y
+		 << setw(var_t_w) << showpos << r->z
+		 << setw(var_t_w) << showpos << v->x
+		 << setw(var_t_w) << showpos << v->y
+		 << setw(var_t_w) << showpos << v->z
+		 << setw(var_t_w) << showpos << p->mass
+		 << setw(var_t_w) << showpos <<  p->radius << endl;
 
     sout.flush();
 }

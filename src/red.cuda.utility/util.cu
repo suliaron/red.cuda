@@ -1,4 +1,7 @@
 // includes system
+#include <iomanip>
+#include <iostream>
+#include <fstream>
 #include <ostream>
 #include <string>
 
@@ -139,6 +142,34 @@ int device_query(ostream& sout, int id_dev)
     return (EXIT_SUCCESS);
 }
 
+void allocate_host_vector(void **ptr, size_t size, const char *file, int line)
+{
+	*ptr = (void *)malloc(size);
+	if (0x0 == ptr)
+	{
+		throw string("malloc failed (allocate_host_vector)");
+	}
+	memset(*ptr, 0, size);
+}
+
+void allocate_device_vector(void **ptr, size_t size, const char *file, int line)
+{
+	cudaMalloc(ptr, size);
+	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("cudaMalloc failed (allocate_device_vector)");
+	}
+
+	// Clear memory 
+	cudaMemset(*ptr, 0, size);
+	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("cudaMemset failed (allocate_device_vector)");
+	}
+}
+
 void allocate_vector(void **ptr, size_t size, bool cpu, const char *file, int line)
 {
 	if (cpu)
@@ -151,26 +182,30 @@ void allocate_vector(void **ptr, size_t size, bool cpu, const char *file, int li
 	}
 }
 
-void allocate_host_vector(void **h_ptr, size_t size, const char *file, int line)
+void free_host_vector(void **ptr, const char *file, int line)
 {
-	*h_ptr = (void *)malloc(size);
-	if (0x0 == h_ptr)
+	if (0x0 != *ptr)
 	{
-		throw string("malloc failed (allocate_host_vector)");
+		delete[] *ptr;
+		*ptr = (void *)0x0;
 	}
 }
 
-void allocate_device_vector(void **d_ptr, size_t size, const char *file, int line)
+void free_device_vector(void **ptr, const char *file, int line)
 {
-	cudaMalloc(d_ptr, size);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
+	if (0x0 != *ptr)
 	{
-		throw string("cudaMalloc failed (allocate_device_vector)");
+		cudaFree(*ptr);
+		cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus)
+		{
+			throw string("cudaFree failed (free_device_vector)");
+		}
+		*ptr = (void *)0x0;
 	}
 }
 
-void free_vector(void *ptr, bool cpu, const char *file, int line)
+void free_vector(void **ptr, bool cpu, const char *file, int line)
 {
 	if (cpu)
 	{
@@ -179,21 +214,6 @@ void free_vector(void *ptr, bool cpu, const char *file, int line)
 	else
 	{
 		free_device_vector(ptr, file, line);
-	}
-}
-
-void free_host_vector(void *ptr, const char *file, int line)
-{
-	delete[] ptr;
-}
-
-void free_device_vector(void *ptr, const char *file, int line)
-{
-	cudaFree(ptr);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaFree failed (free_device_vector)");
 	}
 }
 
@@ -237,11 +257,24 @@ void copy_constant_to_device(const void* dst, const void *src, size_t count)
 	}
 }
 
-void print_array(int n, var_t *data, bool cpu)
+void print_array(string path, int n, var_t *data, computing_device_t comp_dev)
 {
 	var_t* h_data = 0x0;
 
-	if (!cpu)
+	ostream *out = 0x0;
+	if (0 < path.length())
+	{
+		out = new ofstream(path.c_str(), ios::app);
+	}
+	else
+	{
+		out = &cout;
+	}
+
+	out->setf(ios::right);
+	out->setf(ios::scientific);
+
+	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		h_data = new var_t[n];
 		copy_vector_to_host(h_data, data, n * sizeof(var_t));
@@ -252,10 +285,10 @@ void print_array(int n, var_t *data, bool cpu)
 	}
 	for (int i = 0; i < n; i++)
 	{
-		printf("[%2d]: %20.16lf\n", i, h_data[i]);
+		*out << setw(5) << i << setprecision(16) << setw(25) << h_data[i] << endl;
 	}
 
-	if (!cpu)
+	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		delete[] h_data;
 	}

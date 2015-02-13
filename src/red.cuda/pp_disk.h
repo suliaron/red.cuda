@@ -15,7 +15,7 @@ class pp_disk
 {
 public:
 
-	pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage, bool cpu);
+	pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage, computing_device_t comp_dev);
 	~pp_disk();
 
 	//! Copies ODE parameters and variables from the host to the cuda device
@@ -26,6 +26,12 @@ public:
 	void copy_threshold(const var_t* thrshld);
 	//! Copies the event data from the cuda device to the host
 	void copy_event_data_to_host();
+
+	//! Set the computing device to calculate the accelerations
+	/*
+		\param device specifies which device will execute the computations
+	*/
+	void set_computing_device(computing_device_t device);
 
 	//! Returns the mass of the central star
 	var_t get_mass_of_star();
@@ -148,14 +154,16 @@ private:
 	void set_kernel_launch_param(int n_data);
 	void call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
-	void cpu_calc_grav_accel_SI(ttt_t t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
-	void cpu_calc_grav_accel_NI(ttt_t t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
+	void cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
+	void cpu_calc_grav_accel_NI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
+	void cpu_calc_grav_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
 
 	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 
+	computing_device_t comp_dev;    //!< The computing device to carry out the calculations (cpu or gpu)
+
 	int		n_tpb;					//!< The number of thread per block to use for kernel launches
 	bool	use_padded_storage;		//!< If true use the padded storage scheme
-	bool	cpu;					//!< If true than execute the code on the cpu
 
 	dim3	grid;
 	dim3	block;

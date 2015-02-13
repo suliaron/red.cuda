@@ -18,7 +18,7 @@ public:
 	static var_t bh[];
 	static ttt_t c[];
 
-	rungekutta5(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, bool cpu);
+	rungekutta5(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, computing_device_t comp_dev);
 	~rungekutta5();
 
 	ttt_t step();

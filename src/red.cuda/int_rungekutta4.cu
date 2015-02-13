@@ -99,49 +99,17 @@ void rungekutta4::cpu_calc_error(int n, const var_t *f4, const var_t* f5, var_t 
 }
 
 
-rungekutta4::rungekutta4(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, bool cpu) :
-	integrator(ppd, dt, cpu),
-	adaptive(adaptive),
-	tolerance(tolerance),
-	dydx(2),
-	err(2)
+rungekutta4::rungekutta4(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, computing_device_t comp_dev) :
+	integrator(ppd, dt, adaptive, tolerance, (adaptive ? 5 : 4), comp_dev)
 {
 	name = "Runge-Kutta4";
 	short_name = "RK4";
 
-	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
-
-	t = ppd->t;
-	RKOrder = 4;
-	r_max = adaptive ? RKOrder + 1 : RKOrder;
-	for (int i = 0; i < 2; i++)
-	{
-		dydx[i].resize(r_max);
-		for (int r = 0; r < r_max; r++) 
-		{
-			ALLOCATE_VECTOR((void**) &(dydx[i][r]), n_total * sizeof(vec_t), cpu);
-		}
-		if (adaptive)
-		{
-			static const int n_var = NDIM * n_total;
-			ALLOCATE_VECTOR((void**) &(err[i]), n_var * sizeof(var_t), cpu);
-		}
-	}
+	order = 4;
 }
 
 rungekutta4::~rungekutta4()
 {
-	for (int i = 0; i < 2; i++)
-	{
-		for (int r = 0; r < r_max; r++) 
-		{
-			FREE_VECTOR(dydx[i][r], cpu);
-		}
-		if (adaptive)
-		{
-			FREE_VECTOR(err[i], cpu);
-		}
-	}
 }
 
 void rungekutta4::calc_ytemp_for_fr(int n_var, int r)
@@ -152,11 +120,7 @@ void rungekutta4::calc_ytemp_for_fr(int n_var, int r)
 		var_t *fr   = (var_t*)dydx[i][r-1];
 		var_t* ytmp = (var_t*)ytemp[i];
 
-		if (cpu)
-		{
-			cpu_sum_vector(n_var, y_n, fr, a[r] * dt_try, ytmp);
-		}
-		else
+		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			rk4_kernel::sum_vector<<<grid, block>>>(n_var, y_n, fr, a[r] * dt_try, ytmp);
 			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
@@ -164,6 +128,10 @@ void rungekutta4::calc_ytemp_for_fr(int n_var, int r)
 			{
 				throw string("rk4_kernel::sum_vector failed");
 			}
+		}
+		else
+		{
+			cpu_sum_vector(n_var, y_n, fr, a[r] * dt_try, ytmp);
 		}
 	}
 }
@@ -179,11 +147,7 @@ void rungekutta4::calc_y_np1(int n_var)
 		var_t *f3	 = (var_t*)dydx[i][2];
 		var_t *f4	 = (var_t*)dydx[i][3];
 
-		if (cpu)
-		{
-			cpu_calc_y_np1(n_var, y_n, f1, f2, f3, f4, b[0] * dt_try, b[1] * dt_try, y_np1);
-		}
-		else
+		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			rk4_kernel::calc_y_np1<<<grid, block>>>(n_var, y_n, f1, f2, f3, f4, b[0] * dt_try, b[1] * dt_try, y_np1);
 			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
@@ -191,6 +155,10 @@ void rungekutta4::calc_y_np1(int n_var)
 			{
 				throw string("rk4_kernel::calc_y_np1 failed");
 			}
+		}
+		else
+		{
+			cpu_calc_y_np1(n_var, y_n, f1, f2, f3, f4, b[0] * dt_try, b[1] * dt_try, y_np1);
 		}
 	}
 }
@@ -202,11 +170,7 @@ void rungekutta4::calc_error(int n_var)
 		var_t *f4  = (var_t*)dydx[i][3];
 		var_t *f5  = (var_t*)dydx[i][4];
 
-		if (cpu)
-		{
-			cpu_calc_error(n_var, f4, f5, err[i]);
-		}
-		else
+		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			rk4_kernel::calc_error<<<grid, block>>>(n_var, f4, f5, err[i]);
 			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
@@ -215,16 +179,19 @@ void rungekutta4::calc_error(int n_var)
 				throw string("rk4_kernel::calc_error failed");
 			}
 		}
+		else
+		{
+			cpu_calc_error(n_var, f4, f5, err[i]);
+		}
 	}
 }
-
 
 ttt_t rungekutta4::step()
 {
 	const int n_body_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 	const int n_var_total = NDIM * n_body_total;
 
-	if (!cpu)
+	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		// Set the kernel launch parameters
 		calc_grid(n_var_total, THREADS_PER_BLOCK);
@@ -249,7 +216,7 @@ ttt_t rungekutta4::step()
 		// Calculate f2 = f(tn + c2 * dt, yn + a21 * dt * f1) = dydx[][1]
 		// Calculate f3 = f(tn + c3 * dt, yn + a31 * dt * f2) = dydx[][2]
 		// Calculate f4 = f(tn + c4 * dt, yn + a41 * dt * f3) = dydx[][3]
-		for (r = 1; r < RKOrder; r++)
+		for (r = 1; r < order; r++)
 		{
 			ttemp = ppd->t + c[r] * dt_try;
 			calc_ytemp_for_fr(n_var_total, r);
@@ -282,7 +249,7 @@ ttt_t rungekutta4::step()
 			}
 			// calculate: err = (f4 - f5)
 			calc_error(n_var);
-			max_err = get_max_error(n_var);
+			max_err = get_max_error(n_var, LAMBDA);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/4.0);
 
 			if (ppd->get_n_event() > 0)
@@ -303,53 +270,6 @@ ttt_t rungekutta4::step()
 	ppd->swap();
 
 	return dt_did;
-}
-
-var_t rungekutta4::get_max_error(int n_var)
-{
-	var_t max_err_r = 0.0;
-	var_t max_err_v = 0.0;
-
-	int64_t idx_max_err_r = -1;
-	int64_t idx_max_err_v = -1;
-
-	if (!cpu)
-	{
-		// Wrap raw pointer with a device_ptr
-		thrust::device_ptr<var_t> d_ptr_r(err[0]);
-		thrust::device_ptr<var_t> d_ptr_v(err[1]);
-
-		// Use thrust to find the maximum element
-		thrust::device_ptr<var_t> d_ptr_max_r = thrust::max_element(d_ptr_r, d_ptr_r + n_var);
-		thrust::device_ptr<var_t> d_ptr_max_v = thrust::max_element(d_ptr_v, d_ptr_v + n_var);
-
-		// Get the index of the maximum element
-		idx_max_err_r = d_ptr_max_r.get() - d_ptr_r.get();
-		idx_max_err_v = d_ptr_max_v.get() - d_ptr_v.get();
-
-		// Copy the max element from device memory to host memory
-		cudaMemcpy((void*)&max_err_r, (void*)d_ptr_max_r.get(), sizeof(var_t), cudaMemcpyDeviceToHost);
-		cudaMemcpy((void*)&max_err_v, (void*)d_ptr_max_v.get(), sizeof(var_t), cudaMemcpyDeviceToHost);
-	}
-	else
-	{
-		// TODO: The cpu based rungekutta4::get_max_error() function is not yet tested
-		for (int i = 0; i < n_var; i++)
-		{
-			if (max_err_r < err[0][i])
-			{
-				max_err_r = err[0][i];
-				idx_max_err_r = i;
-			}
-			if (max_err_v < err[1][i])
-			{
-				max_err_v = err[1][i];
-				idx_max_err_v = i;
-			}
-		}		
-	}
-
-	return fabs(dt_try * LAMBDA * std::max(max_err_r, max_err_v));
 }
 
 #undef LAMBDA

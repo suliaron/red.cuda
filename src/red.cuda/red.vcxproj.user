@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-cpu -v -ef -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\TwoBody -p parameters.txt -ic TwoBody.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-gpu -v -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Sun_n_pl_spl_gpu -p parameters.txt -ic input.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-v -ef -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\TwoBody -p parameters.txt -ic TwoBody.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -ef -gpu -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\TwoBody_GPU_change2_CPU -p parameters.txt -ic TwoBody.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

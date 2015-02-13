@@ -19,192 +19,14 @@
 #include "red_type.h"
 #include "redutilcu.h"
 #include "util_init.h"
+#include "red.cuda.initial.type.h"
 
 using namespace std;
 using namespace redutilcu;
 
-int generate_pp_disk(const string &path, body_disk_t& body_disk)
-{
-	ofstream	output(path.c_str(), ios_base::out);
-	if (output)
-	{
-		for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_PADDINGPARTICLE; body_type++)
-		{
-			output << body_disk.nBody[body_type] << SEP;
-		}
-		output << endl;
+typedef unsigned long ulong;
 
-		var_t	t = 0.0;
-		vec_t	rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t	vVec = {0.0, 0.0, 0.0, 0.0};
-
-        ttt_t           epoch = 0.0;
-		param_t	        param0, param;
-        body_metadata_t body_md;
-
-        orbelem_t	oe;
-
-        // The id of each body must be larger than 0 in order to indicate inactive body with negative id (ie. zero is not good)
-        int bodyIdx = 0;
-		int bodyId = 1;
-		for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)
-		{
-			for (int i = 0; i < body_disk.nBody[body_type]; i++, bodyIdx++, bodyId++)
-			{
-    			epoch = 0.0;
-				if (body_type == BODY_TYPE_STAR)
-				{
-					body_md.id = bodyId;
-					body_md.body_type = BODY_TYPE_STAR;
-
-					generate_pp(&body_disk.pp_d[body_type], param0);
-					body_md.mig_type = body_disk.mig_type[bodyIdx];
-					body_md.mig_stop_at = body_disk.stop_at[bodyIdx];
-
-printf("Printing body %s to file ... ", body_disk.names[bodyIdx].c_str());
-					file::print_body_record(output, body_disk.names[bodyIdx], epoch, &param0, &body_md, &rVec, &vVec);
-printf("done\r");
-				} /* if */
-				else 
-				{
-					body_md.id = bodyId;
-					body_md.body_type = static_cast<body_type_t>(body_type);
-
-					generate_oe(&body_disk.oe_d[body_type], oe);
-					generate_pp(&body_disk.pp_d[body_type], param);
-					body_md.mig_type = body_disk.mig_type[bodyIdx];
-					body_md.mig_stop_at = body_disk.stop_at[bodyIdx];
-
-					var_t mu = K2*(param0.mass + param.mass);
-					int_t ret_code = tools::calculate_phase(mu, &oe, &rVec, &vVec);
-					if (ret_code == 1) {
-						cerr << "Could not calculate the phase." << endl;
-						return ret_code;
-					}
-
-printf("Printing body %s to file ... ", body_disk.names[bodyIdx].c_str());
-					file::print_body_record(output, body_disk.names[bodyIdx], t, &param, &body_md, &rVec, &vVec);
-printf("done\r");
-				} /* else */
-			} /* for */
-		} /* for */
-		output.flush();
-		output.close();
-	}
-	else
-	{
-		cerr << "Cannot open " << path << ".";
-		exit(0);
-	}
-
-	return 0;
-}
-
-void set_parameters_of_Two_body_disk(body_disk_t& disk)
-{
-	const var_t m1 = 1.0 /* Jupiter */ * constants::JupiterToSolar;
-	const var_t rho1 = 1.3 * constants::GramPerCm3ToSolarPerAu3;
-
-	initialize(disk);
-
-	disk.nBody[BODY_TYPE_STAR       ] = 1;
-	disk.nBody[BODY_TYPE_GIANTPLANET] = 1;
-
-	int_t nBodies = calculate_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at = new var_t[nBodies];
-
-    int bodyIdx = 0;
-	int type = BODY_TYPE_STAR;
-
-	disk.names.push_back("star");
-
-	disk.pp_d[type].item[MASS]       = new uniform_distribution(1, 1.0, 1.0);
-
-	var_t tmp = constants::SolarRadiusToAu;
-	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(3, tmp, tmp);
-
-	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(5, 0.0, 0.0);
-
-	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
-	disk.stop_at[bodyIdx] = 0.0;
-
-	type = BODY_TYPE_GIANTPLANET;
-	{
-		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(4, 1.0, 1.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(4, 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(4, 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(4, 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(4, 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(4, 0.0, 0.0);
-
-		disk.pp_d[type].item[MASS      ] = new uniform_distribution(4, m1, m1);
-		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(4, rho1, rho1);
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(4, 0.0, 0.0);
-
-		for (int i = 0; i < disk.nBody[type]; i++) 
-		{
-            bodyIdx++;
-			disk.names.push_back(create_name(i, type));
-			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
-			disk.stop_at[bodyIdx] = 0.0;
-		}
-	}
-}
-
-void set_parameters_of_Dvorak_disk(nebula& n, body_disk_t& disk)
-{
-	const var_t rhoBasalt = 2.7 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
-
-	disk.nBody[BODY_TYPE_STAR        ] = 1;
-	disk.nBody[BODY_TYPE_PROTOPLANET ] = 2000;
-
-	int_t nBodies = calculate_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at  = new var_t[nBodies];
-
-    int bodyIdx = 0;
-	int type = BODY_TYPE_STAR;
-
-	disk.names.push_back("star");
-	disk.pp_d[type].item[MASS]       = new uniform_distribution(1, 1.0, 1.0);
-	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(3, constants::SolarRadiusToAu, constants::SolarRadiusToAu);
-	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(5, 0.0, 0.0);
-
-	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
-	disk.stop_at[bodyIdx] = 0.0;
-
-	type = BODY_TYPE_PROTOPLANET;
-	{
-		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new power_law_distribution(7, n.solid_c.get_r_1(), n.solid_c.get_r_2(), n.solid_c.get_p());
-
-		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new rayleigh_distribution(11, 0.01);
-		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC ].x = 0.0;
-		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC ].y = 0.2;
-
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(13, 0.0, 0.0);
-
-		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(17, 0.0, 2.0 * PI);
-
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(19, 0.0, 0.0);
-
-		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(23, 0.0, 2.0 * PI);
-
-		disk.pp_d[type].item[MASS      ] = new lognormal_distribution(27, 0.1, 3.0, 0.0, 0.25);
-		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(35, rhoBasalt, rhoBasalt);
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(1, 0.0, 0.0);
-
-		for (int i = 0; i < disk.nBody[type]; i++) 
-		{
-            bodyIdx++;
-			disk.names.push_back(create_name(i + 1, type));
-			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
-			disk.stop_at[bodyIdx] = 0.0;
-		}
-	}
-}
-
-void populate_Dvorak_disk(body_disk_t& disk, sim_data_t *sd)
+void populate_disk(body_disk_t& disk, sim_data_t *sd)
 {
     ttt_t           epoch = 0.0;
 	param_t	        param;
@@ -243,8 +65,348 @@ void populate_Dvorak_disk(body_disk_t& disk, sim_data_t *sd)
 	} /* for */
 }
 
-void create_Dvorak_disk(string dir, string filename, body_disk_t& disk)
+
+void set_parameters_of_Dvorak_disk(nebula& n, body_disk_t& disk)
 {
+	const var_t rhoBasalt = 2.7 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+
+	disk.nBody[BODY_TYPE_STAR        ] = 1;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 2000;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at  = new var_t[nBodies];
+
+    int bodyIdx = 0;
+	int type = BODY_TYPE_STAR;
+
+	disk.names.push_back("star");
+	disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), constants::SolarRadiusToAu, constants::SolarRadiusToAu);
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+	disk.stop_at[bodyIdx] = 0.0;
+
+	type = BODY_TYPE_PROTOPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new power_law_distribution((ulong)clock(), n.solid_c.get_r_1(), n.solid_c.get_r_2(), n.solid_c.get_p());
+
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new rayleigh_distribution((ulong)clock(), 0.01);
+		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC ].x = 0.0;
+		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC ].y = 0.2;
+
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new lognormal_distribution((ulong)clock(), 0.1, 3.0, 0.0, 0.25);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), rhoBasalt, rhoBasalt);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i + 1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
+
+void set_parameters_of_Two_body_disk(body_disk_t& disk)
+{
+	disk.nBody[BODY_TYPE_STAR        ] = 1;
+	disk.nBody[BODY_TYPE_TESTPARTICLE] = 1;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at = new var_t[nBodies];
+
+    int bodyIdx = 0;
+	int type = BODY_TYPE_STAR;
+
+	disk.names.push_back("star");
+	disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+
+	var_t tmp = constants::SolarRadiusToAu;
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), tmp, tmp);
+
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+	disk.stop_at[bodyIdx] = 0.0;
+
+	type = BODY_TYPE_TESTPARTICLE;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
+
+void set_parameters_of_n_gp_body_disk(body_disk_t& disk)
+{
+	disk.nBody[BODY_TYPE_STAR       ] = 1;
+	disk.nBody[BODY_TYPE_GIANTPLANET] = 10;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at = new var_t[nBodies];
+
+    int bodyIdx = 0;
+	int type = BODY_TYPE_STAR;
+
+	disk.names.push_back("star");
+	disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+
+	var_t tmp = constants::SolarRadiusToAu;
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), tmp, tmp);
+
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+	disk.stop_at[bodyIdx] = 0.0;
+
+	type = BODY_TYPE_GIANTPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution((ulong)clock(), 1.0, 10.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution((ulong)clock(), 0.0, 0.1);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 10.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution((ulong)clock(), 0.1 * constants::JupiterToSolar, 1.0 * constants::JupiterToSolar);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 2.0 * constants::GramPerCm3ToSolarPerAu3);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i+1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
+
+void set_parameters_of_n_pp_body_disk(body_disk_t& disk)
+{
+	disk.nBody[BODY_TYPE_STAR       ] = 1;
+	disk.nBody[BODY_TYPE_PROTOPLANET] = 1000;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at = new var_t[nBodies];
+
+    int bodyIdx = 0;
+	int type = BODY_TYPE_STAR;
+
+	disk.names.push_back("star");
+	disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+
+	var_t tmp = constants::SolarRadiusToAu;
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), tmp, tmp);
+
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+	disk.stop_at[bodyIdx] = 0.0;
+
+	type = BODY_TYPE_PROTOPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution((ulong)clock(), 1.0, 2.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution((ulong)clock(), 0.0, 0.1);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution((ulong)clock(), 0.1 * constants::CeresToSolar, 1.0 * constants::CeresToSolar);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 3.0 * constants::GramPerCm3ToSolarPerAu3);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i+1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
+
+void set_parameters_of_n_spl_body_disk(body_disk_t& disk)
+{
+	disk.nBody[BODY_TYPE_STAR             ] = 1;
+	disk.nBody[BODY_TYPE_SUPERPLANETESIMAL] = 10;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at = new var_t[nBodies];
+
+    int bodyIdx = 0;
+
+	int type = BODY_TYPE_STAR;
+	{
+		disk.names.push_back("star");
+		disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+
+		var_t tmp = constants::SolarRadiusToAu;
+		disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), tmp, tmp);
+
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+		disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+		disk.stop_at[bodyIdx] = 0.0;
+	}
+
+	type = BODY_TYPE_SUPERPLANETESIMAL;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution((ulong)clock(), 1.0, 10.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution((ulong)clock(), 0.0, 0.1);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 10.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution((ulong)clock(), 1.0e-10, 1.0e-9);
+		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution((ulong)clock(), 10.0 * constants::KilometerToAu, 30.0 * constants::KilometerToAu);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 3.0 * constants::GramPerCm3ToSolarPerAu3);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 1.0, 2.7);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i+1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
+
+void set_parameters_of_n_pl_body_disk(body_disk_t& disk)
+{
+	disk.nBody[BODY_TYPE_STAR        ] = 1;
+	disk.nBody[BODY_TYPE_PLANETESIMAL] = 10;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at = new var_t[nBodies];
+
+    int bodyIdx = 0;
+
+	int type = BODY_TYPE_STAR;
+	{
+		disk.names.push_back("star");
+		disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+
+		var_t tmp = constants::SolarRadiusToAu;
+		disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), tmp, tmp);
+
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+		disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+		disk.stop_at[bodyIdx] = 0.0;
+	}
+
+	type = BODY_TYPE_PLANETESIMAL;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution((ulong)clock(), 1.0, 10.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution((ulong)clock(), 0.0, 0.1);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 10.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution((ulong)clock(), 1.0e-3 * constants::CeresToSolar, 1.0e-2 * constants::CeresToSolar);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 3.0 * constants::GramPerCm3ToSolarPerAu3);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i+1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
+
+void set_parameters_of_n_tp_body_disk(body_disk_t& disk)
+{
+	disk.nBody[BODY_TYPE_STAR        ] = 1;
+	disk.nBody[BODY_TYPE_TESTPARTICLE] = 10;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at = new var_t[nBodies];
+
+    int bodyIdx = 0;
+
+	int type = BODY_TYPE_STAR;
+	{
+		disk.names.push_back("star");
+		disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+
+		var_t tmp = constants::SolarRadiusToAu;
+		disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), tmp, tmp);
+
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+		disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+		disk.stop_at[bodyIdx] = 0.0;
+	}
+
+	type = BODY_TYPE_TESTPARTICLE;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution((ulong)clock(), 1.0, 10.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution((ulong)clock(), 0.0, 0.1);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 10.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i+1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
+
+
+void create_Dvorak_disk(string& dir, string& filename)
+{
+	body_disk_t disk;
+
 	initialize(disk);
 
 	// Create a MMSN with gas component and solids component
@@ -274,7 +436,7 @@ void create_Dvorak_disk(string dir, string filename, body_disk_t& disk)
 	int nBodies = calculate_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
-	populate_Dvorak_disk(disk, sim_data);
+	populate_disk(disk, sim_data);
 
 	// Scale the masses in order to get the required mass transform_mass()
 	{
@@ -348,12 +510,386 @@ void create_Dvorak_disk(string dir, string filename, body_disk_t& disk)
 	print(path, nBodies, sim_data);
 
 	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data);
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	deallocate_host_storage(sim_data);
 
 	delete sim_data;
 }
+
+void create_two_body_disk(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	initialize(disk);
+
+	set_parameters_of_Two_body_disk(disk);
+
+	sim_data_t* sim_data = new sim_data_t;
+	int nBodies = calculate_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_disk(disk, sim_data);
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->y[0][0] = rVec;
+		sim_data->y[1][0] = vVec;
+		for (int i = 1; i < nBodies; i++)
+		{
+			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			if (1 == ret_code)
+			{
+				cerr << "Could not calculate the phase." << endl;
+				exit(0);
+			}
+			sim_data->y[0][i] = rVec;
+			sim_data->y[1][i] = vVec;
+		}
+	}
+
+	tools::transform_to_bc(nBodies, sim_data);
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
+
+void create_n_gp_body_disk(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	initialize(disk);
+
+	set_parameters_of_n_gp_body_disk(disk);
+
+	sim_data_t* sim_data = new sim_data_t;
+	int nBodies = calculate_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_disk(disk, sim_data);
+
+	// Computes the physical quantities with the new mass
+	{
+		int bodyIdx = 0;
+		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
+		{
+			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			{
+				if (sim_data->p[bodyIdx].mass > 0.0)
+				{
+					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
+					{
+						sim_data->p[bodyIdx].density = tools::calculate_density(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].radius);
+					}
+					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
+					{
+						sim_data->p[bodyIdx].radius = tools::calculate_radius(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].density);
+					}
+				}
+			}
+		}
+	}
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->y[0][0] = rVec;
+		sim_data->y[1][0] = vVec;
+		for (int i = 1; i < nBodies; i++)
+		{
+			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			if (1 == ret_code)
+			{
+				cerr << "Could not calculate the phase." << endl;
+				exit(0);
+			}
+			sim_data->y[0][i] = rVec;
+			sim_data->y[1][i] = vVec;
+		}
+	}
+
+	tools::transform_to_bc(nBodies, sim_data);
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
+
+void create_n_pp_body_disk(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	//initialize(disk);
+
+	set_parameters_of_n_pp_body_disk(disk);
+
+	sim_data_t* sim_data = new sim_data_t;
+	int nBodies = calculate_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_disk(disk, sim_data);
+
+	// Computes the physical quantities with the new mass
+	{
+		int bodyIdx = 0;
+		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
+		{
+			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			{
+				if (sim_data->p[bodyIdx].mass > 0.0)
+				{
+					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
+					{
+						sim_data->p[bodyIdx].density = tools::calculate_density(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].radius);
+					}
+					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
+					{
+						sim_data->p[bodyIdx].radius = tools::calculate_radius(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].density);
+					}
+				}
+			}
+		}
+	}
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->y[0][0] = rVec;
+		sim_data->y[1][0] = vVec;
+		for (int i = 1; i < nBodies; i++)
+		{
+			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			if (1 == ret_code)
+			{
+				cerr << "Could not calculate the phase." << endl;
+				exit(0);
+			}
+			sim_data->y[0][i] = rVec;
+			sim_data->y[1][i] = vVec;
+		}
+	}
+
+	tools::transform_to_bc(nBodies, sim_data);
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	path = file::combine_path(dir, filename) + "_E.txt";
+	print(path, disk, sim_data, INPUT_FORMAT_NONAME);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
+
+void create_n_spl_body_disk(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	initialize(disk);
+
+	set_parameters_of_n_spl_body_disk(disk);
+
+	sim_data_t* sim_data = new sim_data_t;
+	int nBodies = calculate_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_disk(disk, sim_data);
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->y[0][0] = rVec;
+		sim_data->y[1][0] = vVec;
+		for (int i = 1; i < nBodies; i++)
+		{
+			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			if (1 == ret_code)
+			{
+				cerr << "Could not calculate the phase." << endl;
+				exit(0);
+			}
+			sim_data->y[0][i] = rVec;
+			sim_data->y[1][i] = vVec;
+		}
+	}
+
+	tools::transform_to_bc(nBodies, sim_data);
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
+
+void create_n_pl_body_disk(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	initialize(disk);
+
+	set_parameters_of_n_pl_body_disk(disk);
+
+	sim_data_t* sim_data = new sim_data_t;
+	int nBodies = calculate_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_disk(disk, sim_data);
+
+	// Computes the physical quantities with the new mass
+	{
+		int bodyIdx = 0;
+		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
+		{
+			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			{
+				if (sim_data->p[bodyIdx].mass > 0.0)
+				{
+					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
+					{
+						sim_data->p[bodyIdx].density = tools::calculate_density(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].radius);
+					}
+					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
+					{
+						sim_data->p[bodyIdx].radius = tools::calculate_radius(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].density);
+					}
+				}
+			}
+		}
+	}
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->y[0][0] = rVec;
+		sim_data->y[1][0] = vVec;
+		for (int i = 1; i < nBodies; i++)
+		{
+			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			if (1 == ret_code)
+			{
+				cerr << "Could not calculate the phase." << endl;
+				exit(0);
+			}
+			sim_data->y[0][i] = rVec;
+			sim_data->y[1][i] = vVec;
+		}
+	}
+
+	tools::transform_to_bc(nBodies, sim_data);
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
+
+void create_n_tp_body_disk(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	initialize(disk);
+
+	set_parameters_of_n_tp_body_disk(disk);
+
+	sim_data_t* sim_data = new sim_data_t;
+	int nBodies = calculate_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_disk(disk, sim_data);
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->y[0][0] = rVec;
+		sim_data->y[1][0] = vVec;
+		for (int i = 1; i < nBodies; i++)
+		{
+			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			if (1 == ret_code)
+			{
+				cerr << "Could not calculate the phase." << endl;
+				exit(0);
+			}
+			sim_data->y[0][i] = rVec;
+			sim_data->y[1][i] = vVec;
+		}
+	}
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
+
 
 int parse_options(int argc, const char **argv, string &outDir, string &filename)
 {
@@ -387,38 +923,33 @@ int parse_options(int argc, const char **argv, string &outDir, string &filename)
 //-o C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -f Run_cf_5.txt
 int main(int argc, const char **argv)
 {
-	body_disk_t disk;
 	string outDir;
 	string filename;
 	string output_path;
 
+
 	parse_options(argc, argv, outDir, filename);
 
-	//{
-	//	string input_path = file::combine_path(outDir, filename);
-	//	string output_path = file::combine_path(outDir, file::get_filename_without_ext(filename) + ".txt");
-	//	Emese_data_format_to_red_cuda_format(input_path, output_path);
-	//	return 0;
-	//}
-
-	//{
-	//	_set_parameters_of_Two_body_disk(disk);
-	//	output_path = file::combine_path(outDir, filename);
-	//	generate_pp_disk(output_path, disk);
-	//	return 0;
-	//}
-
+	try
 	{
-		create_Dvorak_disk(outDir, filename, disk);
-		return 0;
-	}
+		//create_n_tp_body_disk(outDir, filename);
 
-	//{
-	//	set_parameters_of_N1_massive_N3_test(disk);
-	//	output_path = file::combine_path(outDir, filename);
-	//	generate_pp_disk(output_path, disk);
-    //	return 0;
-	//}
+		//create_n_pl_body_disk(outDir, filename);
+
+		//create_n_spl_body_disk(outDir, filename);
+
+		create_n_pp_body_disk(outDir, filename);
+
+		//create_n_massive_body_disk(outDir, filename);
+
+		//create_two_body_disk(outDir, filename);
+
+		//create_Dvorak_disk(outDir, filename);
+	}
+	catch (const string& msg)
+	{
+		cerr << "Error: " << msg << endl;
+	}
 
 	return 0;
 }

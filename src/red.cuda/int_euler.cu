@@ -2,6 +2,12 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
+// DEBUG --
+#include <sstream>		// ostringstream
+#include "redutilcu.h"
+using namespace redutilcu;
+// DEBUG --
+
 // includes project
 #include "int_euler.h"
 #include "number_of_bodies.h"
@@ -35,26 +41,17 @@ void euler::cpu_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor
 	}
 }
 
-euler::euler(pp_disk *ppd, ttt_t dt, bool cpu) :
-	integrator(ppd, dt, cpu),
-	dydx(2)
+euler::euler(pp_disk *ppd, ttt_t dt, computing_device_t comp_dev) :
+	integrator(ppd, dt, false, 0.0, 1, comp_dev)
 {
 	name = "Euler";
 	short_name = "E";
 
-	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
-
-	t = ppd->t;
-	for (int i = 0; i < 2; i++)
-	{
-		ALLOCATE_VECTOR((void**)&(dydx[i]), n_total*sizeof(vec_t), cpu);
-	}
+	order = 1;
 }
 
 euler::~euler()
 {
-	FREE_VECTOR(dydx[0], cpu);
-	FREE_VECTOR(dydx[1], cpu);
 }
 
 void euler::calc_y_np1(int n_var)
@@ -63,9 +60,9 @@ void euler::calc_y_np1(int n_var)
 	{	
 		var_t *y_n	 = (var_t*)ppd->sim_data->y[i];
 		var_t *y_np1 = (var_t*)ppd->sim_data->yout[i];
-		var_t *f0	 = (var_t*)dydx[i];
+		var_t *f0	 = (var_t*)dydx[i][0];
 
-		if (!cpu)
+		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			euler_kernel::sum_vector<<<grid, block>>>(n_var, y_n, f0, dt_try, y_np1);
 
@@ -79,6 +76,15 @@ void euler::calc_y_np1(int n_var)
 		{
 			cpu_sum_vector(n_var, y_n, f0, dt_try, y_np1);
 		}
+// DEBUG CODE BEGIN
+//ostringstream convert;	// stream used for the conversion
+//convert << i;
+//string i_str = convert.str();
+//string dev = (comp_dev == COMPUTING_DEVICE_CPU ? "cpu" : "gpu");
+//string filename = "y_np1_" + i_str + "_" + dev + ".txt";
+//string path = file::combine_path("C:\\Work\\Projects\\red.cuda\\TestRun\\InputTest\\TwoBody_GPU_change2_CPU", filename);
+//print_array(path, n_var, y_np1, comp_dev);
+// DEBUG CODE END
 	}
 }
 
@@ -87,7 +93,7 @@ ttt_t euler::step()
 	const int n_body_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 	const int n_var_total = NDIM * n_body_total;
 
-	if (!cpu)
+	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		// Set the kernel launch parameters
 		calc_grid(n_var_total, THREADS_PER_BLOCK);
@@ -97,10 +103,30 @@ ttt_t euler::step()
 	// Calculate initial differentials and store them into dydx
 	const vec_t *coor = ppd->sim_data->y[0];
 	const vec_t *velo = ppd->sim_data->y[1];
+// DEBUG CODE BEGIN
+//string dev = (comp_dev == COMPUTING_DEVICE_CPU ? "cpu" : "gpu");
+//string filename = "coor_" + dev + ".txt";
+//string path = file::combine_path("C:\\Work\\Projects\\red.cuda\\TestRun\\InputTest\\TwoBody_GPU_change2_CPU", filename);
+//print_array(path, n_var_total, (var_t*)(coor), comp_dev);
+//filename = "velo_" + dev + ".txt";
+//path = file::combine_path("C:\\Work\\Projects\\red.cuda\\TestRun\\InputTest\\TwoBody_GPU_change2_CPU", filename);
+//print_array(path, n_var_total, (var_t*)(velo), comp_dev);
+// DEBUG CODE END
+
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calc_dydx(i, 0, t, coor, velo, dydx[i]);
+		ppd->calc_dydx(i, 0, t, coor, velo, dydx[i][0]);
+// DEBUG CODE BEGIN
+//ostringstream convert;	// stream used for the conversion
+//convert << i;
+//string i_str = convert.str();
+//string dev = (comp_dev == COMPUTING_DEVICE_CPU ? "cpu" : "gpu");
+//string filename = "dydx_" + i_str + "_" + dev + ".txt";
+//string path = file::combine_path("C:\\Work\\Projects\\red.cuda\\TestRun\\InputTest\\TwoBody_GPU_change2_CPU", filename);
+//print_array(path, n_var_total, (var_t*)(dydx[i][0]), comp_dev);
+// DEBUG CODE END
 	}
+
 	calc_y_np1(n_var_total);
 
 	dt_did = dt_try;

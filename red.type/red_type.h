@@ -21,17 +21,18 @@ typedef int    int_t;
 typedef int2   int2_t;
 
 
-typedef enum frame_center
+typedef enum computing_device
 		{
-			FRAME_CENTER_BARY,
-			FRAME_CENTER_ASTRO
-		} frame_center_t;
+			COMPUTING_DEVICE_CPU,
+			COMPUTING_DEVICE_GPU,
+			COMPUTING_DEVICE_N
+		} computing_device_t;
 
 typedef enum threshold
 		{
 			THRESHOLD_HIT_CENTRUM_DISTANCE,
 			THRESHOLD_EJECTION_DISTANCE,
-			THRESHOLD_COLLISION_FACTOR,
+			THRESHOLD_RADII_ENHANCE_FACTOR,
 			THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED,
 			THRESHOLD_EJECTION_DISTANCE_SQUARED,
 			THRESHOLD_N
@@ -174,16 +175,31 @@ typedef struct sim_data
 				h_oe = 0x0;
 			}
 
-			void create_aliases(bool cpu)
+			void create_aliases(computing_device_t comp_dev)
 			{
-				for (int i = 0; i < 2; i++)
+				switch (comp_dev)
 				{
-					y[i]    = cpu ? h_y[i]    : d_y[i];
-					yout[i] = cpu ? h_yout[i] : d_yout[i];
+				case COMPUTING_DEVICE_CPU:
+					for (int i = 0; i < 2; i++)
+					{
+						y[i]    = h_y[i];
+						yout[i] = h_yout[i];
+					}
+					p       = h_p;
+					body_md = h_body_md;
+					epoch   = h_epoch;
+					break;
+				case COMPUTING_DEVICE_GPU:
+					for (int i = 0; i < 2; i++)
+					{
+						y[i]    = d_y[i];
+						yout[i] = d_yout[i];
+					}
+					p       = d_p;
+					body_md = d_body_md;
+					epoch   = d_epoch;
+					break;
 				}
-				p       = cpu ? h_p       : d_p;
-				body_md = cpu ? h_body_md : d_body_md;
-				epoch   = cpu ? h_epoch   : d_epoch;
 			}
 
 		} sim_data_t;

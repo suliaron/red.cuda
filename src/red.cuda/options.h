@@ -9,6 +9,7 @@
 #include "gas_disk.h"
 #include "parameter.h"
 #include "pp_disk.h"
+#include "red_type.h"
 
 using namespace std;
 
@@ -21,15 +22,16 @@ public:
 	pp_disk* create_pp_disk();
 	integrator* create_integrator(pp_disk* ppd, ttt_t dt);
 
-	bool	verbose;				//!< Print more information to the screen or log file
-	bool	cpu;					//!< Execute the code on the cpu if required by the user or if no GPU is installed
 	string	printout_dir;			//!< Printout directory
 	string	input_dir;				//!< Input directory
+	bool	verbose;				//!< Print more information to the screen or log file
 	bool	use_padded_storage;		//!< Use padded storage to store data (default is false)
 	int		n_tpb;					//!< Number of thread per block to use in kernel lunches (default is 64)
 	int		id_a_dev;				//!< The id of the device which will execute the code
-
 	bool	ef;						//!< Extend the file names with command line information. Only for developer and debugger purposes.
+
+	computing_device_t comp_dev;    //!< The computing device to carry out the calculations (cpu or gpu)
+	bool	cpu;					//!< Execute the code on the cpu if required by the user or if no GPU is installed
 
 	parameter* param;
 	gas_disk*  g_disk;	
@@ -40,12 +42,9 @@ public:
 	string result_filename;
 
 private:
-	//! holds the path of the file containing the parameters of the simulation
-	string parameters_filename;
-	//! holds the path of the file containing the parameters of the nebula
-	string gasdisk_filename;
-	//! holds the path of the file containing the data of the bodies
-	string bodylist_filename;
+	string parameters_filename;     //!< holds the path of the file containing the parameters of the simulation
+	string gasdisk_filename;        //!< holds the path of the file containing the parameters of the nebula
+	string bodylist_filename;       //!< holds the path of the file containing the data of the bodies
 
 	bool has_gas;
 

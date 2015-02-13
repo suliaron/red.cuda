@@ -107,6 +107,7 @@ void options::print_usage()
 	cout << "     -result | --result-filename              : the name of the file where the simlation data for a time instance will be stored (default is result.txt" << endl;
 	cout << "                                                where [...] contains data describing the integrator)" << endl;
 	cout << "     -v      | --verbose                      : verbose mode" << endl;
+	cout << "     -gpu    | --gpu                          : Execute the code on the graphics processing unit (GPU) (default is true)" << endl;
 	cout << "     -cpu    | --cpu                          : Execute the code on the cpu if required by the user or if no GPU is installed (default is false)" << endl;
 	cout << "     -h      | --help                         : print this help" << endl;
 }
@@ -114,7 +115,7 @@ void options::print_usage()
 void options::create_default_options()
 {
 	id_a_dev           = 0;
-	cpu                = false;
+	comp_dev           = COMPUTING_DEVICE_GPU;
 	verbose            = false;
 	use_padded_storage = false;
 	n_tpb              = 64;
@@ -209,6 +210,12 @@ void options::parse_options(int argc, const char** argv)
 		else if (p == "--cpu" || p == "-cpu")
 		{
 			cpu = true;
+			comp_dev = COMPUTING_DEVICE_CPU;
+		}
+		else if (p == "--gpu" || p == "-gpu")
+		{
+			cpu = false;
+			comp_dev = COMPUTING_DEVICE_GPU;
 		}
 		else if (p == "--help" || p == "-h")
 		{
@@ -226,24 +233,18 @@ void options::parse_options(int argc, const char** argv)
 pp_disk* options::create_pp_disk()
 {
 	string path = file::combine_path(input_dir, bodylist_filename);
-	pp_disk* ppd = new pp_disk(path, g_disk, n_tpb, use_padded_storage, cpu);
+	pp_disk* ppd = new pp_disk(path, g_disk, n_tpb, use_padded_storage, comp_dev);
 	if (0x0 != ppd->g_disk)
 	{
 		ppd->g_disk->calc(ppd->get_mass_of_star());
 		//ppd->print_result_ascii(cout);
 	}
-	if (param->fr_cntr == FRAME_CENTER_BARY)
-	{
-		ppd->transform_to_bc();
-		//cout << "Body data after transformation:" << endl;
-		//ppd->print_result_ascii(cout);
-	}
-	ppd->transform_time();
 
-	if (!cpu)
+	ppd->transform_to_bc();
+	ppd->transform_time();
+	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		ppd->copy_to_device();
-		//ppd->test_call_kernel_print_sim_data();
 	}
 	ppd->copy_threshold(param->thrshld);
 	ppd->t = param->start_time;
@@ -258,24 +259,25 @@ integrator* options::create_integrator(pp_disk* ppd, ttt_t dt)
 	switch (param->int_type)
 	{
 	case INTEGRATOR_EULER:
-		intgr = new euler(ppd, dt, cpu);
+		intgr = new euler(ppd, dt, comp_dev);
 		break;
 	case INTEGRATOR_RUNGEKUTTA2:
-		intgr = new rungekutta2(ppd, dt, cpu);
+		intgr = new rungekutta2(ppd, dt, comp_dev);
 		break;
 	case INTEGRATOR_RUNGEKUTTA4:
-		intgr = new rungekutta4(ppd, dt, param->adaptive, param->tolerance, cpu);
+		intgr = new rungekutta4(ppd, dt, param->adaptive, param->tolerance, comp_dev);
 		break;
 	case INTEGRATOR_RUNGEKUTTA5:
-		intgr = new rungekutta5(ppd, dt, param->adaptive, param->tolerance, cpu);
+		throw string("Requested integrator is not implemented.");
+		//intgr = new rungekutta5(ppd, dt, param->adaptive, param->tolerance, comp_dev);
 		break;
 	case INTEGRATOR_RUNGEKUTTAFEHLBERG78:
-		intgr = new rungekutta8(ppd, dt, param->adaptive, param->tolerance, cpu);
+		intgr = new rungekutta8(ppd, dt, param->adaptive, param->tolerance, comp_dev);
 		//intgr = new c_rungekutta8(ppd, dt, param->adaptive, param->tolerance);
 		break;
 	case INTEGRATOR_RUNGEKUTTANYSTROM:
 		throw string("Requested integrator is not implemented.");
-		//intgr = new rungekuttanystrom<9>(*f, dt, adaptive, tolerance, cpu);
+		//intgr = new rungekuttanystrom<9>(*f, dt, adaptive, tolerance, comp_dev);
 		break;
 	default:
 		throw string("Requested integrator is not implemented.");

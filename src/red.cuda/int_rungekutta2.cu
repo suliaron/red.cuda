@@ -39,37 +39,17 @@ void rungekutta2::cpu_sum_vector(int n, const var_t* a, const var_t* b, var_t b_
 	}
 }
 
-
-rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt, bool cpu) :
-	integrator(ppd, dt, cpu),
-	RKOrder(2),
-	dydx(2)
+rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt, computing_device_t comp_dev) :
+	integrator(ppd, dt, false, 0.0, 2, comp_dev)
 {
 	name = "Runge-Kutta2";
 	short_name = "RK2";
 
-	const int n_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
-
-	t = ppd->t;
-	for (int i = 0; i < 2; i++)
-	{
-		dydx[i].resize(RKOrder);
-		for (int r = 0; r < RKOrder; r++) 
-		{
-			ALLOCATE_VECTOR((void**)&(dydx[i][r]), n_total*sizeof(vec_t), cpu);
-		}
-	}
+	order = 2;
 }
 
 rungekutta2::~rungekutta2()
 {
-	for (int i = 0; i < 2; i++)
-	{
-		for (int r = 0; r < RKOrder; r++) 
-		{
-			FREE_VECTOR(dydx[i][r], cpu);
-		}
-	}
 }
 
 void rungekutta2::calc_ytemp_for_fr(int n_var, int r)
@@ -80,11 +60,7 @@ void rungekutta2::calc_ytemp_for_fr(int n_var, int r)
 		var_t *fr	  = (var_t*)dydx[i][r-1];
 		var_t* result = (var_t*)ytemp[i];
 
-		if (cpu)
-		{
-			cpu_sum_vector(n_var, y_n, fr, a[r] * dt_try, result);
-		}
-		else
+		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			rk2_kernel::sum_vector<<<grid, block>>>(n_var, y_n, fr, a[r] * dt_try, result);
 			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
@@ -93,6 +69,11 @@ void rungekutta2::calc_ytemp_for_fr(int n_var, int r)
 				throw string("rk2_kernel::sum_vector failed");
 			}
 		}
+		else
+		{
+			cpu_sum_vector(n_var, y_n, fr, a[r] * dt_try, result);
+		}
+
 // DEBUG START
 		//printf("[%s] [%s] ytemp[%d]:\n", (cpu ? "cpu" : "gpu"), __FUNCTION__, i);
 		//print_array(n_var, result, cpu);
@@ -108,11 +89,7 @@ void rungekutta2::calc_y_np1(int n_var)
 		var_t *f2	 = (var_t*)dydx[i][1];
 		var_t *y_np1 = (var_t*)ppd->sim_data->yout[i];
 
-		if (cpu)
-		{
-			cpu_sum_vector(n_var, y_n, f2, b[1] * dt_try, y_np1);
-		}
-		else
+		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			rk2_kernel::sum_vector<<<grid, block>>>(n_var, y_n, f2, b[1] * dt_try, y_np1);
 			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
@@ -120,6 +97,10 @@ void rungekutta2::calc_y_np1(int n_var)
 			{
 				throw string("rk2_kernel::sum_vector failed");
 			}
+		}
+		else
+		{
+			cpu_sum_vector(n_var, y_n, f2, b[1] * dt_try, y_np1);
 		}
 // DEBUG START
 		//printf("[%s] [%s] y_np1[%d]:\n", (cpu ? "cpu" : "gpu"), __FUNCTION__, i);
@@ -133,7 +114,7 @@ ttt_t rungekutta2::step()
 	const int n_body_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 	const int n_var_total = NDIM * n_body_total;
 
-	if (!cpu)
+	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		// Set the kernel launch parameters
 		calc_grid(n_var_total, THREADS_PER_BLOCK);

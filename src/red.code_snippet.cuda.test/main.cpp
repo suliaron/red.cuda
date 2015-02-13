@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include <sstream>
 
 // includes project
 #include "red_type.h"
@@ -137,7 +138,7 @@ int main(int argc, const char** argv)
 
 #endif
 
-#if 1
+#if 0
 /*
  *  Detect collisions from events array 
  *  Working hypothesis: collisions happen only between two bodies.
@@ -265,6 +266,22 @@ int main(int argc, char **argv[])
 	create_sp_events();
 
 	delete[] events;
+}
+
+#endif
+
+#if 1
+
+int main()
+{
+	int r = 5;
+
+	const string err_msg = "rk8_kernel::calc_ytemp_for_f"; 
+	ostringstream convert;	// stream used for the conversion
+	convert << r;
+	cout << err_msg + convert.str() + " failed" << endl;
+
+	return 0;
 }
 
 #endif

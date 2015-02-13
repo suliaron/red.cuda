@@ -33,6 +33,7 @@ namespace constants
 	const var_t SolarToSaturn	 	      = 3.497898e3;
 	const var_t SolarToUranus		      = 2.290298e4;
 	const var_t SolarToNeptune		      = 1.941224e4;
+	const var_t SolarToCeres			  = 2.109342e9;			  
 	const var_t EarthToMoon				  = 8.130059e1;
 
 	const var_t SolarToKilogram			  = 1.98911e30;
@@ -47,7 +48,9 @@ namespace constants
 	const var_t SaturnToSolar		      = 1.0 / SolarToSaturn;
 	const var_t UranusToSolar		      = 1.0 / SolarToUranus;
 	const var_t NeptuneToSolar		      = 1.0 / SolarToNeptune;
+	const var_t CeresToSolar              = 1.0 / SolarToCeres;
 	const var_t MoonToEarth				  = 1.0 / EarthToMoon;
+
 
 	const var_t KilogramToSolar			  = 1.0 / SolarToKilogram;
 	const var_t GramToSolar				  = 1.0 / SolarToGram;

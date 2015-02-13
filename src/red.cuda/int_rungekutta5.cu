@@ -92,8 +92,8 @@ static __global__
 }
 } /* rk5_kernel */
 
-rungekutta5::rungekutta5(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, bool cpu) :
-	integrator(ppd, dt, cpu),
+rungekutta5::rungekutta5(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, computing_device_t comp_dev) :
+	integrator(ppd, dt, comp_dev),
 	adaptive(adaptive),
 	tolerance(tolerance),
 	d_f(2),
@@ -113,7 +113,6 @@ rungekutta5::rungekutta5(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance,
 
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_DEVICE_VECTOR((void**) &(d_ytemp[i]), n_total * sizeof(vec_t));
 		d_f[i].resize(r_max);
 		for (int r = 0; r < r_max; r++) 
 		{
@@ -139,14 +138,14 @@ rungekutta5::~rungekutta5()
 	{
 		for (int r = 0; r < r_max; r++) 
 		{
-			cudaFree(d_f[i][r]);
+			FREE_DEVICE_VECTOR(&d_f[i][r]);
 		}
 		if (adaptive)
 		{
-			cudaFree(d_err[i]);
+			FREE_DEVICE_VECTOR(&d_err[i]);
 		}
 	}
-	cudaFree(d_dydt);
+	FREE_DEVICE_VECTOR(&d_dydt);
 }
 
 void rungekutta5::call_kernel_calc_ytemp(int n_var, int r)
@@ -157,9 +156,9 @@ void rungekutta5::call_kernel_calc_ytemp(int n_var, int r)
 	{
 		var_t* y_n   = (var_t*)ppd->sim_data->d_y[i];
 		var_t** dydt = (var_t**)d_dydt;
-		var_t* ytemp = (var_t*)d_ytemp[i];
+		var_t* ytmp = (var_t*)ytemp[i];
 
-		rk5_kernel::calc_ytemp<<<grid, block>>>(n_var, r, idx_array[r], i*r_max, dt_try, y_n, dydt, ytemp);
+		rk5_kernel::calc_ytemp<<<grid, block>>>(n_var, r, idx_array[r], i*r_max, dt_try, y_n, dydt, ytmp);
 		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus)
 		{
@@ -229,7 +228,7 @@ ttt_t rungekutta5::step()
 			call_kernel_calc_ytemp(n_var_total, r);
 			for (int i = 0; i < 2; i++)
 			{
-				ppd->calc_dydx(i, r, ttemp, d_ytemp[0], d_ytemp[1], d_f[i][r]);
+				ppd->calc_dydx(i, r, ttemp, ytemp[0], ytemp[1], d_f[i][r]);
 			}
 		}
 		call_kernel_calc_y_np1(n_var_total);

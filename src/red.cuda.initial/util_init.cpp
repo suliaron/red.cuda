@@ -179,22 +179,45 @@ void deallocate_host_storage(sim_data_t *sd)
 	delete[] sd->epoch;
 }
 
-void print(string &path, body_disk_t& disk, sim_data_t* sd)
+void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t format)
 {
 	ofstream	output(path.c_str(), ios_base::out);
 	if (output)
 	{
-		for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_PADDINGPARTICLE; body_type++)
-		{
-			output << disk.nBody[body_type] << SEP;
-		}
-		output << endl;
-
 		int_t nBodies = calculate_number_of_bodies(disk);
+
+		if (INPUT_FORMAT_RED == format)
+		{
+			for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_PADDINGPARTICLE; body_type++)
+			{
+				output << disk.nBody[body_type] << SEP;
+			}
+			output << endl;
+		}
+		if (INPUT_FORMAT_NONAME == format)
+		{
+			output << "Time: " << sd->epoch[0] << endl;
+			output << "Number of bodies: " << nBodies << endl;
+			output << "Coordinate system: barycentric" << endl;
+			output << endl;
+			output << "id                       name                     type                     cx [AU]                  cy [AU]                  cz [AU]                  vx [AU/day]              vy [AU/day]              vz [AU/day]              mass [sol]               radius [AU]" << endl;
+			output << endl;
+		}
+
 		for (int i = 0; i < nBodies; i++)
 		{
-			//file::print_body_record(output, disk.names[i], sd->epoch[i], &sd->p[i], &sd->body_md[i], &sd->y[0][i], &sd->y[1][i]);
-			file::print_body_record_Emese(output, disk.names[i], sd->epoch[i], &sd->p[i], &sd->body_md[i], &sd->y[0][i], &sd->y[1][i]);
+			switch (format)
+			{
+			case INPUT_FORMAT_RED:
+				file::print_body_record(output, disk.names[i], sd->epoch[i], &sd->p[i], &sd->body_md[i], &sd->y[0][i], &sd->y[1][i]);
+				break;
+			case INPUT_FORMAT_NONAME:
+				file::print_body_record_Emese(output, disk.names[i], sd->epoch[i], &sd->p[i], &sd->body_md[i], &sd->y[0][i], &sd->y[1][i]);
+				break;
+			default:
+				throw string("Invalid format in print().");
+				break;
+			}
 		}
 		output.flush();
 		output.close();

@@ -11,17 +11,6 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-// includes Thrust
-#ifdef __GNUC__
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
-#include <thrust/reduce.h>
-#else
-#include "thrust\device_ptr.h"
-#include "thrust\fill.h"
-#include "thrust\extrema.h"
-#endif
-
 // includes project
 #include "int_euler.h"
 #include "int_rungekutta2.h"
@@ -154,8 +143,8 @@ int main(int argc, const char** argv, const char** env)
 			device_query(*log_f, opt.id_a_dev);
 		}
 
-		ttt_t ps = 0;
-		ttt_t dt = 0;
+		ttt_t ps = 0.0;
+		ttt_t dt = 0.0;
 		clock_t sum_time_of_steps = 0;
 		clock_t time_of_one_step  = 0;
 
@@ -164,7 +153,7 @@ int main(int argc, const char** argv, const char** env)
 		ppd->print_result_ascii(*result_f);
 		while (ppd->t <= opt.param->stop_time)
 		{
-			if (fabs(ps) >= opt.param->output_interval)
+			if (opt.param->output_interval <= fabs(ps))
 			{
 				ps = 0.0;
 				if (!opt.cpu)
@@ -183,7 +172,7 @@ int main(int argc, const char** argv, const char** env)
 			dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
 			ps += fabs(dt);
 
-			if (opt.param->thrshld[THRESHOLD_COLLISION_FACTOR] > 0.0 && ppd->check_for_collision())
+			if (0.0 < opt.param->thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] && ppd->check_for_collision())
 			{
 				ppd->print_event_data(*event_f, *log_f);
 				ppd->clear_event_counter();
@@ -194,7 +183,7 @@ int main(int argc, const char** argv, const char** env)
 				file::log_rebuild_vectors(*log_f, ppd->t);
 			}
 
-			if ((clock() - time_info_start) / (double)CLOCKS_PER_SEC > 5.0) 
+			if (5.0 < (clock() - time_info_start) / (double)CLOCKS_PER_SEC) 
 			{
 				print_info(*info_f, ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
 			}
@@ -202,7 +191,7 @@ int main(int argc, const char** argv, const char** env)
 		print_info(*info_f, ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
 
 		// To avoid duplicate save at the end of the simulation
-		if (ps > 0.0)
+		if (0.0 < ps)
 		{
 			if (!opt.cpu) ppd->copy_to_host();
 			ppd->print_result_ascii(*result_f);
@@ -227,7 +216,7 @@ int main(int argc, const char** argv, const char** env)
 	}
 	if (0x0 != log_f)
 	{
-		file::log_message(*log_f, " Total time: " + tools::convert_time_t(time(NULL) - start) + " s");
+		file::log_message(*log_f, "Total time: " + tools::convert_time_t(time(NULL) - start) + " s");
 	}
 	cout << "Total time: " << time(NULL) - start << " s" << endl;
 

@@ -18,7 +18,7 @@ public:
 	static var_t bh[];
 	static ttt_t c[];
 
-	rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, bool cpu);
+	rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, computing_device_t comp_dev);
 	~rungekutta8();
 
 	ttt_t step();
@@ -44,23 +44,9 @@ private:
 	void cpu_calc_y_np1(int n_var);
 	void cpu_calc_error(int n_var);
 
-	//void call_kernel_calc_ytemp_for_fr(int n_var, int r);
-	//void call_kernel_calc_y_np1(int n_var);
-	//void call_kernel_calc_error(int n_var);
-
 	void calc_ytemp_for_fr(int n_var, int r);
 	void calc_y_np1(int n_var);
 	void calc_error(int n_var);
-
-	var_t get_max_error(int n_var);
-
-	int	RKOrder;		//!< The order of the embedded RK formulae
-	int	r_max;			//!< The maximum number of the force calculation
-	bool adaptive;		//!< True if the method estimates the error and accordingly adjusts the step-size	
-	var_t tolerance;	//!< The maximum of the allowed local truncation error
-
-	vector<vector <vec_t*> >	dydx;	//!< Holds the derivatives for the differential equations
-	vector<var_t*>				err;	//!< Holds the leading local truncation error for each variable
 };
 
 
@@ -72,24 +58,16 @@ public:
 	static var_t bh[];
 	static ttt_t c[];
 
-	c_rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, bool cpu);
+	c_rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, computing_device_t comp_dev);
 	~c_rungekutta8();
 
 	ttt_t step();
 
 private:
-	int	RKOrder;		//!< The order of the embedded RK formulae
-	int	r_max;			//!< The maximum number of the force calculation
-	bool adaptive;		//!< True if the method estimates the error and accordingly adjusts the step-size	
-	var_t tolerance;	//!< The maximum of the allowed local truncation error
-
-	vector<vector <vec_t*> >	dydx;	//!< Holds the derivatives for the differential equations
-	vec_t** d_dydt;
-	vector<var_t*>				err;	//!< Holds the leading local truncation error for each variable
-
 	void call_kernel_calc_ytemp(int n_var, int r);
 	void call_kernel_calc_y_np1(int n_var);
 	void call_kernel_calc_error(int n_var);
 
-	var_t get_max_error(int n_var);
+	vector<vector <vec_t*> >	dydx;	//!< Holds the derivatives for the differential equations
+	vec_t**                     d_dydt; //!< Vector of vectors on the device: contains a copy of the dydx vector
 };

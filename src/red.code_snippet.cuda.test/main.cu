@@ -38,7 +38,7 @@ static __global__
 {
 	printf("dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE        ] : %lf\n", dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
 	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE           ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE]);
-	printf("dc_threshold[THRESHOLD_COLLISION_FACTOR            ] : %lf\n", dc_threshold[THRESHOLD_COLLISION_FACTOR]);
+	printf("dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR        ] : %lf\n", dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR]);
 	printf("dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] : %lf\n", dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED]);
 	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED   ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED]);
 }
@@ -129,7 +129,7 @@ static __global__
 				// Check for collision - ignore the star (i > 0 criterium)
 				// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
 				// If i < j is the condition than test particles can not collide with massive bodies
-				if (i > 0 && i > j && d < /* dc_threshold[THRESHOLD_COLLISION_FACTOR] */ 5.0 * (p[i].radius + p[j].radius))
+				if (i > 0 && i > j && d < /* dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR] */ 5.0 * (p[i].radius + p[j].radius))
 				{
 					unsigned int k = atomicAdd(event_counter, 1);
 
@@ -1271,7 +1271,7 @@ int main(int argc, const char** argv)
 	var_t thrshld[THRESHOLD_N];
 	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]         = 0.1;
 	thrshld[THRESHOLD_EJECTION_DISTANCE]            = 100.0;
-	thrshld[THRESHOLD_COLLISION_FACTOR]             = 5.0;
+	thrshld[THRESHOLD_RADII_ENHANCE_FACTOR]         = 5.0;
 	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]);
 	thrshld[THRESHOLD_EJECTION_DISTANCE_SQUARED]    = SQR(thrshld[THRESHOLD_EJECTION_DISTANCE]);
 
@@ -1286,8 +1286,20 @@ int main(int argc, const char** argv)
 #endif
 
 #if 1
+
+void free_h_vector(void **ptr, const char *file, int line)
+{
+	delete[] *ptr;
+	*ptr = (void *)0x0;
+}
+
 int main(int argc, const char** argv)
 {
+	var_t *p = 0x0;
+
+	p = new var_t[10];
+	free_h_vector((void **)&p, __FILE__, __LINE__);
+
 	sim_data_t sd;
 	event_data_t ed;
 
@@ -1297,7 +1309,7 @@ int main(int argc, const char** argv)
 
 	ALLOCATE_VECTOR((void **)&(ptr), size, cpu);
 
-	FREE_VECTOR((void *)ptr, cpu);
+	FREE_VECTOR((void **)&(ptr), cpu);
 
 	return 0;
 }

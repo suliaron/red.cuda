@@ -4,6 +4,13 @@
 #include "red_type.h"
 
 
+typedef enum input_format_name
+		{
+			INPUT_FORMAT_RED,
+			INPUT_FORMAT_NONAME,
+            INPUT_FORMAT_N
+		} input_format_name_t;
+
 typedef enum orbelem_name
 		{
 			ORBITAL_ELEMENT_SMA,
@@ -43,4 +50,25 @@ typedef struct body_disk
 			phys_prop_dist_t	pp_d[BODY_TYPE_N];
 			migration_type_t	*mig_type;
 			var_t				*stop_at;
+
+			body_disk()
+			{
+				for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
+				{
+					nBody[type] = 0;
+					for (int i = 0; i < ORBITAL_ELEMENT_N; i++) 
+					{
+						oe_d[type].range[i].x = oe_d[type].range[i].y = 0.0;
+						oe_d[type].item[i] = 0x0;
+					}
+					for (int i = 0; i < 4; i++) 
+					{
+						pp_d[type].range[i].x = pp_d[type].range[i].y = 0.0;
+						pp_d[type].item[i] = 0x0;
+					}
+				}
+				mig_type = 0x0;
+				stop_at  = 0x0;
+			}
+
 		} body_disk_t;
