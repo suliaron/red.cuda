@@ -40,7 +40,7 @@ void open_streams(const options& opt, const integrator* intgr, ostream** result_
 #else
 		config = "R";
 #endif
-		string dev = opt.cpu ? "cpu" : "gpu";
+		string dev = (opt.comp_dev == COMPUTING_DEVICE_CPU ? "cpu" : "gpu");
 		// as: adaptive step-size, fs: fix step-size
 		string adapt = opt.param->adaptive == true ? "as" : "fs";
 		// ps: padded storage, ns: normal storage
@@ -133,12 +133,12 @@ int main(int argc, const char** argv, const char** env)
 		if (opt.verbose)
 		{
 			file::log_start_cmd(cout, argc, argv, env);
-			if (!opt.cpu)
+			if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 			{
 				device_query(cout, opt.id_a_dev);
 			}
 		}
-		if (!opt.cpu)
+		if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 		{
 			device_query(*log_f, opt.id_a_dev);
 		}
@@ -156,7 +156,7 @@ int main(int argc, const char** argv, const char** env)
 			if (opt.param->output_interval <= fabs(ps))
 			{
 				ps = 0.0;
-				if (!opt.cpu)
+				if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 				{
 					ppd->copy_to_host();
 				}
@@ -193,10 +193,17 @@ int main(int argc, const char** argv, const char** env)
 		// To avoid duplicate save at the end of the simulation
 		if (0.0 < ps)
 		{
-			if (!opt.cpu) ppd->copy_to_host();
+			if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+			{
+				ppd->copy_to_host();
+			}
 			ppd->print_result_ascii(*result_f);
 		}
-
+		// Needed by nvprof.exe
+		if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+		{
+			cudaDeviceReset();
+		}
 	} /* try */
 	catch (const nbody_exception& ex)
 	{
@@ -219,9 +226,6 @@ int main(int argc, const char** argv, const char** env)
 		file::log_message(*log_f, "Total time: " + tools::convert_time_t(time(NULL) - start) + " s");
 	}
 	cout << "Total time: " << time(NULL) - start << " s" << endl;
-
-	// Needed by nvprof.exe
-	cudaDeviceReset();
 
 	return (EXIT_SUCCESS);
 }

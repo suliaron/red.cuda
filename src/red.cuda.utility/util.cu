@@ -257,6 +257,42 @@ void copy_constant_to_device(const void* dst, const void *src, size_t count)
 	}
 }
 
+void set_device(int id_a_dev, bool verbose)
+{
+	cudaError_t cudaStatus = cudaSuccess;
+
+	int n_device = 0;
+	cudaGetDeviceCount(&n_device);
+	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("cudaGetDeviceCount() failed");
+	}
+	if (0 == n_device)
+	{
+		throw string("No CUDA device was found. ");
+	}
+
+	if (verbose)
+	{
+		printf("The number of CUDA device(s) : %2d\n", n_device);
+	}
+	if (n_device > id_a_dev && 0 <= id_a_dev)
+	{
+		// Set the desired id of the device
+		cudaSetDevice(id_a_dev);
+		cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus)
+		{
+			throw string("cudaSetDevice() failed");
+		}
+	}
+	else
+	{
+		throw string("The device with the requested id does not exist!");
+	}
+}
+
 void print_array(string path, int n, var_t *data, computing_device_t comp_dev)
 {
 	var_t* h_data = 0x0;

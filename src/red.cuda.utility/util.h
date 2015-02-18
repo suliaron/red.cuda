@@ -26,4 +26,5 @@ void copy_vector_d2d(      void* dst, const void *src, size_t count);
 
 void copy_constant_to_device(const void* dst, const void *src, size_t count);
 
+void set_device(int id_a_dev, bool verbose);
 void print_array(string path, int n, var_t *data, computing_device_t comp_dev);

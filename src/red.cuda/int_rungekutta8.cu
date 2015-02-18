@@ -630,7 +630,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			break;
 		default:
 			throw string("rungekutta8::calc_ytemp_for_fr: parameter out of range.");
-		} /* swicth */
+		} /* switch */
 		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());

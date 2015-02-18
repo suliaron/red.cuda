@@ -31,7 +31,6 @@ public:
 	bool	ef;						//!< Extend the file names with command line information. Only for developer and debugger purposes.
 
 	computing_device_t comp_dev;    //!< The computing device to carry out the calculations (cpu or gpu)
-	bool	cpu;					//!< Execute the code on the cpu if required by the user or if no GPU is installed
 
 	parameter* param;
 	gas_disk*  g_disk;	
@@ -42,9 +41,9 @@ public:
 	string result_filename;
 
 private:
-	string parameters_filename;     //!< holds the path of the file containing the parameters of the simulation
-	string gasdisk_filename;        //!< holds the path of the file containing the parameters of the nebula
-	string bodylist_filename;       //!< holds the path of the file containing the data of the bodies
+	string parameters_filename;     //!< Path of the file containing the parameters of the simulation
+	string gasdisk_filename;        //!< Path of the file containing the parameters of the nebula
+	string bodylist_filename;       //!< Path of the file containing the data of the bodies
 
 	bool has_gas;
 

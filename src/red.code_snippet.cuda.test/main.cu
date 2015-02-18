@@ -1293,6 +1293,8 @@ void free_h_vector(void **ptr, const char *file, int line)
 	*ptr = (void *)0x0;
 }
 
+
+
 int main(int argc, const char** argv)
 {
 	var_t *p = 0x0;
@@ -1305,7 +1307,7 @@ int main(int argc, const char** argv)
 
 	vec_t* ptr = 0x0;
 	size_t size = 1024 * sizeof(vec_t);
-	bool cpu = !true;
+	bool cpu = true;
 
 	ALLOCATE_VECTOR((void **)&(ptr), size, cpu);
 

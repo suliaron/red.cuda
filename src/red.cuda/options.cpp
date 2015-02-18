@@ -25,46 +25,12 @@ options::options(int argc, const char** argv) :
 	create_default_options();
 	parse_options(argc, argv);
 
-	if (!cpu)
+	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
-		cudaError_t cudaStatus = cudaSuccess;
-
-		int n_device = 0;
-		cudaGetDeviceCount(&n_device);
-		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus)
-		{
-			throw string("cudaGetDeviceCount() failed");
-		}
-		if (verbose)
-		{
-			printf("The number of CUDA device(s) : %2d\n", n_device);
-		}
-		if (1 > n_device)
-		{
-			printf("No CUDA device was found. The code will execute on the CPU. Implementation is in progress.\n");
-			cpu = true;
-		}
-		if (!cpu)
-		{
-			if (n_device > id_a_dev && 0 <= id_a_dev)
-			{
-				// Set the desired id of the device
-				cudaSetDevice(id_a_dev);
-				cudaStatus = HANDLE_ERROR(cudaGetLastError());
-				if (cudaSuccess != cudaStatus)
-				{
-					throw string("cudaSetDevice() failed");
-				}
-			}
-			else
-			{
-				throw string("The device with the requested id does not exist!");
-			}
-		}
+		set_device(id_a_dev, verbose);
 	}
 
-	if (cpu)
+	if (COMPUTING_DEVICE_CPU == comp_dev)
 	{
 		use_padded_storage = false;
 	}
@@ -209,12 +175,10 @@ void options::parse_options(int argc, const char** argv)
 		}
 		else if (p == "--cpu" || p == "-cpu")
 		{
-			cpu = true;
 			comp_dev = COMPUTING_DEVICE_CPU;
 		}
 		else if (p == "--gpu" || p == "-gpu")
 		{
-			cpu = false;
 			comp_dev = COMPUTING_DEVICE_GPU;
 		}
 		else if (p == "--help" || p == "-h")
