@@ -858,10 +858,10 @@ integrator(ppd, dt, adaptive, tolerance, (adaptive ? 13 : 11), comp_dev)
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
-		copy_constant_to_device(dc_a, a,   sizeof(a));
-		copy_constant_to_device(dc_b, b,   sizeof(b));
-		copy_constant_to_device(dc_bh, bh, sizeof(bh));
-		copy_constant_to_device(dc_c, c,   sizeof(c));
+		redutilcu::copy_constant_to_device(dc_a, a,   sizeof(a));
+		redutilcu::copy_constant_to_device(dc_b, b,   sizeof(b));
+		redutilcu::copy_constant_to_device(dc_bh, bh, sizeof(bh));
+		redutilcu::copy_constant_to_device(dc_c, c,   sizeof(c));
 	}
 }
 

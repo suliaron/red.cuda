@@ -22,6 +22,7 @@
 #include "redutilcu.h"
 
 using namespace std;
+using namespace redutilcu;
 
 integrator::integrator(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, int r_max, computing_device_t comp_dev) : 
 	ppd(ppd),
@@ -52,7 +53,8 @@ integrator::integrator(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, i
 
 integrator::~integrator()
 {
-	deallocate_storage();
+	deallocate_device_storage();
+	deallocate_host_storage();
 }
 
 void integrator::allocate_storage()
@@ -110,20 +112,33 @@ void integrator::allocate_device_storage(int n_body)
 	}
 }
 
-void integrator::deallocate_storage()
+void integrator::deallocate_host_storage()
 {
 	for (int i = 0; i < 2; i++)
 	{
 		FREE_HOST_VECTOR(  (void **)&(h_ytemp[i]));
-		FREE_DEVICE_VECTOR((void **)&(d_ytemp[i]));
 		for (int r = 0; r < r_max; r++) 
 		{
 			FREE_HOST_VECTOR(  (void**)&(h_dydx[i][r]));
-			FREE_DEVICE_VECTOR((void**)&(d_dydx[i][r]));
 		}
 		if (adaptive)
 		{
 			FREE_HOST_VECTOR(  (void**)&(h_err[i]));
+		}
+	}
+}
+
+void integrator::deallocate_device_storage()
+{
+	for (int i = 0; i < 2; i++)
+	{
+		FREE_DEVICE_VECTOR((void **)&(d_ytemp[i]));
+		for (int r = 0; r < r_max; r++) 
+		{
+			FREE_DEVICE_VECTOR((void**)&(d_dydx[i][r]));
+		}
+		if (adaptive)
+		{
 			FREE_DEVICE_VECTOR((void**)&(d_err[i]));
 		}
 	}
@@ -171,18 +186,21 @@ void integrator::set_computing_device(computing_device_t device)
 	case COMPUTING_DEVICE_CPU:
 		if (COMPUTING_DEVICE_CPU != this->comp_dev)
 		{
+			deallocate_device_storage();
 			this->comp_dev = device;
 			create_aliases();
+			ppd->set_computing_device(device);
 			// Memory allocation was already done [all variables are redy to use on the host]
 		}
 		break;
 	case COMPUTING_DEVICE_GPU:
 		if (COMPUTING_DEVICE_GPU != this->comp_dev)
 		{
-			deallocate_storage();
+			int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
 			this->comp_dev = device;
-			allocate_storage();
+			allocate_device_storage(n_body);
 			create_aliases();
+			ppd->set_computing_device(device);
 		}
 		break;
 	default:

@@ -203,6 +203,30 @@ void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t 
 			output << "id                       name                     type                     cx [AU]                  cy [AU]                  cz [AU]                  vx [AU/day]              vy [AU/day]              vz [AU/day]              mass [sol]               radius [AU]" << endl;
 			output << endl;
 		}
+		if (INPUT_FORMAT_HIPERION == format)
+		{
+			output << "# HEADER_BEGIN" << endl;
+			output << "# CountSnapshot   = 0" << endl;
+			output << "# Iter            = 0" << endl;
+			output << "# Time            = 0" << endl;
+			output << "# NewDt           = 0" << endl;
+			output << "# Ntot            = " << nBodies << endl;
+			output << "# Ngrav           = " << disk.nBody[BODY_TYPE_STAR] + disk.nBody[BODY_TYPE_GIANTPLANET] + disk.nBody[BODY_TYPE_ROCKYPLANET] + disk.nBody[BODY_TYPE_PROTOPLANET] << endl;
+			output << "# Nst             = " << disk.nBody[BODY_TYPE_STAR] << endl;
+			output << "# Npl             = " << disk.nBody[BODY_TYPE_GIANTPLANET] + disk.nBody[BODY_TYPE_ROCKYPLANET] << endl;
+			output << "# Nplms           = " << disk.nBody[BODY_TYPE_PROTOPLANET] << endl;
+			output << "# Ndust           = " << disk.nBody[BODY_TYPE_PLANETESIMAL] + disk.nBody[BODY_TYPE_TESTPARTICLE] << endl;
+			output << "# NCstr           = 0" << endl;
+			output << "# NCpl            = 0" << endl;
+			output << "# NCplms          = 0" << endl;
+			output << "# Ekin0           = -1.000000" << endl;
+			output << "# Epot0           = -1.000000" << endl;
+			output << "# Eloss           = 0.000000" << endl;
+			output << "# dE              = 0" << endl;
+			output << "# OrbitalPeriod   = 6.2831854820251465e+00" << endl;
+			output << "# TimeCPU         = 0"  << endl;
+			output << "# HEADER_END" << endl;
+		}
 
 		for (int i = 0; i < nBodies; i++)
 		{
@@ -213,6 +237,9 @@ void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t 
 				break;
 			case INPUT_FORMAT_NONAME:
 				file::print_body_record_Emese(output, disk.names[i], sd->epoch[i], &sd->p[i], &sd->body_md[i], &sd->y[0][i], &sd->y[1][i]);
+				break;
+			case INPUT_FORMAT_HIPERION:
+				file::print_body_record_HIPERION(output, disk.names[i], sd->epoch[i], &sd->p[i], &sd->body_md[i], &sd->y[0][i], &sd->y[1][i]);
 				break;
 			default:
 				throw string("Invalid format in print().");

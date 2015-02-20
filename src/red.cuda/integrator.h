@@ -24,7 +24,9 @@ public:
 	void allocate_storage();
 	void allocate_host_storage(int n_body);
 	void allocate_device_storage(int n_body);
-	void deallocate_storage();
+
+	void deallocate_host_storage();
+	void deallocate_device_storage();
 
 	//! Set the computing device to calculate the integration step
 	/*

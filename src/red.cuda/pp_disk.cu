@@ -1046,11 +1046,20 @@ void pp_disk::set_computing_device(computing_device_t device)
 		{
 			copy_to_host();
 			clear_event_counter();
+			deallocate_device_storage(sim_data);
+			FREE_DEVICE_VECTOR((void **)&d_events);
+			FREE_DEVICE_VECTOR((void **)&d_event_counter);
 		}
 		break;
 	case COMPUTING_DEVICE_GPU:
 		if (COMPUTING_DEVICE_GPU != this->comp_dev)
 		{
+			int n_total = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
+
+			allocate_device_storage(sim_data, n_total);
+			ALLOCATE_DEVICE_VECTOR((void **)&d_events,        n_total*sizeof(event_data_t));
+			ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,       1*sizeof(int));
+
 			copy_to_device();
 			copy_threshold(this->threshold);
 			clear_event_counter();

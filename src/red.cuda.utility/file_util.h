@@ -21,6 +21,7 @@ namespace redutilcu
 		void log_message(ostream& sout, string msg);
 		void print_body_record(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v);
 		void print_body_record_Emese(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v);
+		void print_body_record_HIPERION(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v);
 		void print_oe_record(ofstream &sout, orbelem_t* oe);
 	} /* file */
 } /* redutilcu */

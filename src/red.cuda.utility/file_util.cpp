@@ -7,6 +7,7 @@
 #include "file_util.h"
 #include "tools.h"
 #include "red_macro.h"
+#include "red_constants.h"
 
 namespace redutilcu
 {
@@ -294,6 +295,72 @@ void print_body_record(ofstream &sout, string name, var_t epoch, param_t *p, bod
     sout.flush();
 }
 
+void print_body_record_HIPERION(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v)
+{
+	static int ids[4] = {0, 10, 20, 10000000};
+
+	static int int_t_w  =  8;
+	static int var_t_w  = 25;
+
+	sout.precision(16);
+	sout.setf(ios::right);
+	sout.setf(ios::scientific);
+
+	int id = 0;
+	// NOTE: this is not the beta parameter but derived from it
+	var_t _beta = 0.0;
+	switch (body_md->body_type)
+	{
+	case BODY_TYPE_STAR:
+		id = ids[0];
+		ids[0]++;
+		_beta = 0.0;
+		break;
+	case BODY_TYPE_GIANTPLANET:
+		id = ids[1];
+		ids[1]++;
+		_beta = 0.0;
+		break;
+	case BODY_TYPE_ROCKYPLANET:
+		id = ids[1];
+		ids[1]++;
+		_beta = 0.0;
+		break;
+	case BODY_TYPE_PROTOPLANET:
+		id = ids[2];
+		ids[2]++;
+		_beta = p->density;
+		break;
+	case BODY_TYPE_SUPERPLANETESIMAL:
+		break;
+	case BODY_TYPE_PLANETESIMAL:
+		id = ids[2];
+		ids[2]++;
+		_beta = p->density;
+		break;
+	case BODY_TYPE_TESTPARTICLE:
+		id = ids[3];
+		ids[3]++;
+		_beta = 1.0;
+		break;
+	}
+
+	var_t eps = 0.0;
+
+	sout << setw(int_t_w) << id      << SEP
+		 << setw(var_t_w) << p->mass << SEP
+		 << setw(var_t_w) << r->x    << SEP
+		 << setw(var_t_w) << r->y    << SEP
+		 << setw(var_t_w) << r->z    << SEP
+		 << setw(var_t_w) << v->x / constants::Gauss << SEP
+		 << setw(var_t_w) << v->y / constants::Gauss << SEP
+		 << setw(var_t_w) << v->z / constants::Gauss << SEP
+		 << setw(var_t_w) << eps     << SEP
+		 << setw(var_t_w) << _beta   << endl;
+
+    sout.flush();
+}
+
 void print_body_record_Emese(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v)
 {
 	const char* body_type_name[] = 
@@ -325,7 +392,7 @@ void print_body_record_Emese(ofstream &sout, string name, var_t epoch, param_t *
 		 << setw(var_t_w) << showpos << v->y
 		 << setw(var_t_w) << showpos << v->z
 		 << setw(var_t_w) << showpos << p->mass
-		 << setw(var_t_w) << showpos <<  p->radius << endl;
+		 << setw(var_t_w) << showpos << p->radius << endl;
 
     sout.flush();
 }

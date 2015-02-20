@@ -73,8 +73,9 @@ void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, 
 	number_of_bodies* nb = ppd->n_bodies; 
 
 	*time_info_start = clock();
-	cout << tools::get_time_stamp() << " t: " << setprecision(6) << setw(12) << ppd->t 
-		 << ", dt: " << setprecision(6) << setw(12)  << dt;
+	cout << tools::get_time_stamp() 
+		 << " t: " << setprecision(6) << setw(12) << ppd->t / constants::Gauss
+		 << ", dt: " << setprecision(6) << setw(12)  << dt / constants::Gauss;
 	cout << ", dT_cpu: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
 	cout << ", dT_avg: " << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s";
 	cout << ", Nc: " << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL]
@@ -82,8 +83,9 @@ void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, 
 		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
 		 << ", N : " << setw(6) << nb->get_n_total() << "(" << setw(6) << nb->get_n_total_inactive() << ")" << endl;
 
-	sout << tools::get_time_stamp() << " t: " << setprecision(6) << setw(12) << ppd->t 
-		 << ", dt: " << setprecision(6) << setw(12)  << dt;
+	sout << tools::get_time_stamp()
+		 << " t: " << setprecision(6) << setw(12) << ppd->t  / constants::Gauss
+		 << ", dt: " << setprecision(6) << setw(12)  << dt / constants::Gauss;
 	sout << ", dT_cpu: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
 	sout << ", dT_avg: " << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s";
 	sout << ", Nc: " << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL]
@@ -99,14 +101,14 @@ void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, 
 		 << ", N_tp: " << setw(5) << nb->n_tp  << "(" << setw(5) << nb->n_i_tp << ")" << endl;	
 }
 
-ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* time_of_one_step)
+ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* t_step)
 {
-	clock_t start_of_step = clock();
+	clock_t t_start = clock();
 	ttt_t dt = intgr->step();
-	clock_t end_of_step = clock();
+	clock_t t_stop = clock();
 
-	*time_of_one_step = (end_of_step - start_of_step);
-	*sum_time_of_steps += *time_of_one_step;
+	*t_step = (t_stop - t_start);
+	*sum_time_of_steps += *t_step;
 
 	return dt;
 }
@@ -119,9 +121,9 @@ int main(int argc, const char** argv, const char** env)
 	time_t start = time(NULL);
 
 	ostream* result_f = 0x0;
-	ostream* info_f = 0x0;
-	ostream* event_f = 0x0;
-	ostream* log_f = 0x0;
+	ostream* info_f   = 0x0;
+	ostream* event_f  = 0x0;
+	ostream* log_f    = 0x0;
 	try
 	{
 		options opt = options(argc, argv);
@@ -151,8 +153,16 @@ int main(int argc, const char** argv, const char** env)
 		time_t time_info_start = clock();
 
 		ppd->print_result_ascii(*result_f);
+
+		int dummy_k = 0;
 		while (ppd->t <= opt.param->stop_time)
 		{
+			if (10 == dummy_k)
+			{
+				redutilcu::set_device(0, opt.verbose);
+				intgr->set_computing_device(COMPUTING_DEVICE_GPU);
+			}
+
 			if (opt.param->output_interval <= fabs(ps))
 			{
 				ps = 0.0;
@@ -187,6 +197,8 @@ int main(int argc, const char** argv, const char** env)
 			{
 				print_info(*info_f, ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
 			}
+
+			dummy_k++;
 		} /* while */
 		print_info(*info_f, ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
 

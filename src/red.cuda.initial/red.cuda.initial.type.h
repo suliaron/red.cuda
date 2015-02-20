@@ -8,6 +8,7 @@ typedef enum input_format_name
 		{
 			INPUT_FORMAT_RED,
 			INPUT_FORMAT_NONAME,
+			INPUT_FORMAT_HIPERION,
             INPUT_FORMAT_N
 		} input_format_name_t;
 

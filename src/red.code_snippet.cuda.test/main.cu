@@ -32,6 +32,7 @@ __constant__ var_t dc_threshold[THRESHOLD_N];
 
 
 using namespace std;
+using namespace redutilcu;
 
 static __global__
 	void kernel_print_constant_memory()

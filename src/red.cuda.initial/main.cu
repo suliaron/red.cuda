@@ -213,7 +213,7 @@ void set_parameters_of_n_gp_body_disk(body_disk_t& disk)
 void set_parameters_of_n_pp_body_disk(body_disk_t& disk)
 {
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
-	disk.nBody[BODY_TYPE_PROTOPLANET] = 1000;
+	disk.nBody[BODY_TYPE_PROTOPLANET] = 1023;
 
 	int_t nBodies = calculate_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
@@ -709,8 +709,11 @@ void create_n_pp_body_disk(string& dir, string& filename)
 	path = file::combine_path(dir, filename) + ".txt";
 	print(path, disk, sim_data, INPUT_FORMAT_RED);
 
-	path = file::combine_path(dir, filename) + "_E.txt";
+	path = file::combine_path(dir, filename) + "_NONMAE.txt";
 	print(path, disk, sim_data, INPUT_FORMAT_NONAME);
+
+	path = file::combine_path(dir, filename) + "_HIPERION.txt";
+	print(path, disk, sim_data, INPUT_FORMAT_HIPERION);
 
 	deallocate_host_storage(sim_data);
 
