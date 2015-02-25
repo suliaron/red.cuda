@@ -39,10 +39,10 @@ void parameter::create_default_parameters()
 	simulation_length  = 0.0;
 	output_interval    = 0.0;
 
-	// TODO: set these values to -1.0 indicating that these were not defined by the user
-	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE] = 1.0e-1;      // AU
-	thrshld[THRESHOLD_EJECTION_DISTANCE   ] = 1.0e4;       // AU
-	thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] = 1.0;         // dimensionless parameter
+	// TODO: set these values to 0.0 indicating that these were not defined by the user
+	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE] = 0.0;      // AU
+	thrshld[THRESHOLD_EJECTION_DISTANCE   ] = 0.0;      // AU
+	thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] = 0.0;      // dimensionless parameter
 
 	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]);
 	thrshld[THRESHOLD_EJECTION_DISTANCE_SQUARED   ] = SQR(thrshld[THRESHOLD_EJECTION_DISTANCE   ]);

@@ -634,7 +634,7 @@ int pp_disk::cpu_check_for_ejection_hit_centrum()
 
 			// Calculate the distance from the barycenter
 			var_t r2 = SQR(r[i].x) + SQR(r[i].y) + SQR(r[i].z);
-			if (r2 > threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED])
+			if (0.0 < threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED] && threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED] < r2)
 			{
 				k = event_counter;
 				//printf("t = %20.10le d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
@@ -654,7 +654,7 @@ int pp_disk::cpu_check_for_ejection_hit_centrum()
 				body_md[i].id *= -1;
 				event_counter++;
 			}
-			else if (r2 < SQR(threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED]))
+			else if (0.0 < threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] && SQR(threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED]) > r2)
 			{
 				k = event_counter;
 				//printf("t = %20.10le d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);

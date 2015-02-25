@@ -47,6 +47,25 @@ void populate_disk(body_disk_t& disk, sim_data_t *sd)
 			body_md.mig_stop_at = disk.stop_at[bodyIdx];
 
 			generate_pp(&disk.pp_d[body_type], param);
+			if (BODY_TYPE_SUPERPLANETESIMAL != body_type)
+			{
+				if (0x0 == disk.pp_d[body_type].item[MASS] && 0x0 != disk.pp_d[body_type].item[RADIUS] && 0x0 != disk.pp_d[body_type].item[DENSITY])
+				{
+					param.mass = tools::caclulate_mass(param.radius, param.density);
+				}
+				else if (0x0 == disk.pp_d[body_type].item[RADIUS] && 0x0 != disk.pp_d[body_type].item[MASS] && 0x0 != disk.pp_d[body_type].item[DENSITY])
+				{
+					param.radius = tools::calculate_radius(param.mass, param.density);
+				}
+				else if (0x0 == disk.pp_d[body_type].item[DENSITY] && 0x0 != disk.pp_d[body_type].item[MASS] && 0x0 != disk.pp_d[body_type].item[RADIUS])
+				{
+					param.density = tools::calculate_density(param.mass, param.radius);
+				}
+				else
+				{
+					throw string("Missing physical parameters!");
+				}
+			}
 
 			if (BODY_TYPE_STAR == body_type)
 			{
@@ -213,7 +232,7 @@ void set_parameters_of_n_gp_body_disk(body_disk_t& disk)
 void set_parameters_of_n_pp_body_disk(body_disk_t& disk)
 {
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
-	disk.nBody[BODY_TYPE_PROTOPLANET] = 1023;
+	disk.nBody[BODY_TYPE_PROTOPLANET] = 1000;
 
 	int_t nBodies = calculate_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
@@ -242,8 +261,9 @@ void set_parameters_of_n_pp_body_disk(body_disk_t& disk)
 		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
 
-		disk.pp_d[type].item[MASS      ] = new uniform_distribution((ulong)clock(), 0.1 * constants::CeresToSolar, 1.0 * constants::CeresToSolar);
-		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 3.0 * constants::GramPerCm3ToSolarPerAu3);
+		//disk.pp_d[type].item[MASS    ] = new uniform_distribution((ulong)clock(), 0.1 * constants::CeresToSolar, 1.0 * constants::CeresToSolar);
+		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution((ulong)clock(), 1.0e3 * constants::KilometerToAu, 1.0e3 * constants::KilometerToAu);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 2.7 * constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
 
 		for (int i = 0; i < disk.nBody[type]; i++) 
@@ -645,8 +665,6 @@ void create_n_pp_body_disk(string& dir, string& filename)
 {
 	body_disk_t disk;
 
-	//initialize(disk);
-
 	set_parameters_of_n_pp_body_disk(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
@@ -656,26 +674,26 @@ void create_n_pp_body_disk(string& dir, string& filename)
 	populate_disk(disk, sim_data);
 
 	// Computes the physical quantities with the new mass
-	{
-		int bodyIdx = 0;
-		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
-		{
-			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
-			{
-				if (sim_data->p[bodyIdx].mass > 0.0)
-				{
-					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
-					{
-						sim_data->p[bodyIdx].density = tools::calculate_density(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].radius);
-					}
-					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
-					{
-						sim_data->p[bodyIdx].radius = tools::calculate_radius(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].density);
-					}
-				}
-			}
-		}
-	}
+	//{
+	//	int bodyIdx = 0;
+	//	for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
+	//	{
+	//		for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+	//		{
+	//			if (sim_data->p[bodyIdx].mass > 0.0)
+	//			{
+	//				if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
+	//				{
+	//					sim_data->p[bodyIdx].density = tools::calculate_density(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].radius);
+	//				}
+	//				if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
+	//				{
+	//					sim_data->p[bodyIdx].radius = tools::calculate_radius(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].density);
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 
 	// Calculate coordinates and velocities
 	{
@@ -901,17 +919,19 @@ int parse_options(int argc, const char **argv, string &outDir, string &filename)
 	while (i < argc) {
 		string p = argv[i];
 
-		if (     p == "-o") {
+		if (     p == "-o")
+		{
 			i++;
 			outDir = argv[i];
 		}
-		else if (p == "-f") {
+		else if (p == "-f")
+		{
 			i++;
 			filename = argv[i];
 		}
-		else {
-			cerr << "Invalid switch on command-line.";
-			return 1;
+		else
+		{
+			throw string("Invalid switch on command-line.");
 		}
 		i++;
 	}
