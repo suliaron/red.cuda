@@ -1061,7 +1061,7 @@ void pp_disk::set_computing_device(computing_device_t device)
 			ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,       1*sizeof(int));
 
 			copy_to_device();
-			copy_threshold(this->threshold);
+			copy_constant_to_device(dc_threshold, this->threshold, THRESHOLD_N*sizeof(var_t));
 			clear_event_counter();
 		}
 		break;

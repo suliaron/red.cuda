@@ -9,7 +9,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>-iDir D:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run01 -ic run01.txt -p parameters.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -ef -cpu -iDir D:\Work\Projects\red.cuda\TestRun\InputTest\TwoBody_CPU_2_GPU -p parameters.txt -ic TwoBody.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

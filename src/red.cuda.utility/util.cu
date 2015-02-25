@@ -261,20 +261,7 @@ void copy_constant_to_device(const void* dst, const void *src, size_t count)
 
 void set_device(int id_a_dev, bool verbose)
 {
-	// Store the id of the last used/active device
-	static int last_id_a_dev = -1;
-
 	cudaError_t cudaStatus = cudaSuccess;
-
-	if (-1 != last_id_a_dev)
-	{
-		cudaDeviceReset();
-		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus)
-		{
-			throw string("cudaDeviceReset() failed");
-		}
-	}
 
 	int n_device = 0;
 	cudaGetDeviceCount(&n_device);
@@ -310,8 +297,6 @@ void set_device(int id_a_dev, bool verbose)
 	{
 		throw string("The device with the requested id does not exist!");
 	}
-
-	last_id_a_dev = id_a_dev;
 }
 
 void print_array(string path, int n, var_t *data, computing_device_t comp_dev)
