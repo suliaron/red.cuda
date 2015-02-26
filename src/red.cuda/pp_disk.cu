@@ -26,6 +26,46 @@ __constant__ var_t dc_threshold[THRESHOLD_N];
 
 /****************** KERNEL functions begins here ******************/
 
+namespace device_pp_disk
+{
+static __host__ __device__ 
+	void store_event_data
+	(
+		event_name_t name,
+		ttt_t t,
+		var_t d,
+		int idx1,
+		int idx2,
+		const param_t* p,
+		const vec_t* r,
+		const vec_t* v,
+		const body_metadata_t* body_md,
+		event_data_t *evnt)
+{
+	evnt->event_name = name;
+	evnt->d = d;
+	evnt->t = t;
+	evnt->id1 = body_md[idx1].id;
+	evnt->id2 = body_md[idx2].id;
+	evnt->idx1 = idx1;
+	evnt->idx2 = idx2;
+	evnt->r1 = r[idx1];
+	evnt->v1 = v[idx1];
+	evnt->r2 = r[idx2];
+	evnt->v2 = v[idx2];
+
+	if (EVENT_NAME_EJECTION == name)
+	{
+		evnt->p1 = p[idx1];
+		evnt->p2 = p[idx2];
+
+		evnt->rs = evnt->r1;
+		evnt->vs = evnt->v1;
+		evnt->ps = evnt->p1;
+	}
+}
+} /* device_pp_disk */
+
 namespace kernel_pp_disk
 {
 static __global__
@@ -53,25 +93,26 @@ static __global__
 		if (0.0 < dc_threshold[THRESHOLD_EJECTION_DISTANCE] && dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED] < r2)
 		{
 			k = atomicAdd(event_counter, 1);
+			device_pp_disk::store_event_data(EVENT_NAME_EJECTION, t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
 			//printf("t = %20.10le d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
 
-			events[k].event_name = EVENT_NAME_EJECTION;
-			events[k].d = sqrt(r2); //sqrt(dVec.w);
-			events[k].t = t;
-			events[k].id1 = body_md[0].id;
-			events[k].id2 = body_md[i].id;
-			events[k].idx1 = 0;
-			events[k].idx2 = i;
-			events[k].r1 = r[0];
-			events[k].v1 = v[0];
-			events[k].r2 = r[i];
-			events[k].v2 = v[i];
+			//events[k].event_name = EVENT_NAME_EJECTION;
+			//events[k].d = sqrt(r2); //sqrt(dVec.w);
+			//events[k].t = t;
+			//events[k].id1 = body_md[0].id;
+			//events[k].id2 = body_md[i].id;
+			//events[k].idx1 = 0;
+			//events[k].idx2 = i;
+			//events[k].r1 = r[0];
+			//events[k].v1 = v[0];
+			//events[k].r2 = r[i];
+			//events[k].v2 = v[i];
 
-			events[k].p1 = p[0];
-			events[k].p2 = p[i];
-			events[k].ps = p[0];
-			events[k].rs = r[0];
-			events[k].vs = v[0];
+			//events[k].p1 = p[0];
+			//events[k].p2 = p[i];
+			//events[k].ps = p[0];
+			//events[k].rs = r[0];
+			//events[k].vs = v[0];
 
 			// Make the body inactive
 			body_md[i].id *= -1;
@@ -79,19 +120,20 @@ static __global__
 		else if (0.0 < dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] && dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] > r2)
 		{
 			k = atomicAdd(event_counter, 1);
+			device_pp_disk::store_event_data(EVENT_NAME_HIT_CENTRUM, t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
 			//printf("t = %20.10le d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
 
-			events[k].event_name = EVENT_NAME_HIT_CENTRUM;
-			events[k].d = sqrt(r2); //sqrt(dVec.w);
-			events[k].t = t;
-			events[k].id1 = body_md[0].id;
-			events[k].id2 = body_md[i].id;
-			events[k].idx1 = 0;
-			events[k].idx2 = i;
-			events[k].r1 = r[0];
-			events[k].v1 = v[0];
-			events[k].r2 = r[i];
-			events[k].v2 = v[i];
+			//events[k].event_name = EVENT_NAME_HIT_CENTRUM;
+			//events[k].d = sqrt(r2); //sqrt(dVec.w);
+			//events[k].t = t;
+			//events[k].id1 = body_md[0].id;
+			//events[k].id2 = body_md[i].id;
+			//events[k].idx1 = 0;
+			//events[k].idx2 = i;
+			//events[k].r1 = r[0];
+			//events[k].v1 = v[0];
+			//events[k].r2 = r[i];
+			//events[k].v2 = v[i];
 			// Make the body inactive
 			body_md[i].id *= -1;
 		}
@@ -148,23 +190,25 @@ static __global__
 			int mergerIdx = j;
 			if (p[mergerIdx].mass > p[survivIdx].mass)
 			{
-				int t = survivIdx;
+				int m = survivIdx;
 				survivIdx = mergerIdx;
-				mergerIdx = t;
+				mergerIdx = m;
 			}
 			//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
 
-			events[k].event_name = EVENT_NAME_COLLISION;
-			events[k].d = d;
-			events[k].t = t;
-			events[k].id1 = body_md[survivIdx].id;
-			events[k].id2 = body_md[mergerIdx].id;
-			events[k].idx1 = survivIdx;
-			events[k].idx2 = mergerIdx;
-			events[k].r1 = r[survivIdx];
-			events[k].v1 = v[survivIdx];
-			events[k].r2 = r[mergerIdx];
-			events[k].v2 = v[mergerIdx];
+			device_pp_disk::store_event_data(EVENT_NAME_COLLISION, t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
+
+			//events[k].event_name = EVENT_NAME_COLLISION;
+			//events[k].d = d;
+			//events[k].t = t;
+			//events[k].id1 = body_md[survivIdx].id;
+			//events[k].id2 = body_md[mergerIdx].id;
+			//events[k].idx1 = survivIdx;
+			//events[k].idx2 = mergerIdx;
+			//events[k].r1 = r[survivIdx];
+			//events[k].v1 = v[survivIdx];
+			//events[k].r2 = r[mergerIdx];
+			//events[k].v2 = v[mergerIdx];
 		}
 	}
 }
@@ -231,17 +275,19 @@ static __global__
 					}
 					//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
 
-					events[k].event_name = EVENT_NAME_COLLISION;
-					events[k].d = d;
-					events[k].t = t;
-					events[k].id1 = body_md[survivIdx].id;
-					events[k].id2 = body_md[mergerIdx].id;
-					events[k].idx1 = survivIdx;
-					events[k].idx2 = mergerIdx;
-					events[k].r1 = r[survivIdx];
-					events[k].v1 = v[survivIdx];
-					events[k].r2 = r[mergerIdx];
-					events[k].v2 = v[mergerIdx];
+					device_pp_disk::store_event_data(EVENT_NAME_COLLISION, t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
+
+					//events[k].event_name = EVENT_NAME_COLLISION;
+					//events[k].d = d;
+					//events[k].t = t;
+					//events[k].id1 = body_md[survivIdx].id;
+					//events[k].id2 = body_md[mergerIdx].id;
+					//events[k].idx1 = survivIdx;
+					//events[k].idx2 = mergerIdx;
+					//events[k].r1 = r[survivIdx];
+					//events[k].v1 = v[survivIdx];
+					//events[k].r2 = r[mergerIdx];
+					//events[k].v2 = v[mergerIdx];
 				}
 			} // 36 FLOP
 		}
@@ -642,7 +688,7 @@ int pp_disk::cpu_check_for_ejection_hit_centrum()
 		// Ignore the star and the inactive bodies (whose id < 0)
 		if (0 < sim_data->body_md[i].id && BODY_TYPE_STAR != sim_data->body_md[i].body_type)
 		{
-			int k = 0;
+			//int k = 0;
 
 			// Calculate the distance from the barycenter
 			var_t r2 = SQR(r[i].x) + SQR(r[i].y) + SQR(r[i].z);

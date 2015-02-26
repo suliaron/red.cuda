@@ -1180,11 +1180,21 @@ int main()
 
 #endif
 
-#if 0
+#if 1
 
 void cpy_cnstnt_to_dvc(const void* dst, const void *src, size_t count)
 {
 	cudaMemcpyToSymbol(dst, src, count);
+	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("cudaMemcpyToSymbol failed (copy_constant_to_device)");
+	}
+}
+
+void cpy_cnstnt_to_dvc(const char* array_name, const void *src, size_t count)
+{
+	cudaMemcpyToSymbol("dc_threshold", src, count);
 	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus)
 	{
@@ -1276,9 +1286,15 @@ int main(int argc, const char** argv)
 	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]);
 	thrshld[THRESHOLD_EJECTION_DISTANCE_SQUARED]    = SQR(thrshld[THRESHOLD_EJECTION_DISTANCE]);
 
-	cpy_cnstnt_to_dvc(dc_threshold, thrshld, THRESHOLD_N*sizeof(var_t));
-
-	kernel_print_constant_memory<<<1, 1>>>();
+	try
+	{
+		cpy_cnstnt_to_dvc(dc_threshold, thrshld, THRESHOLD_N*sizeof(var_t));
+		kernel_print_constant_memory<<<1, 1>>>();
+	}
+	catch (const string& msg)
+	{
+		cerr << "Error: " << msg << endl;
+	}
 
 	cudaDeviceSynchronize();
 
@@ -1286,7 +1302,7 @@ int main(int argc, const char** argv)
 }
 #endif
 
-#if 1
+#if 0
 
 void free_h_vector(void **ptr, const char *file, int line)
 {

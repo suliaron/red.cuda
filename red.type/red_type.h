@@ -102,8 +102,14 @@ typedef struct orbelem
 			var_t mean;
 		} orbelem_t;
 
+#ifdef _WIN64
+#define __BUILTIN_ALIGN__ __builtin_align__(16)
+#else
+#define __BUILTIN_ALIGN__
+#endif
+
 // int4_t gets aligned to 16 bytes.
-typedef struct __builtin_align__(16) _int4
+typedef struct __BUILTIN_ALIGN__ _int4
 		{
 			int_t x;
 			int_t y;
@@ -112,14 +118,14 @@ typedef struct __builtin_align__(16) _int4
 		} int4_t;
 
 // var2_t gets aligned to 16 bytes.
-typedef struct __builtin_align__(16) _var2
+typedef struct __BUILTIN_ALIGN__ _var2
 		{
 			var_t x;
 			var_t y;
 		} var2_t;
 
 // vec_t gets aligned to 16 bytes.
-typedef struct __builtin_align__(16) vec
+typedef struct __BUILTIN_ALIGN__ vec
 		{
 			var_t x;
 			var_t y;
@@ -128,7 +134,7 @@ typedef struct __builtin_align__(16) vec
 		} vec_t;
 
 // param_t gets aligned to 16 bytes.
-typedef struct __builtin_align__(16) param
+typedef struct __BUILTIN_ALIGN__ param
 		{
 			var_t mass;
 			var_t radius;
@@ -137,7 +143,7 @@ typedef struct __builtin_align__(16) param
 		} param_t;
 
 // body_metadata_t gets aligned to 16 bytes.
-typedef struct __builtin_align__(16) body_metadata
+typedef struct __BUILTIN_ALIGN__ body_metadata
 		{
 			int32_t id;
 			int32_t body_type;
