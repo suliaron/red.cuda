@@ -23,26 +23,6 @@ using namespace redutilcu;
 __constant__ var_t dc_threshold[THRESHOLD_N];
 
 ///****************** DEVICE functions begins here ******************/
-//
-//static __host__ __device__
-//	vec_t	vector_subtract(const vec_t* a, const vec_t* b)
-//{
-//	vec_t result;
-//
-//	result.x = a->x - b->x;
-//    result.y = a->y - b->y;
-//    result.z = a->z - b->z;
-//
-//	return result;
-//}
-//
-///****************** DEVICE functions ends   here ******************/
-//
-//static __device__
-//	void d_print_vector(int i, const vec_t* v)
-//{
-//	printf("[%d]: (%20.16lf, %20.16lf, %20.16lf, %20.16lf)\n", i, v->x, v->y, v->z, v->w);
-//}
 
 /****************** KERNEL functions begins here ******************/
 
@@ -70,7 +50,7 @@ static __global__
 
 		// Calculate the distance from the barycenter
 		var_t r2 = SQR(r[i].x) + SQR(r[i].y) + SQR(r[i].z);
-		if (r2 > dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED])
+		if (0.0 < dc_threshold[THRESHOLD_EJECTION_DISTANCE] && dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED] < r2)
 		{
 			k = atomicAdd(event_counter, 1);
 			//printf("t = %20.10le d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
@@ -86,10 +66,17 @@ static __global__
 			events[k].v1 = v[0];
 			events[k].r2 = r[i];
 			events[k].v2 = v[i];
+
+			events[k].p1 = p[0];
+			events[k].p2 = p[i];
+			events[k].ps = p[0];
+			events[k].rs = r[0];
+			events[k].vs = v[0];
+
 			// Make the body inactive
 			body_md[i].id *= -1;
 		}
-		else if (r2 < SQR(dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED]))
+		else if (0.0 < dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] && dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] > r2)
 		{
 			k = atomicAdd(event_counter, 1);
 			//printf("t = %20.10le d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
@@ -616,6 +603,31 @@ bool pp_disk::check_for_rebuild_vectors(int n)
 	return false;
 }
 
+void pp_disk::store_event_data(event_name_t name, ttt_t t, var_t d, int idx1, int idx2, event_data_t *evnt)
+{
+	evnt->event_name = name;
+	evnt->d = d;
+	evnt->t = t;
+	evnt->id1 = sim_data->body_md[idx1].id;
+	evnt->id2 = sim_data->body_md[idx2].id;
+	evnt->idx1 = idx1;
+	evnt->idx2 = idx2;
+	evnt->r1 = sim_data->y[0][idx1];
+	evnt->v1 = sim_data->y[1][idx1];
+	evnt->r2 = sim_data->y[0][idx2];
+	evnt->v2 = sim_data->y[1][idx2];
+
+	if (EVENT_NAME_EJECTION == name)
+	{
+		evnt->p1 = sim_data->h_p[idx1];
+		evnt->p2 = sim_data->h_p[idx2];
+
+		evnt->rs = evnt->r1;
+		evnt->vs = evnt->v1;
+		evnt->ps = sim_data->h_p[idx1];
+	}
+}
+
 int pp_disk::cpu_check_for_ejection_hit_centrum()
 {
 	const vec_t* r = sim_data->y[0];
@@ -634,42 +646,22 @@ int pp_disk::cpu_check_for_ejection_hit_centrum()
 
 			// Calculate the distance from the barycenter
 			var_t r2 = SQR(r[i].x) + SQR(r[i].y) + SQR(r[i].z);
-			if (0.0 < threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED] && threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED] < r2)
+			if (0.0 < threshold[THRESHOLD_EJECTION_DISTANCE] && threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED] < r2)
 			{
-				k = event_counter;
+				//k = event_counter;
 				//printf("t = %20.10le d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
+				store_event_data(EVENT_NAME_EJECTION, t, sqrt(r2), 0, i, &events[event_counter]);
 
-				events[k].event_name = EVENT_NAME_EJECTION;
-				events[k].d = sqrt(r2); //sqrt(dVec.w);
-				events[k].t = t;
-				events[k].id1 = body_md[0].id;
-				events[k].id2 = body_md[i].id;
-				events[k].idx1 = 0;
-				events[k].idx2 = i;
-				events[k].r1 = r[0];
-				events[k].v1 = v[0];
-				events[k].r2 = r[i];
-				events[k].v2 = v[i];
 				// Make the body inactive
 				body_md[i].id *= -1;
 				event_counter++;
 			}
-			else if (0.0 < threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] && SQR(threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED]) > r2)
+			else if (0.0 < threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] && threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] > r2)
 			{
-				k = event_counter;
+				//k = event_counter;
 				//printf("t = %20.10le d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
+				store_event_data(EVENT_NAME_HIT_CENTRUM, t, sqrt(r2), 0, i, &events[event_counter]);
 
-				events[k].event_name = EVENT_NAME_HIT_CENTRUM;
-				events[k].d = sqrt(r2); //sqrt(dVec.w);
-				events[k].t = t;
-				events[k].id1 = body_md[0].id;
-				events[k].id2 = body_md[i].id;
-				events[k].idx1 = 0;
-				events[k].idx2 = i;
-				events[k].r1 = r[0];
-				events[k].v1 = v[0];
-				events[k].r2 = r[i];
-				events[k].v2 = v[i];
 				// Make the body inactive
 				body_md[i].id *= -1;
 				event_counter++;

@@ -157,11 +157,11 @@ int main(int argc, const char** argv, const char** env)
 		int dummy_k = 0;
 		while (ppd->t <= opt.param->stop_time)
 		{
-			if (10 == dummy_k)
-			{
-				redutilcu::set_device(0, opt.verbose);
-				intgr->set_computing_device(COMPUTING_DEVICE_GPU);
-			}
+			//if (10 == dummy_k)
+			//{
+			//	redutilcu::set_device(0, opt.verbose);
+			//	intgr->set_computing_device(COMPUTING_DEVICE_GPU);
+			//}
 
 			if (opt.param->output_interval <= fabs(ps))
 			{

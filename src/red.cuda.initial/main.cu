@@ -87,6 +87,8 @@ void populate_disk(body_disk_t& disk, sim_data_t *sd)
 
 void set_parameters_of_Dvorak_disk(nebula& n, body_disk_t& disk)
 {
+	srand(time(NULL));
+
 	const var_t rhoBasalt = 2.7 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
@@ -100,32 +102,29 @@ void set_parameters_of_Dvorak_disk(nebula& n, body_disk_t& disk)
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
-	disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
-	disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), constants::SolarRadiusToAu, constants::SolarRadiusToAu);
-	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+	disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), constants::SolarRadiusToAu, constants::SolarRadiusToAu);
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
 	disk.stop_at[bodyIdx] = 0.0;
 
 	type = BODY_TYPE_PROTOPLANET;
 	{
-		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new power_law_distribution((ulong)clock(), n.solid_c.get_r_1(), n.solid_c.get_r_2(), n.solid_c.get_p());
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new power_law_distribution(rand(), n.solid_c.get_r_1(), n.solid_c.get_r_2(), n.solid_c.get_p());
 
-		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new rayleigh_distribution((ulong)clock(), 0.01);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new rayleigh_distribution(rand(), 0.01);
 		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC ].x = 0.0;
 		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC ].y = 0.2;
 
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
-		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
-
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
-
-		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
-
-		disk.pp_d[type].item[MASS      ] = new lognormal_distribution((ulong)clock(), 0.1, 3.0, 0.0, 0.25);
-		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), rhoBasalt, rhoBasalt);
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[MASS      ] = new lognormal_distribution(rand(), 0.1, 3.0, 0.0, 0.25);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(  rand(), rhoBasalt, rhoBasalt);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(  rand(), 0.0, 0.0);
 
 		for (int i = 0; i < disk.nBody[type]; i++) 
 		{
@@ -139,6 +138,8 @@ void set_parameters_of_Dvorak_disk(nebula& n, body_disk_t& disk)
 
 void set_parameters_of_Two_body_disk(body_disk_t& disk)
 {
+	srand(time(NULL));
+
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_TESTPARTICLE] = 1;
 
@@ -150,28 +151,28 @@ void set_parameters_of_Two_body_disk(body_disk_t& disk)
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
-	disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+	disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
 
 	var_t tmp = constants::SolarRadiusToAu;
-	disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), tmp, tmp);
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), tmp, tmp);
 
-	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
 	disk.stop_at[bodyIdx] = 0.0;
 
 	type = BODY_TYPE_TESTPARTICLE;
 	{
-		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution((ulong)clock(), 1.0, 1.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 1.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		disk.pp_d[type].item[MASS      ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
-		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 		for (int i = 0; i < disk.nBody[type]; i++) 
 		{
@@ -185,6 +186,8 @@ void set_parameters_of_Two_body_disk(body_disk_t& disk)
 
 void set_parameters_of_n_gp_body_disk(body_disk_t& disk)
 {
+	srand(time(NULL));
+
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_GIANTPLANET] = 10;
 
@@ -196,28 +199,28 @@ void set_parameters_of_n_gp_body_disk(body_disk_t& disk)
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
-	disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+	disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
 
 	var_t tmp = constants::SolarRadiusToAu;
-	disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), tmp, tmp);
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), tmp, tmp);
 
-	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
 	disk.stop_at[bodyIdx] = 0.0;
 
 	type = BODY_TYPE_GIANTPLANET;
 	{
-		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution((ulong)clock(), 1.0, 10.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution((ulong)clock(), 0.0, 0.1);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 10.0 * constants::DegreeToRadian);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 10.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.1);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 10.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
-		disk.pp_d[type].item[MASS      ] = new uniform_distribution((ulong)clock(), 0.1 * constants::JupiterToSolar, 1.0 * constants::JupiterToSolar);
-		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 2.0 * constants::GramPerCm3ToSolarPerAu3);
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.1 * constants::JupiterToSolar, 1.0 * constants::JupiterToSolar);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 2.0 * constants::GramPerCm3ToSolarPerAu3);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 		for (int i = 0; i < disk.nBody[type]; i++) 
 		{
@@ -231,6 +234,8 @@ void set_parameters_of_n_gp_body_disk(body_disk_t& disk)
 
 void set_parameters_of_n_pp_body_disk(body_disk_t& disk)
 {
+	srand(time(NULL));
+
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_PROTOPLANET] = 1000;
 
@@ -242,29 +247,29 @@ void set_parameters_of_n_pp_body_disk(body_disk_t& disk)
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
-	disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+	disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
 
 	var_t tmp = constants::SolarRadiusToAu;
-	disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), tmp, tmp);
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), tmp, tmp);
 
-	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
 	disk.stop_at[bodyIdx] = 0.0;
 
 	type = BODY_TYPE_PROTOPLANET;
 	{
-		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution((ulong)clock(), 1.0, 2.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution((ulong)clock(), 0.0, 0.1);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 2.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.1);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
-		//disk.pp_d[type].item[MASS    ] = new uniform_distribution((ulong)clock(), 0.1 * constants::CeresToSolar, 1.0 * constants::CeresToSolar);
-		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution((ulong)clock(), 1.0e3 * constants::KilometerToAu, 1.0e3 * constants::KilometerToAu);
-		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 2.7 * constants::GramPerCm3ToSolarPerAu3);
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		//disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.1 * constants::CeresToSolar, 1.0 * constants::CeresToSolar);
+		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 1.0e3 * constants::KilometerToAu, 1.0e3 * constants::KilometerToAu);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 2.7 * constants::GramPerCm3ToSolarPerAu3);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 		for (int i = 0; i < disk.nBody[type]; i++) 
 		{
@@ -278,6 +283,8 @@ void set_parameters_of_n_pp_body_disk(body_disk_t& disk)
 
 void set_parameters_of_n_spl_body_disk(body_disk_t& disk)
 {
+	srand(time(NULL));
+
 	disk.nBody[BODY_TYPE_STAR             ] = 1;
 	disk.nBody[BODY_TYPE_SUPERPLANETESIMAL] = 10;
 
@@ -290,12 +297,12 @@ void set_parameters_of_n_spl_body_disk(body_disk_t& disk)
 	int type = BODY_TYPE_STAR;
 	{
 		disk.names.push_back("star");
-		disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+		disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
 
 		var_t tmp = constants::SolarRadiusToAu;
-		disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), tmp, tmp);
+		disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), tmp, tmp);
 
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 		disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
 		disk.stop_at[bodyIdx] = 0.0;
@@ -303,17 +310,17 @@ void set_parameters_of_n_spl_body_disk(body_disk_t& disk)
 
 	type = BODY_TYPE_SUPERPLANETESIMAL;
 	{
-		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution((ulong)clock(), 1.0, 10.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution((ulong)clock(), 0.0, 0.1);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 10.0 * constants::DegreeToRadian);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 10.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.1);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 10.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
-		disk.pp_d[type].item[MASS      ] = new uniform_distribution((ulong)clock(), 1.0e-10, 1.0e-9);
-		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution((ulong)clock(), 10.0 * constants::KilometerToAu, 30.0 * constants::KilometerToAu);
-		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 3.0 * constants::GramPerCm3ToSolarPerAu3);
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 1.0, 2.7);
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0e-10, 1.0e-9);
+		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 10.0 * constants::KilometerToAu, 30.0 * constants::KilometerToAu);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 3.0 * constants::GramPerCm3ToSolarPerAu3);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 1.0, 2.7);
 
 		for (int i = 0; i < disk.nBody[type]; i++) 
 		{
@@ -327,6 +334,8 @@ void set_parameters_of_n_spl_body_disk(body_disk_t& disk)
 
 void set_parameters_of_n_pl_body_disk(body_disk_t& disk)
 {
+	srand(time(NULL));
+
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_PLANETESIMAL] = 10;
 
@@ -339,12 +348,12 @@ void set_parameters_of_n_pl_body_disk(body_disk_t& disk)
 	int type = BODY_TYPE_STAR;
 	{
 		disk.names.push_back("star");
-		disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+		disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
 
 		var_t tmp = constants::SolarRadiusToAu;
-		disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), tmp, tmp);
+		disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), tmp, tmp);
 
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 		disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
 		disk.stop_at[bodyIdx] = 0.0;
@@ -352,16 +361,16 @@ void set_parameters_of_n_pl_body_disk(body_disk_t& disk)
 
 	type = BODY_TYPE_PLANETESIMAL;
 	{
-		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution((ulong)clock(), 1.0, 10.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution((ulong)clock(), 0.0, 0.1);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 10.0 * constants::DegreeToRadian);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 10.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.1);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 10.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
-		disk.pp_d[type].item[MASS      ] = new uniform_distribution((ulong)clock(), 1.0e-3 * constants::CeresToSolar, 1.0e-2 * constants::CeresToSolar);
-		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 3.0 * constants::GramPerCm3ToSolarPerAu3);
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0e-3 * constants::CeresToSolar, 1.0e-2 * constants::CeresToSolar);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 3.0 * constants::GramPerCm3ToSolarPerAu3);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 		for (int i = 0; i < disk.nBody[type]; i++) 
 		{
@@ -375,6 +384,8 @@ void set_parameters_of_n_pl_body_disk(body_disk_t& disk)
 
 void set_parameters_of_n_tp_body_disk(body_disk_t& disk)
 {
+	srand(time(NULL));
+
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_TESTPARTICLE] = 10;
 
@@ -387,12 +398,12 @@ void set_parameters_of_n_tp_body_disk(body_disk_t& disk)
 	int type = BODY_TYPE_STAR;
 	{
 		disk.names.push_back("star");
-		disk.pp_d[type].item[MASS]       = new uniform_distribution((ulong)clock(), 1.0, 1.0);
+		disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
 
 		var_t tmp = constants::SolarRadiusToAu;
-		disk.pp_d[type].item[RADIUS]     = new uniform_distribution((ulong)clock(), tmp, tmp);
+		disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), tmp, tmp);
 
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 		disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
 		disk.stop_at[bodyIdx] = 0.0;
@@ -400,17 +411,17 @@ void set_parameters_of_n_tp_body_disk(body_disk_t& disk)
 
 	type = BODY_TYPE_TESTPARTICLE;
 	{
-		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution((ulong)clock(), 1.0, 10.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution((ulong)clock(), 0.0, 0.1);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution((ulong)clock(), 0.0, 10.0 * constants::DegreeToRadian);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution((ulong)clock(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 10.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.1);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 10.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
-		disk.pp_d[type].item[MASS      ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
-		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
-		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution((ulong)clock(), 0.0, 0.0);
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 		for (int i = 0; i < disk.nBody[type]; i++) 
 		{

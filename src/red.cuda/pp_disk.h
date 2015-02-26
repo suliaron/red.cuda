@@ -150,6 +150,8 @@ private:
 	*/
 	void compute_bc(vec_t* R0, vec_t* V0);
 
+	void store_event_data(event_name_t name, ttt_t t, var_t d, int idx1, int idx2, event_data_t *e);
+
 	//! Sets the grid and block for the kernel launch
 	void set_kernel_launch_param(int n_data);
 	void call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
