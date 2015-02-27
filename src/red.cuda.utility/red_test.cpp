@@ -179,12 +179,223 @@ static void test_tools()
 	//var_t calculate_density(var_t m, var_t R);
 	//var_t caclulate_mass(var_t R, var_t density);
 
-	//int	kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E);
+	//void calc_position_after_collision(var_t m1, var_t m2, const vec_t* r1, const vec_t* r2, vec_t& r);
+	//void calc_velocity_after_collision(var_t m1, var_t m2, const vec_t* v1, const vec_t* v2, vec_t& v);
+	//void calc_physical_properties(var_t m1, var_t m2, var_t r1, var_t r2, var_t cd, param_t &p);
+
+	//int kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E);
 	//int calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec);
 
 	//void print_vector(vec_t *v);
 
 	fprintf(stderr, "TEST: %s\n", test_set);
+
+	// Test is_number()
+	{
+		char test_func[] = "is_number";
+
+		string arg = "1.0";
+		var_t num = 1.0;
+		bool expected = true;
+		bool result = tools::is_number(arg);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (result != expected && num == atof(arg.c_str()))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %5s\n\t\t But was: %5s\n", (expected ? "true" : "false"), (result ? "true" : "false"));
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+		
+		arg = "-1.0";
+		num = -1.0;
+		expected = true;
+		result = tools::is_number(arg);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (result != expected && num == atof(arg.c_str()))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %5s\n\t\t But was: %5s\n", (expected ? "true" : "false"), (result ? "true" : "false"));
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		arg = "+1.0e3";
+		num = 1000.0;
+		expected = true;
+		result = tools::is_number(arg);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (result != expected && num == atof(arg.c_str()))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %5s\n\t\t But was: %5s\n", (expected ? "true" : "false"), (result ? "true" : "false"));
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		arg = "1.e3";
+		num = 1000.0;
+		expected = true;
+		result = tools::is_number(arg);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (result != expected && num == atof(arg.c_str()))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %5s\n\t\t But was: %5s\n", (expected ? "true" : "false"), (result ? "true" : "false"));
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		arg = "1.E-3";
+		num = 0.001;
+		expected = true;
+		result = tools::is_number(arg);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (result != expected && num == atof(arg.c_str()))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %5s\n\t\t But was: %5s\n", (expected ? "true" : "false"), (result ? "true" : "false"));
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		arg = "1.g-3";
+		expected = false;
+		result = tools::is_number(arg);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (result != expected)
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %5s\n\t\t But was: %5s\n", (expected ? "true" : "false"), (result ? "true" : "false"));
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	// Test trim_right()
+	{
+		char test_func[] = "trim_right";
+
+		string result = "  This string will be trimed to the right   ";
+		string expected = "  This string will be trimed to the right";
+		tools::trim_right(result);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (result != expected)
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %s\n\t\t But was: %s\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+		
+		result = "This string will be trimed to the right after the 'x' character  ";
+		expected = "This string will be trimed to the right after the '";
+		tools::trim_right(result, 'x');
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (result != expected)
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %s\n\t\t But was: %s\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	// Test trim_left()
+	{
+		char test_func[] = "trim_left";
+
+		string result = "  This string will be trimed to the left	";
+		string expected = "This string will be trimed to the left	";
+		tools::trim_left(result);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (result != expected)
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %s\n\t\t But was: %s\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		result = "			c  This string will be trimed to the left		";
+		expected = "c  This string will be trimed to the left		";
+		tools::trim_left(result);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (result != expected)
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %s\n\t\t But was: %s\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	// Test trim()
+	{
+		char test_func[] = "trim";
+
+		string result = "  This string will be trimed to the right as well as to the left		";
+		string expected = "This string will be trimed to the right as well as to the left";
+		tools::trim(result);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (result != expected)
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %s\n\t\t But was: %s\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	// Test get_time_stamp()
+	{
+		char test_func[] = "get_time_stamp";
+
+		string result = tools::get_time_stamp();
+
+		fprintf(stderr, "\t%s(): [should print the actual date and time] ", test_func);
+		fprintf(stderr, "%s: PASSED ??\n", result.c_str());
+	}
+
+	// Test convert_time_t()
+	{
+		char test_func[] = "convert_time_t";
+
+		string result = tools::convert_time_t((time_t)60);
+		string expected = "60";
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (result != expected)
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %s\n\t\t But was: %s\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
 
 	// Test get_total_mass()
 	{
@@ -316,7 +527,7 @@ static void test_tools()
 		delete sim_data;
 	}
 
-	// Test transform_to_bc 
+	// Test transform_to_bc()
 	{
 		char test_func[] = "transform_to_bc";
 	
@@ -376,6 +587,270 @@ static void test_tools()
 
 		delete sim_data;
 	}
+
+	// Test calculate_radius()
+	{
+		char test_func[] = "calculate_radius";
+	
+		var_t mass = 1.0;
+		var_t density = 1.0;
+
+		var_t expected = 0.62035049089940001666800681204778;
+		var_t result = tools::calculate_radius(mass, density);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-15 < fabs(expected - result))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	// Test calculate_mass()
+	{
+		char test_func[] = "calculate_mass";
+	
+		var_t radius = 1.0;
+		var_t density = 1.0;
+
+		var_t expected = 4.1887902047863909846168578443727;
+		var_t result = tools::caclulate_mass(radius, density);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-15 < fabs(expected - result))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	// Test calculate_density()
+	{
+		char test_func[] = "calculate_density";
+	
+		var_t mass = 1.0;
+		var_t radius = 1.0;
+
+		var_t expected = 0.23873241463784300365332564505877;
+		var_t result = tools::calculate_density(mass, radius);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-15 < fabs(expected - result))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	// Test calc_position_after_collision()
+	{
+		char test_func[] = "calc_position_after_collision";
+	
+		var_t m1 = 1.0;
+		var_t m2 = 1.0;
+
+		vec_t r1 = {1.0, 1.0, 1.0, 0.0};
+		vec_t r2 = {4.0, 3.0, 1.0, 0.0};
+
+		vec_t expected = {2.5, 2.0, 1.0, 0.0};
+		vec_t result = {0.0, 0.0, 0.0, 0.0};
+		tools::calc_position_after_collision(m1, m2, &r1, &r2, result);
+
+		var_t dr = fabs(expected.x - result.x) + 
+			       fabs(expected.y - result.y) + 
+				   fabs(expected.z - result.z) +
+				   fabs(expected.w - result.w);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-15 < dr)
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", 0.0, dr);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	// Test calc_velocity_after_collision()
+	{
+		char test_func[] = "calc_velocity_after_collision";
+	
+		var_t m1 = 1.0;
+		var_t m2 = 1.0;
+
+		vec_t v1 = { 1.0, 0.0, 0.0, 0.0};
+		vec_t v2 = {-1.0, 0.0, 0.0, 0.0};
+
+		vec_t expected = {0.0, 0.0, 0.0, 0.0};
+		vec_t result = {0.0, 0.0, 0.0, 0.0};
+		tools::calc_velocity_after_collision(m1, m2, &v1, &v2, result);
+
+		var_t dr = fabs(expected.x - result.x) + 
+			       fabs(expected.y - result.y) + 
+				   fabs(expected.z - result.z) +
+				   fabs(expected.w - result.w);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-15 < dr)
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", 0.0, dr);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		v1.x = -1.0;
+		v1.y =  0.0;
+		v1.z =  0.0;
+
+		v2.x = -1.0;
+		v2.y =  0.0;
+		v2.z =  0.0;
+
+		expected.x = -1.0;
+		expected.y =  0.0;
+		expected.z =  0.0;
+		tools::calc_velocity_after_collision(m1, m2, &v1, &v2, result);
+
+		dr = fabs(expected.x - result.x) + 
+		     fabs(expected.y - result.y) + 
+		     fabs(expected.z - result.z) +
+			 fabs(expected.w - result.w);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-15 < dr)
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", 0.0, dr);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	// Test calc_physical_properties()
+	{
+		char test_func[] = "calc_physical_properties";
+
+		param_t p1 = {0.0, 0.0, 0.0, 0.0};
+		param_t p2 = {0.0, 0.0, 0.0, 0.0};
+
+		p1.cd      = 1.0;
+		p1.density = 1.0;
+		p1.mass    = 1.0;
+		p1.radius  = 1.0;
+
+		p2.cd      = 1.0;
+		p2.density = 1.0;
+		p2.mass    = 1.0;
+		p2.radius  = 1.0;
+
+		param_t result = {0.0, 0.0, 0.0, 0.0};
+		param_t expected = {0.0, 0.0, 0.0, 0.0};
+		expected.mass = 2.0;
+		expected.density = 0.23873241463784300365332564505877;
+		expected.radius = tools::calculate_radius(2.0, 0.23873241463784300365332564505877);
+		expected.cd = 1.0;
+		tools::calc_physical_properties(p1, p2, result);
+		
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-15 < fabs(expected.cd - result.cd))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-15 < fabs(expected.density - result.density))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-15 < fabs(expected.mass - result.mass))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-15 < fabs(expected.radius - result.radius))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	// Test kepler_equation_solver()
+	{
+		char test_func[] = "kepler_equation_solver";
+
+		var_t ecc = 0.5;
+
+		var_t mean_anomaly = 27.0 * constants::DegreeToRadian;
+		var_t expected = 48.43417991487915; // degree
+		var_t result = 0.0;
+		tools::kepler_equation_solver(ecc, mean_anomaly, 1.0e-15, &result);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-13 < fabs(expected - (result * constants::RadianToDegree)))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result * constants::RadianToDegree);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		mean_anomaly = 225.0 * constants::DegreeToRadian;
+		expected = 210.47211284530107; // degree
+		result = 0.0;
+		tools::kepler_equation_solver(ecc, mean_anomaly, 1.0e-15, &result);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-13 < fabs(expected - (result * constants::RadianToDegree)))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result * constants::RadianToDegree);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	// Test print_vector()
+	{
+		char test_func[] = "print_vector";
+
+		vec_t v = {-1.0, 1.0, 2.0, 0.0};
+
+		fprintf(stderr, "\t%s(): [the two lines below must be identical]\n", test_func);
+		fprintf(stderr, " -1.0000000000000000e+000  1.0000000000000000e+000  2.0000000000000000e+000  0.0000000000000000e+000\n");
+		tools::print_vector(&v);
+		fprintf(stderr, "\tPASSED ??\n");
+	}
+
 
 }
 

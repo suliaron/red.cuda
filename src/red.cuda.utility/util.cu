@@ -151,6 +151,8 @@ void allocate_host_vector(void **ptr, size_t size, const char *file, int line)
 	{
 		throw string("malloc failed (allocate_host_vector)");
 	}
+
+	// Clear memory 
 	memset(*ptr, 0, size);
 }
 
@@ -232,6 +234,8 @@ void allocate_host_storage(sim_data_t *sd, int n)
 	ALLOCATE_HOST_VECTOR((void **)&(sd->h_p),           n*sizeof(param_t));
 	ALLOCATE_HOST_VECTOR((void **)&(sd->h_body_md),     n*sizeof(body_metadata_t));
 	ALLOCATE_HOST_VECTOR((void **)&(sd->h_epoch),       n*sizeof(ttt_t));
+
+	ALLOCATE_HOST_VECTOR((void **)&(sd->h_oe),          n*sizeof(orbelem_t));
 }
 
 void allocate_device_storage(sim_data_t *sd, int n)
@@ -259,6 +263,8 @@ void deallocate_host_storage(sim_data_t *sd)
 	FREE_HOST_VECTOR((void **)&(sd->h_p));
 	FREE_HOST_VECTOR((void **)&(sd->h_body_md));
 	FREE_HOST_VECTOR((void **)&(sd->h_epoch));
+
+	FREE_HOST_VECTOR((void **)&(sd->h_oe));
 }
 
 void deallocate_device_storage(sim_data_t *sd)

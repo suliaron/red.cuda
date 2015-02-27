@@ -13,8 +13,5 @@ void generate_oe(oe_dist_t *oe_d, orbelem_t& oe);
 //void generate_pp(phys_prop_name_t name, phys_prop_dist_t* pp_d, var_t* value);
 void generate_pp(phys_prop_dist_t *pp_d, param_t& param);
 
-void allocate_host_storage(sim_data_t *sd, int n);
-void deallocate_host_storage(sim_data_t *sd);
-
 void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t format);
 void print(string &path, int n, sim_data_t *sd);

@@ -19,11 +19,16 @@ namespace tools
 {
 bool is_number(const string& str)
 {
-   for (size_t i = 0; i < str.length(); i++) {
+   for (size_t i = 0; i < str.length(); i++)
+   {
 	   if (std::isdigit(str[i]) || str[i] == 'e' || str[i] == 'E' || str[i] == '.' || str[i] == '-' || str[i] == '+')
+	   {
            continue;
+	   }
 	   else
+	   {
 		   return false;
+	   }
    }
    return true;
 }
@@ -33,8 +38,9 @@ void trim_right(string& str)
 {
 	// trim trailing spaces
 	size_t endpos = str.find_last_not_of(" \t");
-	if (string::npos != endpos ) {
-		str = str.substr( 0, endpos+1 );
+	if (string::npos != endpos )
+	{
+		str = str.substr(0, endpos + 1);
 	}
 }
 
@@ -42,10 +48,10 @@ void trim_right(string& str)
 void trim_right(string& str, char c)
 {
 	// trim trailing spaces
-
 	size_t endpos = str.find(c);
-	if (string::npos != endpos ) {
-		str = str.substr( 0, endpos);
+	if (string::npos != endpos )
+	{
+		str = str.substr(0, endpos);
 	}
 }
 
@@ -54,7 +60,8 @@ void trim_left(string& str)
 {
 	// trim leading spaces
 	size_t startpos = str.find_first_not_of(" \t");
-	if (string::npos != startpos ) {
+	if (string::npos != startpos )
+	{
 		str = str.substr( startpos );
 	}
 }
@@ -195,6 +202,35 @@ var_t caclulate_mass(var_t R, var_t density)
 	return four_pi_over_three * CUBE(R) * density;
 }
 
+void calc_position_after_collision(var_t m1, var_t m2, const vec_t* r1, const vec_t* r2, vec_t& r)
+{
+	const var_t M = m1 + m2;
+
+	r.x = (m1 * r1->x + m2 * r2->x) / M;
+	r.y = (m1 * r1->y + m2 * r2->y) / M;
+	r.z = (m1 * r1->z + m2 * r2->z) / M;
+}
+
+void calc_velocity_after_collision(var_t m1, var_t m2, const vec_t* v1, const vec_t* v2, vec_t& v)
+{
+	const var_t M = m1 + m2;
+
+	v.x = (m1 * v1->x + m2 * v2->x) / M;
+	v.y = (m1 * v1->y + m2 * v2->y) / M;
+	v.z = (m1 * v1->z + m2 * v2->z) / M;
+}
+
+void calc_physical_properties(const param_t &p1, const param_t &p2, param_t &p)
+{
+	// Calculate V = V1 + V2
+	var_t volume = 4.188790204786391 * (CUBE(p1.radius) + CUBE(p2.radius));
+
+	p.mass	  = p1.mass + p2.mass;
+	p.density = p.mass / volume;
+	p.radius  = calculate_radius(p.mass, p.density);
+	p.cd      = p1.cd;
+}
+
 int	kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E)
 {
 	if (ecc == 0.0 || mean == 0.0 || mean == PI)
@@ -264,7 +300,7 @@ int calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec)
 	return 0;
 }
 
-void print_vector(vec_t *v)
+void print_vector(const vec_t *v)
 {
 	static int var_t_w  = 25;
 

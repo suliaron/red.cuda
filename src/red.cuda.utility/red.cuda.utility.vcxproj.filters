@@ -4,9 +4,6 @@
     <CudaCompile Include="util.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
-    <CudaCompile Include="test.cu">
-      <Filter>Source Files</Filter>
-    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -29,9 +26,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="test.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="red_test.h">

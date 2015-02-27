@@ -154,31 +154,6 @@ void generate_pp(phys_prop_dist_t *pp_d, param_t& param)
 	}
 }
 
-void allocate_host_storage(sim_data_t *sd, int n)
-{
-	sd->y.resize(2);
-	for (int i = 0; i < 2; i++)
-	{
-		sd->y[i]= new vec_t[n];
-	}
-	sd->h_oe	= new orbelem_t[n];
-	sd->p		= new param_t[n];
-	sd->body_md	= new body_metadata_t[n];
-	sd->epoch	= new ttt_t[n];
-}
-
-void deallocate_host_storage(sim_data_t *sd)
-{
-	for (int i = 0; i < 2; i++)
-	{
-		delete[] sd->y[i];
-	}
-	delete[] sd->h_oe;
-	delete[] sd->p;
-	delete[] sd->body_md;
-	delete[] sd->epoch;
-}
-
 void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t format)
 {
 	ofstream	output(path.c_str(), ios_base::out);

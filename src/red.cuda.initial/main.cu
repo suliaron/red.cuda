@@ -535,7 +535,7 @@ void create_Dvorak_disk(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, sim_data);
+	tools::transform_to_bc(nBodies, false, sim_data);
 
 	string path = file::combine_path(dir, filename) + ".oe.txt";
 	print(path, nBodies, sim_data);
@@ -586,7 +586,7 @@ void create_two_body_disk(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, sim_data);
+	tools::transform_to_bc(nBodies, false, sim_data);
 
 	string path = file::combine_path(dir, filename) + ".oe.txt";
 	print(path, nBodies, sim_data);
@@ -659,7 +659,7 @@ void create_n_gp_body_disk(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, sim_data);
+	tools::transform_to_bc(nBodies, false, sim_data);
 
 	string path = file::combine_path(dir, filename) + ".oe.txt";
 	print(path, nBodies, sim_data);
@@ -730,7 +730,7 @@ void create_n_pp_body_disk(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, sim_data);
+	tools::transform_to_bc(nBodies, false, sim_data);
 
 	string path = file::combine_path(dir, filename) + ".oe.txt";
 	print(path, nBodies, sim_data);
@@ -787,7 +787,7 @@ void create_n_spl_body_disk(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, sim_data);
+	tools::transform_to_bc(nBodies, false, sim_data);
 
 	string path = file::combine_path(dir, filename) + ".oe.txt";
 	print(path, nBodies, sim_data);
@@ -860,7 +860,7 @@ void create_n_pl_body_disk(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, sim_data);
+	tools::transform_to_bc(nBodies, false, sim_data);
 
 	string path = file::combine_path(dir, filename) + ".oe.txt";
 	print(path, nBodies, sim_data);
