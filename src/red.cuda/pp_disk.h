@@ -36,9 +36,11 @@ public:
 	//! Returns the mass of the central star
 	var_t get_mass_of_star();
 	//! Transforms the system to barycentric reference frame
-	void transform_to_bc();
+	void transform_to_bc(bool verbose);
+	//! Transform the time using the new time unit: 1/k = 58.13244 ...
+	void transform_time(bool verbose);
 	//! Transform the velocity using the new time unit: 1/k = 58.13244 ...
-	void transform_time();
+	void transform_velocity(bool verbose);
 	//! Print the data of all bodies in text format
 	/*   
 		\param sout print the data to this stream
@@ -135,20 +137,20 @@ private:
 
 	//! Allocates storage for data on the host and device memory
 	void allocate_storage();
-	void allocate_host_storage(sim_data_t *sd, int n);
-	void allocate_device_storage(sim_data_t *sd, int n);
+	//void allocate_host_storage(sim_data_t *sd, int n);
+	//void allocate_device_storage(sim_data_t *sd, int n);
 
-	void deallocate_host_storage(sim_data_t *sd);
-	void deallocate_device_storage(sim_data_t *sd);
+	//void deallocate_host_storage(sim_data_t *sd);
+	//void deallocate_device_storage(sim_data_t *sd);
 
 	//! Computes the total mass of the system
-	var_t get_total_mass();
+	//var_t get_total_mass();
 	//! Compute the position and velocity of the system's barycenter
 	/*  
 		\param R0 will contain the position of the barycenter
 		\param V0 will contain the velocity of the barycenter
 	*/
-	void compute_bc(vec_t* R0, vec_t* V0);
+	//void compute_bc(vec_t* R0, vec_t* V0);
 
 	void store_event_data(event_name_t name, ttt_t t, var_t d, int idx1, int idx2, event_data_t *e);
 

@@ -219,6 +219,61 @@ void free_vector(void **ptr, bool cpu, const char *file, int line)
 	}
 }
 
+void allocate_host_storage(sim_data_t *sd, int n)
+{
+	sd->h_y.resize(2);
+	sd->h_yout.resize(2);
+
+	for (int i = 0; i < 2; i++)
+	{
+		ALLOCATE_HOST_VECTOR((void **)&(sd->h_y[i]),    n*sizeof(vec_t));
+		ALLOCATE_HOST_VECTOR((void **)&(sd->h_yout[i]), n*sizeof(vec_t));
+	}
+	ALLOCATE_HOST_VECTOR((void **)&(sd->h_p),           n*sizeof(param_t));
+	ALLOCATE_HOST_VECTOR((void **)&(sd->h_body_md),     n*sizeof(body_metadata_t));
+	ALLOCATE_HOST_VECTOR((void **)&(sd->h_epoch),       n*sizeof(ttt_t));
+}
+
+void allocate_device_storage(sim_data_t *sd, int n)
+{
+	sd->d_y.resize(2);
+	sd->d_yout.resize(2);
+
+	for (int i = 0; i < 2; i++)
+	{
+		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_y[i]),		n*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_yout[i]),	n*sizeof(vec_t));
+	}
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_p),				n*sizeof(param_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_body_md),		n*sizeof(body_metadata_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_epoch),			n*sizeof(ttt_t));
+}
+
+void deallocate_host_storage(sim_data_t *sd)
+{
+	for (int i = 0; i < 2; i++)
+	{
+		FREE_HOST_VECTOR((void **)&(sd->h_y[i]));
+		FREE_HOST_VECTOR((void **)&(sd->h_yout[i]));
+	}
+	FREE_HOST_VECTOR((void **)&(sd->h_p));
+	FREE_HOST_VECTOR((void **)&(sd->h_body_md));
+	FREE_HOST_VECTOR((void **)&(sd->h_epoch));
+}
+
+void deallocate_device_storage(sim_data_t *sd)
+{
+	for (int i = 0; i < 2; i++)
+	{
+		FREE_DEVICE_VECTOR((void **)&(sd->d_y[i]));
+		FREE_DEVICE_VECTOR((void **)&(sd->d_yout[i]));
+	}
+	FREE_DEVICE_VECTOR((void **)&(sd->d_p));
+	FREE_DEVICE_VECTOR((void **)&(sd->d_body_md));
+	FREE_DEVICE_VECTOR((void **)&(sd->d_epoch));
+}
+
+
 void copy_vector_to_device(void* dst, const void *src, size_t count)
 {
 	cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice);

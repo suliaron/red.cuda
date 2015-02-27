@@ -1021,59 +1021,59 @@ void pp_disk::allocate_storage()
 	}
 }
 
-void pp_disk::allocate_host_storage(sim_data_t *sd, int n)
-{
-	sd->h_y.resize(2);
-	sd->h_yout.resize(2);
-
-	for (int i = 0; i < 2; i++)
-	{
-		ALLOCATE_HOST_VECTOR((void **)&(sd->h_y[i]),    n*sizeof(vec_t));
-		ALLOCATE_HOST_VECTOR((void **)&(sd->h_yout[i]), n*sizeof(vec_t));
-	}
-	ALLOCATE_HOST_VECTOR((void **)&(sd->h_p),           n*sizeof(param_t));
-	ALLOCATE_HOST_VECTOR((void **)&(sd->h_body_md),     n*sizeof(body_metadata_t));
-	ALLOCATE_HOST_VECTOR((void **)&(sd->h_epoch),       n*sizeof(ttt_t));
-}
-
-void pp_disk::allocate_device_storage(sim_data_t *sd, int n)
-{
-	sd->d_y.resize(2);
-	sd->d_yout.resize(2);
-
-	for (int i = 0; i < 2; i++)
-	{
-		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_y[i]),		n*sizeof(vec_t));
-		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_yout[i]),	n*sizeof(vec_t));
-	}
-	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_p),				n*sizeof(param_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_body_md),		n*sizeof(body_metadata_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_epoch),			n*sizeof(ttt_t));
-}
-
-void pp_disk::deallocate_host_storage(sim_data_t *sd)
-{
-	for (int i = 0; i < 2; i++)
-	{
-		FREE_HOST_VECTOR((void **)&(sd->h_y[i]));
-		FREE_HOST_VECTOR((void **)&(sd->h_yout[i]));
-	}
-	FREE_HOST_VECTOR((void **)&(sd->h_p));
-	FREE_HOST_VECTOR((void **)&(sd->h_body_md));
-	FREE_HOST_VECTOR((void **)&(sd->h_epoch));
-}
-
-void pp_disk::deallocate_device_storage(sim_data_t *sd)
-{
-	for (int i = 0; i < 2; i++)
-	{
-		FREE_DEVICE_VECTOR((void **)&(sd->d_y[i]));
-		FREE_DEVICE_VECTOR((void **)&(sd->d_yout[i]));
-	}
-	FREE_DEVICE_VECTOR((void **)&(sd->d_p));
-	FREE_DEVICE_VECTOR((void **)&(sd->d_body_md));
-	FREE_DEVICE_VECTOR((void **)&(sd->d_epoch));
-}
+//void pp_disk::allocate_host_storage(sim_data_t *sd, int n)
+//{
+//	sd->h_y.resize(2);
+//	sd->h_yout.resize(2);
+//
+//	for (int i = 0; i < 2; i++)
+//	{
+//		ALLOCATE_HOST_VECTOR((void **)&(sd->h_y[i]),    n*sizeof(vec_t));
+//		ALLOCATE_HOST_VECTOR((void **)&(sd->h_yout[i]), n*sizeof(vec_t));
+//	}
+//	ALLOCATE_HOST_VECTOR((void **)&(sd->h_p),           n*sizeof(param_t));
+//	ALLOCATE_HOST_VECTOR((void **)&(sd->h_body_md),     n*sizeof(body_metadata_t));
+//	ALLOCATE_HOST_VECTOR((void **)&(sd->h_epoch),       n*sizeof(ttt_t));
+//}
+//
+//void pp_disk::allocate_device_storage(sim_data_t *sd, int n)
+//{
+//	sd->d_y.resize(2);
+//	sd->d_yout.resize(2);
+//
+//	for (int i = 0; i < 2; i++)
+//	{
+//		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_y[i]),		n*sizeof(vec_t));
+//		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_yout[i]),	n*sizeof(vec_t));
+//	}
+//	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_p),				n*sizeof(param_t));
+//	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_body_md),		n*sizeof(body_metadata_t));
+//	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_epoch),			n*sizeof(ttt_t));
+//}
+//
+//void pp_disk::deallocate_host_storage(sim_data_t *sd)
+//{
+//	for (int i = 0; i < 2; i++)
+//	{
+//		FREE_HOST_VECTOR((void **)&(sd->h_y[i]));
+//		FREE_HOST_VECTOR((void **)&(sd->h_yout[i]));
+//	}
+//	FREE_HOST_VECTOR((void **)&(sd->h_p));
+//	FREE_HOST_VECTOR((void **)&(sd->h_body_md));
+//	FREE_HOST_VECTOR((void **)&(sd->h_epoch));
+//}
+//
+//void pp_disk::deallocate_device_storage(sim_data_t *sd)
+//{
+//	for (int i = 0; i < 2; i++)
+//	{
+//		FREE_DEVICE_VECTOR((void **)&(sd->d_y[i]));
+//		FREE_DEVICE_VECTOR((void **)&(sd->d_yout[i]));
+//	}
+//	FREE_DEVICE_VECTOR((void **)&(sd->d_p));
+//	FREE_DEVICE_VECTOR((void **)&(sd->d_body_md));
+//	FREE_DEVICE_VECTOR((void **)&(sd->d_epoch));
+//}
 
 void pp_disk::set_computing_device(computing_device_t device)
 {
@@ -1300,74 +1300,49 @@ var_t pp_disk::get_mass_of_star()
 	throw string("No star is included!");
 }
 
-var_t pp_disk::get_total_mass()
+void pp_disk::transform_to_bc(bool verbose)
 {
-	var_t totalMass = 0.0;
-
-	param_t* p = sim_data->h_p;
-	int n = use_padded_storage ? n_bodies->get_n_prime_massive() : n_bodies->get_n_massive();
-	for (int j = n - 1; j >= 0; j--)
-	{
-		totalMass += p[j].mass;
-	}
-
-	return totalMass;
-}
-
-void pp_disk::compute_bc(vec_t* R0, vec_t* V0)
-{
-	const param_t* p = sim_data->h_p;
-	const vec_t* r = sim_data->h_y[0];
-	const vec_t* v = sim_data->h_y[1];
-
-	int n = use_padded_storage ? n_bodies->get_n_prime_massive() : n_bodies->get_n_massive();
-	for (int j = 0; j < n; j++ )
-	{
-		var_t m = p[j].mass;
-		R0->x += m * r[j].x;		R0->y += m * r[j].y;		R0->z += m * r[j].z;
-		V0->x += m * v[j].x;		V0->y += m * v[j].y;		V0->z += m * v[j].z;
-	}
-	var_t M0 = get_total_mass();
-
-	R0->x /= M0;	R0->y /= M0;	R0->z /= M0;
-	V0->x /= M0;	V0->y /= M0;	V0->z /= M0;
-}
-
-void pp_disk::transform_to_bc()
-{
-	cout << "Transforming to barycentric system ... ";
-
-	// Position and velocity of the system's barycenter
-	vec_t R0 = {0.0, 0.0, 0.0, 0.0};
-	vec_t V0 = {0.0, 0.0, 0.0, 0.0};
-
-	compute_bc(&R0, &V0);
-
-	vec_t* r = sim_data->h_y[0];
-	vec_t* v = sim_data->h_y[1];
-	// Transform the bodies coordinates and velocities
 	int n = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
-	for (int j = 0; j < n; j++ )
-	{
-		r[j].x -= R0.x;		r[j].y -= R0.y;		r[j].z -= R0.z;
-		v[j].x -= V0.x;		v[j].y -= V0.y;		v[j].z -= V0.z;
-	}
-
-	cout << "done" << endl;
 }
 
-void pp_disk::transform_time()
+void pp_disk::transform_time(bool verbose)
 {
-	vec_t* v = sim_data->h_y[1];
-	// Transform the bodies' epochs and velocities
+	if (verbose)
+	{
+		cout << "Transforming the time ... ";
+	}
+
+	// Transform the bodies' epochs
 	int n = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
 	for (int j = 0; j < n; j++ )
 	{
 		sim_data->h_epoch[j] *= constants::Gauss;
+	}
 
-		v[j].x /= constants::Gauss;
-		v[j].y /= constants::Gauss;
-		v[j].z /= constants::Gauss;
+	if (verbose)
+	{
+		cout << "done" << endl;
+	}
+}
+
+void pp_disk::transform_velocity(bool verbose)
+{
+	if (verbose)
+	{
+		cout << "Transforming the velocity ... ";
+	}
+
+	vec_t* v = sim_data->h_y[1];
+	// Transform the bodies' velocities
+	int n = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
+	for (int j = 0; j < n; j++ )
+	{
+		v[j].x /= constants::Gauss;		v[j].y /= constants::Gauss;		v[j].z /= constants::Gauss;
+	}
+
+	if (verbose)
+	{
+		cout << "done" << endl;
 	}
 }
 

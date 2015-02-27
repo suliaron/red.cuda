@@ -22,6 +22,12 @@ namespace redutilcu
 	#define FREE_DEVICE_VECTOR(ptr)      (free_device_vector(ptr,      __FILE__, __LINE__))
 	#define FREE_VECTOR(       ptr, cpu) (free_vector(       ptr, cpu, __FILE__, __LINE__))
 
+	void allocate_host_storage(sim_data_t *sd, int n);
+	void allocate_device_storage(sim_data_t *sd, int n);
+
+	void deallocate_host_storage(sim_data_t *sd);
+	void deallocate_device_storage(sim_data_t *sd);
+
 	void copy_vector_to_device(void* dst, const void *src, size_t count);
 	void copy_vector_to_host(  void* dst, const void *src, size_t count);
 	void copy_vector_d2d(      void* dst, const void *src, size_t count);

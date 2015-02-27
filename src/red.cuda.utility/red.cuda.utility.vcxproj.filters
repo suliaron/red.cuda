@@ -4,6 +4,9 @@
     <CudaCompile Include="util.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
+    <CudaCompile Include="test.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -28,12 +31,21 @@
     <ClInclude Include="util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="red_test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="file_util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="red_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

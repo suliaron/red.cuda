@@ -28,6 +28,8 @@
 #include "red_macro.h"
 #include "redutilcu.h"
 
+#include "red_test.h"
+
 __constant__ var_t dc_threshold[THRESHOLD_N];
 
 
@@ -1180,21 +1182,11 @@ int main()
 
 #endif
 
-#if 1
+#if 0
 
 void cpy_cnstnt_to_dvc(const void* dst, const void *src, size_t count)
 {
 	cudaMemcpyToSymbol(dst, src, count);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaMemcpyToSymbol failed (copy_constant_to_device)");
-	}
-}
-
-void cpy_cnstnt_to_dvc(const char* array_name, const void *src, size_t count)
-{
-	cudaMemcpyToSymbol("dc_threshold", src, count);
 	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus)
 	{
@@ -1290,6 +1282,7 @@ int main(int argc, const char** argv)
 	{
 		cpy_cnstnt_to_dvc(dc_threshold, thrshld, THRESHOLD_N*sizeof(var_t));
 		kernel_print_constant_memory<<<1, 1>>>();
+		cudaDeviceSynchronize();
 	}
 	catch (const string& msg)
 	{
@@ -1310,8 +1303,6 @@ void free_h_vector(void **ptr, const char *file, int line)
 	*ptr = (void *)0x0;
 }
 
-
-
 int main(int argc, const char** argv)
 {
 	var_t *p = 0x0;
@@ -1329,6 +1320,19 @@ int main(int argc, const char** argv)
 	ALLOCATE_VECTOR((void **)&(ptr), size, cpu);
 
 	FREE_VECTOR((void **)&(ptr), cpu);
+
+	return 0;
+}
+#endif
+
+#if 1
+
+int main(int argc, char** argv)
+{
+	red_test::run(argc, argv);
+
+	//string result = file::combine_path("aa", "bb");
+	//cout << result << endl;
 
 	return 0;
 }

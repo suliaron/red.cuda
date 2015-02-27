@@ -3,6 +3,7 @@
 #include <cmath>
 #include <ctime>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <string>
 
@@ -37,7 +38,7 @@ void trim_right(string& str)
 	}
 }
 
-/// Removes all trailing characters after the first # character
+/// Removes all trailing characters after the first c character
 void trim_right(string& str, char c)
 {
 	// trim trailing spaces
@@ -68,7 +69,8 @@ void trim(string& str)
 string get_time_stamp()
 {
 	static char time_stamp[20];
-	time_t now = time(0);
+
+	time_t now = time(NULL);
 	strftime(time_stamp, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
 
 	return string(time_stamp);
@@ -76,49 +78,45 @@ string get_time_stamp()
 
 string convert_time_t(time_t t)
 {
-	string result;
-
 	ostringstream convert;	// stream used for the conversion
 	convert << t;			// insert the textual representation of 't' in the characters in the stream
-	result = convert.str();
-
-	return result;
+	return convert.str();
 }
 
-var_t get_total_mass(int n, body_type_t type, sim_data_t *sim_data)
+var_t get_total_mass(int n, body_type_t type, const sim_data_t *sim_data)
 {
-	var_t totalMass = 0.0;
+	var_t total_mass = 0.0;
 
-	param_t* p = sim_data->p;
+	param_t* p = sim_data->h_p;
 	for (int j = n - 1; j >= 0; j--)
 	{
-		if (sim_data->body_md[j].body_type == type)
+		if (sim_data->h_body_md[j].body_type == type)
 		{
-			totalMass += p[j].mass;
+			total_mass += p[j].mass;
 		}
 	}
 
-	return totalMass;
+	return total_mass;
 }
 
-var_t get_total_mass(int n, sim_data_t *sim_data)
+var_t get_total_mass(int n, const sim_data_t *sim_data)
 {
-	var_t totalMass = 0.0;
+	var_t total_mass = 0.0;
 
-	param_t* p = sim_data->p;
+	param_t* p = sim_data->h_p;
 	for (int j = n - 1; j >= 0; j--)
 	{
-		totalMass += p[j].mass;
+		total_mass += p[j].mass;
 	}
 
-	return totalMass;
+	return total_mass;
 }
 
-void compute_bc(int n, sim_data_t *sim_data, vec_t* R0, vec_t* V0)
+void compute_bc(int n, bool verbose, const sim_data_t *sim_data, vec_t* R0, vec_t* V0)
 {
-	const param_t* p = sim_data->p;
-	const vec_t* r = sim_data->y[0];
-	const vec_t* v = sim_data->y[1];
+	const param_t* p = sim_data->h_p;
+	const vec_t* r = sim_data->h_y[0];
+	const vec_t* v = sim_data->h_y[1];
 
 	for (int j = n - 1; j >= 0; j-- )
 	{
@@ -135,20 +133,30 @@ void compute_bc(int n, sim_data_t *sim_data, vec_t* R0, vec_t* V0)
 
 	R0->x /= M0;	R0->y /= M0;	R0->z /= M0;
 	V0->x /= M0;	V0->y /= M0;	V0->z /= M0;
+
+	if (verbose)
+	{
+		cout << "Position and velocity of the barycenter:" << endl;
+		cout << "R0: ";		print_vector(R0);
+		cout << "V0: ";		print_vector(V0);
+	}
 }
 
-void transform_to_bc(int n, sim_data_t *sim_data)
+void transform_to_bc(int n, bool verbose, const sim_data_t *sim_data)
 {
-	cout << "Transforming to barycentric system ... ";
+	if (verbose)
+	{
+		cout << "Transforming to barycentric system ... ";
+	}
 
 	// Position and velocity of the system's barycenter
 	vec_t R0 = {0.0, 0.0, 0.0, 0.0};
 	vec_t V0 = {0.0, 0.0, 0.0, 0.0};
 
-	compute_bc(n, sim_data, &R0, &V0);
+	compute_bc(n, verbose, sim_data, &R0, &V0);
 
-	vec_t* r = sim_data->y[0];
-	vec_t* v = sim_data->y[1];
+	vec_t* r = sim_data->h_y[0];
+	vec_t* v = sim_data->h_y[1];
 	// Transform the bodies coordinates and velocities
 	for (int j = n - 1; j >= 0; j-- )
 	{
@@ -156,7 +164,10 @@ void transform_to_bc(int n, sim_data_t *sim_data)
 		v[j].x -= V0.x;		v[j].y -= V0.y;		v[j].z -= V0.z;
 	}
 
-	cout << "done" << endl;
+	if (verbose)
+	{
+		cout << "done" << endl;
+	}
 }
 
 var_t calculate_radius(var_t m, var_t density)
@@ -251,6 +262,20 @@ int calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec)
 	vVec->z = vKszi * P.z + vEta * Q.z;
 
 	return 0;
+}
+
+void print_vector(vec_t *v)
+{
+	static int var_t_w  = 25;
+
+	cout.precision(16);
+	cout.setf(ios::right);
+	cout.setf(ios::scientific);
+
+	cout << setw(var_t_w) << v->x 
+		 << setw(var_t_w) << v->y
+		 << setw(var_t_w) << v->z
+		 << setw(var_t_w) << v->w << endl;
 }
 
 } /* tools */

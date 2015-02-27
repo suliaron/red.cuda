@@ -204,8 +204,9 @@ pp_disk* options::create_pp_disk()
 		//ppd->print_result_ascii(cout);
 	}
 
-	ppd->transform_to_bc();
-	ppd->transform_time();
+	ppd->transform_to_bc(verbose);
+	ppd->transform_time(verbose);
+	ppd->transform_velocity(verbose);
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		ppd->copy_to_device();
