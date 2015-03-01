@@ -171,7 +171,7 @@ void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t 
 		}
 		if (INPUT_FORMAT_NONAME == format)
 		{
-			output << "Time: " << sd->epoch[0] << endl;
+			output << "Time: " << sd->h_epoch[0] << endl;
 			output << "Number of bodies: " << nBodies << endl;
 			output << "Coordinate system: barycentric" << endl;
 			output << endl;
@@ -208,13 +208,13 @@ void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t 
 			switch (format)
 			{
 			case INPUT_FORMAT_RED:
-				file::print_body_record(output, disk.names[i], sd->epoch[i], &sd->p[i], &sd->body_md[i], &sd->y[0][i], &sd->y[1][i]);
+				file::print_body_record(         output, disk.names[i], sd->h_epoch[i], &sd->h_p[i], &sd->h_body_md[i], &sd->h_y[0][i], &sd->h_y[1][i]);
 				break;
 			case INPUT_FORMAT_NONAME:
-				file::print_body_record_Emese(output, disk.names[i], sd->epoch[i], &sd->p[i], &sd->body_md[i], &sd->y[0][i], &sd->y[1][i]);
+				file::print_body_record_Emese(   output, disk.names[i], sd->h_epoch[i], &sd->h_p[i], &sd->h_body_md[i], &sd->h_y[0][i], &sd->h_y[1][i]);
 				break;
 			case INPUT_FORMAT_HIPERION:
-				file::print_body_record_HIPERION(output, disk.names[i], sd->epoch[i], &sd->p[i], &sd->body_md[i], &sd->y[0][i], &sd->y[1][i]);
+				file::print_body_record_HIPERION(output, disk.names[i], sd->h_epoch[i], &sd->h_p[i], &sd->h_body_md[i], &sd->h_y[0][i], &sd->h_y[1][i]);
 				break;
 			default:
 				throw string("Invalid format in print().");

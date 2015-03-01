@@ -76,10 +76,10 @@ void populate_disk(body_disk_t& disk, sim_data_t *sd)
 				generate_oe(&disk.oe_d[body_type], oe);
 			}
 
-			sd->epoch[  bodyIdx] = epoch;
-			sd->body_md[bodyIdx] = body_md;
-			sd->p[      bodyIdx] = param;
-			sd->h_oe[   bodyIdx] = oe;
+            sd->h_epoch[  bodyIdx] = epoch;
+			sd->h_body_md[bodyIdx] = body_md;
+			sd->h_p[      bodyIdx] = param;
+			sd->h_oe[     bodyIdx] = oe;
 		} /* for */
 	} /* for */
 }
@@ -476,9 +476,9 @@ void create_Dvorak_disk(string& dir, string& filename)
 		for (int i = 0; i < nBodies; i++)
 		{
 			// Only the masses of the protoplanets will be scaled
-			if (sim_data->body_md[i].body_type == BODY_TYPE_PROTOPLANET)
+			if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
 			{
-				sim_data->p[i].mass *= f;
+				sim_data->h_p[i].mass *= f;
 			}
 		}
 		m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
@@ -496,15 +496,15 @@ void create_Dvorak_disk(string& dir, string& filename)
 		{
 			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
 			{
-				if (sim_data->p[bodyIdx].mass > 0.0)
+				if (sim_data->h_p[bodyIdx].mass > 0.0)
 				{
 					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
 					{
-						sim_data->p[bodyIdx].density = tools::calculate_density(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].radius);
+						sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
 					}
 					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
 					{
-						sim_data->p[bodyIdx].radius = tools::calculate_radius(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].density);
+						sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
 					}
 				}
 			}
@@ -514,24 +514,24 @@ void create_Dvorak_disk(string& dir, string& filename)
 	// Calculate coordinates and velocities
 	{
 		// The mass of the central star
-		var_t m0 = sim_data->p[0].mass;
+		var_t m0 = sim_data->h_p[0].mass;
 		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
 		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
-		sim_data->y[0][0] = rVec;
-		sim_data->y[1][0] = vVec;
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
 		for (int i = 1; i < nBodies; i++)
 		{
-			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			if (1 == ret_code)
 			{
 				cerr << "Could not calculate the phase." << endl;
 				exit(0);
 			}
-			sim_data->y[0][i] = rVec;
-			sim_data->y[1][i] = vVec;
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
 		}
 	}
 
@@ -565,24 +565,24 @@ void create_two_body_disk(string& dir, string& filename)
 	// Calculate coordinates and velocities
 	{
 		// The mass of the central star
-		var_t m0 = sim_data->p[0].mass;
+		var_t m0 = sim_data->h_p[0].mass;
 		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
 		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
-		sim_data->y[0][0] = rVec;
-		sim_data->y[1][0] = vVec;
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
 		for (int i = 1; i < nBodies; i++)
 		{
-			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			if (1 == ret_code)
 			{
 				cerr << "Could not calculate the phase." << endl;
 				exit(0);
 			}
-			sim_data->y[0][i] = rVec;
-			sim_data->y[1][i] = vVec;
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
 		}
 	}
 
@@ -620,15 +620,15 @@ void create_n_gp_body_disk(string& dir, string& filename)
 		{
 			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
 			{
-				if (sim_data->p[bodyIdx].mass > 0.0)
+				if (sim_data->h_p[bodyIdx].mass > 0.0)
 				{
 					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
 					{
-						sim_data->p[bodyIdx].density = tools::calculate_density(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].radius);
+						sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
 					}
 					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
 					{
-						sim_data->p[bodyIdx].radius = tools::calculate_radius(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].density);
+						sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
 					}
 				}
 			}
@@ -638,24 +638,24 @@ void create_n_gp_body_disk(string& dir, string& filename)
 	// Calculate coordinates and velocities
 	{
 		// The mass of the central star
-		var_t m0 = sim_data->p[0].mass;
+		var_t m0 = sim_data->h_p[0].mass;
 		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
 		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
-		sim_data->y[0][0] = rVec;
-		sim_data->y[1][0] = vVec;
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
 		for (int i = 1; i < nBodies; i++)
 		{
-			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			if (1 == ret_code)
 			{
 				cerr << "Could not calculate the phase." << endl;
 				exit(0);
 			}
-			sim_data->y[0][i] = rVec;
-			sim_data->y[1][i] = vVec;
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
 		}
 	}
 
@@ -691,15 +691,15 @@ void create_n_pp_body_disk(string& dir, string& filename)
 	//	{
 	//		for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
 	//		{
-	//			if (sim_data->p[bodyIdx].mass > 0.0)
+	//			if (sim_data->h_p[bodyIdx].mass > 0.0)
 	//			{
 	//				if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
 	//				{
-	//					sim_data->p[bodyIdx].density = tools::calculate_density(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].radius);
+	//					sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
 	//				}
 	//				if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
 	//				{
-	//					sim_data->p[bodyIdx].radius = tools::calculate_radius(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].density);
+	//					sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
 	//				}
 	//			}
 	//		}
@@ -709,24 +709,24 @@ void create_n_pp_body_disk(string& dir, string& filename)
 	// Calculate coordinates and velocities
 	{
 		// The mass of the central star
-		var_t m0 = sim_data->p[0].mass;
+		var_t m0 = sim_data->h_p[0].mass;
 		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
 		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
-		sim_data->y[0][0] = rVec;
-		sim_data->y[1][0] = vVec;
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
 		for (int i = 1; i < nBodies; i++)
 		{
-			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			if (1 == ret_code)
 			{
 				cerr << "Could not calculate the phase." << endl;
 				exit(0);
 			}
-			sim_data->y[0][i] = rVec;
-			sim_data->y[1][i] = vVec;
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
 		}
 	}
 
@@ -766,24 +766,24 @@ void create_n_spl_body_disk(string& dir, string& filename)
 	// Calculate coordinates and velocities
 	{
 		// The mass of the central star
-		var_t m0 = sim_data->p[0].mass;
+		var_t m0 = sim_data->h_p[0].mass;
 		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
 		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
-		sim_data->y[0][0] = rVec;
-		sim_data->y[1][0] = vVec;
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
 		for (int i = 1; i < nBodies; i++)
 		{
-			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			if (1 == ret_code)
 			{
 				cerr << "Could not calculate the phase." << endl;
 				exit(0);
 			}
-			sim_data->y[0][i] = rVec;
-			sim_data->y[1][i] = vVec;
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
 		}
 	}
 
@@ -821,15 +821,15 @@ void create_n_pl_body_disk(string& dir, string& filename)
 		{
 			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
 			{
-				if (sim_data->p[bodyIdx].mass > 0.0)
+				if (sim_data->h_p[bodyIdx].mass > 0.0)
 				{
 					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
 					{
-						sim_data->p[bodyIdx].density = tools::calculate_density(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].radius);
+						sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
 					}
 					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
 					{
-						sim_data->p[bodyIdx].radius = tools::calculate_radius(sim_data->p[bodyIdx].mass, sim_data->p[bodyIdx].density);
+						sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
 					}
 				}
 			}
@@ -839,24 +839,24 @@ void create_n_pl_body_disk(string& dir, string& filename)
 	// Calculate coordinates and velocities
 	{
 		// The mass of the central star
-		var_t m0 = sim_data->p[0].mass;
+		var_t m0 = sim_data->h_p[0].mass;
 		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
 		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
-		sim_data->y[0][0] = rVec;
-		sim_data->y[1][0] = vVec;
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
 		for (int i = 1; i < nBodies; i++)
 		{
-			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			if (1 == ret_code)
 			{
 				cerr << "Could not calculate the phase." << endl;
 				exit(0);
 			}
-			sim_data->y[0][i] = rVec;
-			sim_data->y[1][i] = vVec;
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
 		}
 	}
 
@@ -890,24 +890,24 @@ void create_n_tp_body_disk(string& dir, string& filename)
 	// Calculate coordinates and velocities
 	{
 		// The mass of the central star
-		var_t m0 = sim_data->p[0].mass;
+		var_t m0 = sim_data->h_p[0].mass;
 		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
 		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
-		sim_data->y[0][0] = rVec;
-		sim_data->y[1][0] = vVec;
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
 		for (int i = 1; i < nBodies; i++)
 		{
-			var_t mu = K2 *(m0 + sim_data->p[i].mass);
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			if (1 == ret_code)
 			{
 				cerr << "Could not calculate the phase." << endl;
 				exit(0);
 			}
-			sim_data->y[0][i] = rVec;
-			sim_data->y[1][i] = vVec;
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
 		}
 	}
 

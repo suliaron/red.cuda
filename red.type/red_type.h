@@ -158,27 +158,28 @@ typedef struct sim_data
 			param_t*		 p;   			//!< Vector of body parameters (either in the DEVICE or HOST memory)
 			body_metadata_t* body_md; 		//!< Vector of additional body parameters (either in the DEVICE or HOST memory)
 			ttt_t*			 epoch;			//!< Vector of epoch of the bodies (either in the DEVICE or HOST memory)
+			orbelem_t*		 oe;			//!< Vector of of the orbital elements (either in the DEVICE or HOST memory)
 
 			vector<vec_t*>	 d_y;			//!< Device vectors of ODE variables at the beginning of the step (at time t)
 			vector<vec_t*>	 d_yout;		//!< Device vectors of ODE variables at the end of the step (at time tout)
 			param_t*		 d_p;			//!< Device vector of body parameters
 			body_metadata_t* d_body_md; 	//!< Device vector of additional body parameters
 			ttt_t*			 d_epoch;		//!< Device vector of epoch of the bodies
+			orbelem_t*		 d_oe;			//!< Device vector of the orbital elements
 
 			vector<vec_t*>	 h_y;			//!< Host vectors of initial position and velocity of the bodies on the host
 			vector<vec_t*>	 h_yout;		//!< Host vectors of ODE variables at the end of the step (at time tout)
 			param_t*		 h_p;			//!< Host vector of body parameters
 			body_metadata_t* h_body_md; 	//!< Host vector of additional body parameters
 			ttt_t*			 h_epoch;		//!< Host vector of epoch of the bodies
-
 			orbelem_t*		 h_oe;			//!< Host vector of the orbital elements
 
 			sim_data()
 			{
-				p = d_p = h_p = 0x0;
+				p       = d_p       = h_p       = 0x0;
 				body_md = d_body_md = h_body_md = 0x0;
-				epoch = d_epoch = h_epoch = 0x0;
-				h_oe = 0x0;
+				epoch   = d_epoch   = h_epoch   = 0x0;
+				oe      = d_oe      = h_oe      = 0x0;
 			}
 
 			void create_aliases(computing_device_t comp_dev)
@@ -194,6 +195,7 @@ typedef struct sim_data
 					p       = h_p;
 					body_md = h_body_md;
 					epoch   = h_epoch;
+                    oe      = h_oe;
 					break;
 				case COMPUTING_DEVICE_GPU:
 					for (int i = 0; i < 2; i++)
@@ -204,6 +206,7 @@ typedef struct sim_data
 					p       = d_p;
 					body_md = d_body_md;
 					epoch   = d_epoch;
+                    oe      = d_oe;
 					break;
 				}
 			}

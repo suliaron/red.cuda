@@ -8,4 +8,8 @@
     <LocalDebuggerCommandArguments>-o C:\Work\Projects\red.cuda\TestRun\InputTest\Cmp_Red_Non_Hip -f input2</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LocalDebuggerCommandArguments>-o C:\Work\Projects\red.cuda\TestRun\InputTest\Cmp_Red_Non_Hip -f input2</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
 </Project>
