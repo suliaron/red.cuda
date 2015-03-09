@@ -218,7 +218,7 @@ void set_parameters_of_n_gp_body_disk(body_disk_t& disk)
 		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
-		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.1 * constants::JupiterToSolar, 1.0 * constants::JupiterToSolar);
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.1 * constants::SaturnToSolar, 1.0 * constants::SaturnToSolar);
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 2.0 * constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
@@ -648,6 +648,9 @@ void create_n_gp_body_disk(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+
+			sim_data->h_oe[i].sma = i * 3.0;
+
 			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			if (1 == ret_code)
 			{
@@ -666,6 +669,12 @@ void create_n_gp_body_disk(string& dir, string& filename)
 
 	path = file::combine_path(dir, filename) + ".txt";
 	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	path = file::combine_path(dir, filename) + "_NONMAE.txt";
+	print(path, disk, sim_data, INPUT_FORMAT_NONAME);
+
+	path = file::combine_path(dir, filename) + "_HIPERION.txt";
+	print(path, disk, sim_data, INPUT_FORMAT_HIPERION);
 
 	deallocate_host_storage(sim_data);
 
@@ -966,13 +975,15 @@ int main(int argc, const char **argv)
 
 	try
 	{
+		create_n_gp_body_disk(outDir, filename);
+
 		//create_n_tp_body_disk(outDir, filename);
 
 		//create_n_pl_body_disk(outDir, filename);
 
 		//create_n_spl_body_disk(outDir, filename);
 
-		create_n_pp_body_disk(outDir, filename);
+		//create_n_pp_body_disk(outDir, filename);
 
 		//create_n_massive_body_disk(outDir, filename);
 
