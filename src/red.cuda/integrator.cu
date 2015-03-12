@@ -181,31 +181,29 @@ void integrator::create_aliases()
 
 void integrator::set_computing_device(computing_device_t device)
 {
+	// If the execution is already on the requested device than nothing to do
+	if (this->comp_dev == device)
+	{
+		return;
+	}
+
+	int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+
 	switch (device)
 	{
 	case COMPUTING_DEVICE_CPU:
-		if (COMPUTING_DEVICE_CPU != this->comp_dev)
-		{
-			deallocate_device_storage();
-			this->comp_dev = device;
-			create_aliases();
-			ppd->set_computing_device(device);
-			// Memory allocation was already done [all variables are redy to use on the host]
-		}
+		deallocate_device_storage();
 		break;
 	case COMPUTING_DEVICE_GPU:
-		if (COMPUTING_DEVICE_GPU != this->comp_dev)
-		{
-			int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
-			this->comp_dev = device;
-			allocate_device_storage(n_body);
-			create_aliases();
-			ppd->set_computing_device(device);
-		}
+		allocate_device_storage(n_body);
 		break;
 	default:
 		throw string ("Invalid parameter: computing device was out of range.");
 	}
+
+	this->comp_dev = device;
+	create_aliases();
+	ppd->set_computing_device(device);
 }
 
 var_t integrator::get_max_error(int n_var, var_t lambda)

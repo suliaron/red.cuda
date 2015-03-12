@@ -399,5 +399,40 @@ void print_array(string path, int n, var_t *data, computing_device_t comp_dev)
 	{
 		delete[] h_data;
 	}
+	if (0 < path.length())
+	{
+		out->flush();
+		delete out;
+	}
 }
+
+void create_aliases(computing_device_t comp_dev, sim_data_t *sd)
+{
+	switch (comp_dev)
+	{
+	case COMPUTING_DEVICE_CPU:
+		for (int i = 0; i < 2; i++)
+		{
+			sd->y[i]    = sd->h_y[i];
+			sd->yout[i] = sd->h_yout[i];
+		}
+		sd->p       = sd->h_p;
+		sd->body_md = sd->h_body_md;
+		sd->epoch   = sd->h_epoch;
+        sd->oe      = sd->h_oe;
+		break;
+	case COMPUTING_DEVICE_GPU:
+		for (int i = 0; i < 2; i++)
+		{
+			sd->y[i]    = sd->d_y[i];
+			sd->yout[i] = sd->d_yout[i];
+		}
+		sd->p       = sd->d_p;
+		sd->body_md = sd->d_body_md;
+		sd->epoch   = sd->d_epoch;
+        sd->oe      = sd->d_oe;
+		break;
+	}
+}
+
 } /* redutilcu */

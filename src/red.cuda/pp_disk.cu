@@ -959,7 +959,7 @@ pp_disk::pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage,
 
 	n_bodies = get_number_of_bodies(path);
 	allocate_storage();
-	sim_data->create_aliases(comp_dev);
+	redutilcu::create_aliases(comp_dev, sim_data);
 	load(path);
 }
 
@@ -1000,35 +1000,36 @@ void pp_disk::allocate_storage()
 
 void pp_disk::set_computing_device(computing_device_t device)
 {
+	// If the execution is already on the requested device than nothing to do
+	if (this->comp_dev == device)
+	{
+		return;
+	}
+
+	int n_total = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
+
 	switch (device)
 	{
 	case COMPUTING_DEVICE_CPU:
-		if (COMPUTING_DEVICE_CPU != this->comp_dev)
-		{
-			copy_to_host();
-			clear_event_counter();
-			deallocate_device_storage(sim_data);
-			FREE_DEVICE_VECTOR((void **)&d_events);
-			FREE_DEVICE_VECTOR((void **)&d_event_counter);
-		}
+		copy_to_host();
+		clear_event_counter();
+		deallocate_device_storage(sim_data);
+		FREE_DEVICE_VECTOR((void **)&d_events);
+		FREE_DEVICE_VECTOR((void **)&d_event_counter);
 		break;
 	case COMPUTING_DEVICE_GPU:
-		if (COMPUTING_DEVICE_GPU != this->comp_dev)
-		{
-			int n_total = use_padded_storage ? n_bodies->get_n_prime_total() : n_bodies->get_n_total();
+		allocate_device_storage(sim_data, n_total);
+		ALLOCATE_DEVICE_VECTOR((void **)&d_events,        n_total*sizeof(event_data_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,       1*sizeof(int));
 
-			allocate_device_storage(sim_data, n_total);
-			ALLOCATE_DEVICE_VECTOR((void **)&d_events,        n_total*sizeof(event_data_t));
-			ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,       1*sizeof(int));
-
-			copy_to_device();
-			copy_constant_to_device(dc_threshold, this->threshold, THRESHOLD_N*sizeof(var_t));
-			copy_vector_to_device((void *)d_event_counter, (void *)&event_counter, 1*sizeof(int));
-		}
+		copy_to_device();
+		copy_constant_to_device(dc_threshold, this->threshold, THRESHOLD_N*sizeof(var_t));
+		copy_vector_to_device((void *)d_event_counter, (void *)&event_counter, 1*sizeof(int));
 		break;
 	default:
 		throw string ("Invalid parameter: computing device was out of range.");
 	}
+	redutilcu::create_aliases(device, sim_data);
 
 	this->comp_dev = device;
 }

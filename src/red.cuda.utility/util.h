@@ -36,4 +36,6 @@ namespace redutilcu
 
 	void set_device(int id_a_dev, bool verbose);
 	void print_array(string path, int n, var_t *data, computing_device_t comp_dev);
+
+	void create_aliases(computing_device_t comp_dev, sim_data_t *sd);
 } /* redutilcu */

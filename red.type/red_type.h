@@ -181,36 +181,6 @@ typedef struct sim_data
 				epoch   = d_epoch   = h_epoch   = 0x0;
 				oe      = d_oe      = h_oe      = 0x0;
 			}
-
-			void create_aliases(computing_device_t comp_dev)
-			{
-				switch (comp_dev)
-				{
-				case COMPUTING_DEVICE_CPU:
-					for (int i = 0; i < 2; i++)
-					{
-						y[i]    = h_y[i];
-						yout[i] = h_yout[i];
-					}
-					p       = h_p;
-					body_md = h_body_md;
-					epoch   = h_epoch;
-                    oe      = h_oe;
-					break;
-				case COMPUTING_DEVICE_GPU:
-					for (int i = 0; i < 2; i++)
-					{
-						y[i]    = d_y[i];
-						yout[i] = d_yout[i];
-					}
-					p       = d_p;
-					body_md = d_body_md;
-					epoch   = d_epoch;
-                    oe      = d_oe;
-					break;
-				}
-			}
-
 		} sim_data_t;
 
 typedef struct event_data
