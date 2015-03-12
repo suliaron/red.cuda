@@ -32,6 +32,7 @@ public:
 		\param device specifies which device will execute the computations
 	*/
 	void set_computing_device(computing_device_t device);
+	computing_device_t get_computing_device() { return comp_dev; }
 
 	//! Returns the mass of the central star
 	var_t get_mass_of_star();

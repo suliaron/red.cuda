@@ -1023,14 +1023,14 @@ void pp_disk::set_computing_device(computing_device_t device)
 
 			copy_to_device();
 			copy_constant_to_device(dc_threshold, this->threshold, THRESHOLD_N*sizeof(var_t));
-			clear_event_counter();
+			copy_vector_to_device((void *)d_event_counter, (void *)&event_counter, 1*sizeof(int));
 		}
 		break;
 	default:
 		throw string ("Invalid parameter: computing device was out of range.");
 	}
 
-	this->comp_dev = comp_dev;
+	this->comp_dev = device;
 }
 
 number_of_bodies* pp_disk::get_number_of_bodies(string& path)
@@ -1169,13 +1169,10 @@ void pp_disk::copy_to_host()
 
 void pp_disk::copy_threshold(const var_t* thrshld)
 {
-	for (int i = 0; i < THRESHOLD_N; i++)
-	{
-		threshold[i] = thrshld[i];
-	}
+	memcpy(threshold, thrshld, THRESHOLD_N * sizeof(var_t));
+
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
-		// Calls the copy_constant_to_device in the util.cu
 		copy_constant_to_device(dc_threshold, thrshld, THRESHOLD_N*sizeof(var_t));
 	}
 }

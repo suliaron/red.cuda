@@ -35,11 +35,11 @@ options::options(int argc, const char** argv) :
 		use_padded_storage = false;
 	}
 
-	if (parameters_filename.length() == 0)
+	if (0 == parameters_filename.length())
 	{
 		throw string("Missing filename for -p | --parameter!");
 	}
-	if (bodylist_filename.length() == 0)
+	if (0 == bodylist_filename.length())
 	{
 		throw string("Missing filename for -ic | --initial_conditions!");
 	}

@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-v -gpu -n_tpb 64 -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Cmp_Red_Non_Hip -p parameters.txt -ic input.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -gpu -n_tpb 64 -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Cmp_Red_Non_Hip_10_Saturn -p parameters.txt -ic input.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-v -ef -gpu -n_tpb 64 -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Cmp_Red_Non_Hip -p parameters.txt -ic input.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -ef -cpu -n_tpb 64 -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\TwoBody_CPU_2_GPU -p parameters.txt -ic input.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

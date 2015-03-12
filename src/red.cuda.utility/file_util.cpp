@@ -263,7 +263,7 @@ void log_rebuild_vectors(ostream& sout, ttt_t t)
 
 void log_message(ostream& sout, string msg)
 {
-	sout << tools::get_time_stamp() << msg << endl;
+	sout << tools::get_time_stamp() << SEP << msg << endl;
 }
 
 void print_body_record(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v)

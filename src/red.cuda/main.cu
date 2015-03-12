@@ -128,7 +128,7 @@ int main(int argc, const char** argv, const char** env)
 	{
 		options opt = options(argc, argv);
 		pp_disk *ppd = opt.create_pp_disk();
-		integrator *intgr = opt.create_integrator(ppd, 0.001);
+		integrator *intgr = opt.create_integrator(ppd, 0.01);
 		open_streams(opt, intgr, &result_f, &info_f, &event_f, &log_f);
 
 		file::log_start_cmd(*log_f, argc, argv, env);
@@ -157,16 +157,17 @@ int main(int argc, const char** argv, const char** env)
 		int dummy_k = 0;
 		while (ppd->t <= opt.param->stop_time)
 		{
-			//if (10 == dummy_k)
-			//{
-			//	redutilcu::set_device(0, opt.verbose);
-			//	intgr->set_computing_device(COMPUTING_DEVICE_GPU);
-			//}
+			if (10 == dummy_k)
+			{
+				file::log_message(*log_f, "Execution will be transferred to the GPU with id: 0");
+				redutilcu::set_device(0, opt.verbose);
+				intgr->set_computing_device(COMPUTING_DEVICE_GPU);
+			}
 
 			if (opt.param->output_interval <= fabs(ps))
 			{
 				ps = 0.0;
-				if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+				if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 				{
 					ppd->copy_to_host();
 				}
@@ -205,14 +206,14 @@ int main(int argc, const char** argv, const char** env)
 		// To avoid duplicate save at the end of the simulation
 		if (0.0 < ps)
 		{
-			if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 			{
 				ppd->copy_to_host();
 			}
 			ppd->print_result_ascii(*result_f);
 		}
 		// Needed by nvprof.exe
-		if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+		if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 		{
 			cudaDeviceReset();
 		}
