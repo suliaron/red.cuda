@@ -4,6 +4,8 @@
 
 namespace redutilcu
 {
+	template <typename T>
+	string number_to_string( T number );
 	int device_query(ostream& sout, int id_dev);
 
 	void allocate_host_vector(  void **ptr, size_t size,           const char *file, int line);
@@ -34,6 +36,7 @@ namespace redutilcu
 
 	void copy_constant_to_device(const void* dst, const void *src, size_t count);
 
+	int get_id_fastest_GPU();
 	void set_device(int id_a_dev, bool verbose);
 	void print_array(string path, int n, var_t *data, computing_device_t comp_dev);
 

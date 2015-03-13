@@ -258,7 +258,7 @@ void log_start_cmd(ostream& sout, int argc, const char** argv, const char** env)
 
 void log_rebuild_vectors(ostream& sout, ttt_t t)
 {
-	sout << tools::get_time_stamp() << " Rebuild the vectors and remove inactive bodies " << " t: " << scientific << std::setprecision(16) << t << endl;
+	sout << tools::get_time_stamp() << " Rebuild the vectors and remove inactive bodies t: " << scientific << std::setprecision(16) << t << endl;
 }
 
 void log_message(ostream& sout, string msg)

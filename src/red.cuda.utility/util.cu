@@ -3,15 +3,26 @@
 #include <iostream>
 #include <fstream>
 #include <ostream>
+#include <sstream>
 #include <string>
 
 // includes project
 #include "util.h"
+#include "file_util.h"
 #include "red_type.h"
 #include "red_macro.h"
 
 namespace redutilcu
 {
+
+template <typename T>
+string number_to_string( T number )
+{
+	std::ostringstream ss;
+	ss << number;
+	return ss.str();
+}
+
 // Beginning of GPU Architecture definitions
 inline int _ConvertSMVer2Cores(int major, int minor)
 {
@@ -324,7 +335,15 @@ void copy_constant_to_device(const void* dst, const void *src, size_t count)
 	}
 }
 
-void set_device(int id_a_dev, bool verbose)
+int get_id_fastest_GPU()
+{
+	// TODO: implement
+	std::cerr << "       TODO: implement int get_id_fastest_GPU() function!" << endl;
+
+	return 0;
+}
+
+void set_device(int id_of_target_dev, bool verbose)
 {
 	cudaError_t cudaStatus = cudaSuccess;
 
@@ -342,12 +361,12 @@ void set_device(int id_a_dev, bool verbose)
 
 	if (verbose)
 	{
-		printf("The number of CUDA device(s) : %2d\n", n_device);
+		file::log_message(std::cout, "The number of CUDA device(s): " + number_to_string(n_device));
 	}
-	if (n_device > id_a_dev && 0 <= id_a_dev)
+	if (n_device > id_of_target_dev && 0 <= id_of_target_dev)
 	{
 		// Set the desired id of the device
-		cudaSetDevice(id_a_dev);
+		cudaSetDevice(id_of_target_dev);
 		cudaStatus = HANDLE_ERROR(cudaGetLastError());
 		if (cudaSuccess != cudaStatus)
 		{
@@ -355,7 +374,7 @@ void set_device(int id_a_dev, bool verbose)
 		}
 		if (verbose)
 		{
-			printf("The device with id: %d was selected for execution\n", id_a_dev);
+			file::log_message(std::cout, "Execution will be transferred to the GPU with id: " + number_to_string(id_of_target_dev));
 		}
 	}
 	else
