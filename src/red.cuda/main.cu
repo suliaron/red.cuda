@@ -160,7 +160,7 @@ int main(int argc, const char** argv, const char** env)
 		while (ppd->t <= opt.param->stop_time)
 		{
 
-			if (0 < dummy_k && dummy_k % 30 == 0)
+			if (0 < dummy_k && dummy_k % 100 == 0)
 			{
 				int tmp = intgr->get_computing_device();
 				tmp++;
