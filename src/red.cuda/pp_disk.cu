@@ -1424,22 +1424,22 @@ void pp_disk::print_result_ascii(ostream& sout)
 		{
 			continue;
 		}
-		sout << setw(int_t_w) << body_md[i].id << SEP
-			 << setw(     30) << body_names[i] << SEP
-			 << setw(      2) << body_md[i].body_type << SEP 
-			 << setw(var_t_w) << t << SEP
-			 << setw(var_t_w) << p[i].mass << SEP
-			 << setw(var_t_w) << p[i].radius << SEP
-			 << setw(var_t_w) << p[i].density << SEP
-			 << setw(var_t_w) << p[i].cd << SEP
-			 << setw(      2) << body_md[i].mig_type << SEP
-			 << setw(var_t_w) << body_md[i].mig_stop_at << SEP
-			 << setw(var_t_w) << r[i].x << SEP
-			 << setw(var_t_w) << r[i].y << SEP
-			 << setw(var_t_w) << r[i].z << SEP
-			 << setw(var_t_w) << v[i].x << SEP
-			 << setw(var_t_w) << v[i].y << SEP
-			 << setw(var_t_w) << v[i].z << endl;
+		sout << setw(int_t_w) << body_md[i].id << SEP                /* id of the body starting from 1                                (int)              */
+			 << setw(     30) << body_names[i] << SEP                /* name of the body                                              (string = 30 char) */ 
+			 << setw(      2) << body_md[i].body_type << SEP         /* type of the body                                              (int)              */
+			 << setw(var_t_w) << t / constants::Gauss << SEP         /* time of the record                           [day]            (double)           */
+			 << setw(var_t_w) << p[i].mass << SEP                    /* mass of the body                             [solar mass]     (double)           */
+			 << setw(var_t_w) << p[i].radius << SEP                  /* radius of the body                           [AU]             (double)           */
+			 << setw(var_t_w) << p[i].density << SEP                 /* density of the body in                       [solar mass/AU3] (double)           */
+			 << setw(var_t_w) << p[i].cd << SEP                      /* Stokes drag coefficeint dimensionless                         (double)           */
+			 << setw(      2) << body_md[i].mig_type << SEP          /* migration type of the body                                    (int)              */
+			 << setw(var_t_w) << body_md[i].mig_stop_at << SEP       /* migration stops at this barycentric distance [AU]             (double)           */
+			 << setw(var_t_w) << r[i].x << SEP                       /* body's x-coordiante in barycentric system    [AU]             (double)           */
+			 << setw(var_t_w) << r[i].y << SEP                       /* body's y-coordiante in barycentric system    [AU]             (double)           */
+			 << setw(var_t_w) << r[i].z << SEP                       /* body's z-coordiante in barycentric system    [AU]             (double)           */
+			 << setw(var_t_w) << v[i].x * constants::Gauss << SEP    /* body's x-velocity in baryentric system       [AU/day]         (double)           */
+			 << setw(var_t_w) << v[i].y * constants::Gauss << SEP    /* body's y-velocity in barycentric system      [AU/day]         (double)           */
+			 << setw(var_t_w) << v[i].z * constants::Gauss << endl;  /* body's z-velocity in barycentric system      [AU/day]         (double)           */
     }
 	sout.flush();
 }

@@ -63,6 +63,7 @@ void options::print_usage()
 	cout << "     -id_dev | --id_active_device             : the id of the device which will execute the code" << endl;
 	cout << "     -ups    | --use-padded-storage           : use padded storage to store data (default is false)" << endl; 
 	cout << "     -n_tpb  | --n_thread-per-block           : the number of thread per block to use in kernel lunches (default is 64)" << endl;
+	cout << "     -n_chg  | --n_change_to_cpu              : the threshold value for the total number of SI bodies to change to the CPU (default is 100)" << endl;
 	cout << "     -iDir   | --inputDir <directory>         : the directory containing the input files"  << endl;
 	cout << "     -p      | --parameter <filename>         : the file containing the parameters of the simulation"  << endl;
 	cout << "     -gd     | --gas_disk <filename>          : the file containing the parameters of the gas disk"  << endl;
@@ -85,6 +86,7 @@ void options::create_default_options()
 	verbose            = false;
 	use_padded_storage = false;
 	n_tpb              = 64;
+	n_change_to_cpu    = 100;
 
 	ef                 = false;
 
@@ -123,6 +125,15 @@ void options::parse_options(int argc, const char** argv)
 				throw string("Invalid number at: " + p);
 			}
 			n_tpb = atoi(argv[i]);
+		}
+		else if (p == "--n_change_to_cpu" || p == "-n_chg")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			n_change_to_cpu = atoi(argv[i]);
 		}
 		else if (p == "--inputDir" || p == "-iDir")
 		{

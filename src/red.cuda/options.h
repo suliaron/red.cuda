@@ -27,6 +27,7 @@ public:
 	bool	verbose;				//!< Print more information to the screen or log file
 	bool	use_padded_storage;		//!< Use padded storage to store data (default is false)
 	int		n_tpb;					//!< Number of thread per block to use in kernel lunches (default is 64)
+	int     n_change_to_cpu;        //!< The threshold value for the total number of SI bodies to change to the CPU
 	int		id_a_dev;				//!< The id of the device which will execute the code
 	bool	ef;						//!< Extend the file names with command line information. Only for developer and debugger purposes.
 

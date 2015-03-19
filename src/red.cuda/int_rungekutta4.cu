@@ -250,16 +250,7 @@ ttt_t rungekutta4::step()
 			// calculate: err = (f4 - f5)
 			calc_error(n_var);
 			max_err = get_max_error(n_var, LAMBDA);
-			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/4.0);
-
-			if (ppd->get_n_event() > 0)
-			{
-				if (dt_try < dt_did)
-				{
-					dt_try = dt_did;
-				}
-				break;
-			}
+			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/order);
 		}
 		iter++;
 	} while (adaptive && max_err > tolerance);

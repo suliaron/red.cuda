@@ -74,66 +74,6 @@ __constant__ var_t dc_b[ sizeof(rungekutta8::b ) / sizeof(var_t)];
 __constant__ var_t dc_bh[sizeof(rungekutta8::bh) / sizeof(var_t)];
 __constant__ var_t dc_c[ sizeof(rungekutta8::c ) / sizeof(ttt_t)];
 
-namespace test_kernel
-{
-static __global__
-	void print_array(int n, const var_t* v)
-{
-	printf("v: %p\n", v);
-
-	for (int i = 0; i < n; i++)
-	{
-		printf("v[%4d] : %24.16le\n", i, v[i]);
-	}
-}
-
-static __global__
-	void print_dc_a()
-{
-	for (int i = 0; i < sizeof(dc_a)/sizeof(var_t); i++)
-	{
-		printf("dc_a[%2d]: %20.16lf\n", i, dc_a[i]);
-	}
-}
-
-static __global__
-	void print_dc_b()
-{
-	for (int i = 0; i < sizeof(dc_b)/sizeof(var_t); i++)
-	{
-		printf("dc_b[%2d]: %20.16lf\n", i, dc_b[i]);
-	}
-}
-
-static __global__
-	void print_dc_bh()
-{
-	for (int i = 0; i < sizeof(dc_bh)/sizeof(var_t); i++)
-	{
-		printf("dc_bh[%2d]: %20.16lf\n", i, dc_bh[i]);
-	}
-}
-
-static __global__
-	void print_dc_c()
-{
-	for (int i = 0; i < sizeof(dc_c)/sizeof(ttt_t); i++)
-	{
-		printf("dc_c[%2d]: %20.16lf\n", i, dc_c[i]);
-	}
-}
-
-static __global__
-	void print_memory_address(int n, var_t* adr)
-{
-	for (int i = 0; i < n; i++)
-	{
-		printf("adr[%2d]: %p\n", i, adr[i]);
-	}
-}
-
-} /* print_kernel */
-
 namespace rk8_kernel
 {
 // ytemp = yn + dt*(a10*f0)
@@ -461,7 +401,7 @@ void rungekutta8::cpu_calc_y_np1(int_t n, var_t *y_np1, ttt_t dt, const var_t *y
 
 
 rungekutta8::rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, computing_device_t comp_dev) :
-	integrator(ppd, dt, adaptive, tolerance, (adaptive ? 13 : 11),  comp_dev)
+	integrator(ppd, dt, adaptive, tolerance, (adaptive ? 13 : 11), comp_dev)
 {
 	name = "Runge-Kutta-Fehlberg8";
 	short_name = "RKF8";
@@ -636,10 +576,8 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
 			if (cudaSuccess != cudaStatus)
 			{
-				const string err_msg = "rk8_kernel::calc_ytemp_for_f"; 
-				ostringstream convert;	// stream used for the conversion
-				convert << r;
-				throw err_msg + convert.str() + " failed";
+				string err_msg = "rk8_kernel::calc_ytemp_for_f" + redutilcu::number_to_string(r) + " failed";
+				throw err_msg;
 			}
 		}
 	} /* for */
@@ -769,16 +707,7 @@ ttt_t rungekutta8::step()
 			}
 			calc_error(n_var);
 			max_err = get_max_error(n_var, LAMBDA);
-			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order+1));
-
-			if (ppd->get_n_event() > 0)
-			{
-				if (dt_try < dt_did)
-				{
-					dt_try = dt_did;
-				}
-				break;
-			}
+			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
 		}
 		iter++;
 	} while (adaptive && max_err > tolerance);
@@ -849,7 +778,7 @@ static __global__
 
 
 c_rungekutta8::c_rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, computing_device_t comp_dev) :
-integrator(ppd, dt, adaptive, tolerance, (adaptive ? 13 : 11), comp_dev)
+	integrator(ppd, dt, adaptive, tolerance, (adaptive ? 13 : 11), comp_dev)
 {
 	name = "c_Runge-Kutta-Fehlberg8";
 	short_name = "cRKF8";
@@ -992,16 +921,7 @@ ttt_t c_rungekutta8::step()
 			}
 			call_kernel_calc_error(n_var);
 			max_err = get_max_error(n_var, LAMBDA);
-			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order+1));
-
-			if (ppd->get_n_event() > 0)
-			{
-				if (dt_try < dt_did)
-				{
-					dt_try = dt_did;
-				}
-				break;
-			}
+			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
 		}
 		iter++;
 	} while (adaptive && max_err > tolerance);

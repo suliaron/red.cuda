@@ -11,7 +11,7 @@
 #include "util.h"
 
 var_t rungekutta2::a[] = {0.0, 1.0/2.0};
-var_t rungekutta2::b[] = {0.0, 1.0};
+var_t rungekutta2::b[] = {0.0, 1.0    };
 ttt_t rungekutta2::c[] = {0.0, 1.0/2.0};
 
 namespace rk2_kernel
@@ -73,11 +73,6 @@ void rungekutta2::calc_ytemp_for_fr(int n_var, int r)
 		{
 			cpu_sum_vector(n_var, y_n, fr, a[r] * dt_try, result);
 		}
-
-// DEBUG START
-		//printf("[%s] [%s] ytemp[%d]:\n", (cpu ? "cpu" : "gpu"), __FUNCTION__, i);
-		//print_array(n_var, result, cpu);
-// DEBUG END
 	}
 }
 
@@ -102,10 +97,6 @@ void rungekutta2::calc_y_np1(int n_var)
 		{
 			cpu_sum_vector(n_var, y_n, f2, b[1] * dt_try, y_np1);
 		}
-// DEBUG START
-		//printf("[%s] [%s] y_np1[%d]:\n", (cpu ? "cpu" : "gpu"), __FUNCTION__, i);
-		//print_array(n_var, y_np1, cpu);
-// DEBUG END
 	}
 }
 

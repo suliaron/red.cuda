@@ -237,7 +237,7 @@ void set_parameters_of_n_pp_body_disk(body_disk_t& disk)
 	srand(time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
-	disk.nBody[BODY_TYPE_PROTOPLANET] = 1000;
+	disk.nBody[BODY_TYPE_PROTOPLANET] = 2000;
 
 	int_t nBodies = calculate_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
@@ -248,10 +248,7 @@ void set_parameters_of_n_pp_body_disk(body_disk_t& disk)
 
 	disk.names.push_back("star");
 	disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
-
-	var_t tmp = constants::SolarRadiusToAu;
-	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), tmp, tmp);
-
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), constants::SolarRadiusToAu, constants::SolarRadiusToAu);
 	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
@@ -266,8 +263,8 @@ void set_parameters_of_n_pp_body_disk(body_disk_t& disk)
 		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
-		//disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.1 * constants::CeresToSolar, 1.0 * constants::CeresToSolar);
-		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 1.0e3 * constants::KilometerToAu, 1.0e3 * constants::KilometerToAu);
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.1 * constants::CeresToSolar, 1.0 * constants::CeresToSolar);
+		//disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 1.0e3 * constants::KilometerToAu, 1.0e3 * constants::KilometerToAu);
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 2.7 * constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
@@ -975,7 +972,7 @@ int main(int argc, const char **argv)
 
 	try
 	{
-		create_n_gp_body_disk(outDir, filename);
+		//create_n_gp_body_disk(outDir, filename);
 
 		//create_n_tp_body_disk(outDir, filename);
 
@@ -983,7 +980,7 @@ int main(int argc, const char **argv)
 
 		//create_n_spl_body_disk(outDir, filename);
 
-		//create_n_pp_body_disk(outDir, filename);
+		create_n_pp_body_disk(outDir, filename);
 
 		//create_n_massive_body_disk(outDir, filename);
 

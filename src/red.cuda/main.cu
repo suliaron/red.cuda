@@ -160,41 +160,51 @@ int main(int argc, const char** argv, const char** env)
 		while (ppd->t <= opt.param->stop_time)
 		{
 
-			if (0 < dummy_k && dummy_k % 100 == 0)
-			{
-				int tmp = intgr->get_computing_device();
-				tmp++;
-				if (COMPUTING_DEVICE_N == tmp)
-				{
-					tmp = 0;
-				}
-				target_device = (computing_device_t)tmp;
+			//if (0 < dummy_k && dummy_k % 100 == 0)
+			//{
+			//	int tmp = intgr->get_computing_device();
+			//	tmp++;
+			//	if (COMPUTING_DEVICE_N == tmp)
+			//	{
+			//		tmp = 0;
+			//	}
+			//	target_device = (computing_device_t)tmp;
 
-				switch (target_device)
+			//	switch (target_device)
+			//	{
+			//	case COMPUTING_DEVICE_CPU:
+			//		{
+			//			intgr->set_computing_device(target_device);
+			//			if (opt.verbose)
+			//			{
+			//				file::log_message(cout, "Execution was transferred to CPU");
+			//			}
+			//			file::log_message(*log_f, "Execution was transferred to CPU");
+			//			break;
+			//		}
+			//	case COMPUTING_DEVICE_GPU:
+			//		{
+			//			int id_of_target_GPU = redutilcu::get_id_fastest_GPU();
+			//			redutilcu::set_device(id_of_target_GPU, opt.verbose);
+			//			intgr->set_computing_device(target_device);
+			//			file::log_message(*log_f, "Execution was transferred to GPU with id: " + redutilcu::number_to_string(id_of_target_GPU));
+			//			break;
+			//		}
+			//	default:
+			//		{
+			//			throw string ("Invalid parameter: target_device was out of range.");
+			//		}
+			//	}
+			//}
+
+			if (COMPUTING_DEVICE_GPU == intgr->get_computing_device() && opt.n_change_to_cpu >= ppd->n_bodies->get_n_SI())
+			{
+				intgr->set_computing_device(COMPUTING_DEVICE_CPU);
+				if (opt.verbose)
 				{
-				case COMPUTING_DEVICE_CPU:
-					{
-						intgr->set_computing_device(target_device);
-						if (opt.verbose)
-						{
-							file::log_message(cout, "Execution was transferred to CPU");
-						}
-						file::log_message(*log_f, "Execution was transferred to CPU");
-						break;
-					}
-				case COMPUTING_DEVICE_GPU:
-					{
-						int id_of_target_GPU = redutilcu::get_id_fastest_GPU();
-						redutilcu::set_device(id_of_target_GPU, opt.verbose);
-						intgr->set_computing_device(target_device);
-						file::log_message(*log_f, "Execution was transferred to GPU with id: " + redutilcu::number_to_string(id_of_target_GPU));
-						break;
-					}
-				default:
-					{
-						throw string ("Invalid parameter: target_device was out of range.");
-					}
+					file::log_message(cout, "Execution was transferred to CPU");
 				}
+				file::log_message(*log_f, "Execution was transferred to CPU");
 			}
 
 			if (opt.param->output_interval <= fabs(ps))
