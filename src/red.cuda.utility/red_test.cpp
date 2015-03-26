@@ -768,7 +768,7 @@ static void test_tools()
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-15 < fabs(expected.cd - result.cd))
 		{
-			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected.cd, result.cd);
 		}
 		else
 		{
@@ -777,7 +777,7 @@ static void test_tools()
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-15 < fabs(expected.density - result.density))
 		{
-			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected.density, result.density);
 		}
 		else
 		{
@@ -786,7 +786,7 @@ static void test_tools()
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-15 < fabs(expected.mass - result.mass))
 		{
-			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected.mass, result.mass);
 		}
 		else
 		{
@@ -795,7 +795,7 @@ static void test_tools()
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-15 < fabs(expected.radius - result.radius))
 		{
-			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected.radius, result.radius);
 		}
 		else
 		{

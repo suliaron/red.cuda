@@ -155,7 +155,7 @@ int main(int argc, const char** argv, const char** env)
 		ppd->print_result_ascii(*result_f);
 
 		int dummy_k = 0;
-		computing_device_t target_device = intgr->get_computing_device();
+		//computing_device_t target_device = intgr->get_computing_device();
 
 		while (ppd->t <= opt.param->stop_time)
 		{
