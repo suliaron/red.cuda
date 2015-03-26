@@ -295,7 +295,7 @@ static void test_tools()
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (result != expected)
 		{
-			fprintf(stderr, "FAILED\n\t\tExpected: %s\n\t\t But was: %s\n", expected, result);
+			fprintf(stderr, "FAILED\n\t\tExpected: %s\n\t\t But was: %s\n", expected.c_str(), result.c_str());
 		}
 		else
 		{
