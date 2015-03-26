@@ -11,9 +11,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dummy.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="nbody_exception.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -50,9 +47,6 @@
       <Filter>Source Files</Filter>
     </CudaCompile>
     <CudaCompile Include="int_rungekutta8.cu">
-      <Filter>Source Files</Filter>
-    </CudaCompile>
-    <CudaCompile Include="int_rungekutta5.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
     <CudaCompile Include="integrator.cu">
@@ -94,9 +88,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="int_rungekutta8.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="int_rungekutta5.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

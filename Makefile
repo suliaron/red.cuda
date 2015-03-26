@@ -13,8 +13,8 @@ RM = rm -f
 
 # Options for the nvcc compiler
 # NVCC_FLAGS := -Xcompiler -Wall -G -g -O0 -gencode arch=compute_20,code=sm_20 -fmad=false
-# NVCC_FLAGS := -Xcompiler -Wall -O2 -gencode arch=compute_20,code=sm_20 -fmad=false
-NVCC_FLAGS := -Xcompiler -Wall -O2 -fmad=false
+NVCC_FLAGS := -Xcompiler -Wall -O2 -gencode arch=compute_20,code=sm_20 -fmad=false
+# NVCC_FLAGS := -Xcompiler -Wall -O2 -fmad=false
 
 # Paths
 SRC         := src
@@ -31,18 +31,18 @@ BIN         := bin
 # List the objects for the executables and library
 RED_OBJS := \
 gas_disk.o \
-integrator.o \
-nbody_exception.o \
-number_of_bodies.o \
-options.o \
-parameter.o \
-tokenizer.o \
 int_euler.o \
 int_rungekutta2.o \
 int_rungekutta4.o \
 int_rungekutta8.o \
+integrator.o \
 main.o \
-pp_disk.o
+nbody_exception.o \
+number_of_bodies.o \
+options.o \
+parameter.o \
+pp_disk.o \
+tokenizer.o
 
 RED_INITIAL_OBJS := \
 distribution.o \
@@ -52,6 +52,7 @@ main.o
 
 RED_UTILITY_OBJS := \
 file_util.o \
+red_test.o \
 tools.o \
 util.o
 
