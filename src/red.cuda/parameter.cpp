@@ -114,10 +114,6 @@ void parameter::set_param(string& key, string& value)
 		{
 			int_type = INTEGRATOR_RUNGEKUTTA4;
 		}
-		else if (value == "rk5" || value == "rungekutta5")
-		{
-			int_type = INTEGRATOR_RUNGEKUTTA5;
-		}
 		else if (value == "rkf8" || value == "rungekuttafehlberg8")
 		{
 			int_type = INTEGRATOR_RUNGEKUTTAFEHLBERG78;
@@ -234,7 +230,6 @@ ostream& operator<<(ostream& stream, const parameter* p)
 			"INTEGRATOR_EULER"
 			"INTEGRATOR_RUNGEKUTTA2",
 			"INTEGRATOR_RUNGEKUTTA4",
-			"INTEGRATOR_RUNGEKUTTA5",
 			"INTEGRATOR_RUNGEKUTTAFEHLBERG78",
 			"INTEGRATOR_RUNGEKUTTANYSTROM"
 		};
