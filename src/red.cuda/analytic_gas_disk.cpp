@@ -4,14 +4,15 @@
 #include <iostream>
 
 // includes project
-#include "gas_disk.h"
+#include "analytic_gas_disk.h"
 #include "red_constants.h"
 #include "redutilcu.h"
 #include "tokenizer.h"
 
 using namespace redutilcu;
 
-gas_disk::gas_disk(string& dir, string& filename, bool verbose) : /* initialization list: */
+analytic_gas_disk::analytic_gas_disk(string& dir, string& filename, bool verbose) : /* initialization list: */
+	
 	gas_decrease(GAS_DENSITY_CONSTANT),
 	t0(0.0),
 	t1(0.0),

@@ -8,13 +8,6 @@
 
 using namespace std;
 
-typedef enum gas_decrease
-	{ 
-		GAS_DENSITY_CONSTANT,
-		GAS_DENSITY_DECREASE_LINEAR,
-		GAS_DENSITY_DECREASE_EXPONENTIAL
-	} gas_decrease_t;
-
 class gas_disk
 {
 public:
@@ -32,47 +25,16 @@ public:
 	//! Copies parameters and variables from the cuda device to the host
 	void copy_to_host();
 
-	__host__ __device__ var_t reduction_factor(ttt_t time);
-
 	//! The decrease type for the gas density
 	string	name;
 	string	desc;
-	//! The decrease type for the gas density
-	gas_decrease_t gas_decrease;
 
-	//! Time when the decrease of gas starts (for linear and exponential)
-	ttt_t	t0; 
-	//! Time when the linear decrease of the gas ends
-	ttt_t	t1;
-	//! The exponent for the exponential decrease
-	ttt_t	e_folding_time;
-
-	//! The density of the gas disk in the midplane (time dependent)
-	var2_t	rho;
-	//! The scale height of the gas disk
-	var2_t	sch;
-	//! Describes how the velocity of the gas differs from the circular velocity
-	var2_t	eta;
-	//! Describes the Type 2 migartion of the giant planets
-	var2_t	tau;
-
-	//! The mean free path of the gas molecules (calculated based on rho, time dependent)
-	var2_t	mfp;
-	//! The temperaterure of the gas (calculated based on sch)
-	var2_t	temp;	
-
-	//! Constant for computing the mean thermal velocity (calculated, constant)
-	var_t	c_vth;
-
-	//! The viscosity parameter for the Shakura & Sunyaev model (constant)
-	var_t	alpha;
-	//! The mean molecular weight in units of the proton mass (constant)
-    var_t	mean_molecular_weight;
-	//! The mean molecular diameter (constant)
-	var_t	particle_diameter;
 
 	// Input/Output streams
 	friend ostream& operator<<(ostream& stream, const gas_disk* g_disk);
+
+	var_t virtual get_density(vec_t r) = 0;
+	vec_t virtual get_velocity(vec_t r) = 0;
 
 private:
 	void parse();
