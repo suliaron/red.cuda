@@ -6,6 +6,8 @@
 #include "number_of_bodies.h"
 #include "options.h"
 #include "pp_disk.h"
+#include "gas_disk.h"
+#include "analytic_gas_disk.h"
 #include "int_euler.h"
 #include "int_rungekutta2.h"
 #include "int_rungekutta4.h"
@@ -44,11 +46,20 @@ options::options(int argc, const char** argv) :
 	}
 
 	param = new parameter(input_dir, parameters_filename, verbose);
-	if (gasdisk_filename.length() > 0)
+
+	switch (g_disk_model)
 	{
-		g_disk = new gas_disk(input_dir, gasdisk_filename, verbose);
+	case GAS_DISK_MODEL_NONE:
+		break;
+	case GAS_DISK_MODEL_ANALYTIC:
+		g_disk = new analytic_gas_disk(input_dir, gasdisk_filename, verbose);
 		has_gas = true;
+		break;
+	case GAS_DISK_MODEL_FARGO:
+		throw string ("Error: fargo gas disk is not implemented.");
+		break;
 	}
+
 }
 
 options::~options() 
@@ -65,7 +76,8 @@ void options::print_usage()
 	cout << "     -n_chg  | --n_change_to_cpu              : the threshold value for the total number of SI bodies to change to the CPU (default is 100)" << endl;
 	cout << "     -iDir   | --inputDir <directory>         : the directory containing the input files"  << endl;
 	cout << "     -p      | --parameter <filename>         : the file containing the parameters of the simulation"  << endl;
-	cout << "     -gd     | --gas_disk <filename>          : the file containing the parameters of the gas disk"  << endl;
+	cout << "     -ga     | --analytic_gas_disk <filename> : the file containing the parameters of an analyticaly prescribed gas disk"  << endl;
+	cout << "     -gf     | --fargo_gas_disk <filename>    : the file containing the details of the gas disk resulted from FARGO simulations"  << endl;
 	cout << "     -ic     | --initial_condition <filename> : the file containing the initial conditions"  << endl;
 	cout << "     -info   | --info-filename                : the name of the file where the runtime output of the code will be stored (default is info.txt)" << endl;
 	cout << "     -event  | --event-filename               : the name of the file where the details of each event will be stored (default is event.txt)" << endl;
@@ -82,6 +94,7 @@ void options::create_default_options()
 {
 	id_a_dev           = 0;
 	comp_dev           = COMPUTING_DEVICE_GPU;
+	g_disk_model       = GAS_DISK_MODEL_NONE;
 	verbose            = false;
 	use_padded_storage = false;
 	n_tpb              = 64;
@@ -145,8 +158,15 @@ void options::parse_options(int argc, const char** argv)
 			i++;
 			parameters_filename = argv[i];
 		}
-		else if (p == "--gas_disk" || p == "-gd")
+		else if (p == "--analytic_gas_disk" || p == "-ga")
 		{
+			g_disk_model = GAS_DISK_MODEL_ANALYTIC;
+			i++;
+			gasdisk_filename = argv[i];
+		}
+		else if (p == "--fargo_gas_disk" || p == "-gf")
+		{
+			g_disk_model = GAS_DISK_MODEL_FARGO;
 			i++;
 			gasdisk_filename = argv[i];
 		}

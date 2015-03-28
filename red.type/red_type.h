@@ -20,6 +20,13 @@ typedef int    int_t;
 //! Type of integer tuples variables
 typedef int2   int2_t;
 
+typedef enum gas_disk_model
+		{
+			GAS_DISK_MODEL_NONE,
+			GAS_DISK_MODEL_ANALYTIC,
+			GAS_DISK_MODEL_FARGO,
+			GAS_DISK_MODEL_N,
+		} gas_disk_model_t;
 
 typedef enum computing_device
 		{

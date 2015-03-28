@@ -26,9 +26,6 @@
     <ClCompile Include="number_of_bodies.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="analytic_gas_disk.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="main.cu">
@@ -50,6 +47,12 @@
       <Filter>Source Files</Filter>
     </CudaCompile>
     <CudaCompile Include="integrator.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="analytic_gas_disk.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="gas_disk.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
   </ItemGroup>

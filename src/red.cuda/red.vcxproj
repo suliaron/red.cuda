@@ -172,6 +172,8 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="analytic_gas_disk.cu" />
+    <CudaCompile Include="gas_disk.cu" />
     <CudaCompile Include="integrator.cu" />
     <CudaCompile Include="int_euler.cu" />
     <CudaCompile Include="int_rungekutta2.cu" />
@@ -181,7 +183,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile Include="pp_disk.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="analytic_gas_disk.cpp" />
     <ClCompile Include="nbody_exception.cpp" />
     <ClCompile Include="number_of_bodies.cpp" />
     <ClCompile Include="options.cpp" />

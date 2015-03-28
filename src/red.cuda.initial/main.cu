@@ -141,7 +141,7 @@ void set_parameters_of_Two_body_disk(body_disk_t& disk)
 	srand(time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
-	disk.nBody[BODY_TYPE_TESTPARTICLE] = 1;
+	disk.nBody[BODY_TYPE_PLANETESIMAL] = 1;
 
 	int_t nBodies = calculate_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
@@ -152,16 +152,13 @@ void set_parameters_of_Two_body_disk(body_disk_t& disk)
 
 	disk.names.push_back("star");
 	disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
-
-	var_t tmp = constants::SolarRadiusToAu;
-	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), tmp, tmp);
-
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), 1.0*constants::SolarRadiusToAu, 1.0*constants::SolarRadiusToAu);
 	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
 	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
 	disk.stop_at[bodyIdx] = 0.0;
 
-	type = BODY_TYPE_TESTPARTICLE;
+	type = BODY_TYPE_PLANETESIMAL;
 	{
 		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 1.0);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.0);
@@ -170,9 +167,10 @@ void set_parameters_of_Two_body_disk(body_disk_t& disk)
 		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.0, 0.0);
-		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 0.0, 0.0);
-		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+		//disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 1.0*constants::MeterToAu, 1.0*constants::MeterToAu);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7*constants::GramPerCm3ToSolarPerAu3, 2.7*constants::GramPerCm3ToSolarPerAu3);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 1.0, 1.0);
 
 		for (int i = 0; i < disk.nBody[type]; i++) 
 		{
@@ -967,7 +965,6 @@ int main(int argc, const char **argv)
 	string filename;
 	string output_path;
 
-
 	parse_options(argc, argv, outDir, filename);
 
 	try
@@ -980,11 +977,11 @@ int main(int argc, const char **argv)
 
 		//create_n_spl_body_disk(outDir, filename);
 
-		create_n_pp_body_disk(outDir, filename);
+		//create_n_pp_body_disk(outDir, filename);
 
 		//create_n_massive_body_disk(outDir, filename);
 
-		//create_two_body_disk(outDir, filename);
+		create_two_body_disk(outDir, filename);
 
 		//create_Dvorak_disk(outDir, filename);
 	}

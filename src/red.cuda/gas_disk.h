@@ -15,32 +15,20 @@ public:
 	gas_disk(string& dir, string& filename, bool verbose);
 	~gas_disk();
 
-	//! Calculate the mean free path length and temperature profile
-	/*
-		\param m_star The mass of the star (time dependent)
-	*/
-	void calc(var_t	m_star);
+	__host__ __device__ var_t virtual get_density(var2_t sch, var2_t rho, const vec_t* rVec) = 0;
+	__host__ __device__ vec_t virtual get_velocity(var_t mu, var2_t eta, const vec_t* rVec) = 0;
+
+	void virtual calc(var_t m_star) = 0;
 	//! Copies parameters and variables from the host to the cuda device
-	void copy_to_device();
+	virtual void copy_to_device() = 0;
 	//! Copies parameters and variables from the cuda device to the host
-	void copy_to_host();
+	virtual void copy_to_host() = 0;
 
-	//! The decrease type for the gas density
-	string	name;
-	string	desc;
+	//__host__ __device__ vec_t circular_velocity(var_t mu, const vec_t* rVec);
 
-
-	// Input/Output streams
-	friend ostream& operator<<(ostream& stream, const gas_disk* g_disk);
-
-	var_t virtual get_density(vec_t r) = 0;
-	vec_t virtual get_velocity(vec_t r) = 0;
-
-private:
-	void parse();
-	void set_param(string& key, string& value);
-
-	//! holds a copy of the file containing the parameters of the simulation
-	string	data;
-	bool verbose;  //!< print the key - value information to the screen
+	bool verbose;
+	string dir;
+	string filename;
+	string name;
+	string desc;
 };

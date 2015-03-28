@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-v -gpu -n_tpb 64 -iDir C:\Work\red.cuda.Results\Dvorak\2D\NewRun\Run_cf1.0_Copy -p parameters.txt -ic run_04.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -gpu -n_tpb 64 -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Test_Anal_Gas -p parameters.txt -ic input.txt -ga gasdisk.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

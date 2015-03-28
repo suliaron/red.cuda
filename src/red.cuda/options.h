@@ -7,6 +7,7 @@
 // includes project
 #include "integrator.h"
 #include "gas_disk.h"
+#include "analytic_gas_disk.h"
 #include "parameter.h"
 #include "pp_disk.h"
 #include "red_type.h"
@@ -21,6 +22,7 @@ public:
 
 	pp_disk* create_pp_disk();
 	integrator* create_integrator(pp_disk* ppd, ttt_t dt);
+	gas_disk* create_gas_disk();
 
 	string	printout_dir;			//!< Printout directory
 	string	input_dir;				//!< Input directory
@@ -32,6 +34,7 @@ public:
 	bool	ef;						//!< Extend the file names with command line information. Only for developer and debugger purposes.
 
 	computing_device_t comp_dev;    //!< The computing device to carry out the calculations (cpu or gpu)
+	gas_disk_model_t g_disk_model;
 
 	parameter* param;
 	gas_disk*  g_disk;	

@@ -10,6 +10,7 @@
 
 // includes project
 #include "gas_disk.h"
+#include "analytic_gas_disk.h"
 #include "nbody_exception.h"
 #include "pp_disk.h"
 #include "redutilcu.h"
@@ -400,7 +401,58 @@ void pp_disk::set_kernel_launch_param(int n_data)
 	block.x = n_thread;
 }
 
-void pp_disk::cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
+void pp_disk::cpu_calc_drag_accel(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
+{
+	var_t m_star = p[0].mass;
+	analytic_gas_disk *a_gd = (analytic_gas_disk*)g_disk;
+
+	var_t decr_fact = a_gd->reduction_factor(a_gd->gas_decrease, curr_t);
+	for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
+	{
+		var_t mu   = 1.0 * (m_star + p[i].mass);
+		vec_t vGas = g_disk->get_velocity(mu, a_gd->eta, &r[i]);
+		var_t rho  = g_disk->get_density(a_gd->sch, a_gd->rho, &r[i]);
+
+
+		var_t rhoGas = rFactor * gas_density_at(gasDisk, (vec_t*)&coor[bodyIdx]);
+		var_t r = norm((vec_t*)&coor[bodyIdx]);
+
+		vec_t u;
+		u.x	= velo[bodyIdx].x - vGas.x;
+		u.y	= velo[bodyIdx].y - vGas.y;
+		u.z	= velo[bodyIdx].z - vGas.z;
+		var_t C	= 0.0;
+
+		var_t lambda = gasDisk->mfp.x * pow(r, gasDisk->mfp.y);
+		// Epstein-regime:
+		if (     params[bodyIdx].radius <= 0.1 * lambda)
+		{
+			var_t vth = mean_thermal_speed_CMU(gasDisk, r);
+			C = params[bodyIdx].gamma_epstein * vth * rhoGas;
+		}
+		// Stokes-regime:
+		else if (params[bodyIdx].radius >= 10.0 * lambda)
+		{
+			C = params[bodyIdx].gamma_stokes * norm(&u) * rhoGas;
+		}
+		// Transition-regime:
+		else
+		{
+
+		}
+
+		acce[tid].x = -C * u.x;
+		acce[tid].y = -C * u.y;
+		acce[tid].z = -C * u.z;
+		acce[tid].w = 0.0;
+
+		//printf("acce[tid].x: %10le\n", acce[tid].x);
+		//printf("acce[tid].y: %10le\n", acce[tid].y);
+		//printf("acce[tid].z: %10le\n", acce[tid].z);
+	}
+}
+
+void pp_disk::cpu_calc_grav_accel_SI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
 {
 	for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
 	{
