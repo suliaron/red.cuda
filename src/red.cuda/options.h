@@ -6,7 +6,6 @@
 
 // includes project
 #include "integrator.h"
-#include "gas_disk.h"
 #include "analytic_gas_disk.h"
 #include "parameter.h"
 #include "pp_disk.h"
@@ -22,7 +21,6 @@ public:
 
 	pp_disk* create_pp_disk();
 	integrator* create_integrator(pp_disk* ppd, ttt_t dt);
-	gas_disk* create_gas_disk();
 
 	string	printout_dir;			//!< Printout directory
 	string	input_dir;				//!< Input directory
@@ -37,7 +35,7 @@ public:
 	gas_disk_model_t g_disk_model;
 
 	parameter* param;
-	gas_disk*  g_disk;	
+	analytic_gas_disk*  a_gd;	
 
 	string info_filename;
 	string event_filename;
@@ -48,8 +46,6 @@ private:
 	string parameters_filename;     //!< Path of the file containing the parameters of the simulation
 	string gasdisk_filename;        //!< Path of the file containing the parameters of the nebula
 	string bodylist_filename;       //!< Path of the file containing the data of the bodies
-
-	bool has_gas;
 
 	void print_usage();
 	void create_default_options();

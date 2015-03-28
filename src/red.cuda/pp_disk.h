@@ -5,7 +5,7 @@
 #include <vector>
 
 // includes project
-#include "gas_disk.h"
+#include "analytic_gas_disk.h"
 #include "number_of_bodies.h"
 #include "red_type.h"
 
@@ -15,9 +15,11 @@ class pp_disk
 {
 public:
 
-	pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage, computing_device_t comp_dev);
+	pp_disk(string& path, int n_tpb, bool use_padded_storage, gas_disk_model_t g_disk_model, computing_device_t comp_dev);
 	~pp_disk();
 
+	//! Initialize the members to defaule values
+	void initialize();
 	//! Copies ODE parameters and variables from the host to the cuda device
 	void copy_to_device();
 	//! Copies ODE parameters and variables from the cuda device to the host
@@ -86,7 +88,6 @@ public:
 	void handle_collision();
 	void handle_ejection_hit_centrum();
 	void handle_collision_pair(int i, event_data_t *collision);
-	//void calc_phase_after_collision(var_t m1, var_t m2, const vec_t* r1, const vec_t* v1, const vec_t* r2, const vec_t* v2, vec_t& r0, vec_t& v0);
 
 	//! Check all bodies against ejection and hit centrum criterium
 	int call_kernel_check_for_ejection_hit_centrum();
@@ -113,13 +114,13 @@ public:
 	// Input/Output streams
 	friend ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies);
 
-	number_of_bodies	*n_bodies;
-	sim_data_t	*sim_data;		/*!< struct containing all the data of the simulation */
+	ttt_t t;
+	number_of_bodies* n_bodies;
+	sim_data_t* sim_data;		/*!< struct containing all the data of the simulation */
 
-	gas_disk	*g_disk;
-	gas_disk	*d_g_disk;
-
-	ttt_t		t;
+	gas_disk_model_t g_disk_model;
+	analytic_gas_disk* a_gd;
+	//fargo_gas_disk* f_gd;
 
 	int n_ejection[   EVENT_COUNTER_NAME_N];   //!< Number of ejection
 	int n_hit_centrum[EVENT_COUNTER_NAME_N];   //!< Number of hit centrum
@@ -138,20 +139,6 @@ private:
 
 	//! Allocates storage for data on the host and device memory
 	void allocate_storage();
-	//void allocate_host_storage(sim_data_t *sd, int n);
-	//void allocate_device_storage(sim_data_t *sd, int n);
-
-	//void deallocate_host_storage(sim_data_t *sd);
-	//void deallocate_device_storage(sim_data_t *sd);
-
-	//! Computes the total mass of the system
-	//var_t get_total_mass();
-	//! Compute the position and velocity of the system's barycenter
-	/*  
-		\param R0 will contain the position of the barycenter
-		\param V0 will contain the velocity of the barycenter
-	*/
-	//void compute_bc(vec_t* R0, vec_t* V0);
 
 	void store_event_data(event_name_t name, ttt_t t, var_t d, int idx1, int idx2, event_data_t *e);
 
@@ -163,7 +150,15 @@ private:
 	void cpu_calc_grav_accel_NI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
 	void cpu_calc_grav_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
 
-	void cpu_calc_drag_accel(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
+	void cpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
+	void cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
+
+	__host__ __device__ var_t reduction_factor(gas_decrease_t gas_decrease, ttt_t t0, ttt_t t1, ttt_t e_folding_time, ttt_t t);
+	__host__ __device__ vec_t circular_velocity(var_t mu, const vec_t* rVec);
+	__host__ __device__ var_t get_density(var2_t sch, var2_t rho, const vec_t* rVec);
+	__host__ __device__ vec_t get_velocity(var_t mu, var2_t eta, const vec_t* rVec);
+
+
 
 	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 

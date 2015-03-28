@@ -13,8 +13,7 @@
 
 using namespace redutilcu;
 
-analytic_gas_disk::analytic_gas_disk(string& dir, string& filename, bool verbose) : 
-	gas_disk(dir, filename, verbose)
+analytic_gas_disk::analytic_gas_disk(string& dir, string& filename, bool verbose)
 {
 	set_default_values();
 
@@ -256,118 +255,6 @@ void analytic_gas_disk::calc(var_t m_star)
 
 	temp.x = SQR(sch.x) * constants::Gauss2 * m_star * mean_molecular_weight * constants::ProtonMass_CMU / constants::Boltzman_CMU;
 	temp.y = 2.0 * sch.y - 3.0;
-}
-
-__host__ __device__
-	var_t	analytic_gas_disk::reduction_factor(gas_decrease_t gas_decrease, ttt_t t)
-{
-	switch (gas_decrease) 
-	{
-	case GAS_DENSITY_CONSTANT:
-		return 1.0;
-	case GAS_DENSITY_DECREASE_LINEAR:
-		if (t <= t0)
-		{
-			return 1.0;
-		}
-		else if (t0 < t && t <= t1 && t0 != t1)
-		{
-			return 1.0 - (t - t0)/(t1 - t0);
-		}
-		else
-		{
-			return 0.0;
-		}
-	case GAS_DENSITY_DECREASE_EXPONENTIAL:
-		return exp(-(t - t0)/e_folding_time);
-	default:
-		return 1.0;
-	}
-}
-
-#define INNER_EDGE 0.1 // AU
-
-__host__ __device__
-var_t analytic_gas_disk::get_density(var2_t sch, var2_t rho, const vec_t* rVec)
-{
-	var_t density = 0.0;
-
-	var_t r		= sqrt(SQR(rVec->x) + SQR(rVec->y));
-	var_t h		= sch.x * pow(r, sch.y);
-	var_t arg	= SQR(rVec->z/h);
-	if (INNER_EDGE < r)
-	{
-		density	= rho.x * pow(r, rho.y) * exp(-arg);
-	}
-	else
-	{
-		var_t a	= rho.x * pow(INNER_EDGE, rho.y - 4.0);
-		density	= a * SQR(SQR(r)) * exp(-arg);
-	}
-
-	return density;
-}
-#undef INNER_EDGE
-
-__host__ __device__
-vec_t analytic_gas_disk::circular_velocity(var_t mu, const vec_t* rVec)
-{
-	vec_t result = {0.0, 0.0, 0.0, 0.0};
-
-	var_t r  = sqrt(SQR(rVec->x) + SQR(rVec->y));
-	var_t vc = sqrt(mu/r);
-
-	var_t p = 0.0;
-	if (rVec->x == 0.0 && rVec->y == 0.0)
-	{
-		return result;
-	}
-	else if (rVec->y == 0.0)
-	{
-		result.y = rVec->x > 0.0 ? vc : -vc;
-	}
-	else if (rVec->x == 0.0)
-	{
-		result.x = rVec->y > 0.0 ? -vc : vc;
-	}
-	else if (rVec->x >= rVec->y)
-	{
-		p = rVec->y / rVec->x;
-		result.y = rVec->x >= 0 ? vc/sqrt(1.0 + SQR(p)) : -vc/sqrt(1.0 + SQR(p));
-		result.x = -result.y*p;
-	}
-	else
-	{
-		p = rVec->x / rVec->y;
-		result.x = rVec->y >= 0 ? -vc/sqrt(1.0 + SQR(p)) : vc/sqrt(1.0 + SQR(p));
-		result.y = -result.x*p;
-	}
-
-	return result;
-}
-
-
-__host__ __device__
-vec_t analytic_gas_disk::get_velocity(var_t mu, var2_t eta, const vec_t* rVec)
-{
-	vec_t v_gas = circular_velocity(mu, rVec);
-	var_t r = sqrt(SQR(rVec->x) + SQR(rVec->y));
-
-	var_t v = sqrt(1.0 - 2.0*eta.x * pow(r, eta.y));
-	v_gas.x *= v;
-	v_gas.y *= v;
-	
-	return v_gas;
-}
-
-// TODO: implement
-void analytic_gas_disk::copy_to_device()
-{
-}
-
-// TODO: implement
-void analytic_gas_disk::copy_to_host()
-{
 }
 
 ostream& operator<<(ostream& stream, const analytic_gas_disk* g_disk)

@@ -9,8 +9,6 @@
 #include "device_launch_parameters.h"
 
 // includes project
-#include "gas_disk.h"
-#include "analytic_gas_disk.h"
 #include "nbody_exception.h"
 #include "pp_disk.h"
 #include "redutilcu.h"
@@ -401,56 +399,178 @@ void pp_disk::set_kernel_launch_param(int n_data)
 	block.x = n_thread;
 }
 
-void pp_disk::cpu_calc_drag_accel(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
+void pp_disk::cpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
-	var_t m_star = p[0].mass;
-	analytic_gas_disk *a_gd = (analytic_gas_disk*)g_disk;
+	int n_sink = n_bodies->get_n_NSI();
+	if (0 < n_sink)
+	{
+		interaction_bound int_bound = n_bodies->get_bound_GD();
+		cpu_calc_drag_accel_NSI(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, dy);
+	}
+}
 
-	var_t decr_fact = a_gd->reduction_factor(a_gd->gas_decrease, curr_t);
+void pp_disk::cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a)
+{
+	var_t decr_fact = reduction_factor(a_gd->gas_decrease, a_gd->t0, a_gd->t1, a_gd->e_folding_time, curr_t);
+	if (1.0e-6 > decr_fact)
+	{
+		return;
+	}
+
+	var_t m_star = p[0].mass;
 	for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
 	{
-		var_t mu   = 1.0 * (m_star + p[i].mass);
-		vec_t vGas = g_disk->get_velocity(mu, a_gd->eta, &r[i]);
-		var_t rho  = g_disk->get_density(a_gd->sch, a_gd->rho, &r[i]);
+		var_t mu        = 1.0 * (m_star + p[i].mass);
+		vec_t v_g       = get_velocity(mu, a_gd->eta, &r[i]);
+		vec_t u         = {v_g.x - v[i].x, v_g.y - v[i].y, v_g.z - v[i].z, 0.0};
+		var_t u_n       = sqrt(SQR(u.x) + SQR(u.y) + SQR(u.z));
+		var_t density_g = get_density(a_gd->sch, a_gd->rho, &r[i]);
 
+		var_t f = decr_fact * (3.0 * p[i].cd * density_g * u_n) / (8.0 * p[i].radius * p[i].density);
 
-		var_t rhoGas = rFactor * gas_density_at(gasDisk, (vec_t*)&coor[bodyIdx]);
-		var_t r = norm((vec_t*)&coor[bodyIdx]);
+		a[i].x += f * u.x;
+		a[i].y += f * u.y;
+		a[i].z += f * u.z;
 
-		vec_t u;
-		u.x	= velo[bodyIdx].x - vGas.x;
-		u.y	= velo[bodyIdx].y - vGas.y;
-		u.z	= velo[bodyIdx].z - vGas.z;
-		var_t C	= 0.0;
+		//var_t rhoGas = rFactor * gas_density_at(gasDisk, (vec_t*)&coor[bodyIdx]);
+		//var_t r = norm((vec_t*)&coor[bodyIdx]);
 
-		var_t lambda = gasDisk->mfp.x * pow(r, gasDisk->mfp.y);
-		// Epstein-regime:
-		if (     params[bodyIdx].radius <= 0.1 * lambda)
-		{
-			var_t vth = mean_thermal_speed_CMU(gasDisk, r);
-			C = params[bodyIdx].gamma_epstein * vth * rhoGas;
-		}
-		// Stokes-regime:
-		else if (params[bodyIdx].radius >= 10.0 * lambda)
-		{
-			C = params[bodyIdx].gamma_stokes * norm(&u) * rhoGas;
-		}
-		// Transition-regime:
-		else
-		{
+		//vec_t u;
+		//u.x	= velo[bodyIdx].x - vGas.x;
+		//u.y	= velo[bodyIdx].y - vGas.y;
+		//u.z	= velo[bodyIdx].z - vGas.z;
+		//var_t C	= 0.0;
 
-		}
+		//var_t lambda = gasDisk->mfp.x * pow(r, gasDisk->mfp.y);
+		//// Epstein-regime:
+		//if (     params[bodyIdx].radius <= 0.1 * lambda)
+		//{
+		//	var_t vth = mean_thermal_speed_CMU(gasDisk, r);
+		//	C = params[bodyIdx].gamma_epstein * vth * rhoGas;
+		//}
+		//// Stokes-regime:
+		//else if (params[bodyIdx].radius >= 10.0 * lambda)
+		//{
+		//	C = params[bodyIdx].gamma_stokes * norm(&u) * rhoGas;
+		//}
+		//// Transition-regime:
+		//else
+		//{
 
-		acce[tid].x = -C * u.x;
-		acce[tid].y = -C * u.y;
-		acce[tid].z = -C * u.z;
-		acce[tid].w = 0.0;
+		//}
+
+		//acce[tid].x = -C * u.x;
+		//acce[tid].y = -C * u.y;
+		//acce[tid].z = -C * u.z;
+		//acce[tid].w = 0.0;
 
 		//printf("acce[tid].x: %10le\n", acce[tid].x);
 		//printf("acce[tid].y: %10le\n", acce[tid].y);
 		//printf("acce[tid].z: %10le\n", acce[tid].z);
 	}
 }
+
+__host__ __device__
+var_t pp_disk::reduction_factor(gas_decrease_t gas_decrease, ttt_t t0, ttt_t t1, ttt_t e_folding_time, ttt_t t)
+{
+	switch (gas_decrease) 
+	{
+	case GAS_DENSITY_CONSTANT:
+		return 1.0;
+	case GAS_DENSITY_DECREASE_LINEAR:
+		if (t <= t0)
+		{
+			return 1.0;
+		}
+		else if (t0 < t && t <= t1 && t0 != t1)
+		{
+			return 1.0 - (t - t0)/(t1 - t0);
+		}
+		else
+		{
+			return 0.0;
+		}
+	case GAS_DENSITY_DECREASE_EXPONENTIAL:
+		return exp(-(t - t0)/e_folding_time);
+	default:
+		return 1.0;
+	}
+}
+
+#define INNER_EDGE 0.1 // AU
+
+__host__ __device__
+var_t pp_disk::get_density(var2_t sch, var2_t rho, const vec_t* rVec)
+{
+	var_t density = 0.0;
+
+	var_t r		= sqrt(SQR(rVec->x) + SQR(rVec->y));
+	var_t h		= sch.x * pow(r, sch.y);
+	var_t arg	= SQR(rVec->z/h);
+	if (INNER_EDGE < r)
+	{
+		density	= rho.x * pow(r, rho.y) * exp(-arg);
+	}
+	else
+	{
+		var_t a	= rho.x * pow(INNER_EDGE, rho.y - 4.0);
+		density	= a * SQR(SQR(r)) * exp(-arg);
+	}
+
+	return density;
+}
+#undef INNER_EDGE
+
+__host__ __device__
+vec_t pp_disk::circular_velocity(var_t mu, const vec_t* rVec)
+{
+	vec_t result = {0.0, 0.0, 0.0, 0.0};
+
+	var_t r  = sqrt(SQR(rVec->x) + SQR(rVec->y));
+	var_t vc = sqrt(mu/r);
+
+	var_t p = 0.0;
+	if (rVec->x == 0.0 && rVec->y == 0.0)
+	{
+		return result;
+	}
+	else if (rVec->y == 0.0)
+	{
+		result.y = rVec->x > 0.0 ? vc : -vc;
+	}
+	else if (rVec->x == 0.0)
+	{
+		result.x = rVec->y > 0.0 ? -vc : vc;
+	}
+	else if (rVec->x >= rVec->y)
+	{
+		p = rVec->y / rVec->x;
+		result.y = rVec->x >= 0 ? vc/sqrt(1.0 + SQR(p)) : -vc/sqrt(1.0 + SQR(p));
+		result.x = -result.y*p;
+	}
+	else
+	{
+		p = rVec->x / rVec->y;
+		result.x = rVec->y >= 0 ? -vc/sqrt(1.0 + SQR(p)) : vc/sqrt(1.0 + SQR(p));
+		result.y = -result.x*p;
+	}
+
+	return result;
+}
+
+__host__ __device__
+vec_t pp_disk::get_velocity(var_t mu, var2_t eta, const vec_t* rVec)
+{
+	vec_t v_gas = circular_velocity(mu, rVec);
+	var_t r = sqrt(SQR(rVec->x) + SQR(rVec->y));
+
+	var_t v = sqrt(1.0 - 2.0*eta.x * pow(r, eta.y));
+	v_gas.x *= v;
+	v_gas.y *= v;
+	
+	return v_gas;
+}
+
 
 void pp_disk::cpu_calc_grav_accel_SI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
 {
@@ -528,7 +648,6 @@ void pp_disk::cpu_calc_grav_accel_NSI(ttt_t curr_t, interaction_bound int_bound,
 {
 	cpu_calc_grav_accel_SI(t, int_bound, body_md, p, r, v, a, events, event_counter);
 }
-
 
 void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
@@ -820,6 +939,7 @@ void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t
 			{
 			}
 			cpu_calc_grav_accel(curr_t, r, v, dy);
+			cpu_calc_drag_accel(curr_t, r, v, dy);
 		}
 		else
 		{
@@ -987,28 +1107,13 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 	}
 }
 
-pp_disk::pp_disk(string& path, gas_disk *gd, int n_tpb, bool use_padded_storage, computing_device_t comp_dev) :
-	g_disk(gd),
-	d_g_disk(0x0),
+pp_disk::pp_disk(string& path, int n_tpb, bool use_padded_storage, gas_disk_model_t g_disk_model, computing_device_t comp_dev) :
 	n_tpb(n_tpb),
 	use_padded_storage(use_padded_storage),
-	comp_dev(comp_dev),
-	t(0.0),
-	sim_data(0x0),
-	n_bodies(0x0),
-	event_counter(0),
-	d_event_counter(0x0),
-	events(0x0),
-	d_events(0x0)
+	g_disk_model(g_disk_model),
+	comp_dev(comp_dev)
 {
-	for (int i = 0; i < EVENT_COUNTER_NAME_N; i++)
-	{
-		n_hit_centrum[i] = 0;
-		n_ejection[i]    = 0;
-		n_collision[i]   = 0;
-		n_event[i]       = 0;
-	}
-
+	initialize();
 	n_bodies = get_number_of_bodies(path);
 	allocate_storage();
 	redutilcu::create_aliases(comp_dev, sim_data);
@@ -1025,8 +1130,27 @@ pp_disk::~pp_disk()
 	FREE_DEVICE_VECTOR((void **)&d_event_counter);
 	delete sim_data;
 
-	FREE_HOST_VECTOR(  (void **)&g_disk);
-	FREE_DEVICE_VECTOR((void **)&d_g_disk);
+	//FREE_HOST_VECTOR(  (void **)&g_disk);
+	//FREE_DEVICE_VECTOR((void **)&d_g_disk);
+}
+
+void pp_disk::initialize()
+{
+	t               = 0.0;
+	sim_data        = 0x0;
+	n_bodies        = 0x0;
+	event_counter   = 0;
+	d_event_counter = 0x0;
+	events          = 0x0;
+	d_events        = 0x0;
+
+	for (int i = 0; i < EVENT_COUNTER_NAME_N; i++)
+	{
+		n_hit_centrum[i] = 0;
+		n_ejection[i]    = 0;
+		n_collision[i]   = 0;
+		n_event[i]       = 0;
+	}
 }
 
 void pp_disk::allocate_storage()

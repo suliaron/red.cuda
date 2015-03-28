@@ -20,6 +20,14 @@ typedef int    int_t;
 //! Type of integer tuples variables
 typedef int2   int2_t;
 
+typedef enum gas_decrease
+		{ 
+			GAS_DENSITY_CONSTANT,
+			GAS_DENSITY_DECREASE_LINEAR,
+			GAS_DENSITY_DECREASE_EXPONENTIAL,
+			GAS_DENSITY_N
+		} gas_decrease_t;
+
 typedef enum gas_disk_model
 		{
 			GAS_DISK_MODEL_NONE,
@@ -94,19 +102,13 @@ typedef enum body_type
 		} body_type_t;
 
 typedef struct orbelem
-		{
-			//! Semimajor-axis of the body
-			var_t sma;
-			//! Eccentricity of the body
-			var_t ecc;
-			//! Inclination of the body
-			var_t inc;
-			//! Argument of the pericenter
-			var_t peri;
-			//! Longitude of the ascending node
-			var_t node;
-			//! Mean anomaly
-			var_t mean;
+		{			
+			var_t sma;   //!< Semimajor-axis of the body
+			var_t ecc;   //!< Eccentricity of the body			
+			var_t inc;   //!< Inclination of the body			
+			var_t peri;  //!< Argument of the pericenter			
+			var_t node;  //!< Longitude of the ascending node			
+			var_t mean;  //!< Mean anomaly
 		} orbelem_t;
 
 #ifdef _WIN64

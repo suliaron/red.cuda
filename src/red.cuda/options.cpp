@@ -19,9 +19,8 @@
 using namespace redutilcu;
 
 options::options(int argc, const char** argv) :
-	has_gas(false),
 	param(0x0),
-	g_disk(0x0)
+	a_gd(0x0)
 {
 	create_default_options();
 	parse_options(argc, argv);
@@ -52,14 +51,12 @@ options::options(int argc, const char** argv) :
 	case GAS_DISK_MODEL_NONE:
 		break;
 	case GAS_DISK_MODEL_ANALYTIC:
-		g_disk = new analytic_gas_disk(input_dir, gasdisk_filename, verbose);
-		has_gas = true;
+		a_gd = new analytic_gas_disk(input_dir, gasdisk_filename, verbose);
 		break;
 	case GAS_DISK_MODEL_FARGO:
 		throw string ("Error: fargo gas disk is not implemented.");
 		break;
 	}
-
 }
 
 options::~options() 
@@ -160,15 +157,15 @@ void options::parse_options(int argc, const char** argv)
 		}
 		else if (p == "--analytic_gas_disk" || p == "-ga")
 		{
-			g_disk_model = GAS_DISK_MODEL_ANALYTIC;
 			i++;
 			gasdisk_filename = argv[i];
+			g_disk_model = GAS_DISK_MODEL_ANALYTIC;
 		}
 		else if (p == "--fargo_gas_disk" || p == "-gf")
 		{
-			g_disk_model = GAS_DISK_MODEL_FARGO;
 			i++;
 			gasdisk_filename = argv[i];
+			g_disk_model = GAS_DISK_MODEL_FARGO;
 		}
 		else if (p == "--initial_conditions" || p == "-ic")
 		{
@@ -227,10 +224,11 @@ void options::parse_options(int argc, const char** argv)
 pp_disk* options::create_pp_disk()
 {
 	string path = file::combine_path(input_dir, bodylist_filename);
-	pp_disk* ppd = new pp_disk(path, g_disk, n_tpb, use_padded_storage, comp_dev);
-	if (0x0 != ppd->g_disk)
+	pp_disk* ppd = new pp_disk(path, n_tpb, use_padded_storage, g_disk_model, comp_dev);
+	if (0x0 != a_gd)
 	{
-		ppd->g_disk->calc(ppd->get_mass_of_star());
+		ppd->a_gd = a_gd;
+		ppd->a_gd->calc(ppd->get_mass_of_star());
 		//ppd->print_result_ascii(cout);
 	}
 
