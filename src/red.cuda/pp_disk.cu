@@ -935,10 +935,15 @@ void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t
 	case 1:  // Calculate accelerations originated from the gravitational force
 		if (COMPUTING_DEVICE_CPU == comp_dev)
 		{
+			// This if will be used to speed-up the calculation when gas drag is also acting on the bodies.
+			// (BUT early optimization is the root of much evil)
 			if (rr == 0)
 			{
 			}
-			cpu_calc_grav_accel(curr_t, r, v, dy);
+			if (GAS_DISK_MODEL_NONE != g_disk_model)
+			{
+				cpu_calc_grav_accel(curr_t, r, v, dy);
+			}
 			cpu_calc_drag_accel(curr_t, r, v, dy);
 		}
 		else
@@ -987,7 +992,7 @@ void pp_disk::handle_collision()
 
 	// TODO: implement collision graph: bredth-first search
 
-	for (int i = 0; i < sp_events.size(); i++)
+	for (unsigned int i = 0; i < sp_events.size(); i++)
 	{
 		handle_collision_pair(i, &sp_events[i]);
 		increment_event_counter(n_collision);
@@ -1639,7 +1644,7 @@ void pp_disk::print_event_data(ostream& sout, ostream& log_f)
 	log_f.setf(ios::right);
 	log_f.setf(ios::scientific);
 
-	for (int i = 0; i < sp_events.size(); i++)
+	for (unsigned int i = 0; i < sp_events.size(); i++)
 	{
 		sout << setw(16)      << e_names[sp_events[i].event_name] << SEP
 			 << setw(var_t_w) << sp_events[i].t / constants::Gauss << SEP /* time of the event in day */
