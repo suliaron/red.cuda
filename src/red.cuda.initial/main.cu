@@ -28,11 +28,10 @@ typedef unsigned long ulong;
 
 void populate_disk(body_disk_t& disk, sim_data_t *sd)
 {
-    ttt_t           epoch = 0.0;
-	param_t	        param;
-    body_metadata_t body_md;
-
-    orbelem_t oe = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    ttt_t           epoch   = 0.0;
+	param_t	        param   = {0.0, 0.0, 0.0, 0.0};
+	body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
+	orbelem_t       oe      = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // The id of each body must be larger than 0 in order to indicate inactive body with negative id (ie. zero is not good)
     int bodyIdx = 0;
@@ -84,6 +83,52 @@ void populate_disk(body_disk_t& disk, sim_data_t *sd)
 	} /* for */
 }
 
+
+void set_parameters_of_pl_to_test_anal_gd(body_disk_t& disk)
+{
+	srand(time(NULL));
+
+	disk.nBody[BODY_TYPE_STAR        ] = 1;
+	disk.nBody[BODY_TYPE_PLANETESIMAL] = 10;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at = new var_t[nBodies];
+
+    int bodyIdx = 0;
+	int type = BODY_TYPE_STAR;
+
+	disk.names.push_back("star");
+	disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), 1.0*constants::SolarRadiusToAu, 1.0*constants::SolarRadiusToAu);
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+	disk.stop_at[bodyIdx] = 0.0;
+
+	type = BODY_TYPE_PLANETESIMAL;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 10.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		//disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 1.0*constants::MeterToAu, 1.0*constants::MeterToAu);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7*constants::GramPerCm3ToSolarPerAu3, 2.7*constants::GramPerCm3ToSolarPerAu3);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 1.0, 1.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
 
 void set_parameters_of_Dvorak_disk(nebula& n, body_disk_t& disk)
 {
@@ -927,6 +972,60 @@ void create_n_tp_body_disk(string& dir, string& filename)
 }
 
 
+void create_n_pl_to_test_anal_gd(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	initialize(disk);
+
+	set_parameters_of_pl_to_test_anal_gd(disk);
+
+	sim_data_t* sim_data = new sim_data_t;
+	int nBodies = calculate_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_disk(disk, sim_data);
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->h_p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
+		for (int i = 1; i < nBodies; i++)
+		{
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+			sim_data->h_oe[i].sma = (var_t)i;
+			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			if (1 == ret_code)
+			{
+				cerr << "Could not calculate the phase." << endl;
+				exit(0);
+			}
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
+		}
+	}
+
+	tools::transform_to_bc(nBodies, false, sim_data);
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
+
+
+
 int parse_options(int argc, const char **argv, string &outDir, string &filename)
 {
 	int i = 1;
@@ -969,6 +1068,8 @@ int main(int argc, const char **argv)
 
 	try
 	{
+		create_n_pl_to_test_anal_gd(outDir, filename);
+
 		//create_n_gp_body_disk(outDir, filename);
 
 		//create_n_tp_body_disk(outDir, filename);
@@ -981,7 +1082,7 @@ int main(int argc, const char **argv)
 
 		//create_n_massive_body_disk(outDir, filename);
 
-		create_two_body_disk(outDir, filename);
+		//create_two_body_disk(outDir, filename);
 
 		//create_Dvorak_disk(outDir, filename);
 	}
