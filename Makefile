@@ -30,6 +30,7 @@ BIN         := bin
 
 # List the objects for the executables and library
 RED_OBJS := \
+analytic_gas_disk.o \
 gas_disk.o \
 int_euler.o \
 int_rungekutta2.o \

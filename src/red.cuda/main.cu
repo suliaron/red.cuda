@@ -116,6 +116,8 @@ ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* t_step)
 //http://stackoverflow.com/questions/11666049/cuda-kernel-results-different-in-release-mode
 //http://developer.download.nvidia.com/assets/cuda/files/NVIDIA-CUDA-Floating-Point.pdf
 
+// -v -cpu -n_tpb 64 -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Test_Anal_Gas -p parameters.txt -ic input.txt -ga gasdisk.txt
+
 int main(int argc, const char** argv, const char** env)
 {
 	time_t start = time(NULL);
