@@ -932,9 +932,15 @@ void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t
 			}
 		}
 		break;
-	case 1:  // Calculate accelerations originated from the gravitational force
+	case 1:  // Calculate accelerations originated from the gravitational force, drag force etc.
 		if (COMPUTING_DEVICE_CPU == comp_dev)
 		{
+			/*
+			 * SORREND:
+			 * 1. Gravity
+			 * 2. other forces
+			 */
+			cpu_calc_grav_accel(curr_t, r, v, dy);
 			// This if will be used to speed-up the calculation when gas drag is also acting on the bodies.
 			// (BUT early optimization is the root of much evil)
 			if (rr == 0)
@@ -942,16 +948,19 @@ void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t
 			}
 			if (GAS_DISK_MODEL_NONE != g_disk_model)
 			{
-				cpu_calc_grav_accel(curr_t, r, v, dy);
+				cpu_calc_drag_accel(curr_t, r, v, dy);
 			}
-			cpu_calc_grav_accel(curr_t, r, v, dy);
 		}
 		else
 		{
+			call_kernel_calc_grav_accel(curr_t, r, v, dy);
 			if (rr == 0)
 			{
 			}
-			call_kernel_calc_grav_accel(curr_t, r, v, dy);
+			if (GAS_DISK_MODEL_NONE != g_disk_model)
+			{
+				cpu_calc_drag_accel(curr_t, r, v, dy);
+			}
 	// DEBUG CODE
 	//		cudaDeviceSynchronize();
 	// END DEBUG CODE
