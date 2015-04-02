@@ -156,7 +156,7 @@ int main(int argc, const char** argv, const char** env)
 
 		ppd->print_result_ascii(*result_f);
 
-		int dummy_k = 0;
+		//int dummy_k = 0;
 		//computing_device_t target_device = intgr->get_computing_device();
 
 		while (ppd->t <= opt.param->stop_time)
@@ -244,7 +244,7 @@ int main(int argc, const char** argv, const char** env)
 				print_info(*info_f, ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
 			}
 
-			dummy_k++;
+			//dummy_k++;
 		} /* while */
 		print_info(*info_f, ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
 

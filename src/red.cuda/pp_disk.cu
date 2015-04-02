@@ -944,7 +944,7 @@ void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t
 			{
 				cpu_calc_grav_accel(curr_t, r, v, dy);
 			}
-			cpu_calc_drag_accel(curr_t, r, v, dy);
+			cpu_calc_grav_accel(curr_t, r, v, dy);
 		}
 		else
 		{
