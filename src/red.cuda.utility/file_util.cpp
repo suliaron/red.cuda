@@ -6,6 +6,7 @@
 // includes project
 #include "file_util.h"
 #include "tools.h"
+#include "util.h"
 #include "red_macro.h"
 #include "red_constants.h"
 
@@ -15,15 +16,19 @@ namespace file
 {
 string combine_path(const string& dir, const string& filename)
 {
-	if (dir.size() > 0) {
-		if (*(dir.end() - 1) != '/' && *(dir.end() - 1) != '\\') {
+	if (0 < dir.size())
+	{
+		if (*(dir.end() - 1) != '/' && *(dir.end() - 1) != '\\')
+		{
 			return dir + '/' + filename;
 		}
-		else {
+		else
+		{
 			return dir + filename;
 		}
 	}
-	else {
+	else
+	{
 		return filename;
 	}
 }
@@ -85,15 +90,16 @@ string get_extension(const string& path)
 void load_ascii_file(const string& path, string& result)
 {
 	std::ifstream file(path.c_str(), ifstream::in);
-	if (file) {
+	if (file)
+	{
 		string str;
 		while (getline(file, str))
 		{
 			// ignore zero length lines
-			if (str.length() == 0)
+			if (0 == str.length())
 				continue;
 			// ignore comment lines
-			if (str[0] == '#')
+			if ('#' == str[0])
 				continue;
 			// delete comment after the value
 			tools::trim_right(str, '#');
@@ -101,7 +107,32 @@ void load_ascii_file(const string& path, string& result)
 			result.push_back('\n');
 		} 	
 	}
-	else {
+	else
+	{
+		throw string("The file '" + path + "' could not opened!\r\n");
+	}
+	file.close();
+}
+
+void load_binary_file(const string& path, size_t n_data, var_t* data)
+{
+	ifstream file(path.c_str(), ios::in | ios::binary);
+	if (file)
+	{
+		file.seekg(0, file.end);     //N is the size of file in byte
+		size_t N = file.tellg();              
+		file.seekg(0, file.beg);
+		size_t size = n_data * sizeof(var_t);
+		if (size != N)
+		{
+			//throw string("The file '" + path + "' has '" + redutilcu::number_to_string<size_t>(N) + ", but was expected to have " + redutilcu::number_to_string<size_t>(size) + " bytes!\r\n");
+			throw string("The file '" + path + "' has different number of data than expected!\r\n");
+		}
+		file.read(reinterpret_cast<char*>(data), size);
+		file.close();
+	}
+	else
+	{
 		throw string("The file '" + path + "' could not opened!\r\n");
 	}
 	file.close();
@@ -175,7 +206,7 @@ void Emese_data_format_to_red_cuda_format(const string& input_path, const string
             body_metadata_t body_md;
 
 			// red.cuda: id starts from 1
-			body_md.id = ++id;
+			body_md.id = (int)++id;
 			if (1 == body_md.id)
 			{
 				body_md.body_type = BODY_TYPE_STAR;

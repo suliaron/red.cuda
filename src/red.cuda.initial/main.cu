@@ -84,6 +84,57 @@ void populate_disk(body_disk_t& disk, sim_data_t *sd)
 }
 
 
+void set_parameters_of_Chambers2001_disk(nebula& n, body_disk_t& disk)
+{
+	srand(time(NULL));
+
+	const var_t rho_solid = 3.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+
+	disk.nBody[BODY_TYPE_STAR        ] = 1;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 153;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at  = new var_t[nBodies];
+
+    int bodyIdx = 0;
+	int type = BODY_TYPE_STAR;
+
+	disk.names.push_back("star");
+	disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), constants::SolarRadiusToAu, constants::SolarRadiusToAu);
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+	disk.stop_at[bodyIdx] = 0.0;
+
+	type = BODY_TYPE_PROTOPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new power_law_distribution(rand(), n.solid_c.get_r_1(), n.solid_c.get_r_2(), n.solid_c.get_p());
+
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new rayleigh_distribution(rand(), 0.01);
+		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC ].x = 0.0;
+		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC ].y = 0.2;
+
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0/60.0 * constants::EarthToSolar, 1.0/60.0 * constants::EarthToSolar);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), rho_solid, rho_solid);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i + 1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
+
 void set_parameters_of_pl_to_test_anal_gd(body_disk_t& disk)
 {
 	srand(time(NULL));
@@ -473,6 +524,251 @@ void set_parameters_of_n_tp_body_disk(body_disk_t& disk)
 	}
 }
 
+
+void create_Chambers2001_disk(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	initialize(disk);
+
+	// Inner disk: r = 0.3, ... 0.7: the surface density is prop to r
+	{
+		// Create a MMSN with gas component and solids component
+		var_t r_1  =  0.025;    /* inner rim of the disk [AU] */
+		var_t r_2  = 33.0;      /* outer rim of the disk [AU] */
+		var_t r_SL =  2.7;      /* distance of the snowline [AU] */
+		var_t f_neb = 1.0;	    
+		var_t f_ice = 4.2;      /* ice condensation coefficient beyond the snowline */
+		var_t Sigma_1 = 13.66;  /* Surface density of solids at r = 1 AU */
+		var_t f_gas = 240.0;    /* gas to dust ratio */
+		var_t p = 1.0;          /* profile index of the power-law function */
+
+		Sigma_1 *= constants::GramPerCm2ToSolarPerAu2;
+		gas_component gas_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_gas, p);
+
+		r_1 = 0.3;
+		r_2 = 0.7;
+		solid_component solid_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_ice, p);
+		nebula mmsn(gas_c, solid_c);
+
+		var_t m_gas   = mmsn.gas_c.calc_mass();
+		var_t m_solid = mmsn.solid_c.calc_mass();
+
+		var_t m_pp = (1.0 / 60.0) * constants::EarthToSolar;
+		int_t n_pp = m_solid / m_pp;
+
+	}
+
+	// Outer disk: r = 0.7, ... 2.0: the surface density is prop to r ^-3/2
+	{
+		// Create a MMSN with gas component and solids component
+		var_t r_1  =  0.025;    /* inner rim of the disk [AU] */
+		var_t r_2  = 33.0;      /* outer rim of the disk [AU] */
+		var_t r_SL =  2.7;      /* distance of the snowline [AU] */
+		var_t f_neb = 1.0;	    
+		var_t f_ice = 4.2;      /* ice condensation coefficient beyond the snowline */
+		var_t Sigma_1 = 13.66;  /* Surface density of solids at r = 1 AU */
+		var_t f_gas = 240.0;    /* gas to dust ratio */
+		var_t p = -3.0/2.0;     /* profile index of the power-law function */
+
+		Sigma_1 *= constants::GramPerCm2ToSolarPerAu2;
+		gas_component gas_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_gas, p);
+
+		r_1 = 0.7;
+		r_2 = 2.0;
+		solid_component solid_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_ice, p);
+		nebula mmsn(gas_c, solid_c);
+
+		var_t m_gas   = mmsn.gas_c.calc_mass();
+		var_t m_solid = mmsn.solid_c.calc_mass();
+
+		var_t m_pp = (1.0 / 60.0) * constants::EarthToSolar;
+		int_t n_pp = m_solid / m_pp;
+
+		set_parameters_of_Chambers2001_disk(mmsn, disk);
+
+		sim_data_t* sim_data = new sim_data_t;
+		int nBodies = calculate_number_of_bodies(disk);
+		allocate_host_storage(sim_data, nBodies);
+
+		populate_disk(disk, sim_data);
+
+		// Scale the masses in order to get the required mass transform_mass()
+		{
+			var_t m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+			var_t f = m_solid / m_total_pp;
+			for (int i = 0; i < nBodies; i++)
+			{
+				// Only the masses of the protoplanets will be scaled
+				if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
+				{
+					sim_data->h_p[i].mass *= f;
+				}
+			}
+			m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+			if (fabs(m_total_pp - m_solid) > 1.0e-15)
+			{
+				cerr << "The required mass was not reached." << endl;
+				exit(0);
+			}
+		}
+
+		// Computes the physical quantities with the new mass
+		{
+			int bodyIdx = 0;
+			for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
+			{
+				for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+				{
+					if (sim_data->h_p[bodyIdx].mass > 0.0)
+					{
+						if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
+						{
+							sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+						}
+						if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
+						{
+							sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+						}
+					}
+				}
+			}
+		}
+
+		// Calculate coordinates and velocities
+		{
+			// The mass of the central star
+			var_t m0 = sim_data->h_p[0].mass;
+			vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+			vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+			// The coordinates of the central star
+			sim_data->h_y[0][0] = rVec;
+			sim_data->h_y[1][0] = vVec;
+			for (int i = 1; i < nBodies; i++)
+			{
+				var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+				int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+				if (1 == ret_code)
+				{
+					cerr << "Could not calculate the phase." << endl;
+					exit(0);
+				}
+				sim_data->h_y[0][i] = rVec;
+				sim_data->h_y[1][i] = vVec;
+			}
+		}
+	}
+
+
+
+	// Create a MMSN with gas component and solids component
+	var_t r_1  =  0.025;  /* inner rim of the disk [AU] */
+	var_t r_2  = 33.0;    /* outer rim of the disk [AU] */
+	var_t r_SL =  2.7;    /* distance of the snowline [AU] */
+	var_t f_neb = 1.0;
+	var_t f_ice = 4.2;    /* ice condensation coefficient beyond the snowline */
+	var_t Sigma_1 = 8.0;  /* Surface density of solids at r = 1 AU */
+	var_t f_gas = 240.0;  /* gas to dust ratio */
+	var_t p = -3.0/2.0;   /* profile index of the power-law function */
+
+	Sigma_1 *= constants::GramPerCm2ToSolarPerAu2;
+	gas_component gas_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_gas, p);
+
+	r_1 = 0.9;
+	r_2 = 2.7;
+	solid_component solid_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_ice, p);
+	nebula mmsn(gas_c, solid_c);
+
+	var_t m_gas   = mmsn.gas_c.calc_mass();
+	var_t m_solid = mmsn.solid_c.calc_mass();
+
+	set_parameters_of_Dvorak_disk(mmsn, disk);
+
+	sim_data_t* sim_data = new sim_data_t;
+	int nBodies = calculate_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_disk(disk, sim_data);
+
+	// Scale the masses in order to get the required mass transform_mass()
+	{
+		var_t m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+		var_t f = m_solid / m_total_pp;
+		for (int i = 0; i < nBodies; i++)
+		{
+			// Only the masses of the protoplanets will be scaled
+			if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
+			{
+				sim_data->h_p[i].mass *= f;
+			}
+		}
+		m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+		if (fabs(m_total_pp - m_solid) > 1.0e-15)
+		{
+			cerr << "The required mass was not reached." << endl;
+			exit(0);
+		}
+	}
+
+	// Computes the physical quantities with the new mass
+	{
+		int bodyIdx = 0;
+		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
+		{
+			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			{
+				if (sim_data->h_p[bodyIdx].mass > 0.0)
+				{
+					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
+					{
+						sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+					}
+					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
+					{
+						sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+					}
+				}
+			}
+		}
+	}
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->h_p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
+		for (int i = 1; i < nBodies; i++)
+		{
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			if (1 == ret_code)
+			{
+				cerr << "Could not calculate the phase." << endl;
+				exit(0);
+			}
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
+		}
+	}
+
+	tools::transform_to_bc(nBodies, false, sim_data);
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
 
 void create_Dvorak_disk(string& dir, string& filename)
 {
@@ -1068,7 +1364,9 @@ int main(int argc, const char **argv)
 
 	try
 	{
-		create_n_pl_to_test_anal_gd(outDir, filename);
+		create_Chambers2001_disk(outDir, filename);
+
+		//create_n_pl_to_test_anal_gd(outDir, filename);
 
 		//create_n_gp_body_disk(outDir, filename);
 

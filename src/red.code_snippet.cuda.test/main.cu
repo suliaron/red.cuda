@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <stdint.h>
 #include <iostream>
+#include <fstream>
 #include <stdlib.h>
 #include <string>
 
@@ -31,6 +32,7 @@
 #include "red_test.h"
 
 __constant__ var_t dc_threshold[THRESHOLD_N];
+__constant__ analytic_gas_disk_params_t dc_anal_gd_params;
 
 
 using namespace std;
@@ -44,6 +46,28 @@ static __global__
 	printf("dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR        ] : %lf\n", dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR]);
 	printf("dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] : %lf\n", dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED]);
 	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED   ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED]);
+}
+
+static __global__
+	void kernel_print_analytic_gas_disk_params()
+{
+	printf(" eta: %25.lf,  eta.y: %25.lf\n", dc_anal_gd_params.eta.x, dc_anal_gd_params.eta.y);
+	printf(" sch: %25.lf,  sch.y: %25.lf\n", dc_anal_gd_params.sch.x, dc_anal_gd_params.sch.y);
+	printf(" tau: %25.lf,  tau.y: %25.lf\n", dc_anal_gd_params.tau.x, dc_anal_gd_params.tau.y);
+	printf(" rho: %25.lf,  rho.y: %25.lf\n", dc_anal_gd_params.rho.x, dc_anal_gd_params.rho.y);
+
+	printf(" mfp: %25.lf,  mfp.y: %25.lf\n", dc_anal_gd_params.mfp.x,  dc_anal_gd_params.mfp.y);
+	printf("temp: %25.lf, temp.y: %25.lf\n", dc_anal_gd_params.temp.x, dc_anal_gd_params.temp.y);
+
+	printf("  gas_decrease: %d\n", dc_anal_gd_params.gas_decrease);
+	printf("            t0: %25.lf\n", dc_anal_gd_params.t0);
+	printf("            t1: %25.lf\n", dc_anal_gd_params.t1);
+	printf("e_folding_time: %25.lf\n", dc_anal_gd_params.e_folding_time);
+
+	printf(" c_vth: %25.lf\n", dc_anal_gd_params.c_vth);
+	printf(" alpha: %25.lf\n", dc_anal_gd_params.alpha);
+	printf("mean_molecular_weight: %25.lf\n", dc_anal_gd_params.mean_molecular_weight);
+	printf("    particle_diameter: %25.lf\n", dc_anal_gd_params.particle_diameter);
 }
 
 static __global__
@@ -1325,14 +1349,123 @@ int main(int argc, const char** argv)
 }
 #endif
 
-#if 1
-
+#if 0
 int main(int argc, char** argv)
 {
 	red_test::run(argc, argv);
 
 	//string result = file::combine_path("aa", "bb");
 	//cout << result << endl;
+
+	return 0;
+}
+#endif
+
+
+#if 0
+// Test how to copy a struct to the device's constant memroy
+
+int main(int argc, char** argv)
+{
+
+	analytic_gas_disk_params_t params;
+
+	params.gas_decrease          = GAS_DENSITY_CONSTANT;
+	params.t0                    = 1.0;
+	params.t1                    = 2.0;
+	params.e_folding_time        = 3.0;
+
+	params.c_vth                 = 4.0;
+	params.alpha                 = 5.0;
+	params.mean_molecular_weight = 6.0;
+	params.particle_diameter     = 7.0;
+
+	params.eta.x = 0.0, params.eta.y = 8.0;
+	params.rho.x = 0.0, params.rho.y = -10.0;
+	params.sch.x = 0.0, params.sch.y = -20.0;
+	params.tau.x = 0.0, params.tau.y = -30.0;
+
+	params.mfp.x  = 0.0,  params.mfp.y = -40.0;
+	params.temp.x = 0.0,  params.temp.y = -50.0;
+
+	try
+	{
+		copy_constant_to_device((void*)&dc_anal_gd_params, (void*)&(params), sizeof(analytic_gas_disk_params_t));
+		kernel_print_analytic_gas_disk_params<<<1, 1>>>();
+		cudaDeviceSynchronize();
+	}
+	catch (const string& msg)
+	{
+		cerr << "Error: " << msg << endl;
+	}
+
+	return 0;
+}
+#endif
+
+#if 1
+// Test how to read a binary file
+#include<iterator>
+
+int main(int argc, char** argv)
+{
+	string path = "C:\\Work\\Projects\\red.cuda\\TestRun\\InputTest\\Test_Fargo_Gas\\gasvtheta0.dat";
+	size_t n = 512*1024;
+	vector<var_t> data(n);
+	var_t* raw_data = data.data();
+
+	try
+	{
+		file::load_binary_file(path, n, raw_data);
+
+		//cout.precision(16);
+		//cout.setf(ios::right);
+		//cout.setf(ios::scientific);
+		//for (int i = 0; i < data.size(); i += 1024)
+		//{
+		//	cout << setw(8) << i << ": " << setw(25) << data[i] << endl;
+		//}
+		//cout << setw(8) << data.size() << endl;
+	}
+	catch (const string& msg)
+	{
+		cerr << "Error: " << msg << endl;
+	}
+
+	path  = "C:\\Work\\Projects\\red.cuda\\TestRun\\InputTest\\Test_Fargo_Gas\\used_rad.dat";
+	try
+	{
+		string result;
+		file::load_ascii_file(path, result);
+
+		cout.precision(16);
+		cout.setf(ios::right);
+		cout.setf(ios::scientific);
+		for (int i = 0; i < result.length(); i++)
+		{
+			string num;
+			num.resize(30);
+			int k = 0;
+			while (i < result.length() && k < 30 && result[i] != '\n')
+			{
+				num[k] = result[i];
+				k++;
+				i++;
+			}
+			num.resize(k);
+			if (!tools::is_number(num))
+			{
+				cout << "num: '" << num << "'";
+				throw string("Invalid number (" + num + ") in file '" + path + "'!\n");
+			}
+			var_t r = atof(num.c_str());
+			cout << r << endl;
+		}
+	}
+	catch (const string& msg)
+	{
+		cerr << "Error: " << msg << endl;
+	}
 
 	return 0;
 }

@@ -160,6 +160,64 @@ typedef struct __BUILTIN_ALIGN__ body_metadata
 			var_t	mig_stop_at;
 		} body_metadata_t;
 
+typedef struct analytic_gas_disk_params
+		{
+			var2_t rho;   //!< The density of the gas disk in the midplane (time dependent)	
+			var2_t sch;   //!< The scale height of the gas disk
+			var2_t eta;   //!< Describes how the velocity of the gas differs from the circular velocity	
+			var2_t tau;   //!< Describes the Type 2 migartion of the giant planets
+
+			var2_t mfp;   //!< The mean free path of the gas molecules (calculated based on rho, time dependent)	
+			var2_t temp;  //!< The temperaterure of the gas (calculated based on sch)
+	
+			var_t c_vth;  //!< Constant for computing the mean thermal velocity (calculated, constant)
+
+			gas_decrease_t gas_decrease;  //!< The decrease type for the gas density
+
+			ttt_t t0;   //!< Time when the decrease of gas starts (for linear and exponential)
+			ttt_t t1;   //!< Time when the linear decrease of the gas ends
+			ttt_t e_folding_time; //!< The exponent for the exponential decrease
+
+			var_t alpha;  //!< The viscosity parameter for the Shakura & Sunyaev model (constant)
+			var_t mean_molecular_weight;  //!< The mean molecular weight in units of the proton mass (constant)
+			var_t particle_diameter;  //!< The mean molecular diameter (constant)
+		} analytic_gas_disk_params_t;
+
+typedef struct fargo_gas_disk_params
+		{
+			var_t aspect_ratio;        // Thickness over Radius in the disc
+			var_t sigma_0;             // Surface Density at r=1
+			var_t alpha_viscosity;     // Uniform kinematic viscosity
+			var_t sigma_slope;         // Slope of surface density profile.
+			var_t flaring_index;       // gamma; H(r) = h * r^(1 + gamma)
+
+			bool exclude_hill;
+
+			//Planet parameters
+			var_t thickness_smoothing; // Smoothing parameters in disk thickness
+
+			// Numerical method parameters
+			var_t omega_frame;
+
+			// Mesh parameters
+			int n_rad;                 // Radial number of zones
+			int n_sec;                 // Azimuthal number of zones (sectors)
+			var_t r_min;               // Inner boundary radius
+			var_t r_max;               // Outer boundary radius
+
+			// Output control parameters
+			int n_tot;                 // Total number of time steps
+			int n_interm;              // Time steps between outputs
+			var_t dT;                  // Time step length. 2PI = 1 orbit
+
+			// Viscosity damping due to a dead zone
+			var_t visc_mod_r1;         // Inner radius of dead zone
+			var_t visc_mod_delta_r1;   // Width of viscosity transition at inner radius
+			var_t visc_mod_r2;         // Outer radius of dead zone
+			var_t visc_mod_delta_r2;   // Width of viscosity transition at outer radius
+			var_t visc_mod;            // Viscosity damp
+		} fargo_gas_disk_params_t;
+
 typedef struct sim_data
 		{
 			vector<vec_t*>	 y;				//!< Vectors of initial position and velocity of the bodies on the host (either in the DEVICE or HOST memory)

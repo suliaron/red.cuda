@@ -15,6 +15,8 @@ namespace redutilcu
 		string get_directory(const string& path);
 		string get_extension(const string& path);
 		void load_ascii_file(const string& path, string& result);
+		void load_binary_file(const string& path, size_t n_data, var_t* data);
+
 		void Emese_data_format_to_red_cuda_format(const string& input_path, const string& output_path);
 		void log_start_cmd(ostream& sout, int argc, const char** argv, const char** env);
 		void log_rebuild_vectors(ostream& sout, ttt_t t);

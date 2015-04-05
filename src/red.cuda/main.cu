@@ -117,6 +117,7 @@ ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* t_step)
 //http://developer.download.nvidia.com/assets/cuda/files/NVIDIA-CUDA-Floating-Point.pdf
 
 // -v -cpu -n_tpb 64 -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Test_Anal_Gas -p parameters.txt -ic input.txt -ga gasdisk.txt
+// -v -ef -cpu -n_tpb 64 -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Test_Fargo_Gas -p parameters.txt -ic input.txt -gf disk.par
 
 int main(int argc, const char** argv, const char** env)
 {
@@ -189,7 +190,7 @@ int main(int argc, const char** argv, const char** env)
 			//			int id_of_target_GPU = redutilcu::get_id_fastest_GPU();
 			//			redutilcu::set_device(id_of_target_GPU, opt.verbose);
 			//			intgr->set_computing_device(target_device);
-			//			file::log_message(*log_f, "Execution was transferred to GPU with id: " + redutilcu::number_to_string(id_of_target_GPU));
+			//			file::log_message(*log_f, "Execution was transferred to GPU with id: " + redutilcu::number_to_string<int>(id_of_target_GPU));
 			//			break;
 			//		}
 			//	default:

@@ -16,7 +16,7 @@ namespace redutilcu
 {
 
 template <typename T>
-string number_to_string( T number )
+std::string number_to_string( T number )
 {
 	std::ostringstream ss;
 	ss << number;
@@ -361,7 +361,7 @@ void set_device(int id_of_target_dev, bool verbose)
 
 	if (verbose)
 	{
-		file::log_message(std::cout, "The number of CUDA device(s): " + number_to_string(n_device));
+		file::log_message(std::cout, "The number of CUDA device(s): " + number_to_string<int>(n_device));
 	}
 	if (n_device > id_of_target_dev && 0 <= id_of_target_dev)
 	{
@@ -374,7 +374,7 @@ void set_device(int id_of_target_dev, bool verbose)
 		}
 		if (verbose)
 		{
-			file::log_message(std::cout, "Execution will be transferred to the GPU with id: " + number_to_string(id_of_target_dev));
+			file::log_message(std::cout, "Execution will be transferred to the GPU with id: " + number_to_string<int>(id_of_target_dev));
 		}
 	}
 	else

@@ -6,6 +6,7 @@
 
 // includes project
 #include "analytic_gas_disk.h"
+#include "fargo_gas_disk.h"
 #include "number_of_bodies.h"
 #include "red_type.h"
 
@@ -28,6 +29,12 @@ public:
 	void copy_threshold(const var_t* thrshld);
 	//! Copies the event data from the cuda device to the host
 	void copy_event_data_to_host();
+	//! Copies the parameters of the analytic disk to the constant memory of the device
+	//void copy_analytic_disk_to_device();
+	//! Copies the parameters of the fargo disk to the constant memory of the device
+	//void copy_fargo_disk_to_device();
+
+	void copy_disk_params_to_device();
 
 	//! Set the computing device to calculate the accelerations
 	/*
@@ -120,7 +127,7 @@ public:
 
 	gas_disk_model_t g_disk_model;
 	analytic_gas_disk* a_gd;
-	//fargo_gas_disk* f_gd;
+	fargo_gas_disk* f_gd;
 
 	int n_ejection[   EVENT_COUNTER_NAME_N];   //!< Number of ejection
 	int n_hit_centrum[EVENT_COUNTER_NAME_N];   //!< Number of hit centrum
@@ -145,6 +152,8 @@ private:
 	//! Sets the grid and block for the kernel launch
 	void set_kernel_launch_param(int n_data);
 	void call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
+	void call_kernel_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
+
 	void cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
 	void cpu_calc_grav_accel_NI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
@@ -152,13 +161,6 @@ private:
 
 	void cpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
-
-	__host__ __device__ var_t reduction_factor(gas_decrease_t gas_decrease, ttt_t t0, ttt_t t1, ttt_t e_folding_time, ttt_t t);
-	__host__ __device__ vec_t circular_velocity(var_t mu, const vec_t* rVec);
-	__host__ __device__ var_t get_density(var2_t sch, var2_t rho, const vec_t* rVec);
-	__host__ __device__ vec_t get_velocity(var_t mu, var2_t eta, const vec_t* rVec);
-
-
 
 	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 

@@ -19,13 +19,19 @@
 using namespace std;
 using namespace redutilcu;
 
+#define GAS_REDUCTION_THRESHOLD 1.0e-6
+#define GAS_INNER_EDGE 0.1              // [AU]
+
+
 __constant__ var_t dc_threshold[THRESHOLD_N];
+__constant__ analytic_gas_disk_params_t dc_anal_gd_params;
+__constant__ fargo_gas_disk_params_t dc_fargo_gd_params;
 
 ///****************** DEVICE functions begins here ******************/
 
 /****************** KERNEL functions begins here ******************/
 
-namespace device_pp_disk
+namespace pp_disk_utility
 {
 static __host__ __device__ 
 	void store_event_data
@@ -63,7 +69,107 @@ static __host__ __device__
 		evnt->ps = evnt->p1;
 	}
 }
-} /* device_pp_disk */
+
+
+__host__ __device__
+	var_t reduction_factor(gas_decrease_t gas_decrease, ttt_t t0, ttt_t t1, ttt_t e_folding_time, ttt_t t)
+{
+	switch (gas_decrease) 
+	{
+	case GAS_DENSITY_CONSTANT:
+		return 1.0;
+	case GAS_DENSITY_DECREASE_LINEAR:
+		if (t <= t0)
+		{
+			return 1.0;
+		}
+		else if (t0 < t && t <= t1 && t0 != t1)
+		{
+			return 1.0 - (t - t0)/(t1 - t0);
+		}
+		else
+		{
+			return 0.0;
+		}
+	case GAS_DENSITY_DECREASE_EXPONENTIAL:
+		return exp(-(t - t0)/e_folding_time);
+	default:
+		return 1.0;
+	}
+}
+
+__host__ __device__
+	var_t get_density(var2_t sch, var2_t rho, const vec_t* rVec)
+{
+	var_t density = 0.0;
+
+	var_t r		= sqrt(SQR(rVec->x) + SQR(rVec->y));
+	var_t h		= sch.x * pow(r, sch.y);
+	var_t arg	= SQR(rVec->z/h);
+	if (GAS_INNER_EDGE < r)
+	{
+		density	= rho.x * pow(r, rho.y) * exp(-arg);
+	}
+	else
+	{
+		var_t a	= rho.x * pow(GAS_INNER_EDGE, rho.y - 4.0);
+		density	= a * SQR(SQR(r)) * exp(-arg);
+	}
+
+	return density;
+}
+
+
+__host__ __device__
+	vec_t circular_velocity(var_t mu, const vec_t* rVec)
+{
+	vec_t result = {0.0, 0.0, 0.0, 0.0};
+
+	var_t r  = sqrt(SQR(rVec->x) + SQR(rVec->y));
+	var_t vc = sqrt(mu/r);
+
+	var_t p = 0.0;
+	if (rVec->x == 0.0 && rVec->y == 0.0)
+	{
+		return result;
+	}
+	else if (rVec->y == 0.0)
+	{
+		result.y = rVec->x > 0.0 ? vc : -vc;
+	}
+	else if (rVec->x == 0.0)
+	{
+		result.x = rVec->y > 0.0 ? -vc : vc;
+	}
+	else if (rVec->x >= rVec->y)
+	{
+		p = rVec->y / rVec->x;
+		result.y = rVec->x >= 0 ? vc/sqrt(1.0 + SQR(p)) : -vc/sqrt(1.0 + SQR(p));
+		result.x = -result.y*p;
+	}
+	else
+	{
+		p = rVec->x / rVec->y;
+		result.x = rVec->y >= 0 ? -vc/sqrt(1.0 + SQR(p)) : vc/sqrt(1.0 + SQR(p));
+		result.y = -result.x*p;
+	}
+
+	return result;
+}
+
+__host__ __device__
+	vec_t get_velocity(var_t mu, var2_t eta, const vec_t* rVec)
+{
+	vec_t v_gas = circular_velocity(mu, rVec);
+	var_t r = sqrt(SQR(rVec->x) + SQR(rVec->y));
+
+	var_t v = sqrt(1.0 - 2.0*eta.x * pow(r, eta.y));
+	v_gas.x *= v;
+	v_gas.y *= v;
+	
+	return v_gas;
+}
+} /* pp_disk_utility */
 
 namespace kernel_pp_disk
 {
@@ -92,7 +198,7 @@ static __global__
 		if (0.0 < dc_threshold[THRESHOLD_EJECTION_DISTANCE] && dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED] < r2)
 		{
 			k = atomicAdd(event_counter, 1);
-			device_pp_disk::store_event_data(EVENT_NAME_EJECTION, t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
+			pp_disk_utility::store_event_data(EVENT_NAME_EJECTION, t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
 			//printf("t = %20.10le d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
 
 			//events[k].event_name = EVENT_NAME_EJECTION;
@@ -119,7 +225,7 @@ static __global__
 		else if (0.0 < dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] && dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] > r2)
 		{
 			k = atomicAdd(event_counter, 1);
-			device_pp_disk::store_event_data(EVENT_NAME_HIT_CENTRUM, t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
+			pp_disk_utility::store_event_data(EVENT_NAME_HIT_CENTRUM, t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
 			//printf("t = %20.10le d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
 
 			//events[k].event_name = EVENT_NAME_HIT_CENTRUM;
@@ -195,7 +301,7 @@ static __global__
 			}
 			//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
 
-			device_pp_disk::store_event_data(EVENT_NAME_COLLISION, t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
+			pp_disk_utility::store_event_data(EVENT_NAME_COLLISION, t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
 
 			//events[k].event_name = EVENT_NAME_COLLISION;
 			//events[k].d = d;
@@ -274,7 +380,7 @@ static __global__
 					}
 					//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
 
-					device_pp_disk::store_event_data(EVENT_NAME_COLLISION, t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
+					pp_disk_utility::store_event_data(EVENT_NAME_COLLISION, t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
 
 					//events[k].event_name = EVENT_NAME_COLLISION;
 					//events[k].d = d;
@@ -292,6 +398,45 @@ static __global__
 		}
 	}
 }
+
+static __global__
+	void calc_drag_accel_NSI
+	(
+		ttt_t curr_t,
+		interaction_bound int_bound, 
+		const body_metadata_t* body_md, 
+		const param_t* p, 
+		const vec_t* r, 
+		const vec_t* v, 
+		vec_t* a
+	)
+{
+	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (i < int_bound.sink.y)
+	{
+		var_t decr_fact = pp_disk_utility::reduction_factor(dc_anal_gd_params.gas_decrease, dc_anal_gd_params.t0, dc_anal_gd_params.t1, dc_anal_gd_params.e_folding_time, curr_t);
+		// TODO: export 1.0e-6 into the gas disk description file
+		if (GAS_REDUCTION_THRESHOLD > decr_fact)
+		{
+			return;
+		}
+
+		var_t m_star = p[0].mass;
+		var_t mu        = 1.0 * (m_star + p[i].mass);
+		vec_t v_g       = pp_disk_utility::get_velocity(mu, dc_anal_gd_params.eta, &r[i]);
+		vec_t u         = {v_g.x - v[i].x, v_g.y - v[i].y, v_g.z - v[i].z, 0.0};
+		var_t u_n       = sqrt(SQR(u.x) + SQR(u.y) + SQR(u.z));
+		var_t density_g = pp_disk_utility::get_density(dc_anal_gd_params.sch, dc_anal_gd_params.rho, &r[i]);
+
+		var_t f = decr_fact * (3.0 * p[i].cd * density_g * u_n) / (8.0 * p[i].radius * p[i].density);
+
+		a[i].x += f * u.x;
+		a[i].y += f * u.y;
+		a[i].z += f * u.z;
+	}
+}
+
 } /* kernel_pp_disk */
 
 namespace kernel_utility
@@ -409,10 +554,12 @@ void pp_disk::cpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, 
 	}
 }
 
+
 void pp_disk::cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a)
 {
-	var_t decr_fact = reduction_factor(a_gd->gas_decrease, a_gd->t0, a_gd->t1, a_gd->e_folding_time, curr_t);
-	if (1.0e-6 > decr_fact)
+	var_t decr_fact = pp_disk_utility::reduction_factor(a_gd->params.gas_decrease, a_gd->params.t0, a_gd->params.t1, a_gd->params.e_folding_time, curr_t);
+	// TODO: export 1.0e-6 into the gas disk description file
+	if (GAS_REDUCTION_THRESHOLD > decr_fact)
 	{
 		return;
 	}
@@ -421,10 +568,10 @@ void pp_disk::cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound,
 	for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
 	{
 		var_t mu        = 1.0 * (m_star + p[i].mass);
-		vec_t v_g       = get_velocity(mu, a_gd->eta, &r[i]);
+		vec_t v_g       = pp_disk_utility::get_velocity(mu, a_gd->params.eta, &r[i]);
 		vec_t u         = {v_g.x - v[i].x, v_g.y - v[i].y, v_g.z - v[i].z, 0.0};
 		var_t u_n       = sqrt(SQR(u.x) + SQR(u.y) + SQR(u.z));
-		var_t density_g = get_density(a_gd->sch, a_gd->rho, &r[i]);
+		var_t density_g = pp_disk_utility::get_density(a_gd->params.sch, a_gd->params.rho, &r[i]);
 
 		var_t f = decr_fact * (3.0 * p[i].cd * density_g * u_n) / (8.0 * p[i].radius * p[i].density);
 
@@ -469,108 +616,6 @@ void pp_disk::cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound,
 		//printf("acce[tid].z: %10le\n", acce[tid].z);
 	}
 }
-
-__host__ __device__
-var_t pp_disk::reduction_factor(gas_decrease_t gas_decrease, ttt_t t0, ttt_t t1, ttt_t e_folding_time, ttt_t t)
-{
-	switch (gas_decrease) 
-	{
-	case GAS_DENSITY_CONSTANT:
-		return 1.0;
-	case GAS_DENSITY_DECREASE_LINEAR:
-		if (t <= t0)
-		{
-			return 1.0;
-		}
-		else if (t0 < t && t <= t1 && t0 != t1)
-		{
-			return 1.0 - (t - t0)/(t1 - t0);
-		}
-		else
-		{
-			return 0.0;
-		}
-	case GAS_DENSITY_DECREASE_EXPONENTIAL:
-		return exp(-(t - t0)/e_folding_time);
-	default:
-		return 1.0;
-	}
-}
-
-#define INNER_EDGE 0.1 // AU
-
-__host__ __device__
-var_t pp_disk::get_density(var2_t sch, var2_t rho, const vec_t* rVec)
-{
-	var_t density = 0.0;
-
-	var_t r		= sqrt(SQR(rVec->x) + SQR(rVec->y));
-	var_t h		= sch.x * pow(r, sch.y);
-	var_t arg	= SQR(rVec->z/h);
-	if (INNER_EDGE < r)
-	{
-		density	= rho.x * pow(r, rho.y) * exp(-arg);
-	}
-	else
-	{
-		var_t a	= rho.x * pow(INNER_EDGE, rho.y - 4.0);
-		density	= a * SQR(SQR(r)) * exp(-arg);
-	}
-
-	return density;
-}
-#undef INNER_EDGE
-
-__host__ __device__
-vec_t pp_disk::circular_velocity(var_t mu, const vec_t* rVec)
-{
-	vec_t result = {0.0, 0.0, 0.0, 0.0};
-
-	var_t r  = sqrt(SQR(rVec->x) + SQR(rVec->y));
-	var_t vc = sqrt(mu/r);
-
-	var_t p = 0.0;
-	if (rVec->x == 0.0 && rVec->y == 0.0)
-	{
-		return result;
-	}
-	else if (rVec->y == 0.0)
-	{
-		result.y = rVec->x > 0.0 ? vc : -vc;
-	}
-	else if (rVec->x == 0.0)
-	{
-		result.x = rVec->y > 0.0 ? -vc : vc;
-	}
-	else if (rVec->x >= rVec->y)
-	{
-		p = rVec->y / rVec->x;
-		result.y = rVec->x >= 0 ? vc/sqrt(1.0 + SQR(p)) : -vc/sqrt(1.0 + SQR(p));
-		result.x = -result.y*p;
-	}
-	else
-	{
-		p = rVec->x / rVec->y;
-		result.x = rVec->y >= 0 ? -vc/sqrt(1.0 + SQR(p)) : vc/sqrt(1.0 + SQR(p));
-		result.y = -result.x*p;
-	}
-
-	return result;
-}
-
-__host__ __device__
-vec_t pp_disk::get_velocity(var_t mu, var2_t eta, const vec_t* rVec)
-{
-	vec_t v_gas = circular_velocity(mu, rVec);
-	var_t r = sqrt(SQR(rVec->x) + SQR(rVec->y));
-
-	var_t v = sqrt(1.0 - 2.0*eta.x * pow(r, eta.y));
-	v_gas.x *= v;
-	v_gas.y *= v;
-	
-	return v_gas;
-}
-
 
 void pp_disk::cpu_calc_grav_accel_SI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
 {
@@ -744,6 +789,17 @@ void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const ve
 		{
 			throw nbody_exception("kernel_pp_disk::calc_grav_accel failed", cudaStatus);
 		}
+	}
+}
+
+void pp_disk::call_kernel_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
+{
+	int n_sink = n_bodies->get_n_NSI();
+	if (0 < n_sink)
+	{
+		set_kernel_launch_param(n_sink);
+		interaction_bound int_bound = n_bodies->get_bound_GD();
+		kernel_pp_disk::calc_drag_accel_NSI<<<grid, block>>>(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, dy);
 	}
 }
 
@@ -959,7 +1015,7 @@ void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t
 			}
 			if (GAS_DISK_MODEL_NONE != g_disk_model)
 			{
-				cpu_calc_drag_accel(curr_t, r, v, dy);
+				call_kernel_calc_drag_accel(curr_t, r, v, dy);
 			}
 	// DEBUG CODE
 	//		cudaDeviceSynchronize();
@@ -1000,7 +1056,6 @@ void pp_disk::handle_collision()
 	create_sp_events();
 
 	// TODO: implement collision graph: bredth-first search
-
 	for (unsigned int i = 0; i < sp_events.size(); i++)
 	{
 		handle_collision_pair(i, &sp_events[i]);
@@ -1213,6 +1268,7 @@ void pp_disk::set_computing_device(computing_device_t device)
 		ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,       1*sizeof(int));
 
 		copy_to_device();
+		copy_disk_params_to_device();
 		copy_constant_to_device(dc_threshold, this->threshold, THRESHOLD_N*sizeof(var_t));
 		copy_vector_to_device((void *)d_event_counter, (void *)&event_counter, 1*sizeof(int));
 		break;
@@ -1365,6 +1421,24 @@ void pp_disk::copy_threshold(const var_t* thrshld)
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		copy_constant_to_device(dc_threshold, thrshld, THRESHOLD_N*sizeof(var_t));
+	}
+}
+
+void pp_disk::copy_disk_params_to_device()
+{
+	if (COMPUTING_DEVICE_GPU == comp_dev)
+	{
+		switch (g_disk_model)
+		{
+		case GAS_DISK_MODEL_NONE:
+			break;
+		case GAS_DISK_MODEL_ANALYTIC:
+			copy_constant_to_device((void*)&dc_anal_gd_params,  (void*)&(this->a_gd->params), sizeof(analytic_gas_disk_params_t));
+			break;
+		case GAS_DISK_MODEL_FARGO:
+			copy_constant_to_device((void*)&dc_fargo_gd_params, (void*)&(this->f_gd->params), sizeof(fargo_gas_disk_params_t));
+			break;
+		}
 	}
 }
 
@@ -1698,3 +1772,6 @@ void pp_disk::print_event_data(ostream& sout, ostream& log_f)
 	sout.flush();
 	log_f.flush();
 }
+
+#undef GAS_REDUCTION_THRESHOLD
+#undef GAS_INNER_EDGE

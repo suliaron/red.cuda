@@ -52,7 +52,7 @@ options::options(int argc, const char** argv) :
 		a_gd = new analytic_gas_disk(input_dir, gasdisk_filename, verbose);
 		break;
 	case GAS_DISK_MODEL_FARGO:
-		throw string ("Error: fargo gas disk is not implemented.");
+		f_gd = new fargo_gas_disk(input_dir, gasdisk_filename, comp_dev, verbose);
 		break;
 	}
 }
@@ -223,11 +223,19 @@ pp_disk* options::create_pp_disk()
 {
 	string path = file::combine_path(input_dir, bodylist_filename);
 	pp_disk* ppd = new pp_disk(path, n_tpb, use_padded_storage, g_disk_model, comp_dev);
-	if (0x0 != a_gd)
+
+	switch (g_disk_model)
 	{
+	case GAS_DISK_MODEL_NONE:
+		break;
+	case GAS_DISK_MODEL_ANALYTIC:
 		ppd->a_gd = a_gd;
 		ppd->a_gd->calc(ppd->get_mass_of_star());
 		//ppd->print_result_ascii(cout);
+		break;
+	case GAS_DISK_MODEL_FARGO:
+		ppd->f_gd = f_gd;
+		break;
 	}
 
 	ppd->transform_to_bc(verbose);
@@ -236,6 +244,7 @@ pp_disk* options::create_pp_disk()
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		ppd->copy_to_device();
+		ppd->copy_disk_params_to_device();
 	}
 	ppd->copy_threshold(param->thrshld);
 	ppd->t = param->start_time;

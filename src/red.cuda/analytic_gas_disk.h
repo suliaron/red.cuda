@@ -27,26 +27,28 @@ public:
 
 	string name;
 	string desc;
+
+	analytic_gas_disk_params_t params;
 	
-	var2_t rho;   //!< The density of the gas disk in the midplane (time dependent)	
-	var2_t sch;   //!< The scale height of the gas disk
-	var2_t eta;   //!< Describes how the velocity of the gas differs from the circular velocity	
-	var2_t tau;   //!< Describes the Type 2 migartion of the giant planets
+	//var2_t rho;   //!< The density of the gas disk in the midplane (time dependent)	
+	//var2_t sch;   //!< The scale height of the gas disk
+	//var2_t eta;   //!< Describes how the velocity of the gas differs from the circular velocity	
+	//var2_t tau;   //!< Describes the Type 2 migartion of the giant planets
 
-	var2_t mfp;   //!< The mean free path of the gas molecules (calculated based on rho, time dependent)	
-	var2_t temp;  //!< The temperaterure of the gas (calculated based on sch)
-	
-	var_t c_vth;  //!< Constant for computing the mean thermal velocity (calculated, constant)
+	//var2_t mfp;   //!< The mean free path of the gas molecules (calculated based on rho, time dependent)	
+	//var2_t temp;  //!< The temperaterure of the gas (calculated based on sch)
+	//
+	//var_t c_vth;  //!< Constant for computing the mean thermal velocity (calculated, constant)
 
-	gas_decrease_t gas_decrease;  //!< The decrease type for the gas density
+	//gas_decrease_t gas_decrease;  //!< The decrease type for the gas density
 
-	ttt_t t0;   //!< Time when the decrease of gas starts (for linear and exponential)
-	ttt_t t1;   //!< Time when the linear decrease of the gas ends
-	ttt_t e_folding_time; //!< The exponent for the exponential decrease
+	//ttt_t t0;   //!< Time when the decrease of gas starts (for linear and exponential)
+	//ttt_t t1;   //!< Time when the linear decrease of the gas ends
+	//ttt_t e_folding_time; //!< The exponent for the exponential decrease
 
-	var_t alpha;  //!< The viscosity parameter for the Shakura & Sunyaev model (constant)
-    var_t mean_molecular_weight;  //!< The mean molecular weight in units of the proton mass (constant)
-	var_t particle_diameter;  //!< The mean molecular diameter (constant)
+	//var_t alpha;  //!< The viscosity parameter for the Shakura & Sunyaev model (constant)
+	//var_t mean_molecular_weight;  //!< The mean molecular weight in units of the proton mass (constant)
+	//var_t particle_diameter;  //!< The mean molecular diameter (constant)
 
 private:
 	void set_default_values();

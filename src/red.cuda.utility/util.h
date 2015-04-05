@@ -5,7 +5,7 @@
 namespace redutilcu
 {
 	template <typename T>
-	string number_to_string( T number );
+	std::string number_to_string(T number);
 	int device_query(ostream& sout, int id_dev);
 
 	void allocate_host_vector(  void **ptr, size_t size,           const char *file, int line);

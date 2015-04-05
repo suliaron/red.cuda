@@ -29,25 +29,25 @@ analytic_gas_disk::~analytic_gas_disk()
 
 void analytic_gas_disk::set_default_values()
 {
-	gas_decrease          = GAS_DENSITY_CONSTANT;
-	t0                    = 0.0;
-	t1                    = 0.0;
-	e_folding_time        = 0.0;
+	params.gas_decrease          = GAS_DENSITY_CONSTANT;
+	params.t0                    = 0.0;
+	params.t1                    = 0.0;
+	params.e_folding_time        = 0.0;
 
-	c_vth                 = 0.0;
-	alpha                 = 0.0;
-	mean_molecular_weight = 0.0;
-	particle_diameter     = 0.0;
+	params.c_vth                 = 0.0;
+	params.alpha                 = 0.0;
+	params.mean_molecular_weight = 0.0;
+	params.particle_diameter     = 0.0;
 
-	eta.x = 0.0, eta.y = 0.0;
-	rho.x = 0.0, rho.y = 0.0;
-	sch.x = 0.0, sch.y = 0.0;
-	tau.x = 0.0, tau.y = 0.0;
+	params.eta.x = 0.0, params.eta.y = 0.0;
+	params.rho.x = 0.0, params.rho.y = 0.0;
+	params.sch.x = 0.0, params.sch.y = 0.0;
+	params.tau.x = 0.0, params.tau.y = 0.0;
 
-	mfp.x  = 0.0,  mfp.y = 0.0;
-	temp.x = 0.0, temp.y = 0.0;
-}
-
+	params.mfp.x  = 0.0,  params.mfp.y = 0.0;
+	params.temp.x = 0.0,  params.temp.y = 0.0;
+}						  
+						  
 void analytic_gas_disk::parse()
 {
 	// instantiate Tokenizer classes
@@ -57,26 +57,32 @@ void analytic_gas_disk::parse()
 
 	data_tokenizer.set(data, "\r\n");
 
-	while ((line = data_tokenizer.next()) != "") {
+	while ((line = data_tokenizer.next()) != "")
+	{
 		line_tokenizer.set(line, "=");
 		string token;
 		int tokenCounter = 1;
 
 		string key; 
 		string value;
-		while ((token = line_tokenizer.next()) != "" && tokenCounter <= 2) {
-
-			if (tokenCounter == 1)
+		while ((token = line_tokenizer.next()) != "" && tokenCounter <= 2)
+		{
+			if (     1 == tokenCounter)
+			{
 				key = token;
-			else if (tokenCounter == 2)
+			}
+			else if (2 == tokenCounter)
+			{
 				value = token;
-
+			}
 			tokenCounter++;
 		}
-		if (tokenCounter > 2) {
+		if (2 < tokenCounter)
+		{
 			set_param(key, value);
 		}
-		else {
+		else
+		{
 			throw string("Invalid key/value pair: " + line + ".");
 		}
 	}
@@ -106,7 +112,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		mean_molecular_weight = atof(value.c_str());
+		params.mean_molecular_weight = atof(value.c_str());
 	}
 	else if (key == "particle_diameter" || key == "diameter")
 	{
@@ -114,7 +120,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		particle_diameter = atof(value.c_str()) * constants::MeterToAu;
+		params.particle_diameter = atof(value.c_str()) * constants::MeterToAu;
 	}
 	else if (key == "alpha")
 	{
@@ -122,21 +128,21 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		alpha = atof(value.c_str());
+		params.alpha = atof(value.c_str());
 	}
 	else if (key == "time_dependence")
 	{
 		if (     value == "constant" || value == "const")
 		{
-			gas_decrease = GAS_DENSITY_CONSTANT;
+			params.gas_decrease = GAS_DENSITY_CONSTANT;
 		}
 		else if (value == "linear" || value == "lin")
 		{
-			gas_decrease = GAS_DENSITY_DECREASE_LINEAR;
+			params.gas_decrease = GAS_DENSITY_DECREASE_LINEAR;
 		}
 		else if (value == "exponential" || value == "exp")
 		{
-			gas_decrease = GAS_DENSITY_DECREASE_EXPONENTIAL;
+			params.gas_decrease = GAS_DENSITY_DECREASE_EXPONENTIAL;
 		}
 		else
 		{
@@ -149,7 +155,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		t0 = atof(value.c_str()) * constants::YearToDay * constants::Gauss;
+		params.t0 = atof(value.c_str()) * constants::YearToDay * constants::Gauss;
 	}
 	else if (key == "t1")
 	{
@@ -157,7 +163,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		t1 = atof(value.c_str()) * constants::YearToDay * constants::Gauss;
+		params.t1 = atof(value.c_str()) * constants::YearToDay * constants::Gauss;
 	}
 	else if (key == "e_folding_time")
 	{
@@ -165,7 +171,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		e_folding_time = atof(value.c_str()) * constants::YearToDay * constants::Gauss;
+		params.e_folding_time = atof(value.c_str()) * constants::YearToDay * constants::Gauss;
 	}
 	else if (key == "eta_c")
 	{
@@ -173,7 +179,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		eta.x = atof(value.c_str());
+		params.eta.x = atof(value.c_str());
 	}
     else if (key == "eta_p")
 	{
@@ -181,7 +187,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		eta.y = atof(value.c_str());
+		params.eta.y = atof(value.c_str());
 	}
     else if (key == "rho_c")
 	{
@@ -189,7 +195,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		rho.x = atof(value.c_str()) * constants::GramPerCm3ToSolarPerAu3;
+		params.rho.x = atof(value.c_str()) * constants::GramPerCm3ToSolarPerAu3;
 	}
     else if (key == "rho_p")
 	{
@@ -197,7 +203,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		rho.y = atof(value.c_str());
+		params.rho.y = atof(value.c_str());
 	}
     else if (key == "sch_c")
 	{
@@ -205,7 +211,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		sch.x = atof(value.c_str());
+		params.sch.x = atof(value.c_str());
 	}
     else if (key == "sch_p")
 	{
@@ -213,7 +219,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		sch.y = atof(value.c_str());
+		params.sch.y = atof(value.c_str());
 	}
     else if (key == "tau_c")
 	{
@@ -221,7 +227,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		tau.x = atof(value.c_str());
+		params.tau.x = atof(value.c_str());
 	}
     else if (key == "tau_p")
 	{
@@ -229,7 +235,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		tau.y = atof(value.c_str());
+		params.tau.y = atof(value.c_str());
 	}
 	else
 	{
@@ -248,13 +254,13 @@ void analytic_gas_disk::set_param(string& key, string& value)
 
 void analytic_gas_disk::calc(var_t m_star)
 {
-	c_vth = sqrt((8.0 * constants::Boltzman_CMU)/(constants::Pi * mean_molecular_weight * constants::ProtonMass_CMU));
+	params.c_vth = sqrt((8.0 * constants::Boltzman_CMU)/(constants::Pi * params.mean_molecular_weight * constants::ProtonMass_CMU));
 
-	mfp.x = mean_molecular_weight * constants::ProtonMass_CMU / (sqrt(2.0) * constants::Pi * SQR(particle_diameter) * rho.x);
-	mfp.y = -rho.y;
+	params.mfp.x = params.mean_molecular_weight * constants::ProtonMass_CMU / (sqrt(2.0) * constants::Pi * SQR(params.particle_diameter) * params.rho.x);
+	params.mfp.y = -params.rho.y;
 
-	temp.x = SQR(sch.x) * constants::Gauss2 * m_star * mean_molecular_weight * constants::ProtonMass_CMU / constants::Boltzman_CMU;
-	temp.y = 2.0 * sch.y - 3.0;
+	params.temp.x = SQR(params.sch.x) * constants::Gauss2 * m_star * params.mean_molecular_weight * constants::ProtonMass_CMU / constants::Boltzman_CMU;
+	params.temp.y = 2.0 * params.sch.y - 3.0;
 }
 
 ostream& operator<<(ostream& stream, const analytic_gas_disk* g_disk)
@@ -268,22 +274,23 @@ ostream& operator<<(ostream& stream, const analytic_gas_disk* g_disk)
 
 	stream << "name: " << g_disk->name << endl;
 	stream << "desc: " << g_disk->desc << endl << endl;
-	stream << "eta: " << g_disk->eta.x << ", " << g_disk->eta.y << endl;
-	stream << "rho: " << g_disk->rho.x << ", " << g_disk->rho.y << endl;
-	stream << "sch: " << g_disk->sch.x << ", " << g_disk->sch.y << endl;
-	stream << "tau: " << g_disk->tau.x << ", " << g_disk->tau.y << endl << endl;
-	stream << " mfp: " << g_disk->mfp.x << ", " << g_disk->mfp.y << endl;
-	stream << "temp: " << g_disk->temp.x << ", " << g_disk->temp.y << endl << endl;
 
-	stream << "  gas_decrease: " << gas_decrease_name[g_disk->gas_decrease] << endl;
-	stream << "            t0: " << g_disk->t0 << " [d]" << endl;
-	stream << "            t1: " << g_disk->t1 << " [d]" << endl;
-	stream << "e_folding_time: " << g_disk->e_folding_time << " [d]" << endl << endl;
+	stream << "eta: " << g_disk->params.eta.x << ", " << g_disk->params.eta.y << endl;
+	stream << "rho: " << g_disk->params.rho.x << ", " << g_disk->params.rho.y << endl;
+	stream << "sch: " << g_disk->params.sch.x << ", " << g_disk->params.sch.y << endl;
+	stream << "tau: " << g_disk->params.tau.x << ", " << g_disk->params.tau.y << endl << endl;
+	stream << " mfp: " << g_disk->params.mfp.x << ", " << g_disk->params.mfp.y << endl;
+	stream << "temp: " << g_disk->params.temp.x << ", " << g_disk->params.temp.y << endl << endl;
 
-	stream << " c_vth: " << g_disk->c_vth << endl;
-	stream << " alpha: " << g_disk->alpha << endl;
-	stream << "mean_molecular_weight: " << g_disk->mean_molecular_weight << endl;
-	stream << "    particle_diameter: " << g_disk->particle_diameter << endl;
+	stream << "  gas_decrease: " << gas_decrease_name[g_disk->params.gas_decrease] << endl;
+	stream << "            t0: " << g_disk->params.t0 << " [d]" << endl;
+	stream << "            t1: " << g_disk->params.t1 << " [d]" << endl;
+	stream << "e_folding_time: " << g_disk->params.e_folding_time << " [d]" << endl << endl;
+
+	stream << " c_vth: " << g_disk->params.c_vth << endl;
+	stream << " alpha: " << g_disk->params.alpha << endl;
+	stream << "mean_molecular_weight: " << g_disk->params.mean_molecular_weight << endl;
+	stream << "    particle_diameter: " << g_disk->params.particle_diameter << endl;
 		
 	return stream;
 }

@@ -7,6 +7,7 @@
 // includes project
 #include "integrator.h"
 #include "analytic_gas_disk.h"
+#include "fargo_gas_disk.h"
 #include "parameter.h"
 #include "pp_disk.h"
 #include "red_type.h"
@@ -35,7 +36,8 @@ public:
 	gas_disk_model_t g_disk_model;
 
 	parameter* param;
-	analytic_gas_disk*  a_gd;	
+	analytic_gas_disk* a_gd;
+	fargo_gas_disk* f_gd;
 
 	string info_filename;
 	string event_filename;
