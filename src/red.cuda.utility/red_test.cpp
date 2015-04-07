@@ -7,10 +7,11 @@
 // includes project
 #include "file_util.h"
 #include "tools.h"
+#include "util.h"
+
 #include "red_macro.h"
 #include "red_constants.h"
 
-#include "util.h"
 
 namespace redutilcu
 {
@@ -122,6 +123,10 @@ static sim_data* create_sim_data()
 
 static void test_util()
 {
+	//__host__ __device__ vec_t transform_velocity(var_t theta, var_t v_r, var_t v_theta);
+
+	//template <typename T>
+	//std::string number_to_string(T number);
 	//int device_query(ostream& sout, int id_dev);
 
 	//void allocate_host_vector(  void **ptr, size_t size,           const char *file, int line);
@@ -155,12 +160,139 @@ static void test_util()
 	//void set_device(int id_a_dev, bool verbose);
 	//void print_array(string path, int n, var_t *data, computing_device_t comp_dev);
 
+	const char test_set[] = "test_util";
+
+	fprintf(stderr, "TEST: %s\n", test_set);
+
+	// Test transform_velocity()
+	{
+		char test_func[] = "transform_velocity";
+
+		var_t theta = 0.0;
+		vec_t v = {0, 1, 0, 0};
+
+		vec_t expected = {0, 1, 0, 0};
+		vec_t result = transform_velocity(theta, v.x, v.y);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf, %25.16lf\n\t\t But was: %25.16lf, %25.16lf\n", expected.x, expected.y, result.x, result.y);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		theta = PI / 2.0;
+
+		expected.x = -1; expected.y = 0;
+		result = transform_velocity(theta, v.x, v.y);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf, %25.16lf\n\t\t But was: %25.16lf, %25.16lf\n", expected.x, expected.y, result.x, result.y);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		theta = PI;
+
+		expected.x = 0; expected.y = -1;
+		result = transform_velocity(theta, v.x, v.y);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf, %25.16lf\n\t\t But was: %25.16lf, %25.16lf\n", expected.x, expected.y, result.x, result.y);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		theta = 3.0 * PI / 2.0;
+
+		expected.x = 1; expected.y = 0;
+		result = transform_velocity(theta, v.x, v.y);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf, %25.16lf\n\t\t But was: %25.16lf, %25.16lf\n", expected.x, expected.y, result.x, result.y);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		theta = PI / 4.0;
+
+		expected.x = -1/sqrt(2.0); expected.y = 1/sqrt(2.0);
+		result = transform_velocity(theta, v.x, v.y);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf, %25.16lf\n\t\t But was: %25.16lf, %25.16lf\n", expected.x, expected.y, result.x, result.y);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		theta = 3.0 * PI / 4.0;
+
+		expected.x = -1/sqrt(2.0); expected.y = -1/sqrt(2.0);
+		result = transform_velocity(theta, v.x, v.y);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf, %25.16lf\n\t\t But was: %25.16lf, %25.16lf\n", expected.x, expected.y, result.x, result.y);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		theta = 5.0 * PI / 4.0;
+
+		expected.x = 1/sqrt(2.0); expected.y = -1/sqrt(2.0);
+		result = transform_velocity(theta, v.x, v.y);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf, %25.16lf\n\t\t But was: %25.16lf, %25.16lf\n", expected.x, expected.y, result.x, result.y);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		theta = 7.0 * PI / 4.0;
+
+		expected.x = 1/sqrt(2.0); expected.y = 1/sqrt(2.0);
+		result = transform_velocity(theta, v.x, v.y);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf, %25.16lf\n\t\t But was: %25.16lf, %25.16lf\n", expected.x, expected.y, result.x, result.y);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
 }
 
 static void test_tools()
 {
-	char test_set[] = "test_tools";
-
 	//bool is_number(const string& str);
 	//void trim_right(string& str);
 	//void trim_right(string& str, char c);
@@ -188,6 +320,8 @@ static void test_tools()
 	//int calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec);
 
 	//void print_vector(vec_t *v);
+
+	const char test_set[] = "test_tools";
 
 	fprintf(stderr, "TEST: %s\n", test_set);
 
@@ -851,16 +985,14 @@ static void test_tools()
 		tools::print_vector(&v);
 		fprintf(stderr, "\tPASSED ??\n");
 	}
-
-
 }
-
 
 namespace red_test
 {
 	int run(int argc, char *argv[])
 	{
 		test_tools();
+		test_util();
 
 		return 0;
 	}

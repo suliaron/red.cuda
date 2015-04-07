@@ -225,6 +225,20 @@ void fargo_gas_disk::load_used_rad(string& path, size_t)
 	}
 }
 
+vec_t fargo_gas_disk::get_velocity(vec_t rVec)
+{
+	vec_t v_gas = {0.0, 0.0, 0.0, 0.0};
+
+	return v_gas;
+}
+
+var_t fargo_gas_disk::get_density(vec_t r)
+{
+	var_t result = 0.0;
+
+	return result;
+}
+
 void fargo_gas_disk::parse()
 {
 	// instantiate Tokenizer classes

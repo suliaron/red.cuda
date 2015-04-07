@@ -1349,7 +1349,7 @@ int main(int argc, const char** argv)
 }
 #endif
 
-#if 0
+#if 1
 int main(int argc, char** argv)
 {
 	red_test::run(argc, argv);
@@ -1403,16 +1403,57 @@ int main(int argc, char** argv)
 }
 #endif
 
-#if 1
+#if 0
 // Test how to read a binary file
-#include<iterator>
+// Test the linear index determination function
+
+#define N_SEC 1024
+#define N_RAD  512
+int calc_linear_index(vec_t& rVec, var_t* used_rad)
+{
+	const var_t dalpha = TWOPI / N_SEC;
+
+	var_t r = sqrt(SQR(rVec.x) + SQR(rVec.y));
+	if (     used_rad[0] > r)
+	{
+		return 0;
+	}
+	else if (used_rad[N_RAD] < r)
+	{
+		return N_RAD * N_SEC - 1;
+	}
+	else
+	{
+		// TODO: implement a fast search for the cell
+		// IDEA: populate the used_rad with the square of the distance, since it is much faster to calculate r^2
+		// Determine which ring contains r
+		int i_rad = 0;
+		int i_sec = 0;
+		for (int k = 0; k < N_RAD; k++)
+		{
+			if (used_rad[k] <= r && r < used_rad[k+1])
+			{
+				i_rad = k;
+				break;
+			}
+		}
+
+		var_t alpha = (rVec.y >= 0.0 ? atan2(rVec.y, rVec.x) : TWOPI + atan2(rVec.y, rVec.x));
+		i_sec =  alpha / dalpha;
+		int i_linear = i_rad * N_SEC + i_sec;
+
+		return i_linear;
+	}
+}
+
 
 int main(int argc, char** argv)
 {
-	string path = "C:\\Work\\Projects\\red.cuda\\TestRun\\InputTest\\Test_Fargo_Gas\\gasvtheta0.dat";
+	string path = "C:\\Work\\Projects\\red.cuda\\TestRun\\InputTest\\Test_Fargo_Gas\\gasdens0.dat";
 	size_t n = 512*1024;
 	vector<var_t> data(n);
 	var_t* raw_data = data.data();
+	var_t* used_rad = new var_t[513];
 
 	try
 	{
@@ -1441,6 +1482,7 @@ int main(int argc, char** argv)
 		cout.precision(16);
 		cout.setf(ios::right);
 		cout.setf(ios::scientific);
+		int m = 0;
 		for (int i = 0; i < result.length(); i++)
 		{
 			string num;
@@ -1459,7 +1501,10 @@ int main(int argc, char** argv)
 				throw string("Invalid number (" + num + ") in file '" + path + "'!\n");
 			}
 			var_t r = atof(num.c_str());
-			cout << r << endl;
+			//cout << r << endl;
+
+			used_rad[m] = r;
+			m++;
 		}
 	}
 	catch (const string& msg)
@@ -1467,6 +1512,76 @@ int main(int argc, char** argv)
 		cerr << "Error: " << msg << endl;
 	}
 
+	for (int i_rad = 0; i_rad < N_RAD; i_rad++)
+	{
+		var_t r = used_rad[i_rad];
+		for (int i_sec = 0; i_sec < N_SEC; i_sec += 256)
+		{
+			var_t theta = i_sec * (TWOPI / N_SEC);
+			vec_t rVec = {r * cos(theta), r * sin(theta), 0.0, 0.0};
+			int lin_index = calc_linear_index(rVec, used_rad);
+			printf("r=%25.15le gasdensity[%6d]=%25.16le\n", r, lin_index, raw_data[lin_index]);
+		}
+	}
+
+	for (int i_rad = 0; i_rad < 220; i_rad++)
+	{
+		var_t r = i_rad * 0.5;
+		for (int i_sec = 0; i_sec < N_SEC; i_sec += 256)
+		{
+			var_t theta = i_sec * (TWOPI / N_SEC);
+			vec_t rVec = {r * cos(theta), r * sin(theta), 0.0, 0.0};
+			int lin_index = calc_linear_index(rVec, used_rad);
+			printf("r=%25.15le gasdensity[%6d]=%25.16le\n", r, lin_index, raw_data[lin_index]);
+		}
+	}
+
 	return 0;
 }
+#undef N_SEC
+#undef N_RAD
+
+#endif
+
+
+#if 0
+
+// Test the calculation of the transformed velocity
+
+vec_t transform_velocity(var_t theta, var_t v_r, var_t v_theta)
+{
+	var_t M[2][2] = {
+		             {cos(theta), -sin(theta)},
+		             {sin(theta),  cos(theta)}
+	                };
+
+	vec_t result = {M[0][0] * v_r + M[0][1] * v_theta, M[1][0] * v_r + M[1][1] * v_theta, 0.0, 0.0};
+	return result;
+}
+
+int main(int argc, char** argv)
+{
+	string path = "C:\\Work\\Projects\\red.cuda\\TestRun\\InputTest\\Test_Fargo_Gas\\gasvrad0.dat";
+	size_t n = 512*1024;
+	vector<var_t> v_rad(n);
+	vector<var_t> v_theta(n);
+	var_t* raw_data = v_rad.data();
+
+	try
+	{
+		file::load_binary_file(path, n, raw_data);
+
+		path = "C:\\Work\\Projects\\red.cuda\\TestRun\\InputTest\\Test_Fargo_Gas\\gasvtheta0.dat";
+		raw_data = v_theta.data();
+		file::load_binary_file(path, n, raw_data);
+	}
+	catch (const string& msg)
+	{
+		cerr << "Error: " << msg << endl;
+	}
+
+
+
+}
+
 #endif

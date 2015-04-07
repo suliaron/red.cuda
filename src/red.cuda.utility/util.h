@@ -4,6 +4,8 @@
 
 namespace redutilcu
 {
+	__host__ __device__ vec_t transform_velocity(var_t theta, var_t v_r, var_t v_theta);
+
 	template <typename T>
 	std::string number_to_string(T number);
 	int device_query(ostream& sout, int id_dev);

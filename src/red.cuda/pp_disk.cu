@@ -19,8 +19,8 @@
 using namespace std;
 using namespace redutilcu;
 
-#define GAS_REDUCTION_THRESHOLD 1.0e-6
-#define GAS_INNER_EDGE 0.1              // [AU]
+#define GAS_REDUCTION_THRESHOLD    1.0e-6
+#define GAS_INNER_EDGE             0.1    // [AU]
 
 
 __constant__ var_t dc_threshold[THRESHOLD_N];
@@ -119,7 +119,6 @@ __host__ __device__
 	return density;
 }
 
-
 __host__ __device__
 	vec_t circular_velocity(var_t mu, const vec_t* rVec)
 {
@@ -169,6 +168,45 @@ __host__ __device__
 	
 	return v_gas;
 }
+
+__host__ __device__
+	int calc_linear_index(const vec_t& rVec, var_t* used_rad, int n_sec, int n_rad)
+{
+	const var_t dalpha = TWOPI / n_sec;
+	
+	var_t r = sqrt(SQR(rVec.x) + SQR(rVec.y));
+	if (     used_rad[0] > r)
+	{
+		return 0;
+	}
+	else if (used_rad[n_rad] < r)
+	{
+		return n_rad * n_sec - 1;
+	}
+	else
+	{
+		// TODO: implement a fast search for the cell
+		// IDEA: populate the used_rad with the square of the distance, since it is much faster to calculate r^2
+		// Determine which ring contains r
+		int i_rad = 0;
+		int i_sec = 0;
+		for (int k = 0; k < n_rad; k++)
+		{
+			if (used_rad[k] <= r && r < used_rad[k+1])
+			{
+				i_rad = k;
+				break;
+			}
+		}
+
+		var_t alpha = (rVec.y >= 0.0 ? atan2(rVec.y, rVec.x) : TWOPI + atan2(rVec.y, rVec.x));
+		i_sec =  alpha / dalpha;
+		int i_linear = i_rad * n_sec + i_sec;
+
+		return i_linear;
+	}
+}
+
 } /* pp_disk_utility */
 
 namespace kernel_pp_disk
@@ -423,8 +461,7 @@ static __global__
 		}
 
 		var_t m_star = p[0].mass;
-		var_t mu        = 1.0 * (m_star + p[i].mass);
-		vec_t v_g       = pp_disk_utility::get_velocity(mu, dc_anal_gd_params.eta, &r[i]);
+		vec_t v_g       = pp_disk_utility::get_velocity(m_star, dc_anal_gd_params.eta, &r[i]);
 		vec_t u         = {v_g.x - v[i].x, v_g.y - v[i].y, v_g.z - v[i].z, 0.0};
 		var_t u_n       = sqrt(SQR(u.x) + SQR(u.y) + SQR(u.z));
 		var_t density_g = pp_disk_utility::get_density(dc_anal_gd_params.sch, dc_anal_gd_params.rho, &r[i]);
@@ -554,67 +591,107 @@ void pp_disk::cpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, 
 	}
 }
 
-
 void pp_disk::cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a)
 {
-	var_t decr_fact = pp_disk_utility::reduction_factor(a_gd->params.gas_decrease, a_gd->params.t0, a_gd->params.t1, a_gd->params.e_folding_time, curr_t);
-	// TODO: export 1.0e-6 into the gas disk description file
-	if (GAS_REDUCTION_THRESHOLD > decr_fact)
+	switch (g_disk_model)
 	{
-		return;
+	case GAS_DISK_MODEL_NONE:
+		break;
+	case GAS_DISK_MODEL_ANALYTIC:
+		{
+		var_t decr_fact = pp_disk_utility::reduction_factor(a_gd->params.gas_decrease, a_gd->params.t0, a_gd->params.t1, a_gd->params.e_folding_time, curr_t);
+		// TODO: export 1.0e-6 into the gas disk description file
+		if (GAS_REDUCTION_THRESHOLD > decr_fact)
+		{
+			return;
+		}
+
+		var_t m_star = p[0].mass;
+		for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
+		{
+			vec_t v_g       = pp_disk_utility::get_velocity(m_star, a_gd->params.eta, &r[i]);
+			vec_t u         = {v_g.x - v[i].x, v_g.y - v[i].y, v_g.z - v[i].z, 0.0};
+			var_t u_n       = sqrt(SQR(u.x) + SQR(u.y) + SQR(u.z));
+			var_t density_g = pp_disk_utility::get_density(a_gd->params.sch, a_gd->params.rho, &r[i]);
+
+			var_t f = decr_fact * (3.0 * p[i].cd * density_g * u_n) / (8.0 * p[i].radius * p[i].density);
+
+			a[i].x += f * u.x;
+			a[i].y += f * u.y;
+			a[i].z += f * u.z;
+
+			//var_t rhoGas = rFactor * gas_density_at(gasDisk, (vec_t*)&coor[bodyIdx]);
+			//var_t r = norm((vec_t*)&coor[bodyIdx]);
+
+			//vec_t u;
+			//u.x	= velo[bodyIdx].x - vGas.x;
+			//u.y	= velo[bodyIdx].y - vGas.y;
+			//u.z	= velo[bodyIdx].z - vGas.z;
+			//var_t C	= 0.0;
+
+			//var_t lambda = gasDisk->mfp.x * pow(r, gasDisk->mfp.y);
+			//// Epstein-regime:
+			//if (     params[bodyIdx].radius <= 0.1 * lambda)
+			//{
+			//	var_t vth = mean_thermal_speed_CMU(gasDisk, r);
+			//	C = params[bodyIdx].gamma_epstein * vth * rhoGas;
+			//}
+			//// Stokes-regime:
+			//else if (params[bodyIdx].radius >= 10.0 * lambda)
+			//{
+			//	C = params[bodyIdx].gamma_stokes * norm(&u) * rhoGas;
+			//}
+			//// Transition-regime:
+			//else
+			//{
+
+			//}
+
+			//acce[tid].x = -C * u.x;
+			//acce[tid].y = -C * u.y;
+			//acce[tid].z = -C * u.z;
+			//acce[tid].w = 0.0;
+
+			//printf("acce[tid].x: %10le\n", acce[tid].x);
+			//printf("acce[tid].y: %10le\n", acce[tid].y);
+			//printf("acce[tid].z: %10le\n", acce[tid].z);
+		} /* for */
+		} /* case block */
+		break;
+	case GAS_DISK_MODEL_FARGO:
+		{
+		var_t m_star = p[0].mass;
+		for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
+		{
+			int linear_index= pp_disk_utility::calc_linear_index(r[i], f_gd->used_rad[0], f_gd->params.n_sec,  f_gd->params.n_rad);
+			var_t r_norm    = sqrt(SQR(r[i].x) + SQR(r[i].x));
+
+			// Massless body's circular velocity at r_norm distance from the barycenter
+			var_t vc_theta  = sqrt(m_star/r_norm);
+
+			// Get gas parcel's velocity at r[i]
+			var_t v_g_theta = vc_theta + f_gd->vtheta[0][linear_index];
+			var_t v_g_rad   = f_gd->vrad[0][linear_index];
+			// TODO: calculate the x and y components of the gas velocity
+			vec_t v_g       = {0.0, 0.0, 0.0, 0.0};
+			
+			// Get gas parcel's density at r[i]
+			var_t density_g = f_gd->density[0][linear_index];
+
+			// Compute the solid body's relative velocity
+			vec_t u         = {v_g.x - v[i].x, v_g.y - v[i].y, v_g.z - v[i].z, 0.0};
+			var_t u_n       = sqrt(SQR(u.x) + SQR(u.y) + SQR(u.z));
+
+			var_t f = (3.0 * p[i].cd * density_g * u_n) / (8.0 * p[i].radius * p[i].density);
+
+			a[i].x += f * u.x;
+			a[i].y += f * u.y;
+			a[i].z += f * u.z;
+		} /* for */
+		} /* case block */
+		break;
 	}
 
-	var_t m_star = p[0].mass;
-	for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
-	{
-		var_t mu        = 1.0 * (m_star + p[i].mass);
-		vec_t v_g       = pp_disk_utility::get_velocity(mu, a_gd->params.eta, &r[i]);
-		vec_t u         = {v_g.x - v[i].x, v_g.y - v[i].y, v_g.z - v[i].z, 0.0};
-		var_t u_n       = sqrt(SQR(u.x) + SQR(u.y) + SQR(u.z));
-		var_t density_g = pp_disk_utility::get_density(a_gd->params.sch, a_gd->params.rho, &r[i]);
-
-		var_t f = decr_fact * (3.0 * p[i].cd * density_g * u_n) / (8.0 * p[i].radius * p[i].density);
-
-		a[i].x += f * u.x;
-		a[i].y += f * u.y;
-		a[i].z += f * u.z;
-
-		//var_t rhoGas = rFactor * gas_density_at(gasDisk, (vec_t*)&coor[bodyIdx]);
-		//var_t r = norm((vec_t*)&coor[bodyIdx]);
-
-		//vec_t u;
-		//u.x	= velo[bodyIdx].x - vGas.x;
-		//u.y	= velo[bodyIdx].y - vGas.y;
-		//u.z	= velo[bodyIdx].z - vGas.z;
-		//var_t C	= 0.0;
-
-		//var_t lambda = gasDisk->mfp.x * pow(r, gasDisk->mfp.y);
-		//// Epstein-regime:
-		//if (     params[bodyIdx].radius <= 0.1 * lambda)
-		//{
-		//	var_t vth = mean_thermal_speed_CMU(gasDisk, r);
-		//	C = params[bodyIdx].gamma_epstein * vth * rhoGas;
-		//}
-		//// Stokes-regime:
-		//else if (params[bodyIdx].radius >= 10.0 * lambda)
-		//{
-		//	C = params[bodyIdx].gamma_stokes * norm(&u) * rhoGas;
-		//}
-		//// Transition-regime:
-		//else
-		//{
-
-		//}
-
-		//acce[tid].x = -C * u.x;
-		//acce[tid].y = -C * u.y;
-		//acce[tid].z = -C * u.z;
-		//acce[tid].w = 0.0;
-
-		//printf("acce[tid].x: %10le\n", acce[tid].x);
-		//printf("acce[tid].y: %10le\n", acce[tid].y);
-		//printf("acce[tid].z: %10le\n", acce[tid].z);
-	}
 }
 
 void pp_disk::cpu_calc_grav_accel_SI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)

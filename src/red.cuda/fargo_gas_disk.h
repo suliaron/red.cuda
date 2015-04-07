@@ -30,13 +30,10 @@ public:
 	void load_gas_vtheta(string& path, size_t n);
 	void load_used_rad(string& path, size_t);
 
-	fargo_gas_disk_params_t params;
+	vec_t get_velocity(vec_t r);
+	var_t get_density(vec_t r);
 
-private:
-	void set_default_values();
-	void parse();
-	void set_param(string& key, string& value);
-	int create_index_for_filename(ttt_t t);
+	fargo_gas_disk_params_t params;
 
 	vector<var_t*> h_density;    //!< Gas density in the HOST memory
 	vector<var_t*> d_density;    //!< Gas density in the DEVICE memory
@@ -53,6 +50,12 @@ private:
 	vector<var_t*> h_used_rad;
 	vector<var_t*> d_used_rad;
 	vector<var_t*> used_rad;
+
+private:
+	void set_default_values();
+	void parse();
+	void set_param(string& key, string& value);
+	int create_index_for_filename(ttt_t t);
 
 	bool verbose;
 	string dir;

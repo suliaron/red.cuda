@@ -254,9 +254,9 @@ void analytic_gas_disk::set_param(string& key, string& value)
 
 void analytic_gas_disk::calc(var_t m_star)
 {
-	params.c_vth = sqrt((8.0 * constants::Boltzman_CMU)/(constants::Pi * params.mean_molecular_weight * constants::ProtonMass_CMU));
+	params.c_vth = sqrt((8.0 * constants::Boltzman_CMU)/(PI * params.mean_molecular_weight * constants::ProtonMass_CMU));
 
-	params.mfp.x = params.mean_molecular_weight * constants::ProtonMass_CMU / (sqrt(2.0) * constants::Pi * SQR(params.particle_diameter) * params.rho.x);
+	params.mfp.x = params.mean_molecular_weight * constants::ProtonMass_CMU / (sqrt(2.0) * PI * SQR(params.particle_diameter) * params.rho.x);
 	params.mfp.y = -params.rho.y;
 
 	params.temp.x = SQR(params.sch.x) * constants::Gauss2 * m_star * params.mean_molecular_weight * constants::ProtonMass_CMU / constants::Boltzman_CMU;

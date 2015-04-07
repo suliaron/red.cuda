@@ -23,6 +23,18 @@ std::string number_to_string( T number )
 	return ss.str();
 }
 
+__host__ __device__
+	vec_t transform_velocity(var_t theta, var_t v_r, var_t v_theta)
+{
+	var_t M[2][2] = {
+		             {cos(theta), -sin(theta)},
+		             {sin(theta),  cos(theta)}
+	                };
+
+	vec_t result = {M[0][0] * v_r + M[0][1] * v_theta, M[1][0] * v_r + M[1][1] * v_theta, 0.0, 0.0};
+	return result;
+}
+
 // Beginning of GPU Architecture definitions
 inline int _ConvertSMVer2Cores(int major, int minor)
 {

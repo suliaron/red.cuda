@@ -9,7 +9,6 @@ namespace constants
 	const int_t	 CheckForSM			      = 100;
 	const var_t SmallestNumber		      = 1.0e-50;
 
-	const var_t Pi					      = 3.14159265358979323846;
 	const var_t SqrtTwoPi			      = 2.50662827463100024161;
 
 	const var_t Boltzman_SI			 	  = 1.3806488e-23;			        // J/K = (kg m^2) / (s^2 K)
