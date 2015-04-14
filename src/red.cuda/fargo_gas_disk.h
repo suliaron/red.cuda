@@ -22,6 +22,7 @@ public:
 	void deallocate_host_storage();
 	void deallocate_device_storage();
 
+	void create_aliases();
 	void copy_to_device();
 
 	void load(ttt_t);

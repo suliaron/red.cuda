@@ -1349,7 +1349,7 @@ int main(int argc, const char** argv)
 }
 #endif
 
-#if 1
+#if 0
 int main(int argc, char** argv)
 {
 	red_test::run(argc, argv);
@@ -1544,44 +1544,18 @@ int main(int argc, char** argv)
 #endif
 
 
-#if 0
+#if 1
 
-// Test the calculation of the transformed velocity
-
-vec_t transform_velocity(var_t theta, var_t v_r, var_t v_theta)
-{
-	var_t M[2][2] = {
-		             {cos(theta), -sin(theta)},
-		             {sin(theta),  cos(theta)}
-	                };
-
-	vec_t result = {M[0][0] * v_r + M[0][1] * v_theta, M[1][0] * v_r + M[1][1] * v_theta, 0.0, 0.0};
-	return result;
-}
+// Calculate the volume density from the surface density used by FARGO
 
 int main(int argc, char** argv)
 {
-	string path = "C:\\Work\\Projects\\red.cuda\\TestRun\\InputTest\\Test_Fargo_Gas\\gasvrad0.dat";
-	size_t n = 512*1024;
-	vector<var_t> v_rad(n);
-	vector<var_t> v_theta(n);
-	var_t* raw_data = v_rad.data();
+	var_t Sigma_0_f = 2.38971e-5; /* Surface density of the gas at r = 1 [AU] */
+	var_t h = 0.05;               /* Thickness over Radius in the disc */
+	var_t rho_0_f  = (1.0 / sqrt(TWOPI)) * Sigma_0_f / h;  /* Volume density of the gas at r = 1 [AU] */
 
-	try
-	{
-		file::load_binary_file(path, n, raw_data);
-
-		path = "C:\\Work\\Projects\\red.cuda\\TestRun\\InputTest\\Test_Fargo_Gas\\gasvtheta0.dat";
-		raw_data = v_theta.data();
-		file::load_binary_file(path, n, raw_data);
-	}
-	catch (const string& msg)
-	{
-		cerr << "Error: " << msg << endl;
-	}
-
-
-
+	printf("rho_0_f = %25.16le [M/AU^3]\n", rho_0_f);
+	printf("rho_0_f = %25.16le [g/cm^3]\n", rho_0_f * constants::SolarPerAu3ToGramPerCm3);
 }
 
 #endif

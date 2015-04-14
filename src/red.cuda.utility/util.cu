@@ -24,14 +24,12 @@ std::string number_to_string( T number )
 }
 
 __host__ __device__
-	vec_t transform_velocity(var_t theta, var_t v_r, var_t v_theta)
+	vec_t rotate_2D_vector(var_t theta, const vec_t& r)
 {
-	var_t M[2][2] = {
-		             {cos(theta), -sin(theta)},
-		             {sin(theta),  cos(theta)}
-	                };
+	var_t ct = cos(theta);
+	var_t st = sin(theta);
 
-	vec_t result = {M[0][0] * v_r + M[0][1] * v_theta, M[1][0] * v_r + M[1][1] * v_theta, 0.0, 0.0};
+	vec_t result = {ct * r.x - st * r.y, st * r.x + ct * r.y, 0.0, 0.0};
 	return result;
 }
 

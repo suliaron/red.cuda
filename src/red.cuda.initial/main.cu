@@ -539,7 +539,7 @@ void create_Chambers2001_disk(string& dir, string& filename)
 		var_t r_SL =  2.7;      /* distance of the snowline [AU] */
 		var_t f_neb = 1.0;	    
 		var_t f_ice = 4.2;      /* ice condensation coefficient beyond the snowline */
-		var_t Sigma_1 = 13.66;  /* Surface density of solids at r = 1 AU */
+		var_t Sigma_1 = 9.0;  /* Surface density of solids at r = 1 AU */
 		var_t f_gas = 240.0;    /* gas to dust ratio */
 		var_t p = 1.0;          /* profile index of the power-law function */
 
@@ -567,7 +567,7 @@ void create_Chambers2001_disk(string& dir, string& filename)
 		var_t r_SL =  2.7;      /* distance of the snowline [AU] */
 		var_t f_neb = 1.0;	    
 		var_t f_ice = 4.2;      /* ice condensation coefficient beyond the snowline */
-		var_t Sigma_1 = 13.66;  /* Surface density of solids at r = 1 AU */
+		var_t Sigma_1 = 9.0;  /* Surface density of solids at r = 1 AU */
 		var_t f_gas = 240.0;    /* gas to dust ratio */
 		var_t p = -3.0/2.0;     /* profile index of the power-law function */
 

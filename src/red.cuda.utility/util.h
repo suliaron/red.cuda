@@ -4,7 +4,7 @@
 
 namespace redutilcu
 {
-	__host__ __device__ vec_t transform_velocity(var_t theta, var_t v_r, var_t v_theta);
+	__host__ __device__ vec_t rotate_2D_vector(var_t theta, const vec_t& r);
 
 	template <typename T>
 	std::string number_to_string(T number);

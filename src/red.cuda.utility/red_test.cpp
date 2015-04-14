@@ -123,7 +123,7 @@ static sim_data* create_sim_data()
 
 static void test_util()
 {
-	//__host__ __device__ vec_t transform_velocity(var_t theta, var_t v_r, var_t v_theta);
+	//__host__ __device__ vec_t rotate_2D_vector(var_t theta, var_t v_r, var_t v_theta);
 
 	//template <typename T>
 	//std::string number_to_string(T number);
@@ -164,15 +164,15 @@ static void test_util()
 
 	fprintf(stderr, "TEST: %s\n", test_set);
 
-	// Test transform_velocity()
+	// Test rotate_2D_vector()
 	{
-		char test_func[] = "transform_velocity";
+		char test_func[] = "rotate_2D_vector";
 
 		var_t theta = 0.0;
 		vec_t v = {0, 1, 0, 0};
 
 		vec_t expected = {0, 1, 0, 0};
-		vec_t result = transform_velocity(theta, v.x, v.y);
+		vec_t result = rotate_2D_vector(theta, v);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
@@ -187,7 +187,7 @@ static void test_util()
 		theta = PI / 2.0;
 
 		expected.x = -1; expected.y = 0;
-		result = transform_velocity(theta, v.x, v.y);
+		result = rotate_2D_vector(theta, v);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
@@ -202,7 +202,7 @@ static void test_util()
 		theta = PI;
 
 		expected.x = 0; expected.y = -1;
-		result = transform_velocity(theta, v.x, v.y);
+		result = rotate_2D_vector(theta, v);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
@@ -217,7 +217,7 @@ static void test_util()
 		theta = 3.0 * PI / 2.0;
 
 		expected.x = 1; expected.y = 0;
-		result = transform_velocity(theta, v.x, v.y);
+		result = rotate_2D_vector(theta, v);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
@@ -232,7 +232,7 @@ static void test_util()
 		theta = PI / 4.0;
 
 		expected.x = -1/sqrt(2.0); expected.y = 1/sqrt(2.0);
-		result = transform_velocity(theta, v.x, v.y);
+		result = rotate_2D_vector(theta, v);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
@@ -247,7 +247,7 @@ static void test_util()
 		theta = 3.0 * PI / 4.0;
 
 		expected.x = -1/sqrt(2.0); expected.y = -1/sqrt(2.0);
-		result = transform_velocity(theta, v.x, v.y);
+		result = rotate_2D_vector(theta, v);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
@@ -262,7 +262,7 @@ static void test_util()
 		theta = 5.0 * PI / 4.0;
 
 		expected.x = 1/sqrt(2.0); expected.y = -1/sqrt(2.0);
-		result = transform_velocity(theta, v.x, v.y);
+		result = rotate_2D_vector(theta, v);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
@@ -277,7 +277,7 @@ static void test_util()
 		theta = 7.0 * PI / 4.0;
 
 		expected.x = 1/sqrt(2.0); expected.y = 1/sqrt(2.0);
-		result = transform_velocity(theta, v.x, v.y);
+		result = rotate_2D_vector(theta, v);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))

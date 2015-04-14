@@ -30,6 +30,8 @@ fargo_gas_disk::fargo_gas_disk(string& dir, string& filename, computing_device_t
 
 	path = file::combine_path(dir, "used_rad.dat");
 	load_used_rad(path, params.n_rad);
+
+	create_aliases();
 }
 
 fargo_gas_disk::~fargo_gas_disk()
@@ -138,6 +140,25 @@ void fargo_gas_disk::deallocate_device_storage()
 	FREE_DEVICE_VECTOR((void **)&(d_density[0]));
 	FREE_DEVICE_VECTOR((void **)&(d_vrad[0]));
 	FREE_DEVICE_VECTOR((void **)&(d_vtheta[0]));
+}
+
+void fargo_gas_disk::create_aliases()
+{
+	switch (comp_dev)
+	{
+	case COMPUTING_DEVICE_CPU:
+		density[0] = h_density[0];
+		vrad[0]    = h_vrad[0];
+		vtheta[0]  = h_vtheta[0];
+		used_rad[0]= h_used_rad[0];
+		break;
+	case COMPUTING_DEVICE_GPU:
+		density[0] = d_density[0];
+		vrad[0]    = d_vrad[0];
+		vtheta[0]  = d_vtheta[0];
+		used_rad[0]= d_used_rad[0];
+		break;
+	}
 }
 
 void fargo_gas_disk::copy_to_device()

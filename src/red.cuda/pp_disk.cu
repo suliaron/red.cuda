@@ -23,9 +23,9 @@ using namespace redutilcu;
 #define GAS_INNER_EDGE             0.1    // [AU]
 
 
-__constant__ var_t dc_threshold[THRESHOLD_N];
+__constant__ var_t                      dc_threshold[THRESHOLD_N];
 __constant__ analytic_gas_disk_params_t dc_anal_gd_params;
-__constant__ fargo_gas_disk_params_t dc_fargo_gd_params;
+__constant__ fargo_gas_disk_params_t    dc_fargo_gd_params;
 
 ///****************** DEVICE functions begins here ******************/
 
@@ -664,7 +664,7 @@ void pp_disk::cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound,
 		for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
 		{
 			int linear_index= pp_disk_utility::calc_linear_index(r[i], f_gd->used_rad[0], f_gd->params.n_sec,  f_gd->params.n_rad);
-			var_t r_norm    = sqrt(SQR(r[i].x) + SQR(r[i].x));
+			var_t r_norm    = sqrt(SQR(r[i].x) + SQR(r[i].y));
 
 			// Massless body's circular velocity at r_norm distance from the barycenter
 			var_t vc_theta  = sqrt(m_star/r_norm);
@@ -672,8 +672,13 @@ void pp_disk::cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound,
 			// Get gas parcel's velocity at r[i]
 			var_t v_g_theta = vc_theta + f_gd->vtheta[0][linear_index];
 			var_t v_g_rad   = f_gd->vrad[0][linear_index];
+			vec_t v_g_polar = {v_g_rad, v_g_theta, 0.0, 0.0};
+			
+			// Calculate the angle between the r position vector and the x-axis
+			var_t theta     = (r[i].y >= 0.0 ? atan2(r[i].y, r[i].x) : TWOPI + atan2(r[i].y, r[i].x));
+
 			// TODO: calculate the x and y components of the gas velocity
-			vec_t v_g       = {0.0, 0.0, 0.0, 0.0};
+			vec_t v_g       = redutilcu::rotate_2D_vector(theta, v_g_polar);
 			
 			// Get gas parcel's density at r[i]
 			var_t density_g = f_gd->density[0][linear_index];
@@ -691,7 +696,6 @@ void pp_disk::cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound,
 		} /* case block */
 		break;
 	}
-
 }
 
 void pp_disk::cpu_calc_grav_accel_SI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
