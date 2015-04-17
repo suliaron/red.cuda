@@ -235,7 +235,7 @@ int main(int argc, const char** argv, const char** env)
 				ppd->clear_event_counter();
 			}
 
-			if (ppd->check_for_rebuild_vectors(8))
+			if (ppd->check_for_rebuild_vectors(4))
 			{
 				file::log_rebuild_vectors(*log_f, ppd->t);
 			}

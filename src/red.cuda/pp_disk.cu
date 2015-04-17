@@ -214,7 +214,7 @@ namespace kernel_pp_disk
 static __global__
 	void check_for_ejection_hit_centrum
 	(
-		ttt_t t, 
+		ttt_t curr_t, 
 		interaction_bound int_bound, 
 		const param_t* p, 
 		const vec_t* r, 
@@ -236,12 +236,12 @@ static __global__
 		if (0.0 < dc_threshold[THRESHOLD_EJECTION_DISTANCE] && dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED] < r2)
 		{
 			k = atomicAdd(event_counter, 1);
-			pp_disk_utility::store_event_data(EVENT_NAME_EJECTION, t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
-			//printf("t = %20.10le d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
+			printf("t = %20.10le d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", curr_t, sqrt(r2), k+1, body_md[0].id, body_md[i].id);
+			pp_disk_utility::store_event_data(EVENT_NAME_EJECTION, curr_t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
 
 			//events[k].event_name = EVENT_NAME_EJECTION;
 			//events[k].d = sqrt(r2); //sqrt(dVec.w);
-			//events[k].t = t;
+			//events[k].t = curr_t;
 			//events[k].id1 = body_md[0].id;
 			//events[k].id2 = body_md[i].id;
 			//events[k].idx1 = 0;
@@ -263,12 +263,12 @@ static __global__
 		else if (0.0 < dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] && dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] > r2)
 		{
 			k = atomicAdd(event_counter, 1);
-			pp_disk_utility::store_event_data(EVENT_NAME_HIT_CENTRUM, t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
-			//printf("t = %20.10le d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", t, sqrt(dVec.w), k+1, body_md[0].id, body_md[i].id);
+			printf("t = %20.10le d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", curr_t, sqrt(r2), k+1, body_md[0].id, body_md[i].id);
+			pp_disk_utility::store_event_data(EVENT_NAME_HIT_CENTRUM, curr_t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
 
 			//events[k].event_name = EVENT_NAME_HIT_CENTRUM;
 			//events[k].d = sqrt(r2); //sqrt(dVec.w);
-			//events[k].t = t;
+			//events[k].t = curr_t;
 			//events[k].id1 = body_md[0].id;
 			//events[k].id2 = body_md[i].id;
 			//events[k].idx1 = 0;
@@ -286,7 +286,7 @@ static __global__
 static __global__
 	void calc_grav_accel_int_mul_of_thread_per_block
 	(
-		ttt_t t, 
+		ttt_t curr_t, 
 		interaction_bound int_bound, 
 		const body_metadata_t* body_md, 
 		const param_t* p, 
@@ -339,11 +339,11 @@ static __global__
 			}
 			//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
 
-			pp_disk_utility::store_event_data(EVENT_NAME_COLLISION, t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
+			pp_disk_utility::store_event_data(EVENT_NAME_COLLISION, curr_t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
 
 			//events[k].event_name = EVENT_NAME_COLLISION;
 			//events[k].d = d;
-			//events[k].t = t;
+			//events[k].t = curr_t;
 			//events[k].id1 = body_md[survivIdx].id;
 			//events[k].id2 = body_md[mergerIdx].id;
 			//events[k].idx1 = survivIdx;
@@ -359,7 +359,7 @@ static __global__
 static __global__
 	void calc_grav_accel
 	(
-		ttt_t t, 
+		ttt_t curr_t, 
 		interaction_bound int_bound, 
 		const body_metadata_t* body_md, 
 		const param_t* p, 
@@ -418,11 +418,11 @@ static __global__
 					}
 					//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
 
-					pp_disk_utility::store_event_data(EVENT_NAME_COLLISION, t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
+					pp_disk_utility::store_event_data(EVENT_NAME_COLLISION, curr_t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
 
 					//events[k].event_name = EVENT_NAME_COLLISION;
 					//events[k].d = d;
-					//events[k].t = t;
+					//events[k].t = curr_t;
 					//events[k].id1 = body_md[survivIdx].id;
 					//events[k].id2 = body_md[mergerIdx].id;
 					//events[k].idx1 = survivIdx;
@@ -744,11 +744,11 @@ void pp_disk::cpu_calc_grav_accel_SI(ttt_t curr_t, interaction_bound int_bound, 
 						survivIdx = mergerIdx;
 						mergerIdx = t;
 					}
-					printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
+					printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", curr_t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
 
 					events[k].event_name = EVENT_NAME_COLLISION;
 					events[k].d = d;
-					events[k].t = t;
+					events[k].t = curr_t;
 					events[k].id1 = body_md[survivIdx].id;
 					events[k].id2 = body_md[mergerIdx].id;
 					events[k].idx1 = survivIdx;
@@ -1112,6 +1112,16 @@ void pp_disk::swap()
 	{
 		::swap(sim_data->yout[i], sim_data->y[i]);
 	}
+
+	int tmp = (int)aps + 1;
+	if (ACTUAL_PHASE_STORAGE_N > tmp)
+	{
+		aps = (actual_phase_storage_t)tmp;
+	}
+	else
+	{
+		aps = ACTUAL_PHASE_STORAGE_Y;
+	}
 }
 
 void pp_disk::increment_event_counter(int *event_counter)
@@ -1222,8 +1232,19 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 	tools::calc_position_after_collision(collision->p1.mass, collision->p2.mass, &(collision->r1), &(collision->r2), collision->rs);
 	tools::calc_velocity_after_collision(collision->p1.mass, collision->p2.mass, &(collision->v1), &(collision->v2), collision->vs);
 	// Update position and velocity of survivor
-	sim_data->h_y[0][survivIdx] = collision->rs;
-	sim_data->h_y[1][survivIdx] = collision->vs;
+	switch (aps)
+	{
+	case ACTUAL_PHASE_STORAGE_Y:
+		sim_data->h_y[0][survivIdx] = collision->rs;
+		sim_data->h_y[1][survivIdx] = collision->vs;
+		break;
+	case ACTUAL_PHASE_STORAGE_YOUT:
+		sim_data->h_yout[0][survivIdx] = collision->rs;
+		sim_data->h_yout[1][survivIdx] = collision->vs;
+		break;
+	default:
+		throw string("Parameter aps is out of range.");
+	}
 
 	// Calculate physical properties of the new object
 	tools::calc_physical_properties(collision->p1, collision->p2, collision->ps);
@@ -1233,26 +1254,37 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 	// Make the merged body inactive 
 	sim_data->h_body_md[mergerIdx].id *= -1;
 	// Set its parameters to zero
-	sim_data->h_p[mergerIdx].mass    = 0.0;
-	sim_data->h_p[mergerIdx].density = 0.0;
-	sim_data->h_p[mergerIdx].radius  = 0.0;
+	//sim_data->h_p[mergerIdx].mass    = 0.0;
+	//sim_data->h_p[mergerIdx].density = 0.0;
+	//sim_data->h_p[mergerIdx].radius  = 0.0;
 	// and push it radialy extremly far away with zero velocity
-	sim_data->h_y[0][mergerIdx].x = 1.0e20;
-	sim_data->h_y[0][mergerIdx].y = 0.0;
-	sim_data->h_y[0][mergerIdx].z = 0.0;
-	sim_data->h_y[1][mergerIdx].x = 0.0;
-	sim_data->h_y[1][mergerIdx].y = 0.0;
-	sim_data->h_y[1][mergerIdx].z = 0.0;
+	//sim_data->h_y[0][mergerIdx].x = 1.0e20;
+	//sim_data->h_y[0][mergerIdx].y = 0.0;
+	//sim_data->h_y[0][mergerIdx].z = 0.0;
+	//sim_data->h_y[1][mergerIdx].x = 0.0;
+	//sim_data->h_y[1][mergerIdx].y = 0.0;
+	//sim_data->h_y[1][mergerIdx].z = 0.0;
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
-		copy_vector_to_device((void **)&sim_data->d_y[0][survivIdx],	(void *)&sim_data->h_y[0][survivIdx],	 sizeof(vec_t));
-		copy_vector_to_device((void **)&sim_data->d_y[1][survivIdx],	(void *)&sim_data->h_y[1][survivIdx],	 sizeof(vec_t));
+		switch (aps)
+		{
+		case ACTUAL_PHASE_STORAGE_Y:
+			copy_vector_to_device((void **)&sim_data->y[0][survivIdx],	(void *)&sim_data->h_y[0][survivIdx],	 sizeof(vec_t));
+			copy_vector_to_device((void **)&sim_data->y[1][survivIdx],	(void *)&sim_data->h_y[1][survivIdx],	 sizeof(vec_t));
+			break;
+		case ACTUAL_PHASE_STORAGE_YOUT:
+			copy_vector_to_device((void **)&sim_data->y[0][survivIdx],	(void *)&sim_data->h_yout[0][survivIdx], sizeof(vec_t));
+			copy_vector_to_device((void **)&sim_data->y[1][survivIdx],	(void *)&sim_data->h_yout[1][survivIdx], sizeof(vec_t));
+			break;
+		default:
+			throw string("Parameter aps is out of range.");
+		}
 		copy_vector_to_device((void **)&sim_data->d_p[survivIdx],		(void *)&sim_data->h_p[survivIdx],       sizeof(param_t));
 
-		copy_vector_to_device((void **)&sim_data->d_y[0][mergerIdx],	(void *)&sim_data->h_y[0][mergerIdx],    sizeof(vec_t));
-		copy_vector_to_device((void **)&sim_data->d_y[1][mergerIdx],	(void *)&sim_data->h_y[1][mergerIdx],    sizeof(vec_t));
-		copy_vector_to_device((void **)&sim_data->d_p[mergerIdx],		(void *)&sim_data->h_p[mergerIdx],       sizeof(param_t));
+		//copy_vector_to_device((void **)&sim_data->d_y[0][mergerIdx],	(void *)&sim_data->h_y[0][mergerIdx],    sizeof(vec_t));
+		//copy_vector_to_device((void **)&sim_data->d_y[1][mergerIdx],	(void *)&sim_data->h_y[1][mergerIdx],    sizeof(vec_t));
+		//copy_vector_to_device((void **)&sim_data->d_p[mergerIdx],		(void *)&sim_data->h_p[mergerIdx],       sizeof(param_t));
 		copy_vector_to_device((void **)&sim_data->d_body_md[mergerIdx],	(void *)&sim_data->h_body_md[mergerIdx], sizeof(body_metadata_t));
 	}
 }
@@ -1286,6 +1318,8 @@ pp_disk::~pp_disk()
 
 void pp_disk::initialize()
 {
+	aps             = ACTUAL_PHASE_STORAGE_Y;
+
 	t               = 0.0;
 	sim_data        = 0x0;
 	n_bodies        = 0x0;
@@ -1384,9 +1418,13 @@ void pp_disk::remove_inactive_bodies()
 	// Update the numbers after counting the eliminated bodies
 	n_bodies->update_numbers(sim_data->h_body_md);
 
-	sim_data_t *sim_data_temp = new sim_data_t;
+	sim_data_t* sim_data_temp = new sim_data_t;
 	// Only the data of the active bodies will be temporarily stored
 	allocate_host_storage(sim_data_temp, n_bodies->get_n_total());
+
+	// Create aliases:
+	vec_t* r = (aps == ACTUAL_PHASE_STORAGE_Y ? sim_data->h_y[0] : sim_data->h_yout[0]);
+	vec_t* v = (aps == ACTUAL_PHASE_STORAGE_Y ? sim_data->h_y[1] : sim_data->h_yout[1]);
 
 	// Copy the data of active bodies to sim_data_temp
 	int i = 0;
@@ -1395,8 +1433,8 @@ void pp_disk::remove_inactive_bodies()
 	{
 		if (0 < sim_data->h_body_md[i].id && BODY_TYPE_PADDINGPARTICLE > sim_data->h_body_md[i].body_type)
 		{
-			sim_data_temp->h_y[0][k]    = sim_data->h_y[0][i];
-			sim_data_temp->h_y[1][k]    = sim_data->h_y[1][i];
+			sim_data_temp->h_y[0][k]    = r[i];
+			sim_data_temp->h_y[1][k]    = v[i];
 			sim_data_temp->h_p[k]       = sim_data->h_p[i];
 			sim_data_temp->h_body_md[k] = sim_data->h_body_md[i];
 			k++;
@@ -1418,40 +1456,40 @@ void pp_disk::remove_inactive_bodies()
 	i = 0;
 	for ( ; i < n_SI; i++, k++)
 	{
-		sim_data->h_y[0][k]    = sim_data_temp->h_y[0][i];
-		sim_data->h_y[1][k]    = sim_data_temp->h_y[1][i];
+		r[k] = sim_data_temp->h_y[0][i];
+		v[k] = sim_data_temp->h_y[1][i];
 		sim_data->h_p[k]       = sim_data_temp->h_p[i];
 		sim_data->h_body_md[k] = sim_data_temp->h_body_md[i];
 	}
     while (use_padded_storage && k < n_prime_SI)
     {
-		create_padding_particle(k, sim_data->h_epoch, sim_data->h_body_md, sim_data->h_p, sim_data->h_y[0], sim_data->h_y[1]);
+		create_padding_particle(k, sim_data->h_epoch, sim_data->h_body_md, sim_data->h_p, r, v);
         k++;
     }
 
 	for ( ; i < n_SI + n_NSI; i++, k++)
 	{
-		sim_data->h_y[0][k]    = sim_data_temp->h_y[0][i];
-		sim_data->h_y[1][k]    = sim_data_temp->h_y[1][i];
+		r[k] = sim_data_temp->h_y[0][i];
+		v[k] = sim_data_temp->h_y[1][i];
 		sim_data->h_p[k]       = sim_data_temp->h_p[i];
 		sim_data->h_body_md[k] = sim_data_temp->h_body_md[i];
 	}
     while (use_padded_storage && k < n_prime_SI + n_prime_NSI)
     {
-		create_padding_particle(k, sim_data->h_epoch, sim_data->h_body_md, sim_data->h_p, sim_data->h_y[0], sim_data->h_y[1]);
+		create_padding_particle(k, sim_data->h_epoch, sim_data->h_body_md, sim_data->h_p, r, v);
         k++;
     }
 
 	for ( ; i < n_total; i++, k++)
 	{
-		sim_data->h_y[0][k]    = sim_data_temp->h_y[0][i];
-		sim_data->h_y[1][k]    = sim_data_temp->h_y[1][i];
+		r[k] = sim_data_temp->h_y[0][i];
+		v[k] = sim_data_temp->h_y[1][i];
 		sim_data->h_p[k]       = sim_data_temp->h_p[i];
 		sim_data->h_body_md[k] = sim_data_temp->h_body_md[i];
 	}
     while (use_padded_storage && k < n_prime_total)
     {
-		create_padding_particle(k, sim_data->h_epoch, sim_data->h_body_md, sim_data->h_p, sim_data->h_y[0], sim_data->h_y[1]);
+		create_padding_particle(k, sim_data->h_epoch, sim_data->h_body_md, sim_data->h_p, r, v);
         k++;
     }
 
@@ -1471,7 +1509,8 @@ void pp_disk::copy_to_device()
 
 	for (int i = 0; i < 2; i++)
 	{
-		copy_vector_to_device((void *)sim_data->d_y[i],	(void *)sim_data->h_y[i],	 n_body*sizeof(vec_t));
+		copy_vector_to_device((void *)sim_data->d_y[i],	(void *)sim_data->y[i],	 n_body*sizeof(vec_t));
+		//copy_vector_to_device((void *)sim_data->d_y[i],	(void *)sim_data->h_y[i],	 n_body*sizeof(vec_t));
 	}
 	copy_vector_to_device((void *)sim_data->d_p,		(void *)sim_data->h_p,		 n_body*sizeof(param_t));
 	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->h_body_md, n_body*sizeof(body_metadata_t));
@@ -1486,7 +1525,8 @@ void pp_disk::copy_to_host()
 
 	for (int i = 0; i < 2; i++)
 	{
-		copy_vector_to_host((void *)sim_data->h_y[i],	(void *)sim_data->d_y[i],	 n_body*sizeof(vec_t));
+		//copy_vector_to_host((void *)sim_data->h_y[i],	(void *)sim_data->d_y[i],	 n_body*sizeof(vec_t));
+		copy_vector_to_host((void *)sim_data->h_y[i],	(void *)sim_data->y[i],	 n_body*sizeof(vec_t));
 	}
 	copy_vector_to_host((void *)sim_data->h_p,			(void *)sim_data->d_p,		 n_body*sizeof(param_t));
 	copy_vector_to_host((void *)sim_data->h_body_md,	(void *)sim_data->d_body_md, n_body*sizeof(body_metadata_t));

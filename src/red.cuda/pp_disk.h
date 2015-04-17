@@ -134,6 +134,8 @@ public:
 	int n_collision[  EVENT_COUNTER_NAME_N];   //!< Number of collision
 	int n_event[      EVENT_COUNTER_NAME_N];   //!< Number of total events
 
+	actual_phase_storage_t aps;                //!< Shows which storage (y or yout) has the actual phases of the bodies
+
 private:
 	void increment_event_counter(int *event_counter);
 	//! Loads the initial position and velocity of the bodies (second input version).

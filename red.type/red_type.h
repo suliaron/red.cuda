@@ -20,6 +20,13 @@ typedef int    int_t;
 //! Type of integer tuples variables
 typedef int2   int2_t;
 
+typedef enum actual_phase_storage
+		{ 
+			ACTUAL_PHASE_STORAGE_Y,
+			ACTUAL_PHASE_STORAGE_YOUT,
+			ACTUAL_PHASE_STORAGE_N
+		} actual_phase_storage_t;
+
 typedef enum gas_decrease
 		{ 
 			GAS_DENSITY_CONSTANT,
