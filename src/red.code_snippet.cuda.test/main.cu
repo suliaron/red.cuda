@@ -1483,7 +1483,7 @@ int main(int argc, char** argv)
 		cout.setf(ios::right);
 		cout.setf(ios::scientific);
 		int m = 0;
-		for (int i = 0; i < result.length(); i++)
+		for (unsigned int i = 0; i < result.length(); i++)
 		{
 			string num;
 			num.resize(30);

@@ -1509,8 +1509,17 @@ void pp_disk::copy_to_device()
 
 	for (int i = 0; i < 2; i++)
 	{
-		copy_vector_to_device((void *)sim_data->d_y[i],	(void *)sim_data->y[i],	 n_body*sizeof(vec_t));
-		//copy_vector_to_device((void *)sim_data->d_y[i],	(void *)sim_data->h_y[i],	 n_body*sizeof(vec_t));
+		switch (aps)
+		{
+		case ACTUAL_PHASE_STORAGE_Y:
+			copy_vector_to_device((void *)sim_data->d_y[i],	(void *)sim_data->h_y[i], n_body*sizeof(vec_t));
+			break;
+		case ACTUAL_PHASE_STORAGE_YOUT:
+			copy_vector_to_device((void *)sim_data->d_y[i],	(void *)sim_data->h_yout[i], n_body*sizeof(vec_t));
+			break;
+		default:
+			throw string("Parameter aps is out of range.");
+		}
 	}
 	copy_vector_to_device((void *)sim_data->d_p,		(void *)sim_data->h_p,		 n_body*sizeof(param_t));
 	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->h_body_md, n_body*sizeof(body_metadata_t));
@@ -1525,8 +1534,18 @@ void pp_disk::copy_to_host()
 
 	for (int i = 0; i < 2; i++)
 	{
+		switch (aps)
+		{
+		case ACTUAL_PHASE_STORAGE_Y:
+			copy_vector_to_host((void *)sim_data->h_y[i], (void *)sim_data->d_y[i], n_body*sizeof(vec_t));
+			break;
+		case ACTUAL_PHASE_STORAGE_YOUT:
+			copy_vector_to_host((void *)sim_data->h_y[i], (void *)sim_data->d_yout[i], n_body*sizeof(vec_t));
+			break;
+		default:
+			throw string("Parameter aps is out of range.");
+		}
 		//copy_vector_to_host((void *)sim_data->h_y[i],	(void *)sim_data->d_y[i],	 n_body*sizeof(vec_t));
-		copy_vector_to_host((void *)sim_data->h_y[i],	(void *)sim_data->y[i],	 n_body*sizeof(vec_t));
 	}
 	copy_vector_to_host((void *)sim_data->h_p,			(void *)sim_data->d_p,		 n_body*sizeof(param_t));
 	copy_vector_to_host((void *)sim_data->h_body_md,	(void *)sim_data->d_body_md, n_body*sizeof(body_metadata_t));

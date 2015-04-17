@@ -225,7 +225,7 @@ void fargo_gas_disk::load_used_rad(string& path, size_t)
 	file::load_ascii_file(path, result);
 
 	int m = 0;
-	for (int i = 0; i < result.length(); i++)
+	for (unsigned int i = 0; i < result.length(); i++)
 	{
 		string num;
 		num.resize(30);
