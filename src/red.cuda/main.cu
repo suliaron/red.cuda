@@ -69,7 +69,7 @@ void open_streams(const options& opt, const integrator* intgr, ostream** result_
 
 void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* sum_time_of_steps, clock_t* time_of_one_step, time_t* time_info_start)
 {
-	static const char body_type_name[] = {"N_st", "N_gp", "N_rp", "N_pp", "N_sp", "N_pl", "N_tp"};
+	static const char* body_type_name[] = {"N_st", "N_gp", "N_rp", "N_pp", "N_sp", "N_pl", "N_tp"};
 	
 	cout.setf(ios::right);
 	cout.setf(ios::scientific);
