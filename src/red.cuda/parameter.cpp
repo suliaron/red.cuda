@@ -10,6 +10,11 @@
 
 using namespace redutilcu;
 
+parameter::parameter()
+{
+	create_default_parameters();
+}
+
 parameter::parameter(string& dir, string& filename, bool verbose) :
 	filename(filename),
 	verbose(verbose)
@@ -39,7 +44,6 @@ void parameter::create_default_parameters()
 	simulation_length  = 0.0;
 	output_interval    = 0.0;
 
-	// TODO: set these values to 0.0 indicating that these were not defined by the user
 	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE] = 0.0;      // AU
 	thrshld[THRESHOLD_EJECTION_DISTANCE   ] = 0.0;      // AU
 	thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] = 0.0;      // dimensionless parameter

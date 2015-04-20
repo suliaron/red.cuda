@@ -648,12 +648,7 @@ void create_Chambers2001_disk(string& dir, string& filename)
 			for (int i = 1; i < nBodies; i++)
 			{
 				var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-				int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-				if (1 == ret_code)
-				{
-					cerr << "Could not calculate the phase." << endl;
-					exit(0);
-				}
+				tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 				sim_data->h_y[0][i] = rVec;
 				sim_data->h_y[1][i] = vVec;
 			}
@@ -746,12 +741,7 @@ void create_Chambers2001_disk(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			if (1 == ret_code)
-			{
-				cerr << "Could not calculate the phase." << endl;
-				exit(0);
-			}
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -860,12 +850,7 @@ void create_Dvorak_disk(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			if (1 == ret_code)
-			{
-				cerr << "Could not calculate the phase." << endl;
-				exit(0);
-			}
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -911,12 +896,7 @@ void create_two_body_disk(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			if (1 == ret_code)
-			{
-				cerr << "Could not calculate the phase." << endl;
-				exit(0);
-			}
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -987,12 +967,7 @@ void create_n_gp_body_disk(string& dir, string& filename)
 
 			sim_data->h_oe[i].sma = i * 3.0;
 
-			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			if (1 == ret_code)
-			{
-				cerr << "Could not calculate the phase." << endl;
-				exit(0);
-			}
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1064,12 +1039,7 @@ void create_n_pp_body_disk(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			if (1 == ret_code)
-			{
-				cerr << "Could not calculate the phase." << endl;
-				exit(0);
-			}
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1121,12 +1091,7 @@ void create_n_spl_body_disk(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			if (1 == ret_code)
-			{
-				cerr << "Could not calculate the phase." << endl;
-				exit(0);
-			}
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1194,12 +1159,7 @@ void create_n_pl_body_disk(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			if (1 == ret_code)
-			{
-				cerr << "Could not calculate the phase." << endl;
-				exit(0);
-			}
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1245,12 +1205,7 @@ void create_n_tp_body_disk(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			if (1 == ret_code)
-			{
-				cerr << "Could not calculate the phase." << endl;
-				exit(0);
-			}
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1296,12 +1251,7 @@ void create_n_pl_to_test_anal_gd(string& dir, string& filename)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			sim_data->h_oe[i].sma = (var_t)i;
-			int ret_code = tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			if (1 == ret_code)
-			{
-				cerr << "Could not calculate the phase." << endl;
-				exit(0);
-			}
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}

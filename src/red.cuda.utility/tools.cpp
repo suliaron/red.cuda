@@ -9,7 +9,9 @@
 
 // includes project
 #include "tools.h"
+#include "red_constants.h"
 #include "red_macro.h"
+#include "red_type.h"
 
 using namespace std;
 
@@ -88,6 +90,213 @@ string convert_time_t(time_t t)
 	ostringstream convert;	// stream used for the conversion
 	convert << t;			// insert the textual representation of 't' in the characters in the stream
 	return convert.str();
+}
+
+// Draw a number from a given distribution
+var_t generate_random(var_t xmin, var_t xmax, var_t p(var_t))
+{
+	var_t x;
+	var_t y;
+
+	do
+	{
+		x = xmin + (var_t)rand() / RAND_MAX * (xmax - xmin);
+		y = (var_t)rand() / RAND_MAX;
+	}
+	while (y > p(x));
+
+	return x;
+}
+
+var_t pdf_const(var_t x)
+{
+	return 1;
+}
+
+void populate_data(int* n_bodies, sim_data_t *sim_data)
+{
+	int idx = 0;
+	int id = 1;
+
+	// Create aliases
+	vec_t* r             = sim_data->h_y[0];
+	vec_t* v             = sim_data->h_y[1];
+	param_t* p           = sim_data->h_p;
+	orbelem_t* oe        = sim_data->h_oe;
+	body_metadata_t* bmd = sim_data->h_body_md;
+	ttt_t* epoch         = sim_data->h_epoch;
+
+	int upper = n_bodies[BODY_TYPE_STAR];
+	for (idx = 0; idx < upper; idx++)
+	{
+		bmd[idx].body_type = BODY_TYPE_STAR;
+		bmd[idx].id = id++;
+
+		p[idx].mass = 1.0;
+		p[idx].radius = 1.0 * constants::SolarRadiusToAu;
+		
+		epoch[idx] = 0.0;
+
+		r[idx].x = r[idx].y = r[idx].z = 0.0;
+		v[idx].x = v[idx].y = v[idx].z = 0.0;
+	}
+
+	upper += n_bodies[BODY_TYPE_GIANTPLANET];
+	for ( ; idx < upper; idx++)
+	{
+		bmd[idx].body_type = BODY_TYPE_GIANTPLANET;
+		bmd[idx].id = id++;
+		bmd[idx].mig_type = MIGRATION_TYPE_NO;
+		bmd[idx].mig_stop_at = 0.0;
+
+		p[idx].mass = generate_random(1.0, 10.0, pdf_const) * constants::JupiterToSolar;
+		p[idx].radius = generate_random(8.0e4, 1.0e5, pdf_const) * constants::KilometerToAu;
+		p[idx].density = calculate_density(p[idx].mass, p[idx].radius);
+		p[idx].cd = 0.0;
+		
+		epoch[idx] = 0.0;
+
+		oe[idx].sma = generate_random(1.0, 100.0, pdf_const);
+		oe[idx].ecc = generate_random(0.0, 0.8, pdf_const);
+		oe[idx].inc = generate_random(0.0, 20.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].peri = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].node = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].mean = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+	}
+
+	upper += n_bodies[BODY_TYPE_ROCKYPLANET];
+	for ( ; idx < upper; idx++)
+	{
+		bmd[idx].body_type = BODY_TYPE_ROCKYPLANET;
+		bmd[idx].id = id++;
+		bmd[idx].mig_type = MIGRATION_TYPE_NO;
+		bmd[idx].mig_stop_at = 0.0;
+
+		p[idx].mass = generate_random(1.0, 10.0, pdf_const) * constants::EarthToSolar;
+		p[idx].radius = generate_random(5.0e3, 8.0e3, pdf_const) * constants::KilometerToAu;
+		p[idx].density = calculate_density(p[idx].mass, p[idx].radius);
+		p[idx].cd = 0.0;
+		
+		epoch[idx] = 0.0;
+
+		oe[idx].sma = generate_random(1.0, 100.0, pdf_const);
+		oe[idx].ecc = generate_random(0.0, 0.8, pdf_const);
+		oe[idx].inc = generate_random(0.0, 20.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].peri = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].node = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].mean = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+	}
+
+	upper += n_bodies[BODY_TYPE_PROTOPLANET];
+	for ( ; idx < upper; idx++)
+	{
+		bmd[idx].body_type = BODY_TYPE_PROTOPLANET;
+		bmd[idx].id = id++;
+		bmd[idx].mig_type = MIGRATION_TYPE_NO;
+		bmd[idx].mig_stop_at = 0.0;
+
+		p[idx].mass = generate_random(1.0, 10.0, pdf_const) * constants::CeresToSolar;
+		p[idx].radius = generate_random(1.0e3, 2.0e3, pdf_const) * constants::KilometerToAu;
+		p[idx].density = calculate_density(p[idx].mass, p[idx].radius);
+		p[idx].cd = 0.0;
+		
+		epoch[idx] = 0.0;
+
+		oe[idx].sma = generate_random(1.0, 100.0, pdf_const);
+		oe[idx].ecc = generate_random(0.0, 0.8, pdf_const);
+		oe[idx].inc = generate_random(0.0, 20.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].peri = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].node = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].mean = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+	}
+
+	upper += n_bodies[BODY_TYPE_SUPERPLANETESIMAL];
+	for ( ; idx < upper; idx++)
+	{
+		bmd[idx].body_type = BODY_TYPE_SUPERPLANETESIMAL;
+		bmd[idx].id = id++;
+		bmd[idx].mig_type = MIGRATION_TYPE_NO;
+		bmd[idx].mig_stop_at = 0.0;
+
+		p[idx].mass = generate_random(1.0e-2, 1.0e-1, pdf_const) * constants::CeresToSolar;
+		p[idx].radius = generate_random(1.0e1, 1.0e2, pdf_const) * constants::KilometerToAu;
+		p[idx].density = generate_random(1.0, 3.0, pdf_const) * constants::GramPerCm3ToSolarPerAu3;
+		p[idx].cd = 1.0;
+		
+		epoch[idx] = 0.0;
+
+		oe[idx].sma = generate_random(1.0, 100.0, pdf_const);
+		oe[idx].ecc = generate_random(0.0, 0.8, pdf_const);
+		oe[idx].inc = generate_random(0.0, 20.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].peri = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].node = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].mean = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+	}
+
+	upper += n_bodies[BODY_TYPE_PLANETESIMAL];
+	for ( ; idx < upper; idx++)
+	{
+		bmd[idx].body_type = BODY_TYPE_PLANETESIMAL;
+		bmd[idx].id = id++;
+		bmd[idx].mig_type = MIGRATION_TYPE_NO;
+		bmd[idx].mig_stop_at = 0.0;
+
+		p[idx].mass = generate_random(1.0e-4, 1.0e-3, pdf_const) * constants::CeresToSolar;
+		p[idx].radius = generate_random(1.0e1, 1.0e2, pdf_const) * constants::KilometerToAu;
+		p[idx].density = calculate_density(p[idx].mass, p[idx].radius);
+		p[idx].cd = generate_random(0.7, 2.0, pdf_const);
+		
+		epoch[idx] = 0.0;
+
+		oe[idx].sma = generate_random(1.0, 100.0, pdf_const);
+		oe[idx].ecc = generate_random(0.0, 0.8, pdf_const);
+		oe[idx].inc = generate_random(0.0, 20.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].peri = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].node = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].mean = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+	}
+
+	upper += n_bodies[BODY_TYPE_TESTPARTICLE];
+	for ( ; idx < upper; idx++)
+	{
+		bmd[idx].body_type = BODY_TYPE_TESTPARTICLE;
+		bmd[idx].id = id++;
+		bmd[idx].mig_type = MIGRATION_TYPE_NO;
+		bmd[idx].mig_stop_at = 0.0;
+
+		p[idx].mass = 0.0;
+		p[idx].radius = 0.0;
+		p[idx].density = 0.0;
+		p[idx].cd = 0.0;
+		
+		epoch[idx] = 0.0;
+
+		oe[idx].sma = generate_random(1.0, 100.0, pdf_const);
+		oe[idx].ecc = generate_random(0.0, 0.8, pdf_const);
+		oe[idx].inc = generate_random(0.0, 20.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].peri = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].node = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+		oe[idx].mean = generate_random(0.0, 360.0, pdf_const) * constants::DegreeToRadian;
+	}
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->h_p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
+		for (int i = 1; i < upper; i++)
+		{
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
+		}
+	}
 }
 
 var_t get_total_mass(int n, body_type_t type, const sim_data_t *sim_data)
@@ -231,39 +440,34 @@ void calc_physical_properties(const param_t &p1, const param_t &p2, param_t &p)
 	p.cd      = p1.cd;
 }
 
-int	kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E)
+void kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E)
 {
 	if (ecc == 0.0 || mean == 0.0 || mean == PI)
 	{
         *E = mean;
-		return 0;
+		return;
     }
     *E = mean + ecc * (sin(mean)) / (1.0 - sin(mean + ecc) + sin(mean));
     var_t E1 = 0.0;
     var_t error;
-    int_t step = 0;
+    int step = 0;
     do
 	{
         E1 = *E - (*E - ecc * sin(*E) - mean) / (1.0 - ecc * cos(*E));
         error = fabs(E1 - *E);
         *E = E1;
     } while (error > eps && step++ <= 15);
-	if (step > 15 )
+	if (15 < step)
 	{
-		return 1;
+		throw string("The kepler_equation_solver() failed: solution did not converge.");
 	}
-
-	return 0;
 }
 
-int calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec)
+void calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec)
 {
     var_t ecc = oe->ecc;
 	var_t E = 0.0;
-	if (kepler_equation_solver(ecc, oe->mean, 1.0e-14, &E) == 1)
-	{
-		return 1;
-	}
+	kepler_equation_solver(ecc, oe->mean, 1.0e-14, &E);
     var_t v = 2.0 * atan(sqrt((1.0 + ecc) / (1.0 - ecc)) * tan(E / 2.0));
 
     var_t p = oe->sma * (1.0 - SQR(ecc));
@@ -296,8 +500,6 @@ int calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec)
 	vVec->x = vKszi * P.x + vEta * Q.x;
 	vVec->y = vKszi * P.y + vEta * Q.y;
 	vVec->z = vKszi * P.z + vEta * Q.z;
-
-	return 0;
 }
 
 void print_vector(const vec_t *v)

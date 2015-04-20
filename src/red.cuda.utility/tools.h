@@ -20,6 +20,8 @@ namespace redutilcu
 		string get_time_stamp();
 		string convert_time_t(time_t t);
 
+		void populate_data(int* n_bodies, sim_data_t *sim_data);
+
 		//! Computes the total mass of the system
 		var_t get_total_mass(int n, const sim_data_t *sim_data);
 		//! Computes the total mass of the bodies with type in the system
@@ -35,8 +37,8 @@ namespace redutilcu
 		void calc_velocity_after_collision(var_t m1, var_t m2, const vec_t* v1, const vec_t* v2, vec_t& v);
 		void calc_physical_properties(const param_t &p1, const param_t &p2, param_t &p);
 
-		int	kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E);
-		int calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec);
+		void kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E);
+		void calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec);
 
 		void print_vector(const vec_t *v);
 	} /* tools */

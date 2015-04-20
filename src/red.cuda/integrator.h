@@ -84,5 +84,6 @@ protected:
 	vector<var_t*> err;     //!< Alias to the leading local truncation error (either in the HOST or the DEVICE memory)
 
 private:
+	void initialize();
 	void create_aliases();
 };

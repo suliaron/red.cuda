@@ -16,10 +16,11 @@ class pp_disk
 {
 public:
 
+	pp_disk(number_of_bodies *n_bodies, bool use_padded_storage, gas_disk_model_t g_disk_model, computing_device_t comp_dev);
 	pp_disk(string& path, int n_tpb, bool use_padded_storage, gas_disk_model_t g_disk_model, computing_device_t comp_dev);
 	~pp_disk();
 
-	//! Initialize the members to defaule values
+	//! Initialize the members to default values
 	void initialize();
 	//! Copies ODE parameters and variables from the host to the cuda device
 	void copy_to_device();
@@ -42,6 +43,9 @@ public:
 	*/
 	void set_computing_device(computing_device_t device);
 	computing_device_t get_computing_device() { return comp_dev; }
+
+	void set_n_tpb(int n) { n_tpb = n;    }
+	int  get_n_tpb()      { return n_tpb; }
 
 	//! Returns the mass of the central star
 	var_t get_mass_of_star();
@@ -153,6 +157,10 @@ private:
 
 	//! Sets the grid and block for the kernel launch
 	void set_kernel_launch_param(int n_data);
+
+public:
+	float wrapper_kernel_pp_disk_calc_grav_accel(ttt_t curr_t, int n_sink, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
+
 	void call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void call_kernel_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 
@@ -163,7 +171,8 @@ private:
 
 	void cpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
-
+private:
+	
 	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 
 	computing_device_t comp_dev;    //!< The computing device to carry out the calculations (cpu or gpu)

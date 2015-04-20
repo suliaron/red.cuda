@@ -12,6 +12,7 @@ class parameter
 {
 public:
 
+	parameter();
 	parameter(string& dir, string& filename, bool verbose);
 	~parameter();
 

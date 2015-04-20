@@ -12,9 +12,9 @@
 #include "device_launch_parameters.h"
 
 // includes project
-#include "int_euler.h"
-#include "int_rungekutta2.h"
-#include "int_rungekutta4.h"
+//#include "int_euler.h"
+//#include "int_rungekutta2.h"
+//#include "int_rungekutta4.h"
 #include "parameter.h"
 #include "redutilcu.h"
 #include "nbody_exception.h"
@@ -31,6 +31,11 @@ void open_streams(const options& opt, const integrator* intgr, ostream** result_
 	string prefix;
 	string ext = "txt";
 
+	if (opt.benchmark)
+	{
+		prefix = "b_";
+	}
+
 	if (opt.ef)
 	{
 		char sep = '_';
@@ -42,11 +47,11 @@ void open_streams(const options& opt, const integrator* intgr, ostream** result_
 #endif
 		string dev = (opt.comp_dev == COMPUTING_DEVICE_CPU ? "cpu" : "gpu");
 		// as: adaptive step-size, fs: fix step-size
-		string adapt = opt.param->adaptive == true ? "as" : "fs";
+		string adapt = (opt.param->adaptive == true ? "as" : "fs");
 		// ps: padded storage, ns: normal storage
-		string strorage = opt.use_padded_storage == true ? "ps" : "ns";
+		string strorage = (opt.use_padded_storage == true ? "ps" : "ns");
 		string int_name = intgr->short_name;
-		prefix = config + sep + dev + sep + strorage + sep + adapt + sep + int_name + sep;
+		prefix += config + sep + dev + sep + strorage + sep + adapt + sep + int_name + sep;
 	}
 
 	path = file::combine_path(opt.printout_dir, prefix + opt.result_filename) + "." + ext;
@@ -64,6 +69,8 @@ void open_streams(const options& opt, const integrator* intgr, ostream** result_
 
 void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* sum_time_of_steps, clock_t* time_of_one_step, time_t* time_info_start)
 {
+	static const char body_type_name[] = {"N_st", "N_gp", "N_rp", "N_pp", "N_sp", "N_pl", "N_tp"};
+	
 	cout.setf(ios::right);
 	cout.setf(ios::scientific);
 
@@ -76,29 +83,31 @@ void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, 
 	cout << tools::get_time_stamp() 
 		 << " t: " << setprecision(6) << setw(12) << ppd->t / constants::Gauss
 		 << ", dt: " << setprecision(6) << setw(12)  << dt / constants::Gauss;
-	cout << ", dT_cpu: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
-	cout << ", dT_avg: " << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s";
+	cout << ", dT: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
+	cout << " (" << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s)";
 	cout << ", Nc: " << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL]
 	     << ", Ne: " << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL]
 		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
-		 << ", N : " << setw(6) << nb->get_n_total() << "(" << setw(6) << nb->get_n_total_inactive() << ")" << endl;
+		 << ", N : " << setw(6) << nb->get_n_total_playing() << "(" << setw(3) << nb->get_n_total_inactive() << ", " << setw(5) << nb->get_n_total_removed() << ")" << endl;
 
 	sout << tools::get_time_stamp()
 		 << " t: " << setprecision(6) << setw(12) << ppd->t  / constants::Gauss
 		 << ", dt: " << setprecision(6) << setw(12)  << dt / constants::Gauss;
-	sout << ", dT_cpu: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
-	sout << ", dT_avg: " << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s";
+	sout << ", dT: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
+	sout << " (" << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s)";
 	sout << ", Nc: " << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL]
 	     << ", Ne: " << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL]
 		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
-		 << ", N : " << setw(6) << nb->get_n_total() << "(" << setw(6) << nb->get_n_total_inactive() << ")"
-	     << ", N_st: " << setw(5) << nb->n_s   << "(" << setw(5) << nb->n_i_s << ")"
-		 << ", N_gp: " << setw(5) << nb->n_gp  << "(" << setw(5) << nb->n_i_gp << ")"
-		 << ", N_rp: " << setw(5) << nb->n_rp  << "(" << setw(5) << nb->n_i_rp << ")"
-		 << ", N_pp: " << setw(5) << nb->n_pp  << "(" << setw(5) << nb->n_i_pp << ")"
-		 << ", N_sp: " << setw(5) << nb->n_spl << "(" << setw(5) << nb->n_i_spl << ")"
-		 << ", N_pl: " << setw(5) << nb->n_pl  << "(" << setw(5) << nb->n_i_pl << ")"
-		 << ", N_tp: " << setw(5) << nb->n_tp  << "(" << setw(5) << nb->n_i_tp << ")" << endl;	
+		 << ", N : " << setw(6) << nb->get_n_total_playing() << "(" << setw(3) << nb->get_n_total_inactive() << ", " << setw(5) << nb->get_n_total_removed() << ")";
+	for (int i = 0; i < BODY_TYPE_N; i++)
+	{
+		if (BODY_TYPE_PADDINGPARTICLE == i)
+		{
+			continue;
+		}
+		sout << ", " << body_type_name << ": " << setw(5) << nb->playing[i] - nb->inactive[i] << "(" << setw(5) << nb->removed[i] << ")";
+	}
+	sout << endl;
 }
 
 ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* t_step)
@@ -111,6 +120,115 @@ ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* t_step)
 	*sum_time_of_steps += *t_step;
 
 	return dt;
+}
+
+void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ostream& sout)
+{
+	cout.setf(ios::right);
+	cout.setf(ios::scientific);
+
+	sout.setf(ios::right);
+	sout.setf(ios::scientific);
+
+	size_t size = ppd->n_bodies->get_n_total_playing() * sizeof(vec_t);
+
+	// Create aliases
+	vec_t* r   = ppd->sim_data->y[0];
+	vec_t* v   = ppd->sim_data->y[1];
+	param_t* p = ppd->sim_data->p;
+	body_metadata_t* bmd = ppd->sim_data->body_md;
+
+	ttt_t curr_t = 0.0;
+	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+	{
+		cout << "----------------------------------------------" << endl;
+		cout << "GPU:" << endl;
+		cout << "----------------------------------------------" << endl << endl;
+
+		int n_pass = (512 - 16)/16 + 1;
+		vector<float2> execution_time;
+
+		vec_t* d_dy = 0x0;
+		ALLOCATE_DEVICE_VECTOR((void**)&d_dy, size);
+
+		int n_sink = ppd->n_bodies->get_n_SI();
+		if (0 < n_sink)
+		{
+			cout << "SI:" << endl;
+			cout << "----------------------------------------------" << endl;
+
+			interaction_bound int_bound = ppd->n_bodies->get_bound_SI();
+			for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
+			{
+				ppd->n_bodies->set_n_tpb(n_tpb);
+				ppd->set_n_tpb(n_tpb);
+
+				clock_t t_start = clock();
+				float cu_elt = ppd->wrapper_kernel_pp_disk_calc_grav_accel(curr_t, n_sink, int_bound, bmd, p, r, v, d_dy);
+				clock_t elapsed_time = clock() - t_start;
+
+				float2 exec_t = {(float)elapsed_time, cu_elt};
+				execution_time.push_back(exec_t);
+
+				cout << "n_tpb: " << setw(6) << n_tpb << " dt: " << setprecision(6) << setw(6) << elapsed_time << " (" << setw(6) << cu_elt << ") [ms]" << endl;
+			}
+
+			float min_y = 1.0e10;
+			int min_idx = 0;
+			for (int i = 0; i < n_pass; i++)
+			{
+				if (min_y > execution_time[i].y)
+				{
+					min_idx = i;
+				}
+			}
+			cout << "Minimum at n_tpb = " << (min_idx * 16 + 16) << ", where execution time is: " << execution_time[min_idx].y << " [ms]" << endl;
+		}
+
+		FREE_DEVICE_VECTOR((void**)&d_dy);
+		// Needed by nvprof.exe
+		cudaDeviceReset();
+	} /* if */
+	else
+	{
+		cout << "CPU:" << endl;
+
+		vec_t* h_dy = 0x0;
+		ALLOCATE_HOST_VECTOR((void**)&h_dy, size);
+
+		int n_sink = ppd->n_bodies->get_n_SI();
+		if (0 < n_sink)
+		{
+			interaction_bound int_bound = ppd->n_bodies->get_bound_SI();
+
+			clock_t t_start = clock();			
+			ppd->cpu_calc_grav_accel_SI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
+			clock_t elapsed_time = clock() - t_start;
+			cout << "SI  dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
+		}
+
+		n_sink = ppd->n_bodies->get_n_NSI();
+		if (0 < n_sink)
+		{
+			interaction_bound int_bound = ppd->n_bodies->get_bound_NSI();
+
+			clock_t t_start = clock();
+			ppd->cpu_calc_grav_accel_NSI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
+			clock_t elapsed_time = clock() - t_start;
+			cout << "NSI dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
+		}
+
+		n_sink = ppd->n_bodies->get_n_NI();
+		if (0 < n_sink)
+		{
+			interaction_bound int_bound = ppd->n_bodies->get_bound_NI();
+
+			clock_t t_start = clock();			
+			ppd->cpu_calc_grav_accel_NI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
+			clock_t elapsed_time = clock() - t_start;
+			cout << "NI  dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
+		}
+	}
 }
 
 //http://stackoverflow.com/questions/11666049/cuda-kernel-results-different-in-release-mode
@@ -147,6 +265,14 @@ int main(int argc, const char** argv, const char** env)
 		{
 			device_query(*log_f, opt.id_a_dev);
 		}
+
+		if (opt.benchmark)
+		{
+			run_benchmark(opt, ppd, intgr, *log_f);
+		}
+		else
+		{
+			// run_simulation();
 
 		ttt_t ps = 0.0;
 		ttt_t dt = 0.0;
@@ -263,6 +389,7 @@ int main(int argc, const char** argv, const char** env)
 		{
 			cudaDeviceReset();
 		}
+		} /* else benchmark */
 	} /* try */
 	catch (const nbody_exception& ex)
 	{

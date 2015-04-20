@@ -3,7 +3,6 @@
 
 // includes project
 #include "redutilcu.h"
-#include "number_of_bodies.h"
 #include "options.h"
 #include "gas_disk.h"
 #include "int_euler.h"
@@ -16,10 +15,9 @@
 
 using namespace redutilcu;
 
-options::options(int argc, const char** argv) :
-	param(0x0),
-	a_gd(0x0)
+options::options(int argc, const char** argv)
 {
+	initialize();
 	create_default_options();
 	parse_options(argc, argv);
 
@@ -33,16 +31,28 @@ options::options(int argc, const char** argv) :
 		use_padded_storage = false;
 	}
 
-	if (0 == parameters_filename.length())
+	if (!benchmark)
 	{
-		throw string("Missing filename for -p | --parameter!");
+		if (0 == parameters_filename.length())
+		{
+			throw string("Missing filename for -p | --parameter!");
+		}
+		if (0 == bodylist_filename.length())
+		{
+			throw string("Missing filename for -ic | --initial_conditions!");
+		}
 	}
-	if (0 == bodylist_filename.length())
+	else
 	{
-		throw string("Missing filename for -ic | --initial_conditions!");
+		if (0 < parameters_filename.length())
+		{
+			param = new parameter(input_dir, parameters_filename, verbose);
+		}
+		else
+		{
+			param = new parameter();
+		}
 	}
-
-	param = new parameter(input_dir, parameters_filename, verbose);
 
 	switch (g_disk_model)
 	{
@@ -79,10 +89,20 @@ void options::print_usage()
 	cout << "     -log    | --log-filename                 : the name of the file where the details of the execution of the code will be stored (default is log.txt)" << endl;
 	cout << "     -result | --result-filename              : the name of the file where the simlation data for a time instance will be stored (default is result.txt" << endl;
 	cout << "                                                where [...] contains data describing the integrator)" << endl;
+	cout << "     -b      | --benchmark                    : run benchmark to find out the optimal number of threads per block" << endl;
+	cout << "     -nb     | --number-of-bodies             : set the number of bodies for benchmarking (pattern: n_st n_gp n_rp n_pp n_spl n_pl n_tp)" << endl;
 	cout << "     -v      | --verbose                      : verbose mode" << endl;
 	cout << "     -gpu    | --gpu                          : Execute the code on the graphics processing unit (GPU) (default is true)" << endl;
 	cout << "     -cpu    | --cpu                          : Execute the code on the cpu if required by the user or if no GPU is installed (default is false)" << endl;
 	cout << "     -h      | --help                         : print this help" << endl;
+}
+
+void options::initialize()
+{
+	n_bodies = 0x0;
+	param    = 0x0;;
+	a_gd     = 0x0;;
+	f_gd     = 0x0;;
 }
 
 void options::create_default_options()
@@ -95,6 +115,7 @@ void options::create_default_options()
 	n_tpb              = 64;
 	n_change_to_cpu    = 100;
 
+	benchmark          = false;
 	ef                 = false;
 
 	info_filename      = "info";
@@ -194,6 +215,10 @@ void options::parse_options(int argc, const char** argv)
 		{
 			verbose = true;
 		}
+		else if (p == "--benchmark" || p == "-b")
+		{
+			benchmark = true;
+		}
 		else if (p == "-ef")
 		{
 			ef = true;
@@ -205,6 +230,24 @@ void options::parse_options(int argc, const char** argv)
 		else if (p == "--gpu" || p == "-gpu")
 		{
 			comp_dev = COMPUTING_DEVICE_GPU;
+		}
+		else if (p == "--number-of-bodies"   || p == "-nb")
+		{
+			i++;
+			int n_st = atoi(argv[i]);
+			i++;
+			int n_gp = atoi(argv[i]);
+			i++;
+			int n_rp = atoi(argv[i]);
+			i++;
+			int n_pp = atoi(argv[i]);
+			i++;
+			int n_spl = atoi(argv[i]);
+			i++;
+			int n_pl = atoi(argv[i]);
+			i++;
+			int n_tp = atoi(argv[i]);
+			n_bodies = new number_of_bodies(n_st, n_gp, n_rp, n_pp, n_spl, n_pl, n_tp, 0, false);
 		}
 		else if (p == "--help" || p == "-h")
 		{
@@ -221,9 +264,17 @@ void options::parse_options(int argc, const char** argv)
 
 pp_disk* options::create_pp_disk()
 {
-	string path = file::combine_path(input_dir, bodylist_filename);
-	pp_disk* ppd = new pp_disk(path, n_tpb, use_padded_storage, g_disk_model, comp_dev);
+	pp_disk* ppd = 0x0;
 
+	if (benchmark)
+	{
+		ppd = new pp_disk(n_bodies, use_padded_storage, g_disk_model, comp_dev);
+	}
+	else
+	{
+		string path = file::combine_path(input_dir, bodylist_filename);
+		ppd = new pp_disk(path, n_tpb, use_padded_storage, g_disk_model, comp_dev);
+	}
 	switch (g_disk_model)
 	{
 	case GAS_DISK_MODEL_NONE:

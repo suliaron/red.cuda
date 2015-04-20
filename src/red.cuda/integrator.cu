@@ -30,23 +30,9 @@ integrator::integrator(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, i
 	adaptive(adaptive),
 	tolerance(tolerance),
 	r_max(r_max),
-	comp_dev(comp_dev),
-	error_check_for_tp(false),
-	dt_did(0.0),
-	dt_next(0.0),
-	n_failed_step(0),
-	n_passed_step(0),
-	n_tried_step(0),
-	h_dydx(2),
-	d_dydx(2),
-	dydx(2),
-	h_err(2),
-	d_err(2),
-	err(2),
-	h_ytemp(2),
-	d_ytemp(2),
-	ytemp(2)
+	comp_dev(comp_dev)
 {
+	initialize();
 	allocate_storage();
 	create_aliases();
 }
@@ -57,9 +43,33 @@ integrator::~integrator()
 	deallocate_host_storage();
 }
 
+void integrator::initialize()
+{
+	error_check_for_tp = false;
+
+	dt_did        = 0.0;
+	dt_next       = 0.0;
+
+	n_failed_step = 0;
+	n_passed_step = 0;
+	n_tried_step  = 0;
+
+	h_dydx.resize(2);
+	d_dydx.resize(2);
+	dydx.resize(2);
+
+	h_err.resize(2);
+	d_err.resize(2);
+	err.resize(2);
+
+	h_ytemp.resize(2);
+	d_ytemp.resize(2);
+	ytemp.resize(2);
+}
+
 void integrator::allocate_storage()
 {	
-	int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+	int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total_playing();
 
 	allocate_host_storage(n_body);
 	if (COMPUTING_DEVICE_GPU == comp_dev)
@@ -187,7 +197,7 @@ void integrator::set_computing_device(computing_device_t device)
 		return;
 	}
 
-	int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total();
+	int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total_playing();
 
 	switch (device)
 	{
@@ -275,9 +285,9 @@ int integrator::get_n_tried_step()
 	return n_tried_step;
 }
 
-void integrator::calc_grid(int nData, int threads_per_block)
+void integrator::calc_grid(int nData, int n_tpb)
 {
-	int	nThread = std::min(threads_per_block, nData);
+	int	nThread = std::min(n_tpb, nData);
 	int	nBlock = (nData + nThread - 1)/nThread;
 	grid.x  = nBlock;
 	block.x = nThread;
