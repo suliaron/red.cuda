@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <cstdlib>
 
 // includes project
 #include "tools.h"
