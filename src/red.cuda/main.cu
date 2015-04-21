@@ -179,6 +179,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ostream&
 			{
 				if (min_y > execution_time[i].y)
 				{
+					min_y = execution_time[i].y;
 					min_idx = i;
 				}
 			}
