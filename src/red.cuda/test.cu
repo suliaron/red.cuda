@@ -1,4 +1,5 @@
 // includes system
+#include <stdio.h>
 
 // includes CUDA
 

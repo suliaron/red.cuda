@@ -379,7 +379,7 @@ void print_body_record_HIPERION(ofstream &sout, string name, var_t epoch, param_
 		_beta = 1.0;
 		break;
 	default:
-		throw string("Parameter 'body_ytpe' is out of range.");
+		throw string("Parameter 'body_type' is out of range.");
 	}
 
 	var_t eps = 0.0;
