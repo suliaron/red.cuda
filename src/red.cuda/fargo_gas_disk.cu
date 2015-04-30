@@ -157,6 +157,8 @@ void fargo_gas_disk::create_aliases()
 		vtheta[0]  = d_vtheta[0];
 		used_rad[0]= d_used_rad[0];
 		break;
+	default:
+		throw string("Parameter 'comp_dev' is out of range.");
 	}
 }
 

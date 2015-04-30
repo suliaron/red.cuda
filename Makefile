@@ -45,6 +45,7 @@ number_of_bodies.o \
 options.o \
 parameter.o \
 pp_disk.o \
+test.o \
 tokenizer.o
 
 RED_INITIAL_OBJS := \

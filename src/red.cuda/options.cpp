@@ -275,6 +275,8 @@ pp_disk* options::create_pp_disk()
 	case GAS_DISK_MODEL_FARGO:
 		ppd->f_gd = f_gd;
 		break;
+	default:
+		throw string("Parameter 'g_disk_model' is out of range.");
 	}
 
 	ppd->transform_to_bc(verbose);

@@ -461,6 +461,8 @@ void create_aliases(computing_device_t comp_dev, sim_data_t *sd)
 		sd->epoch   = sd->d_epoch;
         sd->oe      = sd->d_oe;
 		break;
+	default:
+		throw string("Parameter 'comp_dev' is out of range.");
 	}
 }
 

@@ -693,7 +693,9 @@ void pp_disk::cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound,
 		} /* for */
 		} /* case block */
 		break;
-	}
+	default:
+		throw string("Parameter 'g_disk_model' is out of range.");
+	} /* switch */
 }
 
 void pp_disk::cpu_calc_grav_accel_SI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
@@ -916,6 +918,8 @@ bool pp_disk::check_for_ejection_hit_centrum()
 	case COMPUTING_DEVICE_GPU:
 		n_event = call_kernel_check_for_ejection_hit_centrum();
 		break;
+	default:
+		throw string("Parameter 'comp_dev' is out of range.");
 	}
 
 	if (0 < n_event)
@@ -1124,6 +1128,8 @@ void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t
 	// END DEBUG CODE
 		}
 		break;
+	default:
+		throw string("Parameter 'i' is out of range.");
 	}
 }
 
@@ -1266,7 +1272,7 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 		sim_data->h_yout[1][survivIdx] = collision->vs;
 		break;
 	default:
-		throw string("Parameter aps is out of range.");
+		throw string("Parameter 'aps' is out of range.");
 	}
 
 	// Calculate physical properties of the new object
@@ -1292,7 +1298,7 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 			copy_vector_to_device((void **)&sim_data->d_yout[1][survivIdx],	(void *)&sim_data->h_yout[1][survivIdx], sizeof(vec_t));
 			break;
 		default:
-			throw string("Parameter aps is out of range.");
+			throw string("Parameter 'aps' is out of range.");
 		}
 		copy_vector_to_device((void **)&sim_data->d_p[survivIdx],		(void *)&sim_data->h_p[survivIdx],       sizeof(param_t));
 
@@ -1417,7 +1423,7 @@ void pp_disk::set_computing_device(computing_device_t device)
 		copy_vector_to_device((void *)d_event_counter, (void *)&event_counter, 1*sizeof(int));
 		break;
 	default:
-		throw string ("Invalid parameter: computing device was out of range.");
+		throw string("Parameter 'device' is out of range.");
 	}
 	redutilcu::create_aliases(device, sim_data);
 
@@ -1552,7 +1558,7 @@ void pp_disk::copy_to_device()
 			copy_vector_to_device((void *)sim_data->d_yout[i],	(void *)sim_data->h_yout[i], n_body*sizeof(vec_t));
 			break;
 		default:
-			throw string("Parameter aps is out of range.");
+			throw string("Parameter 'aps' is out of range.");
 		}
 	}
 	copy_vector_to_device((void *)sim_data->d_p,		(void *)sim_data->h_p,		 n_body*sizeof(param_t));
@@ -1577,7 +1583,7 @@ void pp_disk::copy_to_host()
 			copy_vector_to_host((void *)sim_data->h_yout[i], (void *)sim_data->d_yout[i], n_body*sizeof(vec_t));
 			break;
 		default:
-			throw string("Parameter aps is out of range.");
+			throw string("Parameter 'aps' is out of range.");
 		}
 		//copy_vector_to_host((void *)sim_data->h_y[i],	(void *)sim_data->d_y[i],	 n_body*sizeof(vec_t));
 	}
@@ -1612,6 +1618,8 @@ void pp_disk::copy_disk_params_to_device()
 		case GAS_DISK_MODEL_FARGO:
 			copy_constant_to_device((void*)&dc_fargo_gd_params, (void*)&(this->f_gd->params), sizeof(fargo_gas_disk_params_t));
 			break;
+		default:
+			throw string("Parameter 'g_disk_model' is out of range.");
 		}
 	}
 }
@@ -1899,7 +1907,7 @@ void pp_disk::print_event_data(ostream& sout, ostream& log_f)
 {
 	static int int_t_w =  8;
 	static int var_t_w = 25;
-	static char *e_names[] = {"NONE", "HIT_CENTRUM", "EJECTION", "CLOSE_ENCOUNTER", "COLLISION"};
+	string e_names[] = {"NONE", "HIT_CENTRUM", "EJECTION", "CLOSE_ENCOUNTER", "COLLISION"};
 
 	sout.precision(16);
 	sout.setf(ios::right);

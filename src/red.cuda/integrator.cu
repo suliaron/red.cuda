@@ -186,6 +186,8 @@ void integrator::create_aliases()
 			}
 		}
 		break;
+	default:
+		throw string("Parameter 'comp_dev' is out of range.");
 	}
 }
 
@@ -208,7 +210,7 @@ void integrator::set_computing_device(computing_device_t device)
 		allocate_device_storage(n_body);
 		break;
 	default:
-		throw string ("Invalid parameter: computing device was out of range.");
+		throw string("Parameter 'device' is out of range.");
 	}
 
 	this->comp_dev = device;
