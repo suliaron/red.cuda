@@ -16,8 +16,8 @@ class pp_disk
 {
 public:
 
-	pp_disk(number_of_bodies *n_bodies, bool use_padded_storage, gas_disk_model_t g_disk_model, computing_device_t comp_dev);
-	pp_disk(string& path, int n_tpb, bool use_padded_storage, gas_disk_model_t g_disk_model, computing_device_t comp_dev);
+	pp_disk(number_of_bodies *n_bodies, int n_tpb, bool ups, gas_disk_model_t g_disk_model, computing_device_t comp_dev);
+	pp_disk(string& path, int n_tpb, bool ups, gas_disk_model_t g_disk_model, computing_device_t comp_dev);
 	~pp_disk();
 
 	//! Initialize the members to default values
@@ -45,7 +45,7 @@ public:
 	computing_device_t get_computing_device() { return comp_dev; }
 
 	void set_n_tpb(int n) { n_tpb = n;    }
-	int  get_n_tpb()      { return n_tpb; }
+	int  get_n_tpb(void)  { return n_tpb; }
 
 	//! Returns the mass of the central star
 	var_t get_mass_of_star();
@@ -72,13 +72,16 @@ public:
 	*/
 	void print_event_data(ostream& sout, ostream& log_f);
 
-	bool get_ups()		{ return use_padded_storage; }
+	bool get_ups()		{ return ups; }
 
 	//! Returns the number of events during the last step
 	int get_n_event();
 
 	//! Returns the number of events during the simulation
 	int get_n_total_event();
+
+	//! Returns the number of bodies actually participating in the simulation (i.e. the number of playing bodies)
+	int get_n_total_body();
 
 	//! Clears the event_counter (sets to 0)
 	void clear_event_counter();
@@ -178,7 +181,7 @@ private:
 	computing_device_t comp_dev;    //!< The computing device to carry out the calculations (cpu or gpu)
 
 	int		n_tpb;					//!< The number of thread per block to use for kernel launches
-	bool	use_padded_storage;		//!< If true use the padded storage scheme
+	bool	ups;             		//!< If true use the padded storage scheme
 
 	dim3	grid;
 	dim3	block;

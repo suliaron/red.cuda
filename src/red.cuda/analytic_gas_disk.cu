@@ -15,39 +15,39 @@ using namespace redutilcu;
 
 analytic_gas_disk::analytic_gas_disk(string& dir, string& filename, bool verbose)
 {
-	set_default_values();
+	initialize();
 
  	string path = file::combine_path(dir, filename);
 	file::load_ascii_file(path, data);
 	parse();
-	data.clear();
+	transform_data();
 }
 
 analytic_gas_disk::~analytic_gas_disk()
 {
 }
 
-void analytic_gas_disk::set_default_values()
+void analytic_gas_disk::initialize()
 {
 	params.gas_decrease          = GAS_DENSITY_CONSTANT;
-	params.t0                    = 0.0;
-	params.t1                    = 0.0;
-	params.e_folding_time        = 0.0;
+	params.t0                    = 0.0;                    // [day]
+	params.t1                    = 0.0;                    // [day]
+	params.e_folding_time        = 0.0;                    // [day]
+											               
+	params.c_vth                 = 0.0;                    // [AU/day]
+	params.alpha                 = 0.0;		               
+	params.mean_molecular_weight = 0.0;                    // [M]
+	params.particle_diameter     = 0.0;                    // [AU]
+											               
+	params.eta.x = 0.0, params.eta.y = 0.0;	               
+	params.rho.x = 0.0, params.rho.y = 0.0;                // [M/AU^3]
+	params.sch.x = 0.0, params.sch.y = 0.0;	               // [TODO: ??]
+	params.tau.x = 0.0, params.tau.y = 0.0;	               // [TODO: ??]
+											               
+	params.mfp.x  = 0.0,  params.mfp.y  = 0.0;             // [AU]
+	params.temp.x = 0.0,  params.temp.y = 0.0;             // [K]
+}
 
-	params.c_vth                 = 0.0;
-	params.alpha                 = 0.0;
-	params.mean_molecular_weight = 0.0;
-	params.particle_diameter     = 0.0;
-
-	params.eta.x = 0.0, params.eta.y = 0.0;
-	params.rho.x = 0.0, params.rho.y = 0.0;
-	params.sch.x = 0.0, params.sch.y = 0.0;
-	params.tau.x = 0.0, params.tau.y = 0.0;
-
-	params.mfp.x  = 0.0,  params.mfp.y = 0.0;
-	params.temp.x = 0.0,  params.temp.y = 0.0;
-}						  
-						  
 void analytic_gas_disk::parse()
 {
 	// instantiate Tokenizer classes
@@ -105,38 +105,13 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		desc = value;
     }
-
-	else if (key == "mean_molecular_weight" || key == "mmw")
-	{
-		if (!tools::is_number(value))
-		{
-			throw string("Invalid number at: " + key);
-		}
-		params.mean_molecular_weight = atof(value.c_str());
-	}
-	else if (key == "particle_diameter" || key == "diameter")
-	{
-		if (!tools::is_number(value))
-		{
-			throw string("Invalid number at: " + key);
-		}
-		params.particle_diameter = atof(value.c_str()) * constants::MeterToAu;
-	}
-	else if (key == "alpha")
-	{
-		if (!tools::is_number(value))
-		{
-			throw string("Invalid number at: " + key);
-		}
-		params.alpha = atof(value.c_str());
-	}
 	else if (key == "time_dependence")
 	{
-		if (     value == "constant" || value == "const")
+		if (     value == "constant"    || value == "const")
 		{
 			params.gas_decrease = GAS_DENSITY_CONSTANT;
 		}
-		else if (value == "linear" || value == "lin")
+		else if (value == "linear"      || value == "lin")
 		{
 			params.gas_decrease = GAS_DENSITY_DECREASE_LINEAR;
 		}
@@ -155,7 +130,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		params.t0 = atof(value.c_str()) * constants::YearToDay * constants::Gauss;
+		params.t0 = atof(value.c_str()) * constants::YearToDay;
 	}
 	else if (key == "t1")
 	{
@@ -163,7 +138,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		params.t1 = atof(value.c_str()) * constants::YearToDay * constants::Gauss;
+		params.t1 = atof(value.c_str()) * constants::YearToDay;
 	}
 	else if (key == "e_folding_time")
 	{
@@ -171,8 +146,34 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		params.e_folding_time = atof(value.c_str()) * constants::YearToDay * constants::Gauss;
+		params.e_folding_time = atof(value.c_str()) * constants::YearToDay;
 	}
+
+	else if (key == "alpha")
+	{
+		if (!tools::is_number(value))
+		{
+			throw string("Invalid number at: " + key);
+		}
+		params.alpha = atof(value.c_str());
+	}
+	else if (key == "mean_molecular_weight" || key == "mmw")
+	{
+		if (!tools::is_number(value))
+		{
+			throw string("Invalid number at: " + key);
+		}
+		params.mean_molecular_weight = atof(value.c_str()) * constants::GramToSolar;
+	}
+	else if (key == "particle_diameter" || key == "diameter")
+	{
+		if (!tools::is_number(value))
+		{
+			throw string("Invalid number at: " + key);
+		}
+		params.particle_diameter = atof(value.c_str()) * constants::MeterToAu;
+	}
+
 	else if (key == "eta_c")
 	{
 		if (!tools::is_number(value))
@@ -189,7 +190,8 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		}
 		params.eta.y = atof(value.c_str());
 	}
-    else if (key == "rho_c")
+
+	else if (key == "rho_c")
 	{
 		if (!tools::is_number(value))
 		{
@@ -205,7 +207,8 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		}
 		params.rho.y = atof(value.c_str());
 	}
-    else if (key == "sch_c")
+    
+	else if (key == "sch_c")
 	{
 		if (!tools::is_number(value))
 		{
@@ -221,7 +224,8 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		}
 		params.sch.y = atof(value.c_str());
 	}
-    else if (key == "tau_c")
+
+	else if (key == "tau_c")
 	{
 		if (!tools::is_number(value))
 		{
@@ -261,6 +265,23 @@ void analytic_gas_disk::calc(var_t m_star)
 
 	params.temp.x = SQR(params.sch.x) * constants::Gauss2 * m_star * params.mean_molecular_weight * constants::ProtonMass_CMU / constants::Boltzman_CMU;
 	params.temp.y = 2.0 * params.sch.y - 3.0;
+}
+
+void analytic_gas_disk::transform_data()
+{
+	transform_time();
+}
+
+void analytic_gas_disk::transform_time()
+{
+	params.t0             *= constants::Gauss;    // [day * k]
+	params.t1             *= constants::Gauss;    // [day * k]
+	params.e_folding_time *= constants::Gauss;    // [day * k]
+}
+
+void analytic_gas_disk::transform_velocity()
+{
+	params.c_vth /= constants::Gauss;             // [AU / (day * k)]
 }
 
 ostream& operator<<(ostream& stream, const analytic_gas_disk* g_disk)

@@ -97,10 +97,14 @@ void load_ascii_file(const string& path, string& result)
 		{
 			// ignore zero length lines
 			if (0 == str.length())
+			{
 				continue;
+			}
 			// ignore comment lines
 			if ('#' == str[0])
+			{
 				continue;
+			}
 			// delete comment after the value
 			tools::trim_right(str, '#');
 			result += str;

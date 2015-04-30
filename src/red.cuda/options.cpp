@@ -18,41 +18,19 @@ using namespace redutilcu;
 options::options(int argc, const char** argv)
 {
 	initialize();
-	create_default_options();
-	parse_options(argc, argv);
+	create_default();
+	parse(argc, argv);
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		set_device(id_a_dev, verbose);
 	}
-
 	if (COMPUTING_DEVICE_CPU == comp_dev)
 	{
-		use_padded_storage = false;
+		ups = false;
 	}
 
-	if (!benchmark)
-	{
-		if (0 == parameters_filename.length())
-		{
-			throw string("Missing filename for -p | --parameter!");
-		}
-		if (0 == bodylist_filename.length())
-		{
-			throw string("Missing filename for -ic | --initial_conditions!");
-		}
-	}
-	else
-	{
-		if (0 < parameters_filename.length())
-		{
-			param = new parameter(input_dir, parameters_filename, verbose);
-		}
-		else
-		{
-			param = new parameter();
-		}
-	}
+	param = new parameter(input_dir, parameters_filename, verbose);
 
 	switch (g_disk_model)
 	{
@@ -64,6 +42,8 @@ options::options(int argc, const char** argv)
 	case GAS_DISK_MODEL_FARGO:
 		f_gd = new fargo_gas_disk(input_dir, gasdisk_filename, comp_dev, verbose);
 		break;
+	default:
+		throw string("Parameter 'g_disk_model' is out of range");
 	}
 }
 
@@ -90,6 +70,7 @@ void options::print_usage()
 	cout << "     -result | --result-filename              : the name of the file where the simlation data for a time instance will be stored (default is result.txt" << endl;
 	cout << "                                                where [...] contains data describing the integrator)" << endl;
 	cout << "     -b      | --benchmark                    : run benchmark to find out the optimal number of threads per block" << endl;
+	cout << "     -t      | --test                         : run tests" << endl;
 	cout << "     -nb     | --number-of-bodies             : set the number of bodies for benchmarking (pattern: n_st n_gp n_rp n_pp n_spl n_pl n_tp)" << endl;
 	cout << "     -v      | --verbose                      : verbose mode" << endl;
 	cout << "     -gpu    | --gpu                          : Execute the code on the graphics processing unit (GPU) (default is true)" << endl;
@@ -100,32 +81,42 @@ void options::print_usage()
 void options::initialize()
 {
 	n_bodies = 0x0;
-	param    = 0x0;;
-	a_gd     = 0x0;;
-	f_gd     = 0x0;;
+	param    = 0x0;
+	a_gd     = 0x0;
+	f_gd     = 0x0;
 }
 
-void options::create_default_options()
+void options::create_default()
 {
-	id_a_dev           = 0;
-	comp_dev           = COMPUTING_DEVICE_GPU;
-	g_disk_model       = GAS_DISK_MODEL_NONE;
-	verbose            = false;
-	use_padded_storage = false;
-	n_tpb              = 64;
-	n_change_to_cpu    = 100;
+	benchmark       = false;
+	test            = false;
+	ef              = false;
+	verbose         = false;
+	ups             = false;
 
-	benchmark          = false;
-	ef                 = false;
+	id_a_dev        = 0;
+	n_tpb0          = 64;
+	n_change_to_cpu = 100;
 
-	info_filename      = "info";
-	event_filename     = "event";
-	log_filename       = "log";
-	result_filename    = "result";
+	comp_dev        = COMPUTING_DEVICE_GPU;
+	g_disk_model    = GAS_DISK_MODEL_NONE;
+
+	info_filename   = "info";
+	event_filename  = "event";
+	log_filename    = "log";
+	result_filename = "result";
 }
 
-void options::parse_options(int argc, const char** argv)
+void options::parse(int argc, const char** argv)
 {
+	int n_st  = 0;
+	int n_gp  = 0;
+	int n_rp  = 0;
+	int n_pp  = 0;
+	int n_spl = 0;
+	int n_pl  = 0;
+	int n_tp  = 0;
+
 	int i = 1;
 
 	while (i < argc)
@@ -143,7 +134,7 @@ void options::parse_options(int argc, const char** argv)
 		}
 		else if (p == "--use-padded-storage" || p == "-ups")
 		{
-			use_padded_storage = true;
+			ups = true;
 		}
 		else if (p == "--n_thread-per-block" || p == "-n_tpb")
 		{
@@ -152,7 +143,7 @@ void options::parse_options(int argc, const char** argv)
 			{
 				throw string("Invalid number at: " + p);
 			}
-			n_tpb = atoi(argv[i]);
+			n_tpb0 = atoi(argv[i]);
 		}
 		else if (p == "--n_change_to_cpu" || p == "-n_chg")
 		{
@@ -219,6 +210,10 @@ void options::parse_options(int argc, const char** argv)
 		{
 			benchmark = true;
 		}
+		else if (p == "--test" || p == "-t")
+		{
+			test = true;
+		}
 		else if (p == "-ef")
 		{
 			ef = true;
@@ -233,21 +228,14 @@ void options::parse_options(int argc, const char** argv)
 		}
 		else if (p == "--number-of-bodies"   || p == "-nb")
 		{
-			i++;
-			int n_st = atoi(argv[i]);
-			i++;
-			int n_gp = atoi(argv[i]);
-			i++;
-			int n_rp = atoi(argv[i]);
-			i++;
-			int n_pp = atoi(argv[i]);
-			i++;
-			int n_spl = atoi(argv[i]);
-			i++;
-			int n_pl = atoi(argv[i]);
-			i++;
-			int n_tp = atoi(argv[i]);
-			n_bodies = new number_of_bodies(n_st, n_gp, n_rp, n_pp, n_spl, n_pl, n_tp, 0, false);
+			i++;    n_st  = atoi(argv[i]);
+			i++;    n_gp  = atoi(argv[i]);
+			i++;    n_rp  = atoi(argv[i]);
+			i++;    n_pp  = atoi(argv[i]);
+			i++;    n_spl = atoi(argv[i]);
+			i++;    n_pl  = atoi(argv[i]);
+			i++;    n_tp  = atoi(argv[i]);
+			n_bodies = new number_of_bodies(n_st, n_gp, n_rp, n_pp, n_spl, n_pl, n_tp);
 		}
 		else if (p == "--help" || p == "-h")
 		{
@@ -268,12 +256,12 @@ pp_disk* options::create_pp_disk()
 
 	if (benchmark)
 	{
-		ppd = new pp_disk(n_bodies, use_padded_storage, g_disk_model, comp_dev);
+		ppd = new pp_disk(n_bodies, n_tpb0, ups, g_disk_model, comp_dev);
 	}
 	else
 	{
 		string path = file::combine_path(input_dir, bodylist_filename);
-		ppd = new pp_disk(path, n_tpb, use_padded_storage, g_disk_model, comp_dev);
+		ppd = new pp_disk(path, n_tpb0, ups, g_disk_model, comp_dev);
 	}
 	switch (g_disk_model)
 	{

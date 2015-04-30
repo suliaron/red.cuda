@@ -641,7 +641,7 @@ void rungekutta8::calc_y_np1(int n_var)
 
 ttt_t rungekutta8::step()
 {
-	const int n_body_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total_playing();
+	const int n_body_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total(ppd->get_n_tpb()) : ppd->n_bodies->get_n_total_playing();
 	const int n_var_total = NDIM * n_body_total;
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
@@ -699,7 +699,7 @@ ttt_t rungekutta8::step()
 			int n_var = 0;
 			if (ppd->get_ups())
 			{
-				n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_prime_massive());
+				n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_prime_massive(ppd->get_n_tpb()));
 			}
 			else
 			{
@@ -854,7 +854,7 @@ void c_rungekutta8::call_kernel_calc_y_np1(int n_var)
 
 ttt_t c_rungekutta8::step()
 {
-	const int n_body_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total_playing();
+	const int n_body_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total(ppd->get_n_tpb()) : ppd->n_bodies->get_n_total_playing();
 	const int n_var_total = NDIM * n_body_total;
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
@@ -913,7 +913,7 @@ ttt_t c_rungekutta8::step()
 			int n_var = 0;
 			if (ppd->get_ups())
 			{
-				n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_prime_massive());
+				n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_prime_total(ppd->get_n_tpb()) : ppd->n_bodies->get_n_prime_massive(ppd->get_n_tpb()));
 			}
 			else
 			{

@@ -11,8 +11,6 @@ using namespace std;
 class parameter
 {
 public:
-
-	parameter();
 	parameter(string& dir, string& filename, bool verbose);
 	~parameter();
 
@@ -39,7 +37,7 @@ public:
 	friend ostream& operator<<(ostream& stream, const parameter* param);
 
 private:
-	void create_default_parameters();
+	void create_default();
 	void parse();
 	void set_param(string& key, string& value);
 	void transform_time();

@@ -7,9 +7,7 @@
 
 using namespace std;
 
-number_of_bodies::number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_spl, int n_pl, int n_tp, int n_tpb, bool ups) :
-	n_tpb(n_tpb),
-	ups(ups)
+number_of_bodies::number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_spl, int n_pl, int n_tp)
 {
 	playing[BODY_TYPE_STAR]              = initial[BODY_TYPE_STAR]              = n_s;
 	playing[BODY_TYPE_GIANTPLANET]       = initial[BODY_TYPE_GIANTPLANET]       = n_gp;
@@ -129,27 +127,27 @@ int	number_of_bodies::get_n_massive()
 	return (get_n_SI() + get_n_NSI());
 }
 
-int number_of_bodies::get_n_prime_SI()
+int number_of_bodies::get_n_prime_SI(int n_tpb)
 {
 	// The number of self-interacting (SI) bodies alligned to n_tbp
 	return ((get_n_SI() + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
-int number_of_bodies::get_n_prime_NSI()
+int number_of_bodies::get_n_prime_NSI(int n_tpb)
 {
 	// The number of non-self-interacting (NSI) bodies alligned to n_tbp
 	return ((get_n_NSI() + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
-int number_of_bodies::get_n_prime_NI()
+int number_of_bodies::get_n_prime_NI(int n_tpb)
 {
 	// The number of non-interacting (NI) bodies alligned to n_tbp
 	return ((get_n_NI() + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
-int number_of_bodies::get_n_prime_total()
+int number_of_bodies::get_n_prime_total(int n_tpb)
 {
-	return (get_n_prime_SI() + get_n_prime_NSI() + get_n_prime_NI());
+	return (get_n_prime_SI(n_tpb) + get_n_prime_NSI(n_tpb) + get_n_prime_NI(n_tpb));
 }
 
 //int	number_of_bodies::get_n_prime_GD()
@@ -167,18 +165,18 @@ int number_of_bodies::get_n_prime_total()
 //	return n_gp;
 //}
 
-int	number_of_bodies::get_n_prime_massive()
+int	number_of_bodies::get_n_prime_massive(int n_tpb)
 {
-	return (get_n_prime_SI() + get_n_prime_NSI());
+	return (get_n_prime_SI(n_tpb) + get_n_prime_NSI(n_tpb));
 }
 
 
-interaction_bound number_of_bodies::get_bound_SI()
+interaction_bound number_of_bodies::get_bound_SI(bool ups, int n_tpb)
 {
 	if (ups)
 	{
-		sink.x	 = 0, sink.y   = sink.x + get_n_prime_SI();
-		source.x = 0, source.y = source.x + get_n_prime_massive();
+		sink.x	 = 0, sink.y   = sink.x + get_n_prime_SI(n_tpb);
+		source.x = 0, source.y = source.x + get_n_prime_massive(n_tpb);
 	}
 	else
 	{
@@ -189,12 +187,12 @@ interaction_bound number_of_bodies::get_bound_SI()
 	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bound_NSI()
+interaction_bound number_of_bodies::get_bound_NSI(bool ups, int n_tpb)
 {
 	if (ups)
 	{
-		sink.x   = get_n_prime_SI(), sink.y   = sink.x + get_n_prime_NSI();
-		source.x = 0,				 source.y = source.x + get_n_prime_SI();;
+		sink.x   = get_n_prime_SI(n_tpb), sink.y   = sink.x + get_n_prime_NSI(n_tpb);
+		source.x = 0,				      source.y = source.x + get_n_prime_SI(n_tpb);
 	}
 	else
 	{
@@ -205,12 +203,12 @@ interaction_bound number_of_bodies::get_bound_NSI()
 	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bound_NI()
+interaction_bound number_of_bodies::get_bound_NI(bool ups, int n_tpb)
 {
 	if (ups)
 	{
-		sink.x   = get_n_prime_massive(), sink.y   = sink.x + get_n_prime_NI();
-		source.x = 0,				      source.y = source.x + get_n_prime_massive();
+		sink.x   = get_n_prime_massive(n_tpb), sink.y   = sink.x + get_n_prime_NI(n_tpb);
+		source.x = 0,				           source.y = source.x + get_n_prime_massive(n_tpb);
 	}
 	else
 	{
@@ -221,12 +219,12 @@ interaction_bound number_of_bodies::get_bound_NI()
 	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bound_GD()
+interaction_bound number_of_bodies::get_bound_GD(bool ups, int n_tpb)
 {
 	if (ups)
 	{
-		sink.x   = get_n_prime_SI(), sink.y   = sink.x;// + get_n_prime_GD();
-		source.x = 0,		         source.y = 0;
+		sink.x   = get_n_prime_SI(n_tpb), sink.y   = sink.x;// + get_n_prime_GD();
+		source.x = 0,		              source.y = 0;
 	}
 	else
 	{

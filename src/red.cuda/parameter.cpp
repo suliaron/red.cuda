@@ -10,23 +10,16 @@
 
 using namespace redutilcu;
 
-parameter::parameter()
-{
-	create_default_parameters();
-}
-
 parameter::parameter(string& dir, string& filename, bool verbose) :
 	filename(filename),
 	verbose(verbose)
 {
-	create_default_parameters();
+	create_default();
 
 	string path = file::combine_path(dir, filename);
 	file::load_ascii_file(path, data);
 	parse();
 	transform_time();
-	data.clear();
-
 	stop_time = start_time + simulation_length;
 }
 
@@ -34,19 +27,19 @@ parameter::~parameter()
 {
 }
 
-void parameter::create_default_parameters()
+void parameter::create_default()
 {
 	adaptive           = false;
 	error_check_for_tp = false;
 	int_type           = INTEGRATOR_EULER;
 	tolerance          = 1.0e-10;
-	start_time         = 0.0;
-	simulation_length  = 0.0;
-	output_interval    = 0.0;
+	start_time         = 0.0;							// [day]
+	simulation_length  = 0.0;							// [day]
+	output_interval    = 0.0;							// [day]
 
-	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE] = 0.0;      // AU
-	thrshld[THRESHOLD_EJECTION_DISTANCE   ] = 0.0;      // AU
-	thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] = 0.0;      // dimensionless parameter
+	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE] = 0.0;      // [AU]
+	thrshld[THRESHOLD_EJECTION_DISTANCE   ] = 0.0;      // [AU]
+	thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] = 0.0;
 
 	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]);
 	thrshld[THRESHOLD_EJECTION_DISTANCE_SQUARED   ] = SQR(thrshld[THRESHOLD_EJECTION_DISTANCE   ]);
@@ -61,26 +54,32 @@ void parameter::parse()
 
 	data_tokenizer.set(data, "\r\n");
 
-	while ((line = data_tokenizer.next()) != "") {
+	while ((line = data_tokenizer.next()) != "")
+	{
 		line_tokenizer.set(line, "=");
 		string token;
 		int tokenCounter = 1;
 
 		string key; 
 		string value;
-		while ((token = line_tokenizer.next()) != "" && tokenCounter <= 2) {
-
-			if (tokenCounter == 1)
+		while ((token = line_tokenizer.next()) != "" && tokenCounter <= 2)
+		{
+			if (1 == tokenCounter)
+			{
 				key = token;
-			else if (tokenCounter == 2)
+			}
+			else if (2 == tokenCounter)
+			{
 				value = token;
-
+			}
 			tokenCounter++;
 		}
-		if (tokenCounter > 2) {
+		if (2 < tokenCounter)
+		{
 			set_param(key, value);
 		}
-		else {
+		else
+		{
 			throw string("Invalid key/value pair: " + line + ".");
 		}
 	}
@@ -106,15 +105,15 @@ void parameter::set_param(string& key, string& value)
     else if (key == "integrator")
 	{
 		transform(value.begin(), value.end(), value.begin(), ::tolower);
-		if (value == "e" || value == "euler")
+		if (     value == "e"    || value == "euler")
 		{
 			int_type = INTEGRATOR_EULER;
 		}
-		else if (value == "rk2" || value == "rungekutta2")
+		else if (value == "rk2"  || value == "rungekutta2")
 		{
 			int_type = INTEGRATOR_RUNGEKUTTA2;
 		}
-		else if (value == "rk4" || value == "rungekutta4")
+		else if (value == "rk4"  || value == "rungekutta4")
 		{
 			int_type = INTEGRATOR_RUNGEKUTTA4;
 		}
@@ -122,7 +121,7 @@ void parameter::set_param(string& key, string& value)
 		{
 			int_type = INTEGRATOR_RUNGEKUTTAFEHLBERG78;
 		}			
-		else if (value == "rkn" || value == "rungekuttanystrom")
+		else if (value == "rkn"  || value == "rungekuttanystrom")
 		{
 			int_type = INTEGRATOR_RUNGEKUTTANYSTROM;
 		}
@@ -222,9 +221,9 @@ void parameter::set_param(string& key, string& value)
 
 void parameter::transform_time()
 {
-	start_time			*= constants::Gauss;
-	simulation_length	*= constants::Gauss;
-	output_interval		*= constants::Gauss;
+	start_time        *= constants::Gauss;    // [day * k]
+	simulation_length *= constants::Gauss;    // [day * k]
+	output_interval	  *= constants::Gauss;    // [day * k]
 }
 
 ostream& operator<<(ostream& stream, const parameter* p)

@@ -18,18 +18,25 @@ fargo_gas_disk::fargo_gas_disk(string& dir, string& filename, computing_device_t
 	comp_dev(comp_dev),
 	verbose(verbose)
 {
-	set_default_values();
+	initialize();
 
+	// Load the parameters controling the FARGO run
  	string path = file::combine_path(dir, filename);
 	file::load_ascii_file(path, data);
 	parse();
-	data.clear();
 
 	allocate_storage();
-	load(0.0);
 
+	// Load the first frame from the FARGO run (the results for t = t_0)
 	path = file::combine_path(dir, "used_rad.dat");
 	load_used_rad(path, params.n_rad);
+	load(0.0);
+
+	transform_data();
+	if (COMPUTING_DEVICE_GPU == comp_dev)
+	{
+		copy_to_device();
+	}
 
 	create_aliases();
 }
@@ -40,47 +47,38 @@ fargo_gas_disk::~fargo_gas_disk()
 	deallocate_host_storage();
 }
 
-void fargo_gas_disk::set_default_values()
+void fargo_gas_disk::initialize()
 {
-	params.aspect_ratio    = 0.05;            // Thickness over Radius in the disc
-	params.sigma_0         = 1.45315e-5;      // Surface Density at r=1
-	params.alpha_viscosity = 0.001;           // Uniform kinematic viscosity
-	params.sigma_slope     = 0.5;             // Slope of surface density profile.
-	params.flaring_index   = 0.0;
-	params.exclude_hill    = true;
-	exclude_hill           = "YES";
+	params.aspect_ratio      = 0.0;       // Thickness over Radius in the disc
+	params.sigma_0           = 0.0;       // Surface Density at r=1
+	params.alpha_viscosity   = 0.0;       // Uniform kinematic viscosity
+	params.sigma_slope       = 0.0;       // Slope of surface density profile.
+	params.flaring_index     = 0.0;
+	params.exclude_hill      = true;
 
 // Planet parameters
-	planet_config        = "./planets.cfg";
-	params.thickness_smoothing  = 0.6;             // Smoothing parameters in disk thickness
+	params.thickness_smoothing = 0.0;     // Smoothing parameters in disk thickness
 
 // Numerical method parameters
-	transport           = "FARGO";
-	inner_boundary       = "STOCKHOLM";     // choose : OPEN or RIGID or NONREFLECTING
-	disk                = "YES"; 
-	params.omega_frame  = 0;
-	frame               = "COROTATING";
-	indirect_term       = "YES";
+	params.omega_frame       = 0;
 
 // Mesh parameters
-	params.n_rad   = 256;             // Radial number of zones
-	params.n_sec   = 512;             // Azimuthal number of zones (sectors)
-	params.r_min   = 0.2;             // Inner boundary radius
-	params.r_max   = 15.0;            // Outer boundary radius
-	radial_spacing = "Logarithmic";   // Zone interfaces evenly spaced
-
-// Output control parameters
-	params.n_tot    = 800000;          // Total number of time steps
-	params.n_interm = 2000;            // Time steps between outputs
-	params.dT       = 0.314159;        // Time step length. 2PI = 1 orbit
-	output_dir      = "./";
+	params.n_rad             = 0;         // Radial number of zones
+	params.n_sec             = 0;         // Azimuthal number of zones (sectors)
+	params.r_min             = 0.0;       // Inner boundary radius
+	params.r_max             = 0.0;       // Outer boundary radius
+												 
+// Output control parameters					 
+	params.n_tot             = 0;         // Total number of time steps
+	params.n_interm          = 0;         // Time steps between outputs
+	params.dT                = 0.0;       // Time step length. 2PI = 1 orbit
 
 // Viscosity damping due to a dead zone
-	params.visc_mod_r1       = 0.0;    // Inner radius of dead zone
-	params.visc_mod_delta_r1 = 0.0;    // Width of viscosity transition at inner radius
-	params.visc_mod_r2       = 0.0;    // Outer radius of dead zone
-	params.visc_mod_delta_r2 = 0.0;    // Width of viscosity transition at outer radius
-	params.visc_mod          = 0.0;    // Viscosity damp
+	params.visc_mod_r1       = 0.0;       // Inner radius of dead zone
+	params.visc_mod_delta_r1 = 0.0;       // Width of viscosity transition at inner radius
+	params.visc_mod_r2       = 0.0;       // Outer radius of dead zone
+	params.visc_mod_delta_r2 = 0.0;       // Width of viscosity transition at outer radius
+	params.visc_mod          = 0.0;       // Viscosity damp
 }						  
 
 void fargo_gas_disk::allocate_storage()
@@ -90,17 +88,16 @@ void fargo_gas_disk::allocate_storage()
 	h_density.resize(1);
 	h_vrad.resize(1);
 	h_vtheta.resize(1);
+	h_used_rad.resize(1);
 
 	d_density.resize(1);
 	d_vrad.resize(1);
 	d_vtheta.resize(1);
+	d_used_rad.resize(1);
 
 	density.resize(1);
 	vrad.resize(1);
 	vtheta.resize(1);
-
-	h_used_rad.resize(1);
-	d_used_rad.resize(1);
 	used_rad.resize(1);
 
 	allocate_host_storage(n_cell);
@@ -133,6 +130,7 @@ void fargo_gas_disk::deallocate_host_storage()
 	FREE_HOST_VECTOR((void **)&(h_density[0]));
 	FREE_HOST_VECTOR((void **)&(h_vrad[0]));
 	FREE_HOST_VECTOR((void **)&(h_vtheta[0]));
+	FREE_HOST_VECTOR((void **)&(h_used_rad[0]));
 }
 
 void fargo_gas_disk::deallocate_device_storage()
@@ -140,6 +138,7 @@ void fargo_gas_disk::deallocate_device_storage()
 	FREE_DEVICE_VECTOR((void **)&(d_density[0]));
 	FREE_DEVICE_VECTOR((void **)&(d_vrad[0]));
 	FREE_DEVICE_VECTOR((void **)&(d_vtheta[0]));
+	FREE_DEVICE_VECTOR((void **)&(d_used_rad[0]));
 }
 
 void fargo_gas_disk::create_aliases()
@@ -165,9 +164,11 @@ void fargo_gas_disk::copy_to_device()
 {
 	const int n_cell = params.n_rad * params.n_sec;
 
-	copy_vector_to_device((void *)d_density[0],	(void *)h_density[0], n_cell * sizeof(var_t));
-	copy_vector_to_device((void *)d_vrad[0],	(void *)h_density[0], n_cell * sizeof(var_t));
-	copy_vector_to_device((void *)d_vtheta[0],	(void *)h_density[0], n_cell * sizeof(var_t));
+	copy_vector_to_device((void *)d_density[0],	 (void *)h_density[0],  n_cell * sizeof(var_t));
+	copy_vector_to_device((void *)d_vrad[0],	 (void *)h_density[0],  n_cell * sizeof(var_t));
+	copy_vector_to_device((void *)d_vtheta[0],	 (void *)h_density[0],  n_cell * sizeof(var_t));
+
+	copy_vector_to_device((void *)d_used_rad[0], (void *)h_used_rad[0], params.n_rad * sizeof(var_t));
 }
 
 // TODO: implement
@@ -241,9 +242,33 @@ void fargo_gas_disk::load_used_rad(string& path, size_t)
 		{
 			throw string("Invalid number (" + num + ") in file '" + path + "'!\n");
 		}
-		h_used_rad[0][m] = atof(num.c_str());
+		h_used_rad[0][m] = atof(num.c_str());   // [AU]
 		m++;
 	}
+}
+
+void fargo_gas_disk::transform_data()
+{
+	transform_time();
+	transform_velocity();
+	transform_density();
+}
+
+void fargo_gas_disk::transform_time()
+{
+	throw string("fargo_gas_disk::transform_time() is not yet implemented.");
+	// TODO
+	//params.dT *= 1.0;
+}
+
+void fargo_gas_disk::transform_velocity()
+{
+	throw string("fargo_gas_disk::transform_velocity() is not yet implemented.");
+}
+
+void fargo_gas_disk::transform_density()
+{
+	throw string("fargo_gas_disk::transform_density() is not yet implemented.");
 }
 
 vec_t fargo_gas_disk::get_velocity(vec_t rVec)
@@ -504,13 +529,13 @@ void fargo_gas_disk::set_param(string& key, string& value)
     }
 	else if (key == "damprmin")
 	{
-		cout << "The following gas disk parameters was skipped setted:" << endl;
-		cout << "\t'" << key << "' '" << value << "'" << endl;
+		//cout << "The following gas disk parameters was skipped:" << endl;
+		//cout << "\t'" << key << "' '" << value << "'" << endl;
 	}
 	else if (key == "damprmax")
 	{
-		cout << "The following gas disk parameters was skipped setted:" << endl;
-		cout << "\t'" << key << "' '" << value << "'" << endl;
+		//cout << "The following gas disk parameters was skipped:" << endl;
+		//cout << "\t'" << key << "' '" << value << "'" << endl;
 	}
 	else
 	{
@@ -519,7 +544,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 
 	if (verbose)
 	{
-		if (n_call == 1)
+		if (1 == n_call)
 		{
 			cout << "The following gas disk parameters are setted:" << endl;
 		}

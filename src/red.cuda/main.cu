@@ -21,6 +21,7 @@
 #include "options.h"
 #include "red_type.h"
 #include "red_constants.h"
+#include "test.h"
 
 using namespace std;
 using namespace redutilcu;
@@ -49,7 +50,7 @@ void open_streams(const options& opt, const integrator* intgr, ostream** result_
 		// as: adaptive step-size, fs: fix step-size
 		string adapt = (opt.param->adaptive == true ? "as" : "fs");
 		// ps: padded storage, ns: normal storage
-		string strorage = (opt.use_padded_storage == true ? "ps" : "ns");
+		string strorage = (opt.ups == true ? "ps" : "ns");
 		string int_name = intgr->short_name;
 		prefix += config + sep + dev + sep + strorage + sep + adapt + sep + int_name + sep;
 	}
@@ -157,11 +158,10 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ostream&
 			cout << "SI:" << endl;
 			cout << "----------------------------------------------" << endl;
 
-			interaction_bound int_bound = ppd->n_bodies->get_bound_SI();
 			for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
 			{
-				ppd->n_bodies->set_n_tpb(n_tpb);
 				ppd->set_n_tpb(n_tpb);
+				interaction_bound int_bound = ppd->n_bodies->get_bound_SI(false, n_tpb);
 
 				clock_t t_start = clock();
 				float cu_elt = ppd->wrapper_kernel_pp_disk_calc_grav_accel(curr_t, n_sink, int_bound, bmd, p, r, v, d_dy);
@@ -192,7 +192,12 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ostream&
 	} /* if */
 	else
 	{
+		cout << "----------------------------------------------" << endl;
 		cout << "CPU:" << endl;
+		cout << "----------------------------------------------" << endl << endl;
+
+		clock_t t_start;
+		clock_t elapsed_time;
 
 		vec_t* h_dy = 0x0;
 		ALLOCATE_HOST_VECTOR((void**)&h_dy, size);
@@ -200,36 +205,47 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ostream&
 		int n_sink = ppd->n_bodies->get_n_SI();
 		if (0 < n_sink)
 		{
-			interaction_bound int_bound = ppd->n_bodies->get_bound_SI();
+			interaction_bound int_bound = ppd->n_bodies->get_bound_SI(false, 1);
 
-			clock_t t_start = clock();			
+			t_start = clock();
 			ppd->cpu_calc_grav_accel_SI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
-			clock_t elapsed_time = clock() - t_start;
-			cout << "SI  dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
+			elapsed_time = clock() - t_start;
 		}
+		cout << "SI:" << endl;
+		cout << "----------------------------------------------" << endl;
+		cout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
 
 		n_sink = ppd->n_bodies->get_n_NSI();
 		if (0 < n_sink)
 		{
-			interaction_bound int_bound = ppd->n_bodies->get_bound_NSI();
+			interaction_bound int_bound = ppd->n_bodies->get_bound_NSI(false, 1);
 
-			clock_t t_start = clock();
+			t_start = clock();
 			ppd->cpu_calc_grav_accel_NSI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
-			clock_t elapsed_time = clock() - t_start;
-			cout << "NSI dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
+			elapsed_time = clock() - t_start;
 		}
+		cout << "NSI:" << endl;
+		cout << "----------------------------------------------" << endl;
+		cout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
 
 		n_sink = ppd->n_bodies->get_n_NI();
 		if (0 < n_sink)
 		{
-			interaction_bound int_bound = ppd->n_bodies->get_bound_NI();
+			interaction_bound int_bound = ppd->n_bodies->get_bound_NI(false, 1);
 
-			clock_t t_start = clock();			
+			t_start = clock();			
 			ppd->cpu_calc_grav_accel_NI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
-			clock_t elapsed_time = clock() - t_start;
-			cout << "NI  dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
+			elapsed_time = clock() - t_start;
 		}
+		cout << "NI:" << endl;
+		cout << "----------------------------------------------" << endl;
+		cout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
 	}
+}
+
+void run_test()
+{
+	test_number_of_bodies();
 }
 
 //http://stackoverflow.com/questions/11666049/cuda-kernel-results-different-in-release-mode
@@ -249,6 +265,13 @@ int main(int argc, const char** argv, const char** env)
 	try
 	{
 		options opt = options(argc, argv);
+
+		if (opt.test)
+		{
+			run_test();
+			exit(0);
+		}
+
 		pp_disk *ppd = opt.create_pp_disk();
 		integrator *intgr = opt.create_integrator(ppd, 0.01);
 		open_streams(opt, intgr, &result_f, &info_f, &event_f, &log_f);
@@ -337,16 +360,6 @@ int main(int argc, const char** argv, const char** env)
 				file::log_message(*log_f, "Execution was transferred to CPU");
 			}
 
-			if (opt.param->output_interval <= fabs(ps))
-			{
-				ps = 0.0;
-				if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
-				{
-					ppd->copy_to_host();
-				}
-				ppd->print_result_ascii(*result_f);
-			}
-
 			if (ppd->check_for_ejection_hit_centrum())
 			{
 				ppd->print_event_data(*event_f, *log_f);
@@ -362,7 +375,17 @@ int main(int argc, const char** argv, const char** env)
 				ppd->clear_event_counter();
 			}
 
-			if (ppd->check_for_rebuild_vectors(4))
+			if (opt.param->output_interval <= fabs(ps))
+			{
+				ps = 0.0;
+				if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
+				{
+					ppd->copy_to_host();
+				}
+				ppd->print_result_ascii(*result_f);
+			}
+
+			if (ppd->check_for_rebuild_vectors(2))
 			{
 				file::log_rebuild_vectors(*log_f, ppd->t);
 			}

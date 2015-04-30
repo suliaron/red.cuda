@@ -58,6 +58,9 @@
     <CudaCompile Include="fargo_gas_disk.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
+    <CudaCompile Include="test.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nbody_exception.h">
@@ -100,6 +103,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="fargo_gas_disk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

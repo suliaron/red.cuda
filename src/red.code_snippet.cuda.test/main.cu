@@ -28,7 +28,6 @@
 #include "red_type.h"
 #include "red_macro.h"
 #include "redutilcu.h"
-
 #include "red_test.h"
 
 __constant__ var_t dc_threshold[THRESHOLD_N];
@@ -1349,7 +1348,7 @@ int main(int argc, const char** argv)
 }
 #endif
 
-#if 0
+#if 1
 int main(int argc, char** argv)
 {
 	red_test::run(argc, argv);
@@ -1544,7 +1543,7 @@ int main(int argc, char** argv)
 #endif
 
 
-#if 1
+#if 0
 
 // Calculate the volume density from the surface density used by FARGO
 

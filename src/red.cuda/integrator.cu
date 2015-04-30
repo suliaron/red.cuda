@@ -69,7 +69,7 @@ void integrator::initialize()
 
 void integrator::allocate_storage()
 {	
-	int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total_playing();
+	int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total(ppd->get_n_tpb()) : ppd->n_bodies->get_n_total_playing();
 
 	allocate_host_storage(n_body);
 	if (COMPUTING_DEVICE_GPU == comp_dev)
@@ -197,7 +197,7 @@ void integrator::set_computing_device(computing_device_t device)
 		return;
 	}
 
-	int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total() : ppd->n_bodies->get_n_total_playing();
+	int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total(ppd->get_n_tpb()) : ppd->n_bodies->get_n_total_playing();
 
 	switch (device)
 	{
@@ -221,8 +221,8 @@ var_t integrator::get_max_error(int n_var, var_t lambda)
 	var_t max_err_r = 0.0;
 	var_t max_err_v = 0.0;
 
-	int64_t idx_max_err_r = -1;
-	int64_t idx_max_err_v = -1;
+	//int64_t idx_max_err_r = -1;
+	//int64_t idx_max_err_v = -1;
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
@@ -235,8 +235,8 @@ var_t integrator::get_max_error(int n_var, var_t lambda)
 		thrust::device_ptr<var_t> d_ptr_max_v = thrust::max_element(d_ptr_v, d_ptr_v + n_var);
 
 		// Get the index of the maximum element
-		idx_max_err_r = d_ptr_max_r.get() - d_ptr_r.get();
-		idx_max_err_v = d_ptr_max_v.get() - d_ptr_v.get();
+		//idx_max_err_r = d_ptr_max_r.get() - d_ptr_r.get();
+		//idx_max_err_v = d_ptr_max_v.get() - d_ptr_v.get();
 
 		// Copy the max element from device memory to host memory
 		cudaMemcpy((void*)&max_err_r, (void*)d_ptr_max_r.get(), sizeof(var_t), cudaMemcpyDeviceToHost);
@@ -250,12 +250,12 @@ var_t integrator::get_max_error(int n_var, var_t lambda)
 			if (max_err_r < err[0][i])
 			{
 				max_err_r = err[0][i];
-				idx_max_err_r = i;
+				//idx_max_err_r = i;
 			}
 			if (max_err_v < err[1][i])
 			{
 				max_err_v = err[1][i];
-				idx_max_err_v = i;
+				//idx_max_err_v = i;
 			}
 		}		
 	}

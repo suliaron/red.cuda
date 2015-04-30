@@ -53,15 +53,20 @@ public:
 	vector<var_t*> used_rad;
 
 private:
-	void set_default_values();
+	void initialize();
 	void parse();
 	void set_param(string& key, string& value);
 	int create_index_for_filename(ttt_t t);
 
+	void transform_data();
+	void transform_time();
+	void transform_velocity();
+	void transform_density();
+
 	bool verbose;
 	string dir;
 	string filename;
-	string data;  //!< holds a copy of the file containing the parameters of the simulation
+	string data;                 //!< holds a copy of the file containing the parameters of the simulation
 
 	string exclude_hill;
 	string planet_config;

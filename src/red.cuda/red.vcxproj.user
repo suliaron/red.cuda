@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-b -nb 1 3000 4000 3000 5000 5000 10000 -v -ef -gpu -n_chg 0</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-gpu -ef -v -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Collision\2D -p parameters.txt -ic run_04.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-b -nb 1 5000 0 0 0 0 0 -v -ef -gpu -n_chg 0</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-cpu -ef -v -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Collision\2D\NoColl -p parameters.txt -ic run_04.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
