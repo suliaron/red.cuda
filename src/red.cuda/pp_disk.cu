@@ -238,47 +238,12 @@ static __global__
 			k = atomicAdd(event_counter, 1);
 			printf("t = %20.10le d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", curr_t / K, sqrt(r2), k+1, body_md[0].id, body_md[i].id);
 			pp_disk_utility::store_event_data(EVENT_NAME_EJECTION, curr_t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
-
-			//events[k].event_name = EVENT_NAME_EJECTION;
-			//events[k].d = sqrt(r2); //sqrt(dVec.w);
-			//events[k].t = curr_t;
-			//events[k].id1 = body_md[0].id;
-			//events[k].id2 = body_md[i].id;
-			//events[k].idx1 = 0;
-			//events[k].idx2 = i;
-			//events[k].r1 = r[0];
-			//events[k].v1 = v[0];
-			//events[k].r2 = r[i];
-			//events[k].v2 = v[i];
-
-			//events[k].p1 = p[0];
-			//events[k].p2 = p[i];
-			//events[k].ps = p[0];
-			//events[k].rs = r[0];
-			//events[k].vs = v[0];
-
-			// Make the body inactive
-			body_md[i].id *= -1;
 		}
 		else if (0.0 < dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] && dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] > r2)
 		{
 			k = atomicAdd(event_counter, 1);
 			printf("t = %20.10le d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", curr_t / K, sqrt(r2), k+1, body_md[0].id, body_md[i].id);
 			pp_disk_utility::store_event_data(EVENT_NAME_HIT_CENTRUM, curr_t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
-
-			//events[k].event_name = EVENT_NAME_HIT_CENTRUM;
-			//events[k].d = sqrt(r2); //sqrt(dVec.w);
-			//events[k].t = curr_t;
-			//events[k].id1 = body_md[0].id;
-			//events[k].id2 = body_md[i].id;
-			//events[k].idx1 = 0;
-			//events[k].idx2 = i;
-			//events[k].r1 = r[0];
-			//events[k].v1 = v[0];
-			//events[k].r2 = r[i];
-			//events[k].v2 = v[i];
-			// Make the body inactive
-			body_md[i].id *= -1;
 		}
 	}
 }
@@ -339,18 +304,6 @@ static __global__
 			}
 			printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", curr_t / K, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
 			pp_disk_utility::store_event_data(EVENT_NAME_COLLISION, curr_t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
-
-			//events[k].event_name = EVENT_NAME_COLLISION;
-			//events[k].d = d;
-			//events[k].t = curr_t;
-			//events[k].id1 = body_md[survivIdx].id;
-			//events[k].id2 = body_md[mergerIdx].id;
-			//events[k].idx1 = survivIdx;
-			//events[k].idx2 = mergerIdx;
-			//events[k].r1 = r[survivIdx];
-			//events[k].v1 = v[survivIdx];
-			//events[k].r2 = r[mergerIdx];
-			//events[k].v2 = v[mergerIdx];
 		}
 	}
 }
@@ -417,18 +370,6 @@ static __global__
 					}
 					printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", curr_t / K, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
 					pp_disk_utility::store_event_data(EVENT_NAME_COLLISION, curr_t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
-
-					//events[k].event_name = EVENT_NAME_COLLISION;
-					//events[k].d = d;
-					//events[k].t = curr_t;
-					//events[k].id1 = body_md[survivIdx].id;
-					//events[k].id2 = body_md[mergerIdx].id;
-					//events[k].idx1 = survivIdx;
-					//events[k].idx2 = mergerIdx;
-					//events[k].r1 = r[survivIdx];
-					//events[k].v1 = v[survivIdx];
-					//events[k].r2 = r[mergerIdx];
-					//events[k].v2 = v[mergerIdx];
 				}
 			} // 36 FLOP
 		}
@@ -981,31 +922,6 @@ bool pp_disk::check_for_rebuild_vectors(int n)
 	return false;
 }
 
-//void pp_disk::store_event_data(event_name_t name, ttt_t t, var_t d, int idx1, int idx2, event_data_t *evnt)
-//{
-//	evnt->event_name = name;
-//	evnt->d = d;
-//	evnt->t = t;
-//	evnt->id1 = sim_data->body_md[idx1].id;
-//	evnt->id2 = sim_data->body_md[idx2].id;
-//	evnt->idx1 = idx1;
-//	evnt->idx2 = idx2;
-//	evnt->r1 = sim_data->y[0][idx1];
-//	evnt->v1 = sim_data->y[1][idx1];
-//	evnt->r2 = sim_data->y[0][idx2];
-//	evnt->v2 = sim_data->y[1][idx2];
-//
-//	if (EVENT_NAME_EJECTION == name)
-//	{
-//		evnt->p1 = sim_data->h_p[idx1];
-//		evnt->p2 = sim_data->h_p[idx2];
-//
-//		evnt->rs = evnt->r1;
-//		evnt->vs = evnt->v1;
-//		evnt->ps = evnt->p1;
-//	}
-//}
-
 int pp_disk::cpu_check_for_ejection_hit_centrum()
 {
 	const vec_t* r = sim_data->y[0];
@@ -1031,8 +947,6 @@ int pp_disk::cpu_check_for_ejection_hit_centrum()
 				printf("t = %20.10le d = %20.10le %d. EJECTION detected: id: %5d id: %5d\n", t / constants::Gauss, sqrt(r2), k+1, body_md[0].id, body_md[i].id);
 				pp_disk_utility::store_event_data(EVENT_NAME_EJECTION, t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
 
-				// Make the body inactive
-				body_md[i].id *= -1;
 				event_counter++;
 			}
 			else if (0.0 < threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] && threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] > r2)
@@ -1041,8 +955,6 @@ int pp_disk::cpu_check_for_ejection_hit_centrum()
 				printf("t = %20.10le d = %20.10le %d. HIT_CENTRUM detected: id: %5d id: %5d\n", t / constants::Gauss, sqrt(r2), k+1, body_md[0].id, body_md[i].id);
 				pp_disk_utility::store_event_data(EVENT_NAME_HIT_CENTRUM, t, sqrt(r2), 0, i, p, r, v, body_md, &events[k]);
 
-				// Make the body inactive
-				body_md[i].id *= -1;
 				event_counter++;
 			}
 		}
@@ -1176,30 +1088,19 @@ void pp_disk::handle_collision()
 	// TODO: implement collision graph: bredth-first search
 	for (unsigned int i = 0; i < sp_events.size(); i++)
 	{
+		int ictv_idx = sp_events[i].idx2;
+
 		handle_collision_pair(i, &sp_events[i]);
 		increment_event_counter(n_collision);
-	}
-}
-
-void pp_disk::handle_ejection_hit_centrum()
-{
-	sp_events.resize(event_counter);
-
-	for (int i = 0; i < event_counter; i++)
-	{
-		// The events must be copied into sp_events since the print_event_data() write the content of the sp_events to disk.
-		sp_events[i] = events[i];
-		if (EVENT_NAME_EJECTION == sp_events[i].event_name)
+		// Make the merged body inactive 
+		sim_data->h_body_md[ictv_idx].id *= -1;
+		// Copy it up to GPU 
+		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
-			// Update number of inactive bodies
-			this->n_bodies->inactive[sim_data->h_body_md[sp_events[i].idx2].body_type]++;
-			increment_event_counter(n_ejection);
+			copy_vector_to_device((void **)&sim_data->d_body_md[ictv_idx], (void *)&sim_data->h_body_md[ictv_idx], sizeof(body_metadata_t));
 		}
-		else
-		{
-			handle_collision_pair(i, &sp_events[i]);
-			increment_event_counter(n_hit_centrum);
-		}
+		// Update number of inactive bodies
+		n_bodies->inactive[sim_data->h_body_md[ictv_idx].body_type]++;
 	}
 }
 
@@ -1243,6 +1144,36 @@ void pp_disk::create_sp_events()
 	sp_events.resize(n);
 }
 
+void pp_disk::handle_ejection_hit_centrum()
+{
+	sp_events.resize(event_counter);
+
+	for (int i = 0; i < event_counter; i++)
+	{
+		// The events must be copied into sp_events since the print_event_data() write the content of the sp_events to disk.
+		sp_events[i] = events[i];
+		int ictv_idx = sp_events[i].idx2;
+		if (EVENT_NAME_EJECTION == sp_events[i].event_name)
+		{
+			increment_event_counter(n_ejection);
+		}
+		else
+		{
+			handle_collision_pair(i, &sp_events[i]);
+			increment_event_counter(n_hit_centrum);
+		}
+		// Make the body which has hitted the center or ejected inactive 
+		sim_data->h_body_md[ictv_idx].id *= -1;
+		// Copy it up to GPU 
+		if (COMPUTING_DEVICE_GPU == comp_dev)
+		{
+			copy_vector_to_device((void **)&sim_data->d_body_md[ictv_idx], (void *)&sim_data->h_body_md[ictv_idx], sizeof(body_metadata_t));
+		}
+		// Update number of inactive bodies
+		n_bodies->inactive[sim_data->h_body_md[ictv_idx].body_type]++;
+	}
+}
+
 void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 {
 	int survivIdx = collision->idx1;
@@ -1280,11 +1211,6 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 	// Update physical properties of survivor
 	sim_data->h_p[survivIdx] = collision->ps;
 
-	// Make the merged body inactive 
-	sim_data->h_body_md[mergerIdx].id *= -1;
-	// Update number of inactive bodies
-	this->n_bodies->inactive[sim_data->h_body_md[mergerIdx].body_type]++;
-
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		switch (aps)
@@ -1300,12 +1226,7 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 		default:
 			throw string("Parameter 'aps' is out of range.");
 		}
-		copy_vector_to_device((void **)&sim_data->d_p[survivIdx],		(void *)&sim_data->h_p[survivIdx],       sizeof(param_t));
-
-		//copy_vector_to_device((void **)&sim_data->d_y[0][mergerIdx],	(void *)&sim_data->h_y[0][mergerIdx],    sizeof(vec_t));
-		//copy_vector_to_device((void **)&sim_data->d_y[1][mergerIdx],	(void *)&sim_data->h_y[1][mergerIdx],    sizeof(vec_t));
-		//copy_vector_to_device((void **)&sim_data->d_p[mergerIdx],		(void *)&sim_data->h_p[mergerIdx],       sizeof(param_t));
-		copy_vector_to_device((void **)&sim_data->d_body_md[mergerIdx],	(void *)&sim_data->h_body_md[mergerIdx], sizeof(body_metadata_t));
+		copy_vector_to_device((void **)&sim_data->d_p[survivIdx], (void *)&sim_data->h_p[survivIdx], sizeof(param_t));
 	}
 }
 
@@ -1343,10 +1264,8 @@ pp_disk::~pp_disk()
 	deallocate_device_storage(sim_data);
 	FREE_DEVICE_VECTOR((void **)&d_events);
 	FREE_DEVICE_VECTOR((void **)&d_event_counter);
-	delete sim_data;
 
-	//FREE_HOST_VECTOR(  (void **)&g_disk);
-	//FREE_DEVICE_VECTOR((void **)&d_g_disk);
+	delete sim_data;
 }
 
 void pp_disk::initialize()
@@ -1477,7 +1396,7 @@ void pp_disk::remove_inactive_bodies()
 	}
 	if (n_bodies->get_n_total_active() != k)
 	{
-		throw string("Error: number of copied bodies does not equal to the number of active bodies.");
+		throw string("Number of copied bodies does not equal to the number of active bodies.");
 	}
 	this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE] = 0;
 	this->n_bodies->update();
@@ -1585,7 +1504,6 @@ void pp_disk::copy_to_host()
 		default:
 			throw string("Parameter 'aps' is out of range.");
 		}
-		//copy_vector_to_host((void *)sim_data->h_y[i],	(void *)sim_data->d_y[i],	 n_body*sizeof(vec_t));
 	}
 	copy_vector_to_host((void *)sim_data->h_p,			(void *)sim_data->d_p,		 n_body*sizeof(param_t));
 	copy_vector_to_host((void *)sim_data->h_body_md,	(void *)sim_data->d_body_md, n_body*sizeof(body_metadata_t));

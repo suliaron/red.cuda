@@ -106,7 +106,7 @@ void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, 
 		{
 			continue;
 		}
-		sout << ", " << body_type_name << ": " << setw(5) << nb->playing[i] - nb->inactive[i] << "(" << setw(5) << nb->removed[i] << ")";
+		sout << ", " << body_type_name[i] << ": " << setw(5) << nb->playing[i] - nb->inactive[i] << "(" << setw(5) << nb->removed[i] << ")";
 	}
 	sout << endl;
 }

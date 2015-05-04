@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-gpu -ef -v -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Collision\2D -p parameters.txt -ic run_04.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-gpu -ef -v -iDir C:\Work\red.cuda.Results\Dvorak\2D\NewRun\Run_cf1.0_3 -p parameters.txt -ic run_04.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-cpu -ef -v -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Collision\2D\NoColl -p parameters.txt -ic run_04.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-gpu -n_chg 1900 -ef -v -iDir C:\Work\red.cuda.Results\Dvorak\2D\NewRun\Run_cf1.0_3 -p parameters.txt -ic run_04.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
