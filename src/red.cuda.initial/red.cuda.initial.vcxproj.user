@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-o C:\Work\red.cuda.Results\Chambers_2001 -f input</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-o C:\Work\Documents\Presentation\MTA_2015_05_11\simulation_of_solar_system -f input</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

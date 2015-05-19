@@ -191,15 +191,15 @@ void fargo_gas_disk::load(ttt_t t)
 {
 	const size_t n = params.n_rad * params.n_sec;
 
-	string filename = "gasdens" + number_to_string<int>(create_index_for_filename(t)) + ".dat";
+	string filename = "gasdens" + number_to_string(create_index_for_filename(t)) + ".dat";
 	string path = file::combine_path(dir, filename);
 	load_gas_density(path, n);
 
-	filename = "gasvrad" + number_to_string<int>(create_index_for_filename(t)) + ".dat";
+	filename = "gasvrad" + number_to_string(create_index_for_filename(t)) + ".dat";
 	path = file::combine_path(dir, filename);
 	load_gas_vrad(path, n);
 
-	filename = "gasvtheta" + number_to_string<int>(create_index_for_filename(t)) + ".dat";
+	filename = "gasvtheta" + number_to_string(create_index_for_filename(t)) + ".dat";
 	path = file::combine_path(dir, filename);
 	load_gas_vtheta(path, n);
 }

@@ -114,7 +114,7 @@ var_t pdf_const(var_t x)
 	return 1;
 }
 
-void populate_data(int* n_bodies, sim_data_t *sim_data)
+void populate_data(unsigned int* n_bodies, sim_data_t *sim_data)
 {
 	int idx = 0;
 	int id = 1;
@@ -517,5 +517,46 @@ void print_vector(const vec_t *v)
 		 << setw(var_t_w) << v->w << endl;
 }
 
+void print_parameter(const param_t *p)
+{
+	static int var_t_w  = 25;
+
+	cout.precision(16);
+	cout.setf(ios::right);
+	cout.setf(ios::scientific);
+
+	cout << setw(var_t_w) << p->mass 
+		 << setw(var_t_w) << p->radius
+		 << setw(var_t_w) << p->density
+		 << setw(var_t_w) << p->cd << endl;
+}
+
+void print_body_metadata(const body_metadata_t *b)
+{
+	static int var_t_w  = 5;
+
+	cout << setw(var_t_w) << b->id << endl;
+	cout << (char)(48 + b->body_type) << " (" << body_type_name[b->body_type] << ")" << endl
+		 << (char)(48 + b->mig_type) << " (" << migration_type_name[b->mig_type] << ")" << endl;
+	cout.precision(16);
+	cout.setf(ios::right);
+	cout.setf(ios::scientific);
+	cout << setw(var_t_w) << b->mig_stop_at << endl;
+}
+
+void print_body_metadata(const body_metadata_new_t *b)
+{
+	static int var_t_w  = 5;
+
+	cout << setw(var_t_w) << b->id << endl;
+	cout << (char)(48 + b->body_type) << " (" << body_type_name[b->body_type] << ")" << endl
+		 << (char)(48 + b->mig_type) << " (" << migration_type_name[b->mig_type] << ")" << endl
+		 << (char)(48 + b->active) << (b->active ? " (true)" : " (false)") << endl
+		 << (char)(48 + b->unused) << (b->unused ? " (true)" : " (false)") << endl;
+	cout.precision(16);
+	cout.setf(ios::right);
+	cout.setf(ios::scientific);
+	cout << setw(var_t_w) << b->mig_stop_at << endl;
+}
 } /* tools */
 } /* redutilcu */

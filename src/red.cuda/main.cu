@@ -12,9 +12,6 @@
 #include "device_launch_parameters.h"
 
 // includes project
-//#include "int_euler.h"
-//#include "int_rungekutta2.h"
-//#include "int_rungekutta4.h"
 #include "parameter.h"
 #include "redutilcu.h"
 #include "nbody_exception.h"
@@ -22,16 +19,14 @@
 #include "red_type.h"
 #include "red_constants.h"
 #include "test.h"
+#include "util.h"
 
 using namespace std;
 using namespace redutilcu;
 
-void open_streams(const options& opt, const integrator* intgr, ostream** result_f, ostream** info_f, ostream** event_f, ostream** log_f)
+string create_prefix(const options& opt, const integrator* intgr)
 {
-	string path;
 	string prefix;
-	string ext = "txt";
-
 	if (opt.benchmark)
 	{
 		prefix = "b_";
@@ -55,17 +50,26 @@ void open_streams(const options& opt, const integrator* intgr, ostream** result_
 		prefix += config + sep + dev + sep + strorage + sep + adapt + sep + int_name + sep;
 	}
 
+	return prefix;
+}
+
+void open_streams(const options& opt, const integrator* intgr, ostream** output)
+{
+	string path;
+	string prefix = create_prefix(opt, intgr);
+	string ext = "txt";
+
 	path = file::combine_path(opt.printout_dir, prefix + opt.result_filename) + "." + ext;
-	*result_f = new ofstream(path.c_str(), ios::out);
+	output[OUTPUT_NAME_RESULT] = new ofstream(path.c_str(), ios::out);
 
 	path = file::combine_path(opt.printout_dir, prefix + opt.info_filename) + "." + ext;
-	*info_f = new ofstream(path.c_str(), ios::out);
+	output[OUTPUT_NAME_INFO] = new ofstream(path.c_str(), ios::out);
 
 	path = file::combine_path(opt.printout_dir, prefix + opt.event_filename) + "." + ext;
-	*event_f = new ofstream(path.c_str(), ios::out);
+	output[OUTPUT_NAME_EVENT] = new ofstream(path.c_str(), ios::out);
 
 	path = file::combine_path(opt.printout_dir, prefix + opt.log_filename) + "." + ext;
-	*log_f = new ofstream(path.c_str(), ios::out);
+	output[OUTPUT_NAME_LOG] = new ofstream(path.c_str(), ios::out);
 }
 
 void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* sum_time_of_steps, clock_t* time_of_one_step, time_t* time_info_start)
@@ -92,7 +96,7 @@ void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, 
 		 << ", N : " << setw(6) << nb->get_n_total_playing() << "(" << setw(3) << nb->get_n_total_inactive() << ", " << setw(5) << nb->get_n_total_removed() << ")" << endl;
 
 	sout << tools::get_time_stamp()
-		 << " t: " << setprecision(6) << setw(12) << ppd->t  / constants::Gauss
+		 << " t: " << setprecision(6) << setw(12) << ppd->t / constants::Gauss
 		 << ", dt: " << setprecision(6) << setw(12)  << dt / constants::Gauss;
 	sout << ", dT: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
 	sout << " (" << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s)";
@@ -248,20 +252,155 @@ void run_test()
 	test_number_of_bodies();
 }
 
+void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ostream** output)
+{
+	ttt_t ps = 0.0;
+	ttt_t dt = 0.0;
+	clock_t sum_time_of_steps = 0;
+	clock_t time_of_one_step  = 0;
+
+	time_t time_info_start = clock();
+
+	//int dummy_k = 0;
+	//computing_device_t target_device = intgr->get_computing_device();
+
+	unsigned int n_removed = 0;
+	unsigned int n_dumped = 0;
+	while (1 < ppd->n_bodies->get_n_total_active() && ppd->t <= opt.param->stop_time)
+	{
+#if 0
+		if (0 < dummy_k && 0 == dummy_k % 10)
+		{
+			int tmp = intgr->get_computing_device();
+			tmp++;
+			if (COMPUTING_DEVICE_N == tmp)
+			{
+				tmp = 0;
+			}
+			target_device = (computing_device_t)tmp;
+
+			switch (target_device)
+			{
+			case COMPUTING_DEVICE_CPU:
+				{
+					intgr->set_computing_device(target_device);
+					if (opt.verbose)
+					{
+						file::log_message(*log_f, "Execution was transferred to CPU", opt.print_to_screen);
+					}
+					break;
+				}
+			case COMPUTING_DEVICE_GPU:
+				{
+					int id_of_target_GPU = redutilcu::get_id_fastest_GPU();
+					redutilcu::set_device(id_of_target_GPU, *log_f, opt.verbose, opt.print_to_screen);
+
+					intgr->set_computing_device(target_device);
+					if (opt.verbose)
+					{
+						file::log_message(*log_f, "Execution was transferred to GPU with id: " + redutilcu::number_to_string(id_of_target_GPU), opt.print_to_screen);
+					}
+					break;
+				}
+			default:
+				{
+					throw string ("Invalid parameter: target_device was out of range.");
+				}
+			}
+		}
+#endif
+		if (COMPUTING_DEVICE_GPU == intgr->get_computing_device() && opt.n_change_to_cpu >= ppd->n_bodies->get_n_SI())
+		{
+			intgr->set_computing_device(COMPUTING_DEVICE_CPU);
+			if (opt.verbose)
+			{
+				string msg = "Number of self-interacting bodies droped below " + redutilcu::number_to_string(opt.n_change_to_cpu) + ". Execution was transferred to CPU";
+				file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+			}
+		}
+
+		if ((0.0 < opt.param->thrshld[THRESHOLD_EJECTION_DISTANCE] || 
+			 0.0 < opt.param->thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]) &&  ppd->check_for_ejection_hit_centrum())
+		{
+			ppd->print_event_data(*output[OUTPUT_NAME_EVENT], *output[OUTPUT_NAME_LOG]);
+			ppd->clear_event_counter();
+		}
+
+		if (0.0 < opt.param->thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] && ppd->check_for_collision())
+		{
+			ppd->print_event_data(*output[OUTPUT_NAME_EVENT], *output[OUTPUT_NAME_LOG]);
+			ppd->clear_event_counter();
+		}
+
+		dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
+		ps += fabs(dt);
+
+		//if (0.0 < opt.param->thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] && ppd->check_for_collision())
+		//{
+		//	ppd->print_event_data(*event_f, *log_f);
+		//	ppd->clear_event_counter();
+		//}
+
+		if (opt.param->output_interval <= fabs(ps))
+		{
+			ps = 0.0;
+			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
+			{
+				ppd->copy_to_host();
+			}
+			ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
+		}
+
+		if (ppd->check_for_rebuild_vectors(2))
+		{
+			n_removed += ppd->n_bodies->n_removed;
+			string msg = "Rebuild the vectors (removed " + redutilcu::number_to_string(ppd->n_bodies->n_removed) + " inactive bodies at t: " + redutilcu::number_to_string(ppd->t / constants::Gauss) + ")";
+			file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+			if (10 < n_removed)
+			{
+				n_removed = 0;
+				if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
+				{
+					ppd->copy_to_host();
+				}
+				string prefix = create_prefix(opt, intgr);
+				//string path = file::combine_path(opt.printout_dir, prefix + "dump" + redutilcu::number_to_string(n_dumped) + ".txt");
+				string path = file::combine_path(opt.printout_dir, prefix + "dump" + redutilcu::number_to_string(n_dumped) + ".dat");
+				output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str(), ios::out);
+				ppd->print_dump(*output[OUTPUT_NAME_DUMP], DATA_REPRESENTATION_BINARY);
+				output[OUTPUT_NAME_DUMP]->~ostream();
+				n_dumped++;
+			}
+		}
+
+		if (5.0 < (clock() - time_info_start) / (double)CLOCKS_PER_SEC) 
+		{
+			print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
+		}
+
+		//dummy_k++;
+	} /* while */
+	print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
+	// To avoid duplicate save at the end of the simulation
+	if (0.0 < ps)
+	{
+		if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
+		{
+			ppd->copy_to_host();
+		}
+		ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
+	}
+}
+
 //http://stackoverflow.com/questions/11666049/cuda-kernel-results-different-in-release-mode
 //http://developer.download.nvidia.com/assets/cuda/files/NVIDIA-CUDA-Floating-Point.pdf
 
-// -v -cpu -n_tpb 64 -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Test_Anal_Gas -p parameters.txt -ic input.txt -ga gasdisk.txt
-// -v -ef -cpu -n_tpb 64 -iDir C:\Work\Projects\red.cuda\TestRun\InputTest\Test_Fargo_Gas -p parameters.txt -ic input.txt -gf disk.par
-
+//-gpu -v -pts -ef -iDir C:\Work\red.cuda.Results\Dvorak\2D\NewRun_2\Run_cf4.0_2 -p parameters.txt -ic run_04.txt
 int main(int argc, const char** argv, const char** env)
 {
 	time_t start = time(NULL);
+	ostream* output[] = {0x0, 0x0, 0x0, 0x0, 0x0};
 
-	ostream* result_f = 0x0;
-	ostream* info_f   = 0x0;
-	ostream* event_f  = 0x0;
-	ostream* log_f    = 0x0;
 	try
 	{
 		options opt = options(argc, argv);
@@ -274,166 +413,48 @@ int main(int argc, const char** argv, const char** env)
 
 		pp_disk *ppd = opt.create_pp_disk();
 		integrator *intgr = opt.create_integrator(ppd, 0.01);
-		open_streams(opt, intgr, &result_f, &info_f, &event_f, &log_f);
+		open_streams(opt, intgr, output);
 
-		file::log_start_cmd(*log_f, argc, argv, env);
-		if (opt.verbose)
+		file::log_start_cmd(*output[OUTPUT_NAME_LOG], argc, argv, env, opt.print_to_screen);
+		if (opt.verbose && COMPUTING_DEVICE_GPU == opt.comp_dev)
 		{
-			file::log_start_cmd(cout, argc, argv, env);
-			if (COMPUTING_DEVICE_GPU == opt.comp_dev)
-			{
-				device_query(cout, opt.id_a_dev);
-			}
-		}
-		if (COMPUTING_DEVICE_GPU == opt.comp_dev)
-		{
-			device_query(*log_f, opt.id_a_dev);
+			device_query(*output[OUTPUT_NAME_LOG], opt.id_a_dev, opt.print_to_screen);
 		}
 
 		if (opt.benchmark)
 		{
-			run_benchmark(opt, ppd, intgr, *log_f);
+			run_benchmark(opt, ppd, intgr, *output[OUTPUT_NAME_LOG]);
 		}
 		else
 		{
-			// run_simulation();
-
-		ttt_t ps = 0.0;
-		ttt_t dt = 0.0;
-		clock_t sum_time_of_steps = 0;
-		clock_t time_of_one_step  = 0;
-
-		time_t time_info_start = clock();
-
-		ppd->print_result_ascii(*result_f);
-
-		//int dummy_k = 0;
-		//computing_device_t target_device = intgr->get_computing_device();
-
-		while (ppd->t <= opt.param->stop_time)
-		{
-
-			//if (0 < dummy_k && dummy_k % 100 == 0)
-			//{
-			//	int tmp = intgr->get_computing_device();
-			//	tmp++;
-			//	if (COMPUTING_DEVICE_N == tmp)
-			//	{
-			//		tmp = 0;
-			//	}
-			//	target_device = (computing_device_t)tmp;
-
-			//	switch (target_device)
-			//	{
-			//	case COMPUTING_DEVICE_CPU:
-			//		{
-			//			intgr->set_computing_device(target_device);
-			//			if (opt.verbose)
-			//			{
-			//				file::log_message(cout, "Execution was transferred to CPU");
-			//			}
-			//			file::log_message(*log_f, "Execution was transferred to CPU");
-			//			break;
-			//		}
-			//	case COMPUTING_DEVICE_GPU:
-			//		{
-			//			int id_of_target_GPU = redutilcu::get_id_fastest_GPU();
-			//			redutilcu::set_device(id_of_target_GPU, opt.verbose);
-			//			intgr->set_computing_device(target_device);
-			//			file::log_message(*log_f, "Execution was transferred to GPU with id: " + redutilcu::number_to_string<int>(id_of_target_GPU));
-			//			break;
-			//		}
-			//	default:
-			//		{
-			//			throw string ("Invalid parameter: target_device was out of range.");
-			//		}
-			//	}
-			//}
-
-			if (COMPUTING_DEVICE_GPU == intgr->get_computing_device() && opt.n_change_to_cpu >= ppd->n_bodies->get_n_SI())
-			{
-				intgr->set_computing_device(COMPUTING_DEVICE_CPU);
-				if (opt.verbose)
-				{
-					file::log_message(cout, "Execution was transferred to CPU");
-				}
-				file::log_message(*log_f, "Execution was transferred to CPU");
-			}
-
-			if (ppd->check_for_ejection_hit_centrum())
-			{
-				ppd->print_event_data(*event_f, *log_f);
-				ppd->clear_event_counter();
-			}
-
-			dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
-			ps += fabs(dt);
-
-			if (0.0 < opt.param->thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] && ppd->check_for_collision())
-			{
-				ppd->print_event_data(*event_f, *log_f);
-				ppd->clear_event_counter();
-			}
-
-			if (opt.param->output_interval <= fabs(ps))
-			{
-				ps = 0.0;
-				if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
-				{
-					ppd->copy_to_host();
-				}
-				ppd->print_result_ascii(*result_f);
-			}
-
-			if (ppd->check_for_rebuild_vectors(2))
-			{
-				file::log_rebuild_vectors(*log_f, ppd->t);
-			}
-
-			if (5.0 < (clock() - time_info_start) / (double)CLOCKS_PER_SEC) 
-			{
-				print_info(*info_f, ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
-			}
-
-			//dummy_k++;
-		} /* while */
-		print_info(*info_f, ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
-
-		// To avoid duplicate save at the end of the simulation
-		if (0.0 < ps)
-		{
+			ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
+			run_simulation(opt, ppd, intgr, output);
+			// Needed by nvprof.exe
 			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 			{
-				ppd->copy_to_host();
+				cudaDeviceReset();
 			}
-			ppd->print_result_ascii(*result_f);
-		}
-		// Needed by nvprof.exe
-		if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
-		{
-			cudaDeviceReset();
-		}
 		} /* else benchmark */
 	} /* try */
 	catch (const nbody_exception& ex)
 	{
-		if (0x0 != log_f)
+		if (0x0 != output[OUTPUT_NAME_LOG])
 		{
-			file::log_message(*log_f, "Error: " + string(ex.what()));
+			file::log_message(*output[OUTPUT_NAME_LOG], "Error: " + string(ex.what()), false);
 		}
 		cerr << "Error: " << ex.what() << endl;
 	}
 	catch (const string& msg)
 	{
-		if (0x0 != log_f)
+		if (0x0 != output[OUTPUT_NAME_LOG])
 		{
-			file::log_message(*log_f, "Error: " + msg);
+			file::log_message(*output[OUTPUT_NAME_LOG], "Error: " + msg, false);
 		}
 		cerr << "Error: " << msg << endl;
 	}
-	if (0x0 != log_f)
+	if (0x0 != output[OUTPUT_NAME_LOG])
 	{
-		file::log_message(*log_f, "Total time: " + tools::convert_time_t(time(NULL) - start) + " s");
+		file::log_message(*output[OUTPUT_NAME_LOG], "Total time: " + tools::convert_time_t(time(NULL) - start) + " s", false);
 	}
 	cout << "Total time: " << time(NULL) - start << " s" << endl;
 

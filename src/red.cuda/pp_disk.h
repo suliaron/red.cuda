@@ -17,7 +17,7 @@ class pp_disk
 public:
 
 	pp_disk(number_of_bodies *n_bodies, int n_tpb, bool ups, gas_disk_model_t g_disk_model, computing_device_t comp_dev);
-	pp_disk(string& path, int n_tpb, bool ups, gas_disk_model_t g_disk_model, computing_device_t comp_dev);
+	pp_disk(string& path, bool continue_simulation, int n_tpb, bool ups, gas_disk_model_t g_disk_model, computing_device_t comp_dev);
 	~pp_disk();
 
 	//! Initialize the members to default values
@@ -60,6 +60,12 @@ public:
 		\param sout print the data to this stream
 	*/
 	void print_result_ascii(ostream& sout);
+	//! Print the data of all bodies in text format
+	/*   
+		\param sout print the data to this stream
+		\param repres indicates the data representation of the file, i.e. text or binary
+	*/
+	void print_dump(ostream& sout, data_representation_t repres);
 	//! Print the data of all bodies in binary format
 	/*   
 		\param sout print the data to this stream
@@ -105,7 +111,11 @@ public:
 
 	//! Check all bodies against ejection and hit centrum criterium
 	int call_kernel_check_for_ejection_hit_centrum();
+	int call_kernel_check_for_collision();
+
 	int cpu_check_for_ejection_hit_centrum();
+	int cpu_check_for_collision();
+	int cpu_check_for_collision(interaction_bound int_bound, bool SI_NSI, bool SI_TP, bool NSI, bool NSI_TP);
 	//! Test function: print out all the simulation data contained on the device
 	void test_call_kernel_print_sim_data();
 	//! Calculates the differentials of variables
@@ -145,13 +155,31 @@ public:
 
 private:
 	void increment_event_counter(int *event_counter);
-	//! Loads the initial position and velocity of the bodies (second input version).
+	//! Loads the initial position and velocity of the bodies
 	/*   
 		\param path the full path of the data file
+		\param repres the representation of the data in the file (i.e. ASCII or BINARY)
 	*/
-	void load(string& path);
-	void read_body_record(ifstream& input, int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
-	number_of_bodies* get_number_of_bodies(string& path);
+	void load(string& path, data_representation_t repres);
+	//! Loads the initial position and velocity of the bodies
+	/*   
+		\param input the input stream from which to read the data
+	*/
+	void load_ascii(ifstream& input);
+	//! Loads the initial position and velocity of the bodies
+	/*   
+		\param input the input stream from which to read the data
+	*/
+	void load_binary(ifstream& input);
+	void load_dump(string& path, data_representation_t repres);
+	void load_body_record(ifstream& input, int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
+
+	//! Loads the number of bodies from the file
+	/*
+		\param path the full path of the data file
+		\param repres the representation of the data in the file (i.e. ASCII or BINARY)
+	*/
+	number_of_bodies* load_number_of_bodies(string& path, data_representation_t repres);
 
 	//! Allocates storage for data on the host and device memory
 	void allocate_storage();
@@ -182,6 +210,7 @@ private:
 
 	int		n_tpb;					//!< The number of thread per block to use for kernel launches
 	bool	ups;             		//!< If true use the padded storage scheme
+	bool    continue_simulation;    //!< Continues a simulation from its last saved output
 
 	dim3	grid;
 	dim3	block;

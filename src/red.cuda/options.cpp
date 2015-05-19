@@ -23,14 +23,17 @@ options::options(int argc, const char** argv)
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
-		set_device(id_a_dev, verbose);
+		set_device(id_a_dev, std::cout, verbose, print_to_screen);
 	}
 	if (COMPUTING_DEVICE_CPU == comp_dev)
 	{
 		ups = false;
 	}
 
-	param = new parameter(input_dir, parameters_filename, verbose);
+	if (!this->test)
+	{
+		param = new parameter(input_dir, parameters_filename, verbose);
+	}
 
 	switch (g_disk_model)
 	{
@@ -69,10 +72,12 @@ void options::print_usage()
 	cout << "     -log    | --log-filename                 : the name of the file where the details of the execution of the code will be stored (default is log.txt)" << endl;
 	cout << "     -result | --result-filename              : the name of the file where the simlation data for a time instance will be stored (default is result.txt" << endl;
 	cout << "                                                where [...] contains data describing the integrator)" << endl;
+	cout << "     -c      | --continue                     : continue a simulation from its last saved state" << endl;
 	cout << "     -b      | --benchmark                    : run benchmark to find out the optimal number of threads per block" << endl;
 	cout << "     -t      | --test                         : run tests" << endl;
 	cout << "     -nb     | --number-of-bodies             : set the number of bodies for benchmarking (pattern: n_st n_gp n_rp n_pp n_spl n_pl n_tp)" << endl;
-	cout << "     -v      | --verbose                      : verbose mode" << endl;
+	cout << "     -v      | --verbose                      : verbose mode (log all event during the execution fo the code to the log file)" << endl;
+	cout << "     -pts    | --print_to_screen              : verbose mode and print everything to the standard output stream too" << endl;
 	cout << "     -gpu    | --gpu                          : Execute the code on the graphics processing unit (GPU) (default is true)" << endl;
 	cout << "     -cpu    | --cpu                          : Execute the code on the cpu if required by the user or if no GPU is installed (default is false)" << endl;
 	cout << "     -h      | --help                         : print this help" << endl;
@@ -88,11 +93,13 @@ void options::initialize()
 
 void options::create_default()
 {
-	benchmark       = false;
-	test            = false;
-	ef              = false;
-	verbose         = false;
-	ups             = false;
+	continue_simulation = false;
+	benchmark           = false;
+	test                = false;
+	ef                  = false;
+	verbose             = false;
+	print_to_screen     = false;
+	ups                 = false;
 
 	id_a_dev        = 0;
 	n_tpb0          = 64;
@@ -206,6 +213,15 @@ void options::parse(int argc, const char** argv)
 		{
 			verbose = true;
 		}
+		else if (p == "--print_to_screen" || p == "-pts")
+		{
+			verbose = true;
+			print_to_screen = true;
+		}
+		else if (p == "--continue" || p == "-c")
+		{
+			continue_simulation = true;
+		}
 		else if (p == "--benchmark" || p == "-b")
 		{
 			benchmark = true;
@@ -261,7 +277,7 @@ pp_disk* options::create_pp_disk()
 	else
 	{
 		string path = file::combine_path(input_dir, bodylist_filename);
-		ppd = new pp_disk(path, n_tpb0, ups, g_disk_model, comp_dev);
+		ppd = new pp_disk(path, continue_simulation, n_tpb0, ups, g_disk_model, comp_dev);
 	}
 	switch (g_disk_model)
 	{

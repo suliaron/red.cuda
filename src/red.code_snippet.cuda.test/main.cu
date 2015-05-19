@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <stdlib.h>
 #include <string>
 
@@ -436,662 +437,6 @@ int main(int argc, const char** argv)
 
 #if 0
 
-// Measure the execution time of the kernel computing the gravitational acceleleration
-
-class number_of_bodies
-{
-public:
-	number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_spl, int n_pl, int n_tp, int n_tpb, bool ups);
-
-	void update_numbers(body_metadata_t *body_md);
-
-	int	get_n_total();
-	//! Calculates the number of bodies with mass, i.e. sum of the number of stars, giant planets, 
-	/*  rocky planets, protoplanets, super-planetesimals and planetesimals.
-	*/
-	int	get_n_massive();
-	//! Calculates the number of bodies which are self-interacting (i.e. it returns n_s + n_gp + n_rp + n_pp)
-	int	get_n_SI();
-	//! Calculates the number of non-self-interacting bodies (i.e. it returns n_spl + n_pl)
-	int	get_n_NSI();
-	//! Calculates the number of non-interacting bodies (i.e. returns n_tp)
-	int	get_n_NI();
-	//! Calculates the number of bodies which feels the drag force, i.e. sum of the number of super-planetesimals and planetesimals.
-	int	get_n_GD();
-	//! Calculates the number of bodies which are experiencing type I migration, i.e. sum of the number of rocky- and proto-planets.
-	int	get_n_MT1();
-	//! Calculates the number of bodies which are experiencing type II migration, i.e. the number of giant planets.
-	int	get_n_MT2();
-
-	int get_n_prime_total();
-	int	get_n_prime_massive();
-
-	int get_n_prime_SI();
-	int get_n_prime_NSI();
-	int get_n_prime_NI();
-
-	//int	get_n_prime_GD();
-	//int	get_n_prime_MT1();
-	//int	get_n_prime_MT2();
-
-	interaction_bound get_bound_SI();
-	interaction_bound get_bound_NSI();
-	interaction_bound get_bound_NI();
-	interaction_bound get_bound_GD();
-	interaction_bound get_bound_MT1();
-	interaction_bound get_bound_MT2();
-
-	int	n_s;
-	int	n_gp;
-	int	n_rp;
-	int	n_pp;
-	int	n_spl;
-	int	n_pl;
-	int	n_tp;
-
-private:
-	int n_tpb;
-	bool ups;
-
-	int2_t sink;
-	int2_t source;
-};
-
-number_of_bodies::number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_spl, int n_pl, int n_tp, int n_tpb, bool ups) :
-		n_s(n_s),
-		n_gp(n_gp),
-		n_rp(n_rp),
-		n_pp(n_pp),
-		n_spl(n_spl),
-		n_pl(n_pl),
-		n_tp(n_tp),
-		n_tpb(n_tpb),
-		ups(ups)
-{
-    sink.x   = sink.y   = 0;
-    source.x = source.y = 0;
-}
-
-void number_of_bodies::update_numbers(body_metadata_t *body_md)
-{
-	int n_active_body		= 0;
-	int n_inactive_body		= 0;
-
-	int	star				= 0;
-	int	giant_planet		= 0;
-	int	rocky_planet		= 0;
-	int	proto_planet		= 0;
-	int	super_planetesimal	= 0;
-	int	planetesimal		= 0;
-	int	test_particle		= 0;
-
-	int n_total = ups ? get_n_prime_total() : get_n_total();
-	for (int i = 0; i < n_total; i++)
-	{
-		if (0 < body_md[i].id && BODY_TYPE_PADDINGPARTICLE > body_md[i].body_type)
-		{
-			n_active_body++;
-		}
-		// Count the inactive bodies by type
-		else
-		{
-			n_inactive_body++;
-			switch (body_md[i].body_type)
-			{
-			case BODY_TYPE_STAR:
-				star++;
-				break;
-			case BODY_TYPE_GIANTPLANET:
-				giant_planet++;
-				break;
-			case BODY_TYPE_ROCKYPLANET:
-				rocky_planet++;
-				break;
-			case BODY_TYPE_PROTOPLANET:
-				proto_planet++;
-				break;
-			case BODY_TYPE_SUPERPLANETESIMAL:
-				super_planetesimal++;
-				break;
-			case BODY_TYPE_PLANETESIMAL:
-				planetesimal++;
-				break;
-			case BODY_TYPE_TESTPARTICLE:
-				test_particle++;
-				break;
-			default:
-				throw string("Undefined body type!");
-			}
-		}
-	}
-	cout << "There are " << star << " inactive star" << endl;
-	cout << "There are " << giant_planet << " inactive giant planet" << endl;
-	cout << "There are " << rocky_planet << " inactive rocky planet" << endl;
-	cout << "There are " << proto_planet << " inactive protoplanet" << endl;
-	cout << "There are " << super_planetesimal << " inactive super planetesimal" << endl;
-	cout << "There are " << planetesimal << " inactive planetesimal" << endl;
-	cout << "There are " << test_particle << " inactive test particle" << endl;
-
-	n_s		-= star;
-	n_gp	-= giant_planet;
-	n_rp	-= rocky_planet;
-	n_pp	-= proto_planet;
-	n_spl	-= super_planetesimal;
-	n_pl	-= planetesimal;
-	n_tp	-= test_particle;
-}
-
-int	number_of_bodies::get_n_SI()
-{
-	return (n_s + n_gp + n_rp + n_pp);
-}
-
-int number_of_bodies::get_n_NSI()
-{
-	return (n_spl + n_pl);
-}
-
-int	number_of_bodies::get_n_NI()
-{
-	return n_tp;
-}
-
-int	number_of_bodies::get_n_total()
-{
-	return (n_s + n_gp + n_rp + n_pp + n_spl + n_pl + n_tp);
-}
-
-int	number_of_bodies::get_n_GD()
-{
-	return (n_spl + n_pl);
-}
-
-int	number_of_bodies::get_n_MT1()
-{
-	return (n_rp + n_pp);
-}
-
-int	number_of_bodies::get_n_MT2()
-{
-	return n_gp;
-}
-
-int	number_of_bodies::get_n_massive()
-{
-	return (get_n_SI() + get_n_NSI());
-}
-
-int number_of_bodies::get_n_prime_SI()
-{
-	// The number of self-interacting (SI) bodies aligned to n_tbp
-	return ((get_n_SI() + n_tpb - 1) / n_tpb) * n_tpb;
-}
-
-int number_of_bodies::get_n_prime_NSI()
-{
-	// The number of non-self-interacting (NSI) bodies aligned to n_tbp
-	return ((get_n_NSI() + n_tpb - 1) / n_tpb) * n_tpb;
-}
-
-int number_of_bodies::get_n_prime_NI()
-{
-	// The number of non-interacting (NI) bodies aligned to n_tbp
-	return ((get_n_NI() + n_tpb - 1) / n_tpb) * n_tpb;
-}
-
-int number_of_bodies::get_n_prime_total()
-{
-	return (get_n_prime_SI() + get_n_prime_NSI() + get_n_prime_NI());
-}
-
-int	number_of_bodies::get_n_prime_massive()
-{
-	return (get_n_prime_SI() + get_n_prime_NSI());
-}
-
-interaction_bound number_of_bodies::get_bound_SI()
-{
-	if (ups)
-	{
-		sink.x	 = 0, sink.y   = sink.x + get_n_prime_SI();
-		source.x = 0, source.y = source.x + get_n_prime_massive();
-	}
-	else
-	{
-		sink.x   = 0, sink.y   = sink.x + get_n_SI();
-		source.x = 0, source.y = source.x + get_n_massive();
-	}
-
-	return interaction_bound(sink, source);
-}
-
-interaction_bound number_of_bodies::get_bound_NSI()
-{
-	if (ups)
-	{
-		sink.x   = get_n_prime_SI(), sink.y   = sink.x + get_n_prime_NSI();
-		source.x = 0,				 source.y = source.x + get_n_prime_SI();;
-	}
-	else
-	{
-		sink.x   = get_n_SI(), sink.y   = sink.x + get_n_NSI();
-		source.x = 0,		   source.y = source.x + get_n_SI();
-	}
-
-	return interaction_bound(sink, source);
-}
-
-interaction_bound number_of_bodies::get_bound_NI()
-{
-	if (ups)
-	{
-		sink.x   = get_n_prime_massive(), sink.y   = sink.x + get_n_prime_NI();
-		source.x = 0,				      source.y = source.x + get_n_prime_massive();
-	}
-	else
-	{
-		sink.x   = get_n_massive(), sink.y   = sink.x + get_n_NI();
-		source.x = 0,   	        source.y = source.x + get_n_massive();
-	}
-
-	return interaction_bound(sink, source);
-}
-
-interaction_bound number_of_bodies::get_bound_GD()
-{
-	if (ups)
-	{
-		sink.x   = get_n_prime_SI(), sink.y   = sink.x + n_spl + n_pl;
-		source.x = 0,		         source.y = 0;
-	}
-	else
-	{
-		sink.x   = get_n_SI(), sink.y   = sink.x + n_spl + n_pl;
-		source.x = 0,		   source.y = 0;
-	}
-
-	return interaction_bound(sink, source);
-}
-
-interaction_bound number_of_bodies::get_bound_MT1()
-{
-	sink.x   = n_s + n_gp, sink.y   = sink.x + n_pp + n_rp;
-	source.x = 0,	       source.y = source.x + 0;
-
-	return interaction_bound(sink, source);
-}
-
-interaction_bound number_of_bodies::get_bound_MT2()
-{
-	sink.x   = n_s,   sink.y = sink.x + n_gp;
-	source.x = 0, 	source.y = source.x + 0;
-
-	return interaction_bound(sink, source);
-}
-
-ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies)
-{
-	const char* body_type_name[] = 
-	{
-		"STAR",
-		"GIANTPLANET",
-		"ROCKYPLANET",
-		"PROTOPLANET",
-		"SUPERPLANETESIMAL",
-		"PLANETESIMAL",
-		"TESTPARTICLE",
-	};
-
-	stream << "Number of bodies:" << endl;
-	stream << setw(20) << body_type_name[0] << ": " << n_bodies->n_s << endl;
-	stream << setw(20) << body_type_name[1] << ": " << n_bodies->n_gp << endl;
-	stream << setw(20) << body_type_name[2] << ": " << n_bodies->n_rp << endl;
-	stream << setw(20) << body_type_name[3] << ": " << n_bodies->n_pp << endl;
-	stream << setw(20) << body_type_name[4] << ": " << n_bodies->n_spl << endl;
-	stream << setw(20) << body_type_name[5] << ": " << n_bodies->n_pl << endl;
-	stream << setw(20) << body_type_name[6] << ": " << n_bodies->n_tp << endl;
-		
-	return stream;
-}
-
-// Draw a number from a given distribution
-var_t generate_random(var_t xmin, var_t xmax, var_t p(var_t))
-{
-	var_t x;
-	var_t y;
-
-	do
-	{
-		x = xmin + (var_t)rand() / RAND_MAX * (xmax - xmin);
-		y = (var_t)rand() / RAND_MAX;
-	}
-	while (y > p(x));
-
-	return x;
-}
-
-var_t pdf_const(var_t x)
-{
-	return 1;
-}
-
-
-dim3	grid;
-dim3	block;
-
-ttt_t t;
-body_metadata_t* body_md;
-param_t* p;
-vec_t* r;
-vec_t* v;
-vec_t* a;
-event_data_t* events;
-event_data_t* d_events;
-int event_counter;
-int *d_event_counter;
-
-void allocate_storage(number_of_bodies *n_bodies, sim_data_t *sim_data)
-{
-	int nBody = n_bodies->get_n_total();
-
-	sim_data->y.resize(2);
-	for (int i = 0; i < 2; i++)
-	{
-		sim_data->y[i]	= new vec_t[nBody];
-	}
-	sim_data->p	= new param_t[nBody];
-	sim_data->body_md	= new body_metadata_t[nBody];
-	sim_data->epoch		= new ttt_t[nBody];
-
-	events = new event_data_t[nBody];
-
-	sim_data->d_y.resize(2);
-	sim_data->d_yout.resize(2);
-	// Allocate device pointer.
-	for (int i = 0; i < 2; i++)
-	{
-		allocate_device_vector((void **)&(sim_data->d_y[i]),	nBody*sizeof(vec_t));
-		allocate_device_vector((void **)&(sim_data->d_yout[i]), nBody*sizeof(vec_t));
-	}
-	allocate_device_vector((void **)&(sim_data->d_p),			nBody*sizeof(param_t));
-	allocate_device_vector((void **)&(sim_data->d_body_md),		nBody*sizeof(body_metadata_t));
-	allocate_device_vector((void **)&(sim_data->d_epoch),		nBody*sizeof(ttt_t));
-
-	allocate_device_vector((void **)&d_events,					nBody*sizeof(event_data_t));
-	allocate_device_vector((void **)&d_event_counter,				1*sizeof(int));
-
-	/* Total of 9 cudaMalloc */
-}
-
-void allocate_pinned_storage(number_of_bodies *n_bodies, sim_data_t *sim_data)
-{
-	int nBody = n_bodies->get_n_total();
-
-	sim_data->y.resize(2);
-	for (int i = 0; i < 2; i++)
-	{
-		cudaMallocHost((void **)&sim_data->y[i],	nBody*sizeof(vec_t));
-	}
-	cudaMallocHost((void **)&sim_data->p,			nBody*sizeof(param_t));
-	cudaMallocHost((void **)&sim_data->body_md,		nBody*sizeof(body_metadata_t));
-	cudaMallocHost((void **)&sim_data->epoch,		nBody*sizeof(ttt_t));
-
-	cudaMallocHost((void **)&events,				nBody*sizeof(event_data_t));
-
-	sim_data->d_y.resize(2);
-	sim_data->d_yout.resize(2);
-	// Allocate device pointer.
-	for (int i = 0; i < 2; i++)
-	{
-		allocate_device_vector((void **)&(sim_data->d_y[i]),	nBody*sizeof(vec_t));
-		allocate_device_vector((void **)&(sim_data->d_yout[i]), nBody*sizeof(vec_t));
-	}
-	allocate_device_vector((void **)&(sim_data->d_p),			nBody*sizeof(param_t));
-	allocate_device_vector((void **)&(sim_data->d_body_md),		nBody*sizeof(body_metadata_t));
-	allocate_device_vector((void **)&(sim_data->d_epoch),		nBody*sizeof(ttt_t));
-
-	allocate_device_vector((void **)&d_events,					nBody*sizeof(event_data_t));
-	allocate_device_vector((void **)&d_event_counter,				1*sizeof(int));
-
-	/* Total of 9 cudaMalloc */
-}
-
-void copy_to_device(number_of_bodies *n_bodies, const sim_data_t *sim_data)
-{
-	int n = n_bodies->get_n_total();
-
-	for (int i = 0; i < 2; i++)
-	{
-		copy_vector_to_device((void *)sim_data->d_y[i],	(void *)sim_data->y[i],		n*sizeof(vec_t));
-	}
-	copy_vector_to_device((void *)sim_data->d_p,		(void *)sim_data->p,		n*sizeof(param_t));
-	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->body_md,	n*sizeof(body_metadata_t));
-	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->epoch,	n*sizeof(ttt_t));
-	copy_vector_to_device((void *)d_event_counter,		(void *)&event_counter,		1*sizeof(int));
-
-	/* Total of 6 cudaMemcpy calls */
-}
-
-void populate_data(const number_of_bodies *n_bodies, sim_data_t *sim_data)
-{
-	int idx = 0;
-
-	sim_data->body_md[idx].body_type = BODY_TYPE_STAR;
-	sim_data->body_md[idx].id = idx + 1;
-
-	sim_data->p[idx].mass = 1.0;
-	sim_data->p[idx].radius = 1.0 * constants::SolarRadiusToAu;
-	for (int j = 0; j < 2; j++)
-	{
-		sim_data->y[j][idx].x = 0.0;
-		sim_data->y[j][idx].y = 0.0;
-		sim_data->y[j][idx].z = 0.0;
-	}
-
-	for (int i = 0; i < n_bodies->n_pp; i++, idx++)
-	{
-		sim_data->body_md[idx].body_type = BODY_TYPE_ROCKYPLANET;
-		sim_data->body_md[idx].id = idx+1;
-
-		sim_data->p[idx].mass = generate_random(1.0, 10.0, pdf_const) * constants::EarthToSolar;
-		sim_data->p[idx].radius = generate_random(4000.0, 8000.0, pdf_const) * constants::KilometerToAu ;
-		for (int j = 0; j < 2; j++)
-		{
-			sim_data->y[j][idx].x = generate_random(-10.0, 10.0, pdf_const);
-			sim_data->y[j][idx].y = generate_random(-10.0, 10.0, pdf_const);
-			sim_data->y[j][idx].z = generate_random(-10.0, 10.0, pdf_const);
-		}
-	}
-
-	for (int i = 0; i < n_bodies->n_tp; i++, idx++)
-	{
-		sim_data->body_md[idx].body_type = BODY_TYPE_TESTPARTICLE;
-		sim_data->body_md[idx].id = idx+1;
-
-		sim_data->p[idx].mass = 0.0;
-		sim_data->p[idx].radius = 0.0;
-		for (int j = 0; j < 2; j++)
-		{
-			sim_data->y[j][idx].x = generate_random(-10.0, 10.0, pdf_const);
-			sim_data->y[j][idx].y = generate_random(-10.0, 10.0, pdf_const);
-			sim_data->y[j][idx].z = generate_random(-10.0, 10.0, pdf_const);
-		}
-	}
-}
-
-void deallocate_storage(sim_data_t *sim_data)
-{
-	for (int i = 0; i < 2; i++)
-	{
-		delete[] sim_data->y[i];
-	}
-	delete[] sim_data->p;
-	delete[] sim_data->body_md;
-	delete[] sim_data->epoch;
-	delete[] events;
-
-	for (int i = 0; i < 2; i++)
-	{
-		cudaFree(sim_data->d_y[i]);
-		cudaFree(sim_data->d_yout[i]);
-	}
-	cudaFree(sim_data->d_p);
-	cudaFree(sim_data->d_body_md);
-	cudaFree(sim_data->d_epoch);
-	cudaFree(d_events);
-	cudaFree(d_event_counter);
-
-	delete sim_data;
-
-	/* Total of 9 cudaFree */
-}
-
-void deallocate_pinned_storage(sim_data_t *sim_data)
-{
-	for (int i = 0; i < 2; i++)
-	{
-		cudaFreeHost(sim_data->y[i]);
-	}
-	cudaFreeHost(sim_data->p);
-	cudaFreeHost(sim_data->body_md);
-	cudaFreeHost(sim_data->epoch);
-	cudaFreeHost(events);
-
-	for (int i = 0; i < 2; i++)
-	{
-		cudaFree(sim_data->d_y[i]);
-		cudaFree(sim_data->d_yout[i]);
-	}
-	cudaFree(sim_data->d_p);
-	cudaFree(sim_data->d_body_md);
-	cudaFree(sim_data->d_epoch);
-	cudaFree(d_events);
-	cudaFree(d_event_counter);
-
-	delete sim_data;
-
-	/* Total of 9 cudaFree */
-}
-
-void set_kernel_launch_param(int n_tpb, int n_data)
-{
-	int		n_thread = min(n_tpb, n_data);
-	int		n_block = (n_data + n_thread - 1)/n_thread;
-
-	grid.x	= n_block;
-	block.x = n_thread;
-}
-
-void call_kernel_calc_grav_accel(ttt_t curr_t, number_of_bodies *n_bodies, sim_data_t *sim_data, const vec_t* r, const vec_t* v, vec_t* dy)
-{
-	cudaError_t cudaStatus = cudaSuccess;
-	
-	int n_sink = n_bodies->get_n_SI();
-	if (0 < n_sink) {
-		interaction_bound int_bound = n_bodies->get_bound_SI();
-
-		for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
-		{
-			set_kernel_launch_param(n_tpb, n_sink);
-			kernel_calc_grav_accel<<<grid, block>>>
-				(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
-
-			cudaDeviceSynchronize();
-
-			cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus) {
-				throw string("kernel_calc_grav_accel failed");
-			}
-		}
-	}
-
-	n_sink = n_bodies->n_tp;
-	if (0 < n_sink) {
-		interaction_bound int_bound = n_bodies->get_bound_NI();
-
-		for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
-			{
-			set_kernel_launch_param(n_tpb, n_sink);
-			kernel_calc_grav_accel<<<grid, block>>>
-				(curr_t, int_bound, sim_data->d_body_md, sim_data->d_p, r, v, dy, d_events, d_event_counter);
-
-			cudaDeviceSynchronize();
-
-			cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus) {
-				throw string("kernel_calc_grav_accel failed");
-			}
-		}
-	}
-}
-
-void call_kernel_calc_grav_accel_int_mul_of_thread_per_block(ttt_t curr_t, number_of_bodies *n_bodies, sim_data_t *sim_data, const vec_t* r, const vec_t* v, vec_t* dy)
-{
-	cudaError_t cudaStatus = cudaSuccess;
-	
-	int n_sink = n_bodies->get_n_SI();
-	if (0 < n_sink) {
-		interaction_bound int_bound = n_bodies->get_bound_SI();
-
-		for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
-		{
-			set_kernel_launch_param(n_tpb, n_sink);
-			kernel_calc_grav_accel_int_mul_of_thread_per_block <<<grid, block>>> (int_bound, sim_data->d_p, r, dy);
-
-			cudaDeviceSynchronize();
-
-			cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus) {
-				throw string("kernel_calc_grav_accel failed");
-			}
-		}
-	}
-
-	n_sink = n_bodies->n_tp;
-	if (0 < n_sink) {
-		interaction_bound int_bound = n_bodies->get_bound_NI();
-
-		for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
-		{
-			set_kernel_launch_param(n_tpb, n_sink);
-			kernel_calc_grav_accel_int_mul_of_thread_per_block <<<grid, block>>> (int_bound, sim_data->d_p, r, dy);
-
-			cudaDeviceSynchronize();
-
-			cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus) {
-				throw string("kernel_calc_grav_accel failed");
-			}
-		}
-	}
-}
-
-// http://devblogs.nvidia.com/parallelforall/
-int main(int argc, const char** argv)
-{
-	number_of_bodies n_bodies = number_of_bodies(1, 0, 0, 20 * THREADS_PER_BLOCK - 1, 0, 0, 20 * THREADS_PER_BLOCK, 64, false);
-	sim_data_t *sim_data = new sim_data_t;
-
-	t = 0.0;
-	event_counter = 0;
-
-	allocate_storage(&n_bodies, sim_data);
-	populate_data(&n_bodies, sim_data);
-	copy_to_device(&n_bodies, sim_data);
-
-	call_kernel_calc_grav_accel(t, &n_bodies, sim_data, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_yout[1]);
-
-	call_kernel_calc_grav_accel_int_mul_of_thread_per_block(t, &n_bodies, sim_data, sim_data->d_y[0], sim_data->d_y[1], sim_data->d_yout[1]);
-
-	deallocate_storage(sim_data);
-
-	// Needed by nvprof.exe
-	cudaDeviceReset();
-}
-#endif
-
-#if 0
-
 static __global__
 	void kernel_print_memory_address(int n, var_t* adr)
 {
@@ -1348,7 +693,7 @@ int main(int argc, const char** argv)
 }
 #endif
 
-#if 1
+#if 0
 int main(int argc, char** argv)
 {
 	red_test::run(argc, argv);
@@ -1359,7 +704,6 @@ int main(int argc, char** argv)
 	return 0;
 }
 #endif
-
 
 #if 0
 // Test how to copy a struct to the device's constant memroy
@@ -1542,10 +886,7 @@ int main(int argc, char** argv)
 
 #endif
 
-
-#if 0
-
-// Calculate the volume density from the surface density used by FARGO
+#if 0 // Calculate the volume density from the surface density used by FARGO
 
 int main(int argc, char** argv)
 {
@@ -1555,6 +896,274 @@ int main(int argc, char** argv)
 
 	printf("rho_0_f = %25.16le [M/AU^3]\n", rho_0_f);
 	printf("rho_0_f = %25.16le [g/cm^3]\n", rho_0_f * constants::SolarPerAu3ToGramPerCm3);
+}
+
+#endif
+
+#if 0 // Implement the tile-calculation method for the N-body gravity kernel
+
+__host__ __device__
+vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
+{
+	vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+
+	// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
+	dVec.x = rjVec.x - riVec.x;
+	dVec.y = rjVec.y - riVec.y;
+	dVec.z = rjVec.z - riVec.z;
+
+	// compute norm square of d vector [5 FLOPS] [3 read, 1 write]
+	dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);
+	// compute norm of d vector [1 FLOPS] [1 read, 1 write] TODO: how long does it take to compute sqrt ???
+	var_t s = sqrt(dVec.w);
+	// compute m_j / d^3 []
+	s = mj * 1.0 / (s * dVec.w);
+
+	aiVec.x += s * dVec.x;
+	aiVec.y += s * dVec.y;
+	aiVec.z += s * dVec.z;
+
+	return aiVec;
+}
+
+
+__device__
+vec_t tile_calculation(vec_t my_pos, var_t* mass, vec_t accel)
+{
+	int i;
+	extern __shared__ vec_t[] sh_pos;
+
+	for (i = 0; i < blockDim.x; i++)
+	{
+		accel = body_body_interaction(my_pos, sh_pos[i], mass[i], accel);
+	}
+}
+
+__global__
+void kernel_calculate_acceleration(void* dev_x, var_t* mass, void* dev_a)
+{
+	extern __shared__ vec_t[] sh_pos;
+
+	vec_t* global_x = (vec_t*)dev_x;
+	vec_t* global_a = (vec_t*)dev_a;
+
+	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
+	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
+
+	int i    = 0;
+	int tile = 0;
+
+	int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	for (i = 0, tile = 0; i < N; i += p, tile++)
+	{
+		int idx = tile * blockDim.x + threadIdx.x;
+		sh_pos[threadIdx.x] = global_x[idx];
+		__syncthreads();
+		acc = tile_calculation(my_pos, mass, acc);
+		__syncthreads();
+	}
+
+	global_a[gtid] = acc;
+}
+
+int main(int argc, char** argv)
+{
+}
+
+#endif
+
+#if 0
+/*
+ *  Howto call a template function which is in a library. i.e. in the redutilcu.lib
+ */
+
+int main()
+{
+	string result;
+
+	int int_number = -123;
+	result = redutilcu::number_to_string(int_number);
+	cout << "int_number: " << result << endl;
+
+	double dbl_number = 123.123;
+	result = redutilcu::number_to_string(dbl_number);
+	cout << "dbl_number: " << result << endl;
+
+/*
+ * A megoldas az volt, hogy peldanyositani kellett a különbözo tipusokkal a template fuggvenyt.
+ */
+}
+
+#endif
+
+#if 0
+/*
+ *  Howto extract data from string
+ */
+
+int main()
+{
+	string data = "       1                           star  0   0.0000000000000000e+000   1.0000000000000000e+000   4.6491301477493566e-003   2.3757256065676026e+006   0.0000000000000000e+000  0   0.0000000000000000e+000   3.6936661279371897e-008   7.2842030950759070e-007   0.0000000000000000e+000  -4.8439964006954156e-009   1.1641554643378494e-009   0.0000000000000000e+000";
+	stringstream ss;
+	ss << data;
+
+	int id = -1;
+	string name;
+	int bodytype = 0;
+	ttt_t t = 0.0;
+
+	string path = "C:\\Work\\red.cuda.Results\\Dvorak\\2D\\NewRun_2\\Run_cf4.0\\D_gpu_ns_as_RKF8_result.txt";
+	ifstream input(path);
+	if (input) 
+	{
+		int ns, ngp, nrp, npp, nspl, npl, ntp;
+		input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp;
+	}
+	else 
+	{
+		throw string("Cannot open " + path + ".");
+	}
+
+	ss >> id >> name >> bodytype >> t;
+
+	cout << "id: " << id << endl;
+	cout << "name: " << name << endl;
+	cout << "bodytype: " << bodytype << endl;
+	cout << "t: " << t << endl;
+}
+
+#endif
+
+
+#if 1
+/*
+ *  Howto write data in binray representation to a file
+ */
+
+int main()
+{
+	cout << "           sizeof(bool): " << sizeof(bool) << endl;
+	cout << "            sizeof(int): " << sizeof(int) << endl;
+	cout << "        sizeof(int16_t): " << sizeof(int16_t) << endl;
+	cout << "        sizeof(int32_t): " << sizeof(int32_t) << endl;
+	cout << "        sizeof(int64_t): " << sizeof(int64_t) << endl;
+	cout << "       sizeof(uint16_t): " << sizeof(uint16_t) << endl;
+	cout << "       sizeof(uint32_t): " << sizeof(uint32_t) << endl;
+	cout << "       sizeof(uint64_t): " << sizeof(uint64_t) << endl;
+	cout << "         sizeof(double): " << sizeof(double) << endl;
+	cout << "          sizeof(vec_t): " << sizeof(vec_t) << endl;
+	cout << "        sizeof(param_t): " << sizeof(param_t) << endl;
+	cout << "sizeof(body_metadata_t): " << sizeof(body_metadata_t) << endl;
+
+	unsigned int n_bodies[] = {1, 2, 3, 4, 5, 6, 7};
+	char buffer[30];
+	memset(buffer, 0, sizeof(buffer));
+
+	string path = "C:\\Work\\red.cuda.Results\\binary.dat";
+
+	fstream sout (path, ios::out | ios::binary);
+	if (sout)
+	{
+		for (unsigned int type = 0; type < BODY_TYPE_N; type++)
+		{
+			if (BODY_TYPE_PADDINGPARTICLE == type)
+			{
+				continue;
+			}
+			// ASCII
+			//sout << n_bodies[type] << SEP;
+			// BINARY
+			sout.write((char*)&n_bodies[type], sizeof(n_bodies[type]));
+		}
+		string name("Star");
+		strcpy(buffer, name.c_str());
+
+		vec_t r = { 1.0,  2.0,  3.0, 0.0};
+		vec_t v = {-1.0, -2.0, -3.0, 0.0};
+		param_t p = {1.11e1, 2.22e-2, 3.33e4, 4.44e10};
+		body_metadata_t bmd;
+		//bmd.id = 2;              // 4 byte
+		//bmd.body_type = 1;       // 1 byte
+		//bmd.mig_type = 1;        // 1 byte
+		//bmd.active = true;       // 1 byte
+		//bmd.unused = false;      // 1 byte
+		//bmd.mig_stop_at = 1.0e-1;   // 8 byte -> 16 byte
+		bmd.id = 2;              
+		bmd.body_type = BODY_TYPE_GIANTPLANET;
+		bmd.mig_type = MIGRATION_TYPE_NO;
+		bmd.mig_stop_at = 1.0e-1;
+
+		sout.write(buffer, sizeof(buffer));
+		sout.write((char*)&r,   sizeof(vec_t));
+		sout.write((char*)&v,   sizeof(vec_t));
+		sout.write((char*)&p,   sizeof(param_t));
+		sout.write((char*)&bmd, sizeof(body_metadata_t));
+
+		sout.close();
+	}
+	else
+	{
+		cerr << "Could not open " << path << "." << endl;
+	}
+
+	// Clear all data
+	for (char type = 0; type < BODY_TYPE_N; type++)
+	{
+		if (BODY_TYPE_PADDINGPARTICLE == type)
+		{
+			continue;
+		}
+		n_bodies[type] = 0;
+	}
+
+	sout.open(path, ios::in | ios::binary);
+	if (sout)
+	{
+		std::vector<string> body_names;
+		vec_t r =   {0.0, 0.0, 0.0, 0.0};
+		vec_t v =   {0.0, 0.0, 0.0, 0.0};
+		param_t p = {0.0, 0.0, 0.0, 0.0};
+		body_metadata_t bmd = {0, 0, 0, 0.0};
+		memset(buffer, 0, sizeof(buffer));
+
+		// Read back the data
+		for (unsigned int type = 0; type < BODY_TYPE_N; type++)
+		{
+			if (BODY_TYPE_PADDINGPARTICLE == type)
+			{
+				continue;
+			}
+			sout.read((char*)&n_bodies[type], sizeof(n_bodies[type]));
+		}
+		sout.read(buffer, sizeof(buffer));
+		sout.read((char*)&r,   sizeof(vec_t));
+		sout.read((char*)&v,   sizeof(vec_t));
+		sout.read((char*)&p,   sizeof(param_t));
+		sout.read((char*)&bmd, sizeof(body_metadata_t));
+
+		body_names.push_back(buffer);
+		// Print the data
+		for (char type = 0; type < BODY_TYPE_N; type++)
+		{
+			if (BODY_TYPE_PADDINGPARTICLE == type)
+			{
+				continue;
+			}
+			cout << n_bodies[type] << endl;
+		}
+		cout << buffer << endl;
+		tools::print_vector(&r);
+		tools::print_vector(&v);
+		tools::print_parameter(&p);
+		tools::print_body_metadata(&bmd);
+
+		sout.close();
+	}
+	else
+	{
+		cerr << "Could not open " << path << "." << endl;
+	}
 }
 
 #endif

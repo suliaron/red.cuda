@@ -20,7 +20,7 @@ namespace redutilcu
 		string get_time_stamp();
 		string convert_time_t(time_t t);
 
-		void populate_data(int* n_bodies, sim_data_t *sim_data);
+		void populate_data(unsigned int* n_bodies, sim_data_t *sim_data);
 
 		//! Computes the total mass of the system
 		var_t get_total_mass(int n, const sim_data_t *sim_data);
@@ -41,5 +41,8 @@ namespace redutilcu
 		void calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec);
 
 		void print_vector(const vec_t *v);
+		void print_parameter(const param_t *p);
+		void print_body_metadata(const body_metadata_t *b);
+		void print_body_metadata(const body_metadata_new_t *b);
 	} /* tools */
 } /* redutilcu_tools */

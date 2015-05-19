@@ -7,7 +7,7 @@
 
 using namespace std;
 
-number_of_bodies::number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_spl, int n_pl, int n_tp)
+number_of_bodies::number_of_bodies(unsigned int n_s, unsigned int n_gp, unsigned int n_rp, unsigned int n_pp, unsigned int n_spl, unsigned int n_pl, unsigned int n_tp)
 {
 	playing[BODY_TYPE_STAR]              = initial[BODY_TYPE_STAR]              = n_s;
 	playing[BODY_TYPE_GIANTPLANET]       = initial[BODY_TYPE_GIANTPLANET]       = n_gp;
@@ -18,7 +18,7 @@ number_of_bodies::number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_
 	playing[BODY_TYPE_TESTPARTICLE]      = initial[BODY_TYPE_TESTPARTICLE]      = n_tp;
 	playing[BODY_TYPE_PADDINGPARTICLE]   = initial[BODY_TYPE_PADDINGPARTICLE]   = 0;
 
-	for (int i = 0; i < BODY_TYPE_N; i++)
+	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
 		inactive[i] = 0;
 		removed[i]  = 0;
@@ -30,7 +30,8 @@ number_of_bodies::number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_
 
 void number_of_bodies::update()
 {
-	for (int i = 0; i < BODY_TYPE_N; i++)
+	n_removed = 0;
+	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
 		if (BODY_TYPE_PADDINGPARTICLE == i)
 		{
@@ -38,140 +39,146 @@ void number_of_bodies::update()
 		}
 		playing[i] -= inactive[i];
 		removed[i] += inactive[i];
+		n_removed  += inactive[i];
 		inactive[i] = 0;
 	}
 }
 
-int	number_of_bodies::get_n_SI() 
+unsigned int number_of_bodies::get_n_SI() 
 {
 	return (playing[BODY_TYPE_STAR] + playing[BODY_TYPE_GIANTPLANET] + playing[BODY_TYPE_ROCKYPLANET] + playing[BODY_TYPE_PROTOPLANET]);
 }
 
-int number_of_bodies::get_n_NSI()
+unsigned int number_of_bodies::get_n_NSI()
 {
 	return (playing[BODY_TYPE_SUPERPLANETESIMAL] + playing[BODY_TYPE_PLANETESIMAL]);
 }
 
-int	number_of_bodies::get_n_NI()
+unsigned int number_of_bodies::get_n_NI()
 {
 	return playing[BODY_TYPE_TESTPARTICLE];
 }
 
-int	number_of_bodies::get_n_total_initial()
+unsigned int number_of_bodies::get_n_total_initial()
 {
-	int n = 0;
-	for (int i = 0; i < BODY_TYPE_N; i++)
+	unsigned int n = 0;
+	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
 		n += (i != BODY_TYPE_PADDINGPARTICLE ? initial[i] : 0);
 	}
 	return n; 
 }
 
-int	number_of_bodies::get_n_total_playing()
+unsigned int number_of_bodies::get_n_total_playing()
 {
-	int n = 0;
-	for (int i = 0; i < BODY_TYPE_N; i++)
+	unsigned int n = 0;
+	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
 		n += (i != BODY_TYPE_PADDINGPARTICLE ? playing[i] : 0);
 	}
 	return n; 
 }
 
-int	number_of_bodies::get_n_total_active()
+unsigned int number_of_bodies::get_n_total_active()
 {
-	int n = 0;
-	for (int i = 0; i < BODY_TYPE_N; i++)
+	unsigned int n = 0;
+	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
 		n += (i != BODY_TYPE_PADDINGPARTICLE ? playing[i] - inactive[i] : 0);
 	}
 	return n; 
 }
 
-int	number_of_bodies::get_n_total_inactive()
+unsigned int number_of_bodies::get_n_total_inactive()
 {
-	int n = 0;
-	for (int i = 0; i < BODY_TYPE_N; i++)
+	unsigned int n = 0;
+	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
 		n += (i != BODY_TYPE_PADDINGPARTICLE ? inactive[i] : 0);
 	}
 	return n; 
 }
 
-int	number_of_bodies::get_n_total_removed()
+unsigned int number_of_bodies::get_n_total_removed()
 {
-	int n = 0;
-	for (int i = 0; i < BODY_TYPE_N; i++)
+	unsigned int n = 0;
+	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
 		n += (i != BODY_TYPE_PADDINGPARTICLE ? removed[i] : 0);
 	}
 	return n; 
 }
 
-int	number_of_bodies::get_n_GD()
+unsigned int number_of_bodies::get_n_GD()
 {
 	return (playing[BODY_TYPE_SUPERPLANETESIMAL] + playing[BODY_TYPE_PLANETESIMAL]);
 }
 
-int	number_of_bodies::get_n_MT1()
+unsigned int number_of_bodies::get_n_MT1()
 {
 	return (playing[BODY_TYPE_ROCKYPLANET] + playing[BODY_TYPE_PROTOPLANET]);
 }
 
-int	number_of_bodies::get_n_MT2()
+unsigned int number_of_bodies::get_n_MT2()
 {
 	return playing[BODY_TYPE_GIANTPLANET];
 }
 
-int	number_of_bodies::get_n_massive()
+unsigned int number_of_bodies::get_n_massive()
 {
 	return (get_n_SI() + get_n_NSI());
 }
 
-int number_of_bodies::get_n_prime_SI(int n_tpb)
+unsigned int number_of_bodies::get_n_prime_SI(unsigned int n_tpb)
 {
 	// The number of self-interacting (SI) bodies alligned to n_tbp
 	return ((get_n_SI() + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
-int number_of_bodies::get_n_prime_NSI(int n_tpb)
+unsigned int number_of_bodies::get_n_prime_NSI(unsigned int n_tpb)
 {
 	// The number of non-self-interacting (NSI) bodies alligned to n_tbp
 	return ((get_n_NSI() + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
-int number_of_bodies::get_n_prime_NI(int n_tpb)
+unsigned int number_of_bodies::get_n_prime_NI(unsigned int n_tpb)
 {
 	// The number of non-interacting (NI) bodies alligned to n_tbp
 	return ((get_n_NI() + n_tpb - 1) / n_tpb) * n_tpb;
 }
 
-int number_of_bodies::get_n_prime_total(int n_tpb)
+unsigned int number_of_bodies::get_n_prime_total(unsigned int n_tpb)
 {
 	return (get_n_prime_SI(n_tpb) + get_n_prime_NSI(n_tpb) + get_n_prime_NI(n_tpb));
 }
 
-//int	number_of_bodies::get_n_prime_GD()
+unsigned int number_of_bodies::get_n_active_by(body_type_t type)
+{
+	return (playing[type] - inactive[type]);
+}
+
+
+//unsigned int	number_of_bodies::get_n_prime_GD()
 //{
 //	return ((active_body[BODY_TYPE_SUPERPLANETESIMAL] + active_body[BODY_TYPE_PLANETESIMAL] + n_tpb - 1) / n_tpb) * n_tpb;
 //}
 //
-//int	number_of_bodies::get_n_prime_MT1()
+//unsigned int	number_of_bodies::get_n_prime_MT1()
 //{
 //	return (n_rp + n_pp);
 //}
 //
-//int	number_of_bodies::get_n_prime_MT2()
+//unsigned int	number_of_bodies::get_n_prime_MT2()
 //{
 //	return n_gp;
 //}
 
-int	number_of_bodies::get_n_prime_massive(int n_tpb)
+unsigned int number_of_bodies::get_n_prime_massive(unsigned int n_tpb)
 {
 	return (get_n_prime_SI(n_tpb) + get_n_prime_NSI(n_tpb));
 }
 
-
-interaction_bound number_of_bodies::get_bound_SI(bool ups, int n_tpb)
+interaction_bound number_of_bodies::get_bound_SI(bool ups, unsigned int n_tpb)
 {
 	if (ups)
 	{
@@ -187,7 +194,7 @@ interaction_bound number_of_bodies::get_bound_SI(bool ups, int n_tpb)
 	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bound_NSI(bool ups, int n_tpb)
+interaction_bound number_of_bodies::get_bound_NSI(bool ups, unsigned int n_tpb)
 {
 	if (ups)
 	{
@@ -203,7 +210,7 @@ interaction_bound number_of_bodies::get_bound_NSI(bool ups, int n_tpb)
 	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bound_NI(bool ups, int n_tpb)
+interaction_bound number_of_bodies::get_bound_NI(bool ups, unsigned int n_tpb)
 {
 	if (ups)
 	{
@@ -219,7 +226,7 @@ interaction_bound number_of_bodies::get_bound_NI(bool ups, int n_tpb)
 	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bound_GD(bool ups, int n_tpb)
+interaction_bound number_of_bodies::get_bound_GD(bool ups, unsigned int n_tpb)
 {
 	if (ups)
 	{
@@ -253,20 +260,8 @@ interaction_bound number_of_bodies::get_bound_GD(bool ups, int n_tpb)
 
 ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies)
 {
-	static const char* body_type_name[] = 
-	{
-		"STAR",
-		"GIANTPLANET",
-		"ROCKYPLANET",
-		"PROTOPLANET",
-		"SUPERPLANETESIMAL",
-		"PLANETESIMAL",
-		"TESTPARTICLE",
-		"PADDINGPARTICLE"
-	};
-
 	stream << "Number of bodies:" << endl;
-	for (int i = 0; i < BODY_TYPE_N; i++)
+	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
 		stream << setw(20) << body_type_name[i] << ": " << setw(5) << n_bodies->playing[i] - n_bodies->inactive[i] << endl;
 	}

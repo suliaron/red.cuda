@@ -1,6 +1,7 @@
 // includes system
 #include <algorithm>
 #include <iomanip>
+#include <iostream>
 #include <fstream>
 
 // includes project
@@ -129,7 +130,7 @@ void load_binary_file(const string& path, size_t n_data, var_t* data)
 		size_t size = n_data * sizeof(var_t);
 		if (size != N)
 		{
-			//throw string("The file '" + path + "' has '" + redutilcu::number_to_string<size_t>(N) + ", but was expected to have " + redutilcu::number_to_string<size_t>(size) + " bytes!\r\n");
+			//throw string("The file '" + path + "' has '" + number_to_string(N) + ", but was expected to have " + number_to_string(size) + " bytes!\r\n");
 			throw string("The file '" + path + "' has different number of data than expected!\r\n");
 		}
 		file.read(reinterpret_cast<char*>(data), size);
@@ -291,14 +292,22 @@ void log_start_cmd(ostream& sout, int argc, const char** argv, const char** env)
 	sout << endl;
 }
 
-void log_rebuild_vectors(ostream& sout, ttt_t t)
+void log_start_cmd(ostream& sout, int argc, const char** argv, const char** env, bool print_to_screen)
 {
-	sout << tools::get_time_stamp() << " Rebuild the vectors and remove inactive bodies t: " << scientific << std::setprecision(16) << t << endl;
+	log_start_cmd(sout, argc, argv, env);
+	if (print_to_screen)
+	{
+		log_start_cmd(std::cout, argc, argv, env);
+	}
 }
 
-void log_message(ostream& sout, string msg)
+void log_message(ostream& sout, string msg, bool print_to_screen)
 {
 	sout << tools::get_time_stamp() << SEP << msg << endl;
+	if (print_to_screen && sout != cout)
+	{
+		std::cout << tools::get_time_stamp() << SEP << msg << endl;
+	}
 }
 
 void print_body_record(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v)

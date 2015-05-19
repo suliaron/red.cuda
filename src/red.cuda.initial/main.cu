@@ -26,6 +26,216 @@ using namespace redutilcu;
 
 typedef unsigned long ulong;
 
+namespace ephemeris_major_planets
+{
+/*
+	Symbol meaning [1 au=149597870.700 km, 1 day=86400.0 s]:
+
+    JDCT     Epoch Julian Date, Coordinate Time
+      EC     Eccentricity, e                                                   
+      QR     Periapsis distance, q (AU)                                        
+      IN     Inclination w.r.t xy-plane, i (degrees)                           
+      OM     Longitude of Ascending Node, OMEGA, (degrees)                     
+      W      Argument of Perifocus, w (degrees)                                
+      Tp     Time of periapsis (Julian day number)                             
+      N      Mean motion, n (degrees/day)                                      
+      MA     Mean anomaly, M (degrees)                                         
+      TA     True anomaly, nu (degrees)                                        
+      A      Semi-major axis, a (AU)                                           
+      AD     Apoapsis distance (AU)                                            
+      PR     Sidereal orbit period (day)
+*/
+	namespace date_20150511
+	{
+		string mercury_oe = "2457153.500000000, A.D. 2015-May-11 00:00:00.0000,  2.056283170656704E-01,  3.075005270000471E-01,  7.004033081870772E+00,  4.831135275416084E+01,  2.917018579009503E+01,  2.457132325703553E+06,  4.092332803985572E+00,  8.665226794919347E+01,  1.098801777958040E+02,  3.870990540148295E-01,  4.666975810296119E-01,  8.796938500441402E+01,";
+		string venus_oe   = "2457153.500000000, A.D. 2015-May-11 00:00:00.0000,  6.761247965610893E-03,  7.184381867467915E-01,  3.394467689974794E+00,  7.663950855912078E+01,  5.463888630600258E+01,  2.457130873225775E+06,  1.602141893419786E+00,  3.625130289912041E+01,  3.671259128576724E+01,  7.233287920706470E-01,  7.282193973945026E-01,  2.246991989152577E+02,";
+		string earth_oe   = "2457153.500000000, A.D. 2015-May-11 00:00:00.0000,  1.706151645376220E-02,  9.828818510541610E-01,  2.832604859699792E-03,  1.991276585462631E+02,  2.644902808333621E+02,  2.457027106783887E+06,  9.856943344121811E-01,  1.245850770307868E+02,  1.261752194211184E+02,  9.999423845001243E-01,  1.017002917946088E+00,  3.652247836188346E+02,";
+		string mars_oe    = "2457153.500000000, A.D. 2015-May-11 00:00:00.0000,  9.345598920376896E-02,  1.381200747391636E+00,  1.848403968432629E+00,  4.951276588949865E+01,  2.865318030175783E+02,  2.457003817487961E+06,  5.240856597101560E-01,  7.844645806929105E+01,  8.912748635050312E+01,  1.523589291796774E+00,  1.665977836201911E+00,  6.869106096112168E+02,";
+		string jupiter_oe = "2457153.500000000, A.D. 2015-May-11 00:00:00.0000,  4.895926045495331E-02,  4.946812500213837E+00,  1.303927595561599E+00,  1.005220570364609E+02,  2.736235124666692E+02,  2.455634711874421E+06,  8.312310735603498E-02,  1.262463884135522E+02,  1.306085971088266E+02,  5.201472759810757E+00,  5.456133019407678E+00,  4.330925676996638E+03,";
+		string saturn_oe  = "2457153.500000000, A.D. 2015-May-11 00:00:00.0000,  5.370451604891303E-02,  9.040758523537329E+00,  2.486273622454862E+00,  1.136214918787423E+02,  3.402344971420399E+02,  2.452848192133344E+06,  3.338097180639689E-02,  1.437153605146956E+02,  1.471679382461214E+02,  9.553843040430950E+00,  1.006692755732457E+01,  1.078458716204937E+04,";
+		string uranus_oe  = "2457153.500000000, A.D. 2015-May-11 00:00:00.0000,  4.928987553618186E-02,  1.821116226013173E+01,  7.717997843738144E-01,  7.400078543435393E+01,  9.677390970582711E+01,  2.470049485736452E+06,  1.175653216407963E-02,  2.083879289018873E+02,  2.058417203584891E+02,  1.915532588905842E+01,  2.009948951798512E+01,  3.062127462211412E+04,";
+		string neptune_oe = "2457153.500000000, A.D. 2015-May-11 00:00:00.0000,  8.258758489207289E-03,  2.973094026694364E+01,  1.765657591232885E+00,  1.317164628477979E+02,  2.932421741299731E+02,  2.471558726412109E+06,  6.004818034445084E-03,  2.734992366503029E+02,  2.725540643806312E+02,  2.997852567031729E+01,  3.022611107369094E+01,  5.995185831359972E+04,";
+	} /* date_20150511 */
+
+	namespace date_
+	{
+		string mercury_oe = "";
+		string venus_oe   = "";
+		string earth_oe   = "";
+		string mars_oe    = "";
+		string jupiter_oe = "";
+		string saturn_oe  = "";
+		string uranus_oe  = "";
+		string neptune_oe = "";
+	} /* date_ */
+} /* ephemeris */
+
+void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
+{
+    ttt_t           epoch   = 2457153.5;
+	param_t	        param   = {0.0, 0.0, 0.0, 0.0};
+	body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
+	orbelem_t       oe      = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+    // The id of each body must be larger than 0 in order to indicate inactive body with negative id (ie. zero is not good)
+    int bodyIdx = 0;
+	int bodyId = 1;
+
+	// Star: Sun
+	{
+		disk.names.push_back("Sun");
+
+		body_md.id          = bodyId;
+		body_md.body_type   = BODY_TYPE_STAR;
+
+		param.mass          = 1.0;
+		param.radius        = 1.0 * constants::SolarRadiusToAu;
+		param.density       = tools::calculate_density(param.mass, param.radius);
+
+		sd->h_epoch[  bodyIdx] = epoch;
+		sd->h_body_md[bodyIdx] = body_md;
+		sd->h_p[      bodyIdx] = param;
+		sd->h_oe[     bodyIdx] = oe;
+		bodyId++, bodyIdx++;
+	}
+
+	// Rocky planets: Mercury, Venus, Earth, Mars
+	{
+		disk.names.push_back("Mercury");
+
+		body_md.id          = bodyId;
+		body_md.body_type   = BODY_TYPE_ROCKYPLANET;
+
+		param.mass          = 1.0 * constants::MercuryToSolar;
+		param.radius        = 2439.7 * constants::KilometerToAu;
+		param.density       = tools::calculate_density(param.mass, param.radius);
+
+		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::mercury_oe, oe);
+
+		sd->h_epoch[  bodyIdx] = epoch;
+		sd->h_body_md[bodyIdx] = body_md;
+		sd->h_p[      bodyIdx] = param;
+		sd->h_oe[     bodyIdx] = oe;
+		bodyId++, bodyIdx++;
+
+		disk.names.push_back("Venus");
+
+		body_md.id          = bodyId;
+
+		param.mass          = 1.0 * constants::VenusToSolar;
+		param.radius        = 6051.8 * constants::KilometerToAu;
+		param.density       = tools::calculate_density(param.mass, param.radius);
+
+		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::venus_oe, oe);
+
+		sd->h_epoch[  bodyIdx] = epoch;
+		sd->h_body_md[bodyIdx] = body_md;
+		sd->h_p[      bodyIdx] = param;
+		sd->h_oe[     bodyIdx] = oe;
+		bodyId++, bodyIdx++;
+
+		disk.names.push_back("Earth");
+
+		body_md.id          = bodyId;
+
+		param.mass          = 1.0 * constants::EarthToSolar;
+		param.radius        = 6371.0 * constants::KilometerToAu;
+		param.density       = tools::calculate_density(param.mass, param.radius);
+
+		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::earth_oe, oe);
+
+		sd->h_epoch[  bodyIdx] = epoch;
+		sd->h_body_md[bodyIdx] = body_md;
+		sd->h_p[      bodyIdx] = param;
+		sd->h_oe[     bodyIdx] = oe;
+		bodyId++, bodyIdx++;
+
+		disk.names.push_back("Mars");
+
+		body_md.id          = bodyId;
+
+		param.mass          = 1.0 * constants::MarsToSolar;
+		param.radius        = 3389.5 * constants::KilometerToAu;
+		param.density       = tools::calculate_density(param.mass, param.radius);
+
+		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::mars_oe, oe);
+
+		sd->h_epoch[  bodyIdx] = epoch;
+		sd->h_body_md[bodyIdx] = body_md;
+		sd->h_p[      bodyIdx] = param;
+		sd->h_oe[     bodyIdx] = oe;
+		bodyId++, bodyIdx++;
+	}
+
+	// Giant planets: Jupiter, Saturn, Uranus, Neptune
+	{
+		disk.names.push_back("Jupiter");
+
+		body_md.id          = bodyId;
+		body_md.body_type   = BODY_TYPE_GIANTPLANET;
+
+		param.mass          = 1.0 * constants::JupiterToSolar;
+		param.radius        = 71492.0 * constants::KilometerToAu;
+		param.density       = tools::calculate_density(param.mass, param.radius);
+
+		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::jupiter_oe, oe);
+
+		sd->h_epoch[  bodyIdx] = epoch;
+		sd->h_body_md[bodyIdx] = body_md;
+		sd->h_p[      bodyIdx] = param;
+		sd->h_oe[     bodyIdx] = oe;
+		bodyId++, bodyIdx++;
+
+		disk.names.push_back("Saturn");
+
+		body_md.id          = bodyId;
+
+		param.mass          = 1.0 * constants::SaturnToSolar;
+		param.radius        = 60268.0 * constants::KilometerToAu;
+		param.density       = tools::calculate_density(param.mass, param.radius);
+
+		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::saturn_oe, oe);
+
+		sd->h_epoch[  bodyIdx] = epoch;
+		sd->h_body_md[bodyIdx] = body_md;
+		sd->h_p[      bodyIdx] = param;
+		sd->h_oe[     bodyIdx] = oe;
+		bodyId++, bodyIdx++;
+
+		disk.names.push_back("Uranus");
+
+		body_md.id          = bodyId;
+
+		param.mass          = 1.0 * constants::UranusToSolar;
+		param.radius        = 25559.0 * constants::KilometerToAu;
+		param.density       = tools::calculate_density(param.mass, param.radius);
+
+		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::uranus_oe, oe);
+
+		sd->h_epoch[  bodyIdx] = epoch;
+		sd->h_body_md[bodyIdx] = body_md;
+		sd->h_p[      bodyIdx] = param;
+		sd->h_oe[     bodyIdx] = oe;
+		bodyId++, bodyIdx++;
+
+		disk.names.push_back("Neptune");
+
+		body_md.id          = bodyId;
+
+		param.mass          = 1.0 * constants::NeptuneToSolar;
+		param.radius        = 24766.0 * constants::KilometerToAu;
+		param.density       = tools::calculate_density(param.mass, param.radius);
+
+		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::neptune_oe, oe);
+
+		sd->h_epoch[  bodyIdx] = epoch;
+		sd->h_body_md[bodyIdx] = body_md;
+		sd->h_p[      bodyIdx] = param;
+		sd->h_oe[     bodyIdx] = oe;
+		bodyId++, bodyIdx++;
+	}
+}
+
 void populate_disk(body_disk_t& disk, sim_data_t *sd)
 {
     ttt_t           epoch   = 0.0;
@@ -134,6 +344,20 @@ void set_parameters_of_Chambers2001_disk(nebula& n, body_disk_t& disk)
 		}
 	}
 }
+
+void set_parameters_of_solar_system(body_disk_t& disk)
+{
+	srand(time(NULL));
+
+	disk.nBody[BODY_TYPE_STAR       ] = 1;
+	disk.nBody[BODY_TYPE_ROCKYPLANET] = 4;
+	disk.nBody[BODY_TYPE_GIANTPLANET] = 4;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at = new var_t[nBodies];
+}
+
 
 void set_parameters_of_pl_to_test_anal_gd(body_disk_t& disk)
 {
@@ -1270,6 +1494,52 @@ void create_n_pl_to_test_anal_gd(string& dir, string& filename)
 	delete sim_data;
 }
 
+void create_solar_system(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	initialize(disk);
+
+	set_parameters_of_solar_system(disk);
+
+	sim_data_t* sim_data = new sim_data_t;
+	int nBodies = calculate_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_solar_system(disk, sim_data);
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->h_p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
+		for (int i = 1; i < nBodies; i++)
+		{
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
+		}
+	}
+
+	tools::transform_to_bc(nBodies, false, sim_data);
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
+
 
 
 int parse_options(int argc, const char **argv, string &outDir, string &filename)
@@ -1314,7 +1584,9 @@ int main(int argc, const char **argv)
 
 	try
 	{
-		create_Chambers2001_disk(outDir, filename);
+		create_solar_system(outDir, filename);
+
+		//create_Chambers2001_disk(outDir, filename);
 
 		//create_n_pl_to_test_anal_gd(outDir, filename);
 

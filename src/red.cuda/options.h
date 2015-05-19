@@ -29,12 +29,14 @@ public:
 	bool	ef;                     //!< Extend the file names with command line information. Only for developer and debugger purposes.
 	bool    benchmark;              //!< Run benchmark test to tune the optimal number of threds per block
 	bool    test;                   //!< Run tests for functions
-	bool	verbose;                //!< Print more information to the screen or log file
+	bool    continue_simulation;    //!< Continues a simulation from its last saved output
+	bool	verbose;                //!< Print every event to the log file
+	bool	print_to_screen;        //!< Print every event to the standard output stream (cout) 
 	bool	ups;                    //!< Use padded storage to store data (default is false)
 
-	int		n_tpb0;                 //!< Number of initial thread per block to use in kernel lunches (default is 64)
-	int     n_change_to_cpu;        //!< The threshold value for the total number of SI bodies to change to the CPU
-	int		id_a_dev;               //!< The id of the device which will execute the code
+	unsigned int n_tpb0;            //!< Number of initial thread per block to use in kernel lunches (default is 64)
+	unsigned int n_change_to_cpu;   //!< The threshold value for the total number of SI bodies to change to the CPU
+	unsigned int id_a_dev;          //!< The id of the device which will execute the code
 
 	computing_device_t comp_dev;    //!< The computing device to carry out the calculations (cpu or gpu)
 	gas_disk_model_t g_disk_model;

@@ -246,3 +246,61 @@ void print(string &path, int n, sim_data_t *sd)
 		throw string("Cannot open " + path + "!");
 	}
 }
+
+/*
+    JDCT     Epoch Julian Date, Coordinate Time
+      EC     Eccentricity, e                                                   
+      QR     Periapsis distance, q (AU)                                        
+      IN     Inclination w.r.t xy-plane, i (degrees)                           
+      OM     Longitude of Ascending Node, OMEGA, (degrees)                     
+      W      Argument of Perifocus, w (degrees)                                
+      Tp     Time of periapsis (Julian day number)                             
+      N      Mean motion, n (degrees/day)                                      
+      MA     Mean anomaly, M (degrees)                                         
+      TA     True anomaly, nu (degrees)                                        
+      A      Semi-major axis, a (AU)                                           
+      AD     Apoapsis distance (AU)                                            
+      PR     Sidereal orbit period (day)
+JDCT ,   ,                                          EC,                     QR,                     IN,                     OM,                     W,                      Tp,                     N,                      MA,                     TA,                     A,                      AD,                     PR
+2457153.500000000, A.D. 2015-May-11 00:00:00.0000,  2.056283170656704E-01,  3.075005270000471E-01,  7.004033081870772E+00,  4.831135275416084E+01,  2.917018579009503E+01,  2.457132325703553E+06,  4.092332803985572E+00,  8.665226794919347E+01,  1.098801777958040E+02,  3.870990540148295E-01,  4.666975810296119E-01,  8.796938500441402E+01,
+*/
+ttt_t extract_from_horizon_output(string &data, orbelem_t& oe)
+{
+	int start = 0;
+	int len = start + 17;
+	string s = data.substr(start, len);
+
+	ttt_t epoch = atof(s.c_str());
+
+	start = 52;
+	len = 21;
+	s = data.substr(start, len);
+	oe.ecc = atof(s.c_str());
+
+	start = 100;
+	len = 21;
+	s = data.substr(start, len);
+	oe.inc = atof(s.c_str()) * constants::DegreeToRadian;
+
+	start = 124;
+	len = 21;
+	s = data.substr(start, len);
+	oe.node = atof(s.c_str()) * constants::DegreeToRadian;
+
+	start = 148;
+	len = 21;
+	s = data.substr(start, len);
+	oe.peri = atof(s.c_str()) * constants::DegreeToRadian;
+
+	start = 220;
+	len = 21;
+	s = data.substr(start, len);
+	oe.mean = atof(s.c_str()) * constants::DegreeToRadian;
+
+	start = 268;
+	len = 21;
+	s = data.substr(start, len);
+	oe.sma = atof(s.c_str());
+
+	return epoch;
+}

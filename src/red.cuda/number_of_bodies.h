@@ -5,52 +5,56 @@
 class number_of_bodies
 {
 public:
-	number_of_bodies(int n_s, int n_gp, int n_rp, int n_pp, int n_spl, int n_pl, int n_tp);
+	number_of_bodies(unsigned int n_s, unsigned int n_gp, unsigned int n_rp, unsigned int n_pp, unsigned int n_spl, unsigned int n_pl, unsigned int n_tp);
 
-	int	get_n_total_initial();
-	int	get_n_total_playing();
-	int	get_n_total_active();
-	int	get_n_total_inactive();
-	int	get_n_total_removed();
+	unsigned int get_n_total_initial();
+	unsigned int get_n_total_playing();
+	unsigned int get_n_total_active();
+	unsigned int get_n_total_inactive();
+	unsigned int get_n_total_removed();
 
 	//! Calculates the number of playing bodies with mass
-	int	get_n_massive();
+	unsigned int get_n_massive();
 	//! Calculates the number of playing bodies which are self-interacting (i.e. it returns n_s + n_gp + n_rp + n_pp)
-	int	get_n_SI();
+	unsigned int get_n_SI();
 	//! Calculates the number of playing non-self-interating bodies (i.e. it returns n_spl + n_pl)
-	int	get_n_NSI();
+	unsigned int get_n_NSI();
 	//! Calculates the number of playing non-interating bodies (i.e. returns n_tp)
-	int	get_n_NI();
+	unsigned int get_n_NI();
 	//! Calculates the number of playing bodies which feels the drag force, i.e. sum of the number of super-planetesimals and planetesimals.
-	int	get_n_GD();
+	unsigned int get_n_GD();
 	//! Calculates the number of playing bodies which are experiencing type I migartion, i.e. sum of the number of rocky- and proto-planets.
-	int	get_n_MT1();
+	unsigned int get_n_MT1();
 	//! Calculates the number of playing bodies which are experiencing type II migartion, i.e. the number of giant planets.
-	int	get_n_MT2();
+	unsigned int get_n_MT2();
+	//! Returns the number of body with the specified type
+	unsigned int get_n_active_by(body_type_t type);
 
-	int get_n_prime_SI(int n_tpb);
-	int get_n_prime_NSI(int n_tpb);
-	int get_n_prime_NI(int n_tpb);
-	int get_n_prime_total(int n_tpb);
-	int	get_n_prime_massive(int n_tpb);
+	unsigned int get_n_prime_SI(unsigned int n_tpb);
+	unsigned int get_n_prime_NSI(unsigned int n_tpb);
+	unsigned int get_n_prime_NI(unsigned int n_tpb);
+	unsigned int get_n_prime_total(unsigned int n_tpb);
+	unsigned int get_n_prime_massive(unsigned int n_tpb);
 
-	//int	get_n_prime_GD();
-	//int	get_n_prime_MT1();
-	//int	get_n_prime_MT2();
+	//unsigned int get_n_prime_GD();
+	//unsigned int get_n_prime_MT1();
+	//unsigned int get_n_prime_MT2();
 
-	interaction_bound get_bound_SI(bool ups, int n_tpb);
-	interaction_bound get_bound_NSI(bool ups, int n_tpb);
-	interaction_bound get_bound_NI(bool ups, int n_tpb);
-	interaction_bound get_bound_GD(bool ups, int n_tpb);
+	interaction_bound get_bound_SI(bool ups, unsigned int n_tpb);
+	interaction_bound get_bound_NSI(bool ups, unsigned int n_tpb);
+	interaction_bound get_bound_NI(bool ups, unsigned int n_tpb);
+	interaction_bound get_bound_GD(bool ups, unsigned int n_tpb);
 	//interaction_bound get_bound_MT1();
 	//interaction_bound get_bound_MT2();
 
 	void update();
 
-	int initial[BODY_TYPE_N];   //!< Number of initial bodies
-	int playing[BODY_TYPE_N];   //!< Number of bodies which are iterated over in the gravitational computation (may have negative id)
-	int inactive[BODY_TYPE_N];  //!< Number of bodies which has negative id (these are part of the playing bodies, and are flaged to be removed in the next call to remove inactive bodies function)
-	int removed[BODY_TYPE_N];   //!< Number of removed bodies
+	unsigned int initial[BODY_TYPE_N];   //!< Number of initial bodies
+	unsigned int playing[BODY_TYPE_N];   //!< Number of bodies which are iterated over in the gravitational computation (may have negative id)
+	unsigned int inactive[BODY_TYPE_N];  //!< Number of bodies which has negative id (these are part of the playing bodies, and are flaged to be removed in the next call to remove inactive bodies function)
+	unsigned int removed[BODY_TYPE_N];   //!< Number of removed bodies
+
+	unsigned int n_removed;              //!< Number of bodies which were removed during the last update() function call
 
 private:
 	int2_t sink;

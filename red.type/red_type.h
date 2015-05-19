@@ -20,12 +20,39 @@ typedef int    int_t;
 //! Type of integer tuples variables
 typedef int2   int2_t;
 
+typedef enum output_name
+		{
+			OUTPUT_NAME_LOG,
+			OUTPUT_NAME_INFO,
+			OUTPUT_NAME_DUMP,
+			OUTPUT_NAME_EVENT,
+			OUTPUT_NAME_RESULT,
+			OUTPUT_NAME_N
+		} output_name_t;
+
+typedef enum data_representation
+		{
+			DATA_REPRESENTATION_ASCII,
+			DATA_REPRESENTATION_BINARY,
+			DATA_REPRESENTATION_N,
+		} data_representation_t;
+static const char* data_representation_name[] = 
+{
+			"ASCII",
+			"BINARY"
+};
+
 typedef enum actual_phase_storage
 		{ 
 			ACTUAL_PHASE_STORAGE_Y,
 			ACTUAL_PHASE_STORAGE_YOUT,
 			ACTUAL_PHASE_STORAGE_N
 		} actual_phase_storage_t;
+static const char* actual_phase_storage_name[] = 
+{
+			"Y",
+			"YOUT"
+};
 
 typedef enum gas_decrease
 		{ 
@@ -34,6 +61,12 @@ typedef enum gas_decrease
 			GAS_DENSITY_DECREASE_EXPONENTIAL,
 			GAS_DENSITY_N
 		} gas_decrease_t;
+static const char* gas_decrease_name[] = 
+{
+			"CONSTANT",
+			"DECREASE_LINEAR",
+			"DECREASE_EXPONENTIAL"
+};
 
 typedef enum gas_disk_model
 		{
@@ -42,6 +75,12 @@ typedef enum gas_disk_model
 			GAS_DISK_MODEL_FARGO,
 			GAS_DISK_MODEL_N,
 		} gas_disk_model_t;
+static const char* gas_disk_model_name[] = 
+{
+			"NONE",
+			"ANALYTIC",
+			"FARGO"
+};
 
 typedef enum computing_device
 		{
@@ -49,6 +88,11 @@ typedef enum computing_device
 			COMPUTING_DEVICE_GPU,
 			COMPUTING_DEVICE_N
 		} computing_device_t;
+static const char* computing_device_name[] = 
+{
+			"CPU",
+			"GPU"
+};
 
 typedef enum threshold
 		{
@@ -59,6 +103,14 @@ typedef enum threshold
 			THRESHOLD_EJECTION_DISTANCE_SQUARED,
 			THRESHOLD_N
 		} threshold_t;
+static const char* threshold_name[] = 
+{
+			"HIT_CENTRUM_DISTANCE",
+			"EJECTION_DISTANCE",
+			"RADII_ENHANCE_FACTOR",
+			"HIT_CENTRUM_DISTANCE_SQUARED",
+			"EJECTION_DISTANCE_SQUARED"
+};
 
 typedef enum integrator_type
 		{ 
@@ -79,6 +131,14 @@ typedef enum event_name
 			EVENT_NAME_COLLISION,
 			EVENT_NAME_N
 		} event_name_t;
+static const char* event_name_name[] = 
+{
+			"NONE",
+			"HIT_CENTRUM",
+			"EJECTION",
+			"CLOSE_ENCOUNTER",
+			"COLLISION",
+};
 
 typedef enum event_counter_name
 		{
@@ -94,6 +154,12 @@ typedef enum migration_type
 			MIGRATION_TYPE_TYPE_I,
 			MIGRATION_TYPE_TYPE_II
 		} migration_type_t;
+static const char* migration_type_name[] = 
+{
+			"NO",
+			"TYPE_I",
+			"TYPE_II"
+};
 
 typedef enum body_type
 		{
@@ -108,14 +174,26 @@ typedef enum body_type
 			BODY_TYPE_N
 		} body_type_t;
 
+static const char* body_type_name[] = 
+		{
+			"STAR",
+			"GIANTPLANET",
+			"ROCKYPLANET",
+			"PROTOPLANET",
+			"SUPERPLANETESIMAL",
+			"PLANETESIMAL",
+			"TESTPARTICLE",
+			"PADDINGPARTICLE"
+		};
+
 typedef struct orbelem
 		{			
-			var_t sma;   //!< Semimajor-axis of the body
-			var_t ecc;   //!< Eccentricity of the body			
-			var_t inc;   //!< Inclination of the body			
-			var_t peri;  //!< Argument of the pericenter			
-			var_t node;  //!< Longitude of the ascending node			
-			var_t mean;  //!< Mean anomaly
+			var_t sma;   //!< Semimajor-axis of the body       [8 byte]
+			var_t ecc;   //!< Eccentricity of the body         [8 byte]
+			var_t inc;   //!< Inclination of the body          [8 byte]
+			var_t peri;  //!< Argument of the pericenter       [8 byte]
+			var_t node;  //!< Longitude of the ascending node  [8 byte]
+			var_t mean;  //!< Mean anomaly                     [8 byte] -> 48 byte
 		} orbelem_t;
 
 #ifdef _WIN64
@@ -127,45 +205,56 @@ typedef struct orbelem
 // int4_t gets aligned to 16 bytes.
 typedef struct __BUILTIN_ALIGN__ _int4
 		{
-			int_t x;
-			int_t y;
-			int_t z;
-			int_t w;
+			int_t x;  // [4 byte]
+			int_t y;  // [4 byte]
+			int_t z;  // [4 byte]
+			int_t w;  // [4 byte] -> 16 byte
 		} int4_t;
 
 // var2_t gets aligned to 16 bytes.
 typedef struct __BUILTIN_ALIGN__ _var2
 		{
-			var_t x;
-			var_t y;
+			var_t x;  // [8 byte]
+			var_t y;  // [8 byte] -> 16 byte
 		} var2_t;
 
 // vec_t gets aligned to 16 bytes.
 typedef struct __BUILTIN_ALIGN__ vec
 		{
-			var_t x;
-			var_t y;
-			var_t z;
-			var_t w;
+			var_t x;  // [8 byte]
+			var_t y;  // [8 byte]
+			var_t z;  // [8 byte]
+			var_t w;  // [8 byte] -> 32 byte
 		} vec_t;
 
 // param_t gets aligned to 16 bytes.
 typedef struct __BUILTIN_ALIGN__ param
 		{
-			var_t mass;
-			var_t radius;
-			var_t density;
-			var_t cd;
+			var_t mass;      // [8 byte]
+			var_t radius;    // [8 byte]
+			var_t density;   // [8 byte]
+			var_t cd;	     // [8 byte] -> 32 byte
 		} param_t;
 
 // body_metadata_t gets aligned to 16 bytes.
 typedef struct __BUILTIN_ALIGN__ body_metadata
 		{
-			int32_t id;
-			int32_t body_type;
-			int32_t mig_type;
-			var_t	mig_stop_at;
+			int32_t id;             // [4 byte]
+			int32_t body_type;	    // [4 byte]
+			int32_t mig_type;	    // [4 byte]
+			var_t	mig_stop_at;    // [8 byte] -> 20 byte !!!
 		} body_metadata_t;
+
+// body_metadata_t gets aligned to 16 bytes.
+typedef struct __BUILTIN_ALIGN__ body_metadata_new
+		{
+			int32_t id;            // [4 byte]
+			char    body_type;     // [1 byte]
+			char    mig_type;      // [1 byte]
+			bool	active;        // [1 byte]
+			bool	unused;        // [1 byte]
+			var_t   mig_stop_at;   // [8 byte] -> 16 byte
+		} body_metadata_new_t;
 
 typedef struct analytic_gas_disk_params
 		{

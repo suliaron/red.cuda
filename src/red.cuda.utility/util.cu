@@ -23,6 +23,15 @@ std::string number_to_string( T number )
 	return ss.str();
 }
 
+template std::string number_to_string<char>(char);
+template std::string number_to_string<unsigned char>(unsigned char);
+template std::string number_to_string<int>(int);
+template std::string number_to_string<unsigned int>(unsigned int);
+template std::string number_to_string<long>(long);
+template std::string number_to_string<unsigned long>(unsigned long);
+template std::string number_to_string<float>(float);
+template std::string number_to_string<double>(double);
+
 __host__ __device__
 	vec_t rotate_2D_vector(var_t theta, const vec_t& r)
 {
@@ -72,7 +81,7 @@ inline int _ConvertSMVer2Cores(int major, int minor)
 }
 // end of GPU Architecture definitions
 
-int device_query(ostream& sout, int id_dev)
+void device_query(ostream& sout, int id_dev)
 {
     int deviceCount = 0;
     cudaError_t error_id = cudaGetDeviceCount(&deviceCount);
@@ -80,14 +89,14 @@ int device_query(ostream& sout, int id_dev)
     if (error_id != cudaSuccess)
     {
         printf("cudaGetDeviceCount returned %d\n-> %s\n", (int)error_id, cudaGetErrorString(error_id));
-        exit(EXIT_FAILURE);
+		throw string("cudaGetDeviceCount error.");
     }
 
     // This function call returns 0 if there are no CUDA capable devices.
     if (deviceCount == 0)
     {
         printf("There are no available device(s) that support CUDA\n");
-        exit(EXIT_FAILURE);
+		throw string("cudaGetDeviceCount error.");
     }
 
     int dev, driverVersion = 0, runtimeVersion = 0;
@@ -160,9 +169,15 @@ int device_query(ostream& sout, int id_dev)
     sProfileString += "\n";
 
 	sout << sProfileString;
+}
 
-    // finish
-    return (EXIT_SUCCESS);
+void device_query(ostream& sout, int id_dev, bool print_to_screen)
+{
+	device_query(sout, id_dev);
+	if (print_to_screen)
+	{
+		device_query(cout, id_dev);
+	}
 }
 
 void allocate_host_vector(void **ptr, size_t size, const char *file, int line)
@@ -345,15 +360,13 @@ void copy_constant_to_device(const void* dst, const void *src, size_t count)
 	}
 }
 
+// TODO: implement
 int get_id_fastest_GPU()
 {
-	// TODO: implement
-	std::cerr << "       TODO: implement int get_id_fastest_GPU() function!" << endl;
-
 	return 0;
 }
 
-void set_device(int id_of_target_dev, bool verbose)
+void set_device(int id_of_target_dev, ostream& sout, bool verbose, bool print_to_screen)
 {
 	cudaError_t cudaStatus = cudaSuccess;
 
@@ -371,7 +384,7 @@ void set_device(int id_of_target_dev, bool verbose)
 
 	if (verbose)
 	{
-		file::log_message(std::cout, "The number of CUDA device(s): " + number_to_string<int>(n_device));
+		file::log_message(sout, "The number of CUDA device(s): " + number_to_string(n_device), print_to_screen);
 	}
 	if (n_device > id_of_target_dev && 0 <= id_of_target_dev)
 	{
@@ -384,7 +397,7 @@ void set_device(int id_of_target_dev, bool verbose)
 		}
 		if (verbose)
 		{
-			file::log_message(std::cout, "Execution will be transferred to the GPU with id: " + number_to_string<int>(id_of_target_dev));
+			file::log_message(sout, "Execution will be transferred to the GPU with id: " + number_to_string(id_of_target_dev), print_to_screen);
 		}
 	}
 	else
