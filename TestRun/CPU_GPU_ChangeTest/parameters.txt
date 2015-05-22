@@ -1,0 +1,15 @@
+# lines beginning with # are comments and ignored
+name = Collision in a ring of planetesimals
+description = The aim of this run is to follow the collisional evolution of a swarm of protoplanets inside a 2D ring extending from 0.9 up to 2.7 AU with a mass range approx. [8, 50] m_Ceres with log-normal distribution.
+
+integrator = rkf8
+tolerance = 1.0e-10
+error_check_for_tp = false # default value
+
+start_time = 0.0  # year
+length = 1.0e5  # year
+output_interval = 1.0e2 # year
+
+ejection = 2.6 # AU
+hit_centrum = 0.89 # [AU]
+collision_factor = 100.0
