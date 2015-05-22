@@ -4,6 +4,7 @@
 
 // includes project
 #include "number_of_bodies.h"
+#include "redutilcu.h"
 
 using namespace std;
 
@@ -23,6 +24,7 @@ number_of_bodies::number_of_bodies(unsigned int n_s, unsigned int n_gp, unsigned
 		inactive[i] = 0;
 		removed[i]  = 0;
 	}
+	n_removed = 0;
 
     sink.x   = sink.y   = 0;
     source.x = source.y = 0;
@@ -107,6 +109,20 @@ unsigned int number_of_bodies::get_n_total_removed()
 		n += (i != BODY_TYPE_PADDINGPARTICLE ? removed[i] : 0);
 	}
 	return n; 
+}
+
+string number_of_bodies::get_n_playing()
+{
+	string result;
+	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
+	{
+		if (BODY_TYPE_PADDINGPARTICLE == i)
+		{
+			continue;
+		}
+		result += redutilcu::number_to_string(playing[i]) + '_';
+	}
+	return result;
 }
 
 unsigned int number_of_bodies::get_n_GD()

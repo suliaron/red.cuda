@@ -70,8 +70,10 @@ void options::print_usage()
 	cout << "     -info   | --info-filename                : the name of the file where the runtime output of the code will be stored (default is info.txt)" << endl;
 	cout << "     -event  | --event-filename               : the name of the file where the details of each event will be stored (default is event.txt)" << endl;
 	cout << "     -log    | --log-filename                 : the name of the file where the details of the execution of the code will be stored (default is log.txt)" << endl;
-	cout << "     -result | --result-filename              : the name of the file where the simlation data for a time instance will be stored (default is result.txt" << endl;
+	cout << "     -result | --result-filename              : the name of the file where the simlation data for a time instance will be stored (default is result.txt)" << endl;
 	cout << "                                                where [...] contains data describing the integrator)" << endl;
+	cout << "     -i_dt   | --info-dt                      : the time interval in seconds between two subsequent information print to the screen (default value is 5 sec)" << endl;
+	cout << "     -d_dt   | --dump-dt                      : the time interval in seconds between two subsequent data dump to the hdd (default value is 3600 sec)" << endl;
 	cout << "     -c      | --continue                     : continue a simulation from its last saved state" << endl;
 	cout << "     -b      | --benchmark                    : run benchmark to find out the optimal number of threads per block" << endl;
 	cout << "     -t      | --test                         : run tests" << endl;
@@ -101,17 +103,20 @@ void options::create_default()
 	print_to_screen     = false;
 	ups                 = false;
 
-	id_a_dev        = 0;
-	n_tpb0          = 64;
-	n_change_to_cpu = 100;
+	info_dt             = 5.0;     // [sec]
+	dump_dt             = 3600.0;  // [sec]
 
-	comp_dev        = COMPUTING_DEVICE_GPU;
-	g_disk_model    = GAS_DISK_MODEL_NONE;
-
-	info_filename   = "info";
-	event_filename  = "event";
-	log_filename    = "log";
-	result_filename = "result";
+	id_a_dev            = 0;
+	n_tpb0              = 64;
+	n_change_to_cpu     = 100;
+				       
+	comp_dev            = COMPUTING_DEVICE_GPU;
+	g_disk_model        = GAS_DISK_MODEL_NONE;
+				       
+	info_filename       = "info";
+	event_filename      = "event";
+	log_filename        = "log";
+	result_filename     = "result";
 }
 
 void options::parse(int argc, const char** argv)
@@ -209,6 +214,24 @@ void options::parse(int argc, const char** argv)
 			i++;
 			result_filename = argv[i];
 		}
+		else if (p == "--info-dt" || p == "-i_dt")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			info_dt = atof(argv[i]);
+		}
+		else if (p == "--dump-dt" || p == "-d_dt")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			dump_dt = atof(argv[i]);
+		}
 		else if (p == "--verbose" || p == "-v")
 		{
 			verbose = true;
@@ -295,16 +318,19 @@ pp_disk* options::create_pp_disk()
 		throw string("Parameter 'g_disk_model' is out of range.");
 	}
 
-	ppd->transform_to_bc(verbose);
-	ppd->transform_time(verbose);
-	ppd->transform_velocity(verbose);
+	if (!continue_simulation)
+	{
+		ppd->transform_to_bc(verbose);
+		ppd->transform_time(verbose);
+		ppd->transform_velocity(verbose);
+	}
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		ppd->copy_to_device();
 		ppd->copy_disk_params_to_device();
 	}
 	ppd->copy_threshold(param->thrshld);
-	ppd->t = param->start_time;
+	ppd->t = (continue_simulation ? ppd->sim_data->epoch[0] : param->start_time);
 
 	return ppd;
 }

@@ -1038,7 +1038,7 @@ int main()
 
 #if 1
 /*
- *  Howto write data in binray representation to a file
+ *  Howto write/read data in binary representation to/from a file
  */
 
 int main()
@@ -1052,17 +1052,54 @@ int main()
 	cout << "       sizeof(uint32_t): " << sizeof(uint32_t) << endl;
 	cout << "       sizeof(uint64_t): " << sizeof(uint64_t) << endl;
 	cout << "         sizeof(double): " << sizeof(double) << endl;
+	cout << "          sizeof(var_t): " << sizeof(var_t) << endl;
+	cout << "          sizeof(ttt_t): " << sizeof(ttt_t) << endl;
 	cout << "          sizeof(vec_t): " << sizeof(vec_t) << endl;
 	cout << "        sizeof(param_t): " << sizeof(param_t) << endl;
 	cout << "sizeof(body_metadata_t): " << sizeof(body_metadata_t) << endl;
 
 	unsigned int n_bodies[] = {1, 2, 3, 4, 5, 6, 7};
-	char buffer[30];
-	memset(buffer, 0, sizeof(buffer));
+	char name_buffer[30];
+	memset(name_buffer, 0, sizeof(name_buffer));
+	cout << "sizeof(name_buffer): " << sizeof(name_buffer) << endl;
 
+
+	const int n_total = 2;
+	sim_data_t *sim_data = new sim_data_t();
+	// These will be only aliases to the actual storage space either in the HOST or DEVICE memory
+	sim_data->y.resize(2);
+	sim_data->yout.resize(2);
+	allocate_host_storage(sim_data, n_total);
+
+	vec_t* r = sim_data->h_y[0];
+	vec_t* v = sim_data->h_y[1];
+	param_t* p = sim_data->h_p;
+	body_metadata_t* bmd = sim_data->h_body_md;
+	ttt_t* epoch = sim_data->h_epoch;
+
+	std::vector<string> body_names;
+	// populate sim_data
+	{
+		int bdy_idx = 0;
+		body_names.push_back("Star");
+		r[bdy_idx].x = 1.0, r[bdy_idx].y = 2.0, r[bdy_idx].z = 3.0, r[bdy_idx].w = 4.0;
+		v[bdy_idx].x = 1.0e-1, v[bdy_idx].y = 2.0e-1, v[bdy_idx].z = 3.0e-1, v[bdy_idx].w = 4.0e-1;
+		p[bdy_idx].mass = 1.0, p[bdy_idx].radius = 2.0, p[bdy_idx].density = 3.0, p[bdy_idx].cd = 4.0;
+		bmd[bdy_idx].id = 1, bmd[bdy_idx].body_type = BODY_TYPE_STAR, bmd[bdy_idx].mig_stop_at = MIGRATION_TYPE_NO, bmd[bdy_idx].mig_stop_at = 0.5;
+		epoch[bdy_idx] = 1.2;
+
+		bdy_idx++;
+		body_names.push_back("Jupiter");
+		r[bdy_idx].x = 1.0, r[bdy_idx].y = 2.0, r[bdy_idx].z = 3.0, r[bdy_idx].w = 4.0;
+		v[bdy_idx].x = 1.0e-1, v[bdy_idx].y = 2.0e-1, v[bdy_idx].z = 3.0e-1, v[bdy_idx].w = 4.0e-1;
+		p[bdy_idx].mass = 1.0, p[bdy_idx].radius = 2.0, p[bdy_idx].density = 3.0, p[bdy_idx].cd = 4.0;
+		bmd[bdy_idx].id = 2, bmd[bdy_idx].body_type = BODY_TYPE_GIANTPLANET, bmd[bdy_idx].mig_stop_at = MIGRATION_TYPE_NO, bmd[bdy_idx].mig_stop_at = 0.5;
+		epoch[bdy_idx] = 1.2;
+	}
+
+	// Write out binary data
 	string path = "C:\\Work\\red.cuda.Results\\binary.dat";
-
-	fstream sout (path, ios::out | ios::binary);
+	ofstream sout (path.c_str(), ios::out | ios::binary);
 	if (sout)
 	{
 		for (unsigned int type = 0; type < BODY_TYPE_N; type++)
@@ -1071,34 +1108,21 @@ int main()
 			{
 				continue;
 			}
-			// ASCII
-			//sout << n_bodies[type] << SEP;
-			// BINARY
 			sout.write((char*)&n_bodies[type], sizeof(n_bodies[type]));
 		}
-		string name("Star");
-		strcpy(buffer, name.c_str());
+		for (int i = 0; i < n_total; i++)
+		{
+			int orig_idx = bmd[i].id - 1;
+			memset(name_buffer, 0, sizeof(name_buffer));
+			strcpy(name_buffer, body_names[orig_idx].c_str());
 
-		vec_t r = { 1.0,  2.0,  3.0, 0.0};
-		vec_t v = {-1.0, -2.0, -3.0, 0.0};
-		param_t p = {1.11e1, 2.22e-2, 3.33e4, 4.44e10};
-		body_metadata_t bmd;
-		//bmd.id = 2;              // 4 byte
-		//bmd.body_type = 1;       // 1 byte
-		//bmd.mig_type = 1;        // 1 byte
-		//bmd.active = true;       // 1 byte
-		//bmd.unused = false;      // 1 byte
-		//bmd.mig_stop_at = 1.0e-1;   // 8 byte -> 16 byte
-		bmd.id = 2;              
-		bmd.body_type = BODY_TYPE_GIANTPLANET;
-		bmd.mig_type = MIGRATION_TYPE_NO;
-		bmd.mig_stop_at = 1.0e-1;
-
-		sout.write(buffer, sizeof(buffer));
-		sout.write((char*)&r,   sizeof(vec_t));
-		sout.write((char*)&v,   sizeof(vec_t));
-		sout.write((char*)&p,   sizeof(param_t));
-		sout.write((char*)&bmd, sizeof(body_metadata_t));
+			sout.write((char*)&epoch[i], sizeof(ttt_t));
+			sout.write(name_buffer,      sizeof(name_buffer));
+			sout.write((char*)&bmd[i],   sizeof(body_metadata_t));
+			sout.write((char*)&p[i],     sizeof(param_t));
+			sout.write((char*)&r[i],     sizeof(vec_t));
+			sout.write((char*)&v[i],     sizeof(vec_t));
+		}
 
 		sout.close();
 	}
@@ -1116,17 +1140,27 @@ int main()
 		}
 		n_bodies[type] = 0;
 	}
+	deallocate_host_storage(sim_data);
+	sim_data = 0x0;
+	body_names.clear();
 
-	sout.open(path, ios::in | ios::binary);
-	if (sout)
+	sim_data = new sim_data_t();
+	// These will be only aliases to the actual storage space either in the HOST or DEVICE memory
+	sim_data->y.resize(2);
+	sim_data->yout.resize(2);
+	allocate_host_storage(sim_data, n_total);
+
+	r = sim_data->h_y[0];
+	v = sim_data->h_y[1];
+	p = sim_data->h_p;
+	bmd = sim_data->h_body_md;
+	epoch = sim_data->h_epoch;
+
+	path = "C:\\Work\\Projects\\red.cuda\\TestRun\\DumpTest\\TwoBody\\Continue\\dump_0_1_1_0_0_0_0_0_.dat";
+	ifstream sin;
+	sin.open(path.c_str(), ios::in | ios::binary);
+	if (sin)
 	{
-		std::vector<string> body_names;
-		vec_t r =   {0.0, 0.0, 0.0, 0.0};
-		vec_t v =   {0.0, 0.0, 0.0, 0.0};
-		param_t p = {0.0, 0.0, 0.0, 0.0};
-		body_metadata_t bmd = {0, 0, 0, 0.0};
-		memset(buffer, 0, sizeof(buffer));
-
 		// Read back the data
 		for (unsigned int type = 0; type < BODY_TYPE_N; type++)
 		{
@@ -1134,15 +1168,8 @@ int main()
 			{
 				continue;
 			}
-			sout.read((char*)&n_bodies[type], sizeof(n_bodies[type]));
+			sin.read((char*)&n_bodies[type], sizeof(n_bodies[type]));
 		}
-		sout.read(buffer, sizeof(buffer));
-		sout.read((char*)&r,   sizeof(vec_t));
-		sout.read((char*)&v,   sizeof(vec_t));
-		sout.read((char*)&p,   sizeof(param_t));
-		sout.read((char*)&bmd, sizeof(body_metadata_t));
-
-		body_names.push_back(buffer);
 		// Print the data
 		for (char type = 0; type < BODY_TYPE_N; type++)
 		{
@@ -1152,17 +1179,32 @@ int main()
 			}
 			cout << n_bodies[type] << endl;
 		}
-		cout << buffer << endl;
-		tools::print_vector(&r);
-		tools::print_vector(&v);
-		tools::print_parameter(&p);
-		tools::print_body_metadata(&bmd);
 
-		sout.close();
+		for (unsigned int i = 0; i < n_total; i++)
+		{
+			memset(name_buffer, 0, sizeof(name_buffer));
+
+			sin.read((char*)&epoch[i],  1*sizeof(ttt_t));
+			sin.read(name_buffer,      30*sizeof(char));
+			sin.read((char*)&bmd[i],    1*sizeof(body_metadata_t));
+			sin.read((char*)&p[i],      1*sizeof(param_t));
+			sin.read((char*)&r[i],      1*sizeof(vec_t));
+			sin.read((char*)&v[i],      1*sizeof(vec_t));
+
+			body_names.push_back(name_buffer);
+
+			cout << epoch[i] << endl;
+			cout << name_buffer << endl;
+			tools::print_vector(&r[i]);
+			tools::print_vector(&v[i]);
+			tools::print_parameter(&p[i]);
+			tools::print_body_metadata(&bmd[i]);
+		}
+		sin.close();
 	}
 	else
 	{
-		cerr << "Could not open " << path << "." << endl;
+		cerr << "Could not open " << path.c_str() << "." << endl;
 	}
 }
 

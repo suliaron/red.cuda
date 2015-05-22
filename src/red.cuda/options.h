@@ -38,6 +38,9 @@ public:
 	unsigned int n_change_to_cpu;   //!< The threshold value for the total number of SI bodies to change to the CPU
 	unsigned int id_a_dev;          //!< The id of the device which will execute the code
 
+	ttt_t info_dt;                  //!< The time interval in seconds between two subsequent information print to the screen (default value is 5 sec)
+	ttt_t dump_dt;                  //!< The time interval in seconds between two subsequent data dump to the hdd (default value is 3600 sec)
+
 	computing_device_t comp_dev;    //!< The computing device to carry out the calculations (cpu or gpu)
 	gas_disk_model_t g_disk_model;
 

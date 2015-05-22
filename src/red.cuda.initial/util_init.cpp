@@ -3,6 +3,7 @@
 #include <fstream>		// ofstream
 #include <string>		// string
 #include <sstream>		// ostringstream
+#include <stdlib.h>		// atof()
 
 // includes, project
 #include "util_init.h"

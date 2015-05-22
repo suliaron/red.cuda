@@ -1,5 +1,9 @@
 #pragma once
 
+// includes system
+#include <string>
+
+// includes project
 #include "red_type.h"
 
 class number_of_bodies
@@ -12,6 +16,8 @@ public:
 	unsigned int get_n_total_active();
 	unsigned int get_n_total_inactive();
 	unsigned int get_n_total_removed();
+
+	std::string get_n_playing();
 
 	//! Calculates the number of playing bodies with mass
 	unsigned int get_n_massive();

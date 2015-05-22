@@ -1399,10 +1399,13 @@ pp_disk::pp_disk(string& path, bool continue_simulation, int n_tpb, bool ups, ga
 	comp_dev(comp_dev)
 {
 	initialize();
-	n_bodies = load_number_of_bodies(path, DATA_REPRESENTATION_ASCII);
+
+	data_representation_t repres = (file::get_extension(path) == "txt" ? DATA_REPRESENTATION_ASCII : DATA_REPRESENTATION_BINARY);
+
+	n_bodies = load_number_of_bodies(path, repres);
 	allocate_storage();
 	redutilcu::create_aliases(comp_dev, sim_data);
-	load(path, DATA_REPRESENTATION_ASCII);
+	load(path, repres);
 }
 
 pp_disk::~pp_disk()
@@ -1979,17 +1982,17 @@ void pp_disk::load_binary(ifstream& input)
 	body_metadata_t* bmd = sim_data->h_body_md;
 	ttt_t* epoch = sim_data->h_epoch;
 
-	unsigned int n_total	= n_bodies->get_n_total_initial();
+	unsigned int n_total = n_bodies->get_n_total_initial();
 	for (unsigned int i = 0; i < n_total; i++)
 	{
 		memset(name_buffer, 0, sizeof(name_buffer));
 
-		input.read((char*)&epoch[i], sizeof(ttt_t));
-		input.read(name_buffer,      sizeof(name_buffer));
-		input.read((char*)&r[i],     sizeof(vec_t));
-		input.read((char*)&v[i],     sizeof(vec_t));
-		input.read((char*)&p[i],     sizeof(param_t));
-		input.read((char*)&bmd[i],   sizeof(body_metadata_t));
+		input.read((char*)&epoch[i],  1*sizeof(ttt_t));
+		input.read(name_buffer,      30*sizeof(char));
+		input.read((char*)&bmd[i],    1*sizeof(body_metadata_t));
+		input.read((char*)&p[i],      1*sizeof(param_t));
+		input.read((char*)&r[i],      1*sizeof(vec_t));
+		input.read((char*)&v[i],      1*sizeof(vec_t));
 
 		body_names.push_back(name_buffer);
 	}

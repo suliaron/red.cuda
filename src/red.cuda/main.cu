@@ -19,7 +19,7 @@
 #include "red_type.h"
 #include "red_constants.h"
 #include "test.h"
-#include "util.h"
+#include "redutilcu.h"
 
 using namespace std;
 using namespace redutilcu;
@@ -247,11 +247,6 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ostream&
 	}
 }
 
-void run_test()
-{
-	test_number_of_bodies();
-}
-
 void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ostream** output)
 {
 	ttt_t ps = 0.0;
@@ -260,6 +255,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ostream
 	clock_t time_of_one_step  = 0;
 
 	time_t time_info_start = clock();
+	time_t time_of_last_dump = clock();
 
 	//int dummy_k = 0;
 	//computing_device_t target_device = intgr->get_computing_device();
@@ -314,7 +310,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ostream
 			intgr->set_computing_device(COMPUTING_DEVICE_CPU);
 			if (opt.verbose)
 			{
-				string msg = "Number of self-interacting bodies droped below " + redutilcu::number_to_string(opt.n_change_to_cpu) + ". Execution was transferred to CPU";
+				string msg = "Number of self-interacting bodies dropped below " + redutilcu::number_to_string(opt.n_change_to_cpu) + ". Execution was transferred to CPU";
 				file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
 			}
 		}
@@ -356,24 +352,26 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ostream
 			n_removed += ppd->n_bodies->n_removed;
 			string msg = "Rebuild the vectors (removed " + redutilcu::number_to_string(ppd->n_bodies->n_removed) + " inactive bodies at t: " + redutilcu::number_to_string(ppd->t / constants::Gauss) + ")";
 			file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
-			if (10 < n_removed)
-			{
-				n_removed = 0;
-				if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
-				{
-					ppd->copy_to_host();
-				}
-				string prefix = create_prefix(opt, intgr);
-				//string path = file::combine_path(opt.printout_dir, prefix + "dump" + redutilcu::number_to_string(n_dumped) + ".txt");
-				string path = file::combine_path(opt.printout_dir, prefix + "dump" + redutilcu::number_to_string(n_dumped) + ".dat");
-				output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str(), ios::out);
-				ppd->print_dump(*output[OUTPUT_NAME_DUMP], DATA_REPRESENTATION_BINARY);
-				output[OUTPUT_NAME_DUMP]->~ostream();
-				n_dumped++;
-			}
 		}
 
-		if (5.0 < (clock() - time_info_start) / (double)CLOCKS_PER_SEC) 
+		if (10 < n_removed || opt.dump_dt < (clock() - time_of_last_dump) / (double)CLOCKS_PER_SEC)
+		{
+			n_removed = 0;
+			time_of_last_dump = clock();
+			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
+			{
+				ppd->copy_to_host();
+			}
+			string prefix = create_prefix(opt, intgr);
+			//string path = file::combine_path(opt.printout_dir, prefix + "dump" + redutilcu::number_to_string(n_dumped) + ".txt");
+			string path = file::combine_path(opt.printout_dir, prefix + "dump_" + redutilcu::number_to_string(n_dumped) + "_" + ppd->n_bodies->get_n_playing() + ".dat");
+			output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str(), ios::out | ios::binary);
+			ppd->print_dump(*output[OUTPUT_NAME_DUMP], DATA_REPRESENTATION_BINARY);
+			output[OUTPUT_NAME_DUMP]->~ostream();
+			n_dumped++;
+		}
+
+		if (opt.info_dt < (clock() - time_info_start) / (double)CLOCKS_PER_SEC) 
 		{
 			print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
 		}
@@ -390,6 +388,11 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ostream
 		}
 		ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
 	}
+}
+
+void run_test()
+{
+	test_number_of_bodies();
 }
 
 //http://stackoverflow.com/questions/11666049/cuda-kernel-results-different-in-release-mode
@@ -415,6 +418,11 @@ int main(int argc, const char** argv, const char** env)
 		integrator *intgr = opt.create_integrator(ppd, 0.01);
 		open_streams(opt, intgr, output);
 
+		if (opt.continue_simulation)
+		{
+			string msg = "Simlation continues from t = " + redutilcu::number_to_string(ppd->t / constants::Gauss) + " [day]";
+			file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+		}
 		file::log_start_cmd(*output[OUTPUT_NAME_LOG], argc, argv, env, opt.print_to_screen);
 		if (opt.verbose && COMPUTING_DEVICE_GPU == opt.comp_dev)
 		{

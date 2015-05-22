@@ -748,6 +748,149 @@ void set_parameters_of_n_tp_body_disk(body_disk_t& disk)
 	}
 }
 
+void set_parameters_of_GT_scenario(body_disk_t& disk)
+{
+	srand(time(NULL));
+
+	disk.nBody[BODY_TYPE_STAR        ] = 1;
+	disk.nBody[BODY_TYPE_GIANTPLANET ] = 2;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 2000;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at = new var_t[nBodies];
+
+    int bodyIdx = 0;
+	int type = BODY_TYPE_STAR;
+	{
+		disk.names.push_back("star");
+		disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
+
+		var_t tmp = constants::SolarRadiusToAu;
+		disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), tmp, tmp);
+
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+		disk.stop_at[bodyIdx] = 0.0;
+	}
+
+	type = BODY_TYPE_GIANTPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 2.00);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.05);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 1.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0 * constants::JupiterToSolar, 0.0);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 0.0);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i+1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+
+	type = BODY_TYPE_PROTOPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new normal_distribution(rand(), 1.45 /* AU */, 0.35);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.05);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 1.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0/2.0 * constants::MoonToEarth*constants::EarthToSolar, 1.0/2.0 * constants::MoonToEarth*constants::EarthToSolar);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 0.0);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i+1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
+
+void set_parameters_of_GT_scenario_mod(body_disk_t& disk)
+{
+	srand(time(NULL));
+
+	disk.nBody[BODY_TYPE_STAR        ] = 1;
+	disk.nBody[BODY_TYPE_GIANTPLANET ] = 3;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 2000;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at = new var_t[nBodies];
+
+    int bodyIdx = 0;
+	int type = BODY_TYPE_STAR;
+	{
+		disk.names.push_back("Sun");
+		disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
+
+		var_t tmp = constants::SolarRadiusToAu;
+		disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), tmp, tmp);
+
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+		disk.stop_at[bodyIdx] = 0.0;
+	}
+
+	type = BODY_TYPE_GIANTPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 2.00);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.05);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 1.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0 * constants::JupiterToSolar, 0.0);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 0.0);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i+1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+
+	type = BODY_TYPE_PROTOPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new exponential_distribution(rand(), 0.5);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.05);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 1.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0/2.0 * constants::MoonToEarth*constants::EarthToSolar, 1.0/2.0 * constants::MoonToEarth*constants::EarthToSolar);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 0.0);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i+1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
 
 void create_Chambers2001_disk(string& dir, string& filename)
 {
@@ -1092,6 +1235,241 @@ void create_Dvorak_disk(string& dir, string& filename)
 
 	delete sim_data;
 }
+
+void create_GT_scenario(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	initialize(disk);
+	set_parameters_of_GT_scenario(disk);
+
+	sim_data_t* sim_data = new sim_data_t;
+	int nBodies = calculate_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_disk(disk, sim_data);
+
+	// Scale the masses in order to get the required mass transform_mass()
+	//{
+	//	var_t m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+	//	var_t f = m_solid / m_total_pp;
+	//	for (int i = 0; i < nBodies; i++)
+	//	{
+	//		// Only the masses of the protoplanets will be scaled
+	//		if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
+	//		{
+	//			sim_data->h_p[i].mass *= f;
+	//		}
+	//	}
+	//	m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+	//	if (fabs(m_total_pp - m_solid) > 1.0e-15)
+	//	{
+	//		cerr << "The required mass was not reached." << endl;
+	//		exit(0);
+	//	}
+	//}
+
+	// Computes the physical quantities with the new mass
+	{
+		int bodyIdx = 0;
+		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
+		{
+			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			{
+				if (sim_data->h_p[bodyIdx].mass > 0.0)
+				{
+					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
+					{
+						sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+					}
+					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
+					{
+						sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+					}
+				}
+			}
+		}
+	}
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->h_p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
+		int gp_counter = 0;
+		for (int i = 1; i < nBodies; i++)
+		{
+			if (BODY_TYPE_GIANTPLANET == sim_data->h_body_md[i].body_type && gp_counter < 2)
+			{				
+				if (0 == gp_counter)
+				{
+					disk.names[i] = "Jupiter";
+					sim_data->h_p[i].mass          = 1.0 * constants::JupiterToSolar;
+					sim_data->h_p[i].radius        = 71492.0 * constants::KilometerToAu;
+					sim_data->h_p[i].density       = tools::calculate_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::jupiter_oe, sim_data->h_oe[i]);
+				}
+				if (1 == gp_counter)
+				{
+					disk.names[i] = "Saturn";
+					sim_data->h_p[i].mass          = 1.0 * constants::SaturnToSolar;
+					sim_data->h_p[i].radius        = 60268.0 * constants::KilometerToAu;
+					sim_data->h_p[i].density       = tools::calculate_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::saturn_oe, sim_data->h_oe[i]);
+				}
+				gp_counter++;
+			}
+			if (0.4 > sim_data->h_oe[i].sma)
+			{
+				sim_data->h_oe[i].sma = 0.4;
+			}
+
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
+		}
+	}
+
+	tools::transform_to_bc(nBodies, false, sim_data);
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
+
+
+void create_GT_scenario_mod(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	initialize(disk);
+	set_parameters_of_GT_scenario_mod(disk);
+
+	sim_data_t* sim_data = new sim_data_t;
+	int nBodies = calculate_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_disk(disk, sim_data);
+
+	// Scale the masses in order to get the required mass transform_mass()
+	//{
+	//	var_t m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+	//	var_t f = m_solid / m_total_pp;
+	//	for (int i = 0; i < nBodies; i++)
+	//	{
+	//		// Only the masses of the protoplanets will be scaled
+	//		if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
+	//		{
+	//			sim_data->h_p[i].mass *= f;
+	//		}
+	//	}
+	//	m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+	//	if (fabs(m_total_pp - m_solid) > 1.0e-15)
+	//	{
+	//		cerr << "The required mass was not reached." << endl;
+	//		exit(0);
+	//	}
+	//}
+
+	// Computes the physical quantities with the new mass
+	{
+		int bodyIdx = 0;
+		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
+		{
+			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			{
+				if (sim_data->h_p[bodyIdx].mass > 0.0)
+				{
+					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
+					{
+						sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+					}
+					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
+					{
+						sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+					}
+				}
+			}
+		}
+	}
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->h_p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
+		int gp_counter = 0;
+		for (int i = 1; i < nBodies; i++)
+		{
+			if (BODY_TYPE_GIANTPLANET == sim_data->h_body_md[i].body_type && gp_counter < 3)
+			{				
+				if (0 == gp_counter)
+				{
+					disk.names[i] = "Jupiter";
+					sim_data->h_p[i].mass          = 1.0 * constants::JupiterToSolar;
+					sim_data->h_p[i].radius        = 71492.0 * constants::KilometerToAu;
+					sim_data->h_p[i].density       = tools::calculate_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::jupiter_oe, sim_data->h_oe[i]);
+				}
+				if (1 == gp_counter)
+				{
+					disk.names[i] = "Saturn";
+					sim_data->h_p[i].mass          = 1.0 * constants::SaturnToSolar;
+					sim_data->h_p[i].radius        = 60268.0 * constants::KilometerToAu;
+					sim_data->h_p[i].density       = tools::calculate_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::saturn_oe, sim_data->h_oe[i]);
+				}
+				if (2 == gp_counter)
+				{
+					disk.names[i] = "Uranus";
+					sim_data->h_p[i].mass          = 1.0 * constants::UranusToSolar;
+					sim_data->h_p[i].radius        = 25362.0 * constants::KilometerToAu;
+					sim_data->h_p[i].density       = tools::calculate_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::uranus_oe, sim_data->h_oe[i]);
+				}
+				gp_counter++;
+			}
+			if (0.4 > sim_data->h_oe[i].sma)
+			{
+				sim_data->h_oe[i].sma = 0.4;
+			}
+
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
+		}
+	}
+
+	tools::transform_to_bc(nBodies, false, sim_data);
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+} // end create_GT_scenariomod
 
 void create_two_body_disk(string& dir, string& filename)
 {
@@ -1584,7 +1962,7 @@ int main(int argc, const char **argv)
 
 	try
 	{
-		create_solar_system(outDir, filename);
+		//create_solar_system(outDir, filename);
 
 		//create_Chambers2001_disk(outDir, filename);
 
@@ -1605,6 +1983,9 @@ int main(int argc, const char **argv)
 		//create_two_body_disk(outDir, filename);
 
 		//create_Dvorak_disk(outDir, filename);
+
+		//create_GT_scenario(outDir, filename);
+		create_GT_scenario_mod(outDir, filename);
 	}
 	catch (const string& msg)
 	{
