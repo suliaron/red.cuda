@@ -330,7 +330,7 @@ pp_disk* options::create_pp_disk()
 		ppd->copy_disk_params_to_device();
 	}
 	ppd->copy_threshold(param->thrshld);
-	ppd->t = (continue_simulation ? ppd->sim_data->epoch[0] : param->start_time);
+	ppd->t = (continue_simulation ? ppd->sim_data->h_epoch[0] : param->start_time);
 
 	return ppd;
 }

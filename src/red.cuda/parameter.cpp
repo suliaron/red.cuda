@@ -29,20 +29,17 @@ parameter::~parameter()
 
 void parameter::create_default()
 {
-	adaptive           = false;
+	adaptive           = true;
 	error_check_for_tp = false;
-	int_type           = INTEGRATOR_EULER;
+
+	int_type           = INTEGRATOR_RUNGEKUTTAFEHLBERG78;
 	tolerance          = 1.0e-10;
-	start_time         = 0.0;							// [day]
-	simulation_length  = 0.0;							// [day]
-	output_interval    = 0.0;							// [day]
 
-	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE] = 0.0;      // [AU]
-	thrshld[THRESHOLD_EJECTION_DISTANCE   ] = 0.0;      // [AU]
-	thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] = 0.0;
+	start_time         = 0.0;		// [day]
+	simulation_length  = 0.0;		// [day]
+	output_interval    = 0.0;		// [day]
 
-	thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]);
-	thrshld[THRESHOLD_EJECTION_DISTANCE_SQUARED   ] = SQR(thrshld[THRESHOLD_EJECTION_DISTANCE   ]);
+	memset(thrshld, 0, sizeof(thrshld));
 }
 
 void parameter::parse()

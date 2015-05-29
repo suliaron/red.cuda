@@ -24,7 +24,7 @@
 using namespace std;
 using namespace redutilcu;
 
-string create_prefix(const options& opt, const integrator* intgr)
+string create_prefix(const options& opt)
 {
 	string prefix;
 	if (opt.benchmark)
@@ -46,33 +46,49 @@ string create_prefix(const options& opt, const integrator* intgr)
 		string adapt = (opt.param->adaptive == true ? "as" : "fs");
 		// ps: padded storage, ns: normal storage
 		string strorage = (opt.ups == true ? "ps" : "ns");
-		string int_name = intgr->short_name;
+		string int_name(integrator_type_short_name[opt.param->int_type]);
 		prefix += config + sep + dev + sep + strorage + sep + adapt + sep + int_name + sep;
 	}
 
 	return prefix;
 }
 
-void open_streams(const options& opt, const integrator* intgr, ostream** output)
+void open_streams(const options& opt, ofstream** output)
 {
 	string path;
-	string prefix = create_prefix(opt, intgr);
+	string prefix = create_prefix(opt);
 	string ext = "txt";
 
 	path = file::combine_path(opt.printout_dir, prefix + opt.result_filename) + "." + ext;
 	output[OUTPUT_NAME_RESULT] = new ofstream(path.c_str(), ios::out);
+	if (!*output[OUTPUT_NAME_RESULT]) 
+	{
+		throw string("Cannot open " + path + ".");
+	}
 
 	path = file::combine_path(opt.printout_dir, prefix + opt.info_filename) + "." + ext;
 	output[OUTPUT_NAME_INFO] = new ofstream(path.c_str(), ios::out);
+	if (!*output[OUTPUT_NAME_INFO]) 
+	{
+		throw string("Cannot open " + path + ".");
+	}
 
 	path = file::combine_path(opt.printout_dir, prefix + opt.event_filename) + "." + ext;
 	output[OUTPUT_NAME_EVENT] = new ofstream(path.c_str(), ios::out);
+	if (!*output[OUTPUT_NAME_EVENT]) 
+	{
+		throw string("Cannot open " + path + ".");
+	}
 
 	path = file::combine_path(opt.printout_dir, prefix + opt.log_filename) + "." + ext;
 	output[OUTPUT_NAME_LOG] = new ofstream(path.c_str(), ios::out);
+	if (!*output[OUTPUT_NAME_LOG]) 
+	{
+		throw string("Cannot open " + path + ".");
+	}
 }
 
-void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* sum_time_of_steps, clock_t* time_of_one_step, time_t* time_info_start)
+void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* sum_time_of_steps, clock_t* time_of_one_step, time_t* time_info_start)
 {
 	static const char* body_type_name[] = {"N_st", "N_gp", "N_rp", "N_pp", "N_sp", "N_pl", "N_tp"};
 	
@@ -115,6 +131,30 @@ void print_info(ostream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, 
 	sout << endl;
 }
 
+void print_dump(ofstream *output, const options& opt, pp_disk* ppd, int n_dump, data_representation_t repres)
+{
+	string prefix = create_prefix(opt);
+	string ext = (repres == DATA_REPRESENTATION_ASCII ? "txt" : "bin");
+	string path = file::combine_path(opt.printout_dir, prefix + "dump" + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + "." + ext);
+	output = new ofstream(path.c_str(), ios::out | ios::binary);
+	if(!output)
+	{
+		throw string("Cannot open " + path + ".");
+	}
+	ppd->print_dump(*output, repres);
+	output->~ofstream();
+}
+
+void print_dump_aux_data(ofstream& sout, dump_aux_data_t* dump_aux)
+{
+	sout.write((char*)(dump_aux), sizeof(dump_aux_data_t));
+}
+
+void load_dump_aux_data(ifstream& input, dump_aux_data_t* dump_aux)
+{
+	input.read((char*)(dump_aux), sizeof(dump_aux_data_t));
+}
+
 ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* t_step)
 {
 	clock_t t_start = clock();
@@ -127,7 +167,7 @@ ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* t_step)
 	return dt;
 }
 
-void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ostream& sout)
+void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream& sout)
 {
 	cout.setf(ios::right);
 	cout.setf(ios::scientific);
@@ -247,7 +287,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ostream&
 	}
 }
 
-void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ostream** output)
+void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstream** output)
 {
 	ttt_t ps = 0.0;
 	ttt_t dt = 0.0;
@@ -257,16 +297,22 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ostream
 	time_t time_info_start = clock();
 	time_t time_of_last_dump = clock();
 
-	//int dummy_k = 0;
-	//computing_device_t target_device = intgr->get_computing_device();
+	int dummy_k = 0;
+	computing_device_t target_device = intgr->get_computing_device();
 
+	unsigned int n_inactive = 10;
 	unsigned int n_removed = 0;
-	unsigned int n_dumped = 0;
+	unsigned int n_dump = 0;
 	while (1 < ppd->n_bodies->get_n_total_active() && ppd->t <= opt.param->stop_time)
 	{
-#if 0
-		if (0 < dummy_k && 0 == dummy_k % 10)
+#if 1
+		//if (0 < dummy_k && 0 == dummy_k % 10)
+		//if (n_removed >= 10)
+		if (ppd->n_bodies->get_n_total_inactive() >= n_inactive)
 		{
+			n_removed = 0;
+			n_inactive += 10;
+
 			int tmp = intgr->get_computing_device();
 			tmp++;
 			if (COMPUTING_DEVICE_N == tmp)
@@ -282,19 +328,19 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ostream
 					intgr->set_computing_device(target_device);
 					if (opt.verbose)
 					{
-						file::log_message(*log_f, "Execution was transferred to CPU", opt.print_to_screen);
+						file::log_message(*output[OUTPUT_NAME_LOG], "Execution was transferred to CPU", opt.print_to_screen);
 					}
 					break;
 				}
 			case COMPUTING_DEVICE_GPU:
 				{
 					int id_of_target_GPU = redutilcu::get_id_fastest_GPU();
-					redutilcu::set_device(id_of_target_GPU, *log_f, opt.verbose, opt.print_to_screen);
+					redutilcu::set_device(id_of_target_GPU, *output[OUTPUT_NAME_LOG], opt.verbose, opt.print_to_screen);
 
 					intgr->set_computing_device(target_device);
 					if (opt.verbose)
 					{
-						file::log_message(*log_f, "Execution was transferred to GPU with id: " + redutilcu::number_to_string(id_of_target_GPU), opt.print_to_screen);
+						file::log_message(*output[OUTPUT_NAME_LOG], "Execution was transferred to GPU with id: " + redutilcu::number_to_string(id_of_target_GPU), opt.print_to_screen);
 					}
 					break;
 				}
@@ -307,6 +353,27 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ostream
 #endif
 		if (COMPUTING_DEVICE_GPU == intgr->get_computing_device() && opt.n_change_to_cpu >= ppd->n_bodies->get_n_SI())
 		{
+			//ppd->copy_to_host();
+
+			//string prefix = create_prefix(opt);
+			//string path = file::combine_path(opt.printout_dir, prefix + "dump_before_change_to_GPU.dat");
+			//output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str(), ios::out | ios::binary);
+			//ppd->print_dump(*output[OUTPUT_NAME_DUMP], DATA_REPRESENTATION_BINARY);
+			//output[OUTPUT_NAME_DUMP]->~ostream();
+
+			//path = file::combine_path(opt.printout_dir, prefix + "dump_before_change_to_GPU.txt");
+			//output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str());
+			//ppd->print_dump(*output[OUTPUT_NAME_DUMP], DATA_REPRESENTATION_ASCII);
+			//output[OUTPUT_NAME_DUMP]->~ostream();
+
+			//dump_aux_data_t dump_aux;
+			//dump_aux.dt = dt;
+
+			//path = file::combine_path(opt.printout_dir, prefix + "dump_before_change_to_GPU.aux.dat");
+			//output[OUTPUT_NAME_DUMP_AUX] = new ofstream(path.c_str(), ios::out | ios::binary);
+			//print_dump_aux_data(*output[OUTPUT_NAME_DUMP_AUX], &dump_aux);
+			//output[OUTPUT_NAME_DUMP_AUX]->~ostream();
+
 			intgr->set_computing_device(COMPUTING_DEVICE_CPU);
 			if (opt.verbose)
 			{
@@ -347,7 +414,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ostream
 			ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
 		}
 
-		if (ppd->check_for_rebuild_vectors(2))
+		if (ppd->check_for_rebuild_vectors(100))
 		{
 			n_removed += ppd->n_bodies->n_removed;
 			string msg = "Rebuild the vectors (removed " + redutilcu::number_to_string(ppd->n_bodies->n_removed) + " inactive bodies at t: " + redutilcu::number_to_string(ppd->t / constants::Gauss) + ")";
@@ -358,17 +425,12 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ostream
 		{
 			n_removed = 0;
 			time_of_last_dump = clock();
-			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
-			{
-				ppd->copy_to_host();
-			}
-			string prefix = create_prefix(opt, intgr);
-			//string path = file::combine_path(opt.printout_dir, prefix + "dump" + redutilcu::number_to_string(n_dumped) + ".txt");
-			string path = file::combine_path(opt.printout_dir, prefix + "dump_" + redutilcu::number_to_string(n_dumped) + "_" + ppd->n_bodies->get_n_playing() + ".dat");
-			output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str(), ios::out | ios::binary);
-			ppd->print_dump(*output[OUTPUT_NAME_DUMP], DATA_REPRESENTATION_BINARY);
-			output[OUTPUT_NAME_DUMP]->~ostream();
-			n_dumped++;
+			//if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
+			//{
+			//	ppd->copy_to_host();
+			//}
+			//print_dump(output[OUTPUT_NAME_DUMP], opt, ppd, n_dump, DATA_REPRESENTATION_BINARY);
+			n_dump++;
 		}
 
 		if (opt.info_dt < (clock() - time_info_start) / (double)CLOCKS_PER_SEC) 
@@ -402,27 +464,44 @@ void run_test()
 int main(int argc, const char** argv, const char** env)
 {
 	time_t start = time(NULL);
-	ostream* output[] = {0x0, 0x0, 0x0, 0x0, 0x0};
+
+	ofstream* output[OUTPUT_NAME_N];
+	memset(output, 0x0, sizeof(output));
 
 	try
 	{
 		options opt = options(argc, argv);
-
 		if (opt.test)
 		{
 			run_test();
 			exit(0);
 		}
 
+		ttt_t dt = 0.1; // [day]
 		pp_disk *ppd = opt.create_pp_disk();
-		integrator *intgr = opt.create_integrator(ppd, 0.01);
-		open_streams(opt, intgr, output);
+		open_streams(opt, output);
 
 		if (opt.continue_simulation)
 		{
-			string msg = "Simlation continues from t = " + redutilcu::number_to_string(ppd->t / constants::Gauss) + " [day]";
+			string msg = "Simulation continues from t = " + redutilcu::number_to_string(ppd->t / constants::Gauss) + " [day]";
 			file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+
+			string path = file::combine_path(opt.input_dir, file::get_filename_without_ext(opt.bodylist_filename) + ".aux.dat");
+			ifstream input(path.c_str(), ios::in | ios::binary);
+			if (input) 
+			{
+				dump_aux_data_t dump_aux;
+				load_dump_aux_data(input, &dump_aux);
+				dt = dump_aux.dt / constants::Gauss;
+			}
+			else
+			{
+				throw string("Cannot open " + path + ".");
+			}
+			input.close();
 		}
+		integrator *intgr = opt.create_integrator(ppd, dt);
+
 		file::log_start_cmd(*output[OUTPUT_NAME_LOG], argc, argv, env, opt.print_to_screen);
 		if (opt.verbose && COMPUTING_DEVICE_GPU == opt.comp_dev)
 		{

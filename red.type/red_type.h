@@ -25,6 +25,7 @@ typedef enum output_name
 			OUTPUT_NAME_LOG,
 			OUTPUT_NAME_INFO,
 			OUTPUT_NAME_DUMP,
+			OUTPUT_NAME_DUMP_AUX,
 			OUTPUT_NAME_EVENT,
 			OUTPUT_NAME_RESULT,
 			OUTPUT_NAME_N
@@ -121,6 +122,24 @@ typedef enum integrator_type
 			INTEGRATOR_RUNGEKUTTAFEHLBERG78,
 			INTEGRATOR_RUNGEKUTTANYSTROM,
 		} integrator_type_t;
+static const char* integrator_type_name[] = 
+{
+			"EULER",
+			"RUNGEKUTTA2",
+			"RUNGEKUTTA4",
+			"RUNGEKUTTA5",
+			"RUNGEKUTTAFEHLBERG78",
+			"RUNGEKUTTANYSTROM"
+};
+static const char* integrator_type_short_name[] = 
+{
+			"E",
+			"RK2",
+			"RK4",
+			"RK5",
+			"RKF8",
+			"RKN"
+};
 
 typedef enum event_name
 		{
@@ -185,6 +204,11 @@ static const char* body_type_name[] =
 			"TESTPARTICLE",
 			"PADDINGPARTICLE"
 		};
+
+typedef struct dump_aux_data
+		{
+			ttt_t dt;
+		} dump_aux_data_t;
 
 typedef struct orbelem
 		{			

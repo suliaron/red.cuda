@@ -59,24 +59,24 @@ public:
 	/*   
 		\param sout print the data to this stream
 	*/
-	void print_result_ascii(ostream& sout);
+	void print_result_ascii(ofstream& sout);
 	//! Print the data of all bodies in text format
 	/*   
 		\param sout print the data to this stream
 		\param repres indicates the data representation of the file, i.e. text or binary
 	*/
-	void print_dump(ostream& sout, data_representation_t repres);
+	void print_dump(ofstream& sout, data_representation_t repres);
 	//! Print the data of all bodies in binary format
 	/*   
 		\param sout print the data to this stream
 	*/
-	void print_result_binary(ostream& sout);
+	void print_result_binary(ofstream& sout);
 	//! Print the event data
 	/*   
 		\param sout print the data to this stream
 		\param log_f print the data to this stream
 	*/
-	void print_event_data(ostream& sout, ostream& log_f);
+	void print_event_data(ofstream& sout, ofstream& log_f);
 
 	bool get_ups()		{ return ups; }
 
@@ -116,8 +116,11 @@ public:
 	int cpu_check_for_ejection_hit_centrum();
 	int cpu_check_for_collision();
 	int cpu_check_for_collision(interaction_bound int_bound, bool SI_NSI, bool SI_TP, bool NSI, bool NSI_TP);
-	//! Test function: print out all the simulation data contained on the device
-	void test_call_kernel_print_sim_data();
+	//! Test function: prints the data stored in sim_data 
+	/*!
+		\param comp_dev If CPU than prints the data stored in sim_data on the HOST if GPU than on the device
+	*/
+	void print_sim_data(computing_device_t comp_dev);
 	//! Calculates the differentials of variables
 	/*!
 		This function is called by the integrator when calculation of the differentials is necessary

@@ -54,11 +54,11 @@ public:
 	string log_filename;
 	string result_filename;
 
-private:
 	string parameters_filename;     //!< Path of the file containing the parameters of the simulation
 	string bodylist_filename;       //!< Path of the file containing the data of the bodies
 	string gasdisk_filename;        //!< Path of the file containing the parameters of the nebula
 
+private:
 	void initialize();
 	void create_default();
 	void parse(int argc, const char** argv);

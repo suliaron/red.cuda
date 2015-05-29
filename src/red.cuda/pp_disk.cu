@@ -209,13 +209,13 @@ static __host__ __device__
 	switch (name)
 	{
 	case EVENT_NAME_COLLISION:
-		printf("COLLISION   t = %20.10le [d] d = %20.10le [AU] ids: %5d %5d\n", t/K, d, body_md[idx1].id, body_md[idx2].id);
+		printf("COLLISION, %20.10le, [d], %20.10le, [AU], %5d, %5d\n", t/K, d, body_md[idx1].id, body_md[idx2].id);
 		break;
 	case EVENT_NAME_EJECTION:
-		printf("EJECTION    t = %20.10le [d] d = %20.10le [AU] ids: %5d %5d\n", t/K, d, body_md[idx1].id, body_md[idx2].id);
+		printf("EJECTION, %20.10le, [d], %20.10le, [AU], %5d, %5d\n", t/K, d, body_md[idx1].id, body_md[idx2].id);
 		break;
 	case EVENT_NAME_HIT_CENTRUM:
-		printf("HIT CENTRUM t = %20.10le [d] d = %20.10le [AU] ids: %5d %5d\n", t/K, d, body_md[idx1].id, body_md[idx2].id);
+		printf("HIT_CENTRUM, %20.10le, [d], %20.10le, [AU], %5d, %5d\n", t/K, d, body_md[idx1].id, body_md[idx2].id);
 		break;
 	}
 }
@@ -483,33 +483,33 @@ namespace kernel_utility
 static __global__
 	void print_body_metadata(int n, const body_metadata_t* body_md)
 {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i < n)
+	int tid = 0;
+	while (tid < n)
 	{
-		printf("body_md[%4d].id          : %20.4d\n", i,   body_md[i].id);
-		printf("body_md[%4d].body_type   : %20.4d\n", i,   body_md[i].body_type);
-		printf("body_md[%4d].mig_type    : %20.4d\n", i,   body_md[i].mig_type);
-		printf("body_md[%4d].mig_stop_at : %20.16lf\n", i, body_md[i].mig_stop_at);
+		printf("%5d %6d %2d %2d %20.16le\n", tid, body_md[tid].id, body_md[tid].body_type, body_md[tid].mig_type, body_md[tid].mig_stop_at);
+		tid++;
 	}
 }
 
 static __global__
 	void print_epochs(int n, const ttt_t* epoch)
 {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i < n)
+	int tid = 0;
+	while (tid < n)
 	{
-		printf("epoch[%4d] : %20.16lf\n", i, epoch[i]);
+		printf("%5d %20.16lf\n", tid, epoch[tid]);
+		tid++;
 	}
 }
 
 static __global__
 	void print_vector(int n, const vec_t* v)
 {
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (tid < n)
+	int tid = 0;
+	while (tid < n)
 	{
-		printf("[%d]: (%20.16lf, %20.16lf, %20.16lf, %20.16lf)\n", tid, v[tid].x, v[tid].y, v[tid].z, v[tid].w);
+		printf("%5d %20.16lf, %20.16lf, %20.16lf, %20.16lf\n", tid, v[tid].x, v[tid].y, v[tid].z, v[tid].w);
+		tid++;
 	}
 }
 
@@ -525,50 +525,54 @@ static __global__
 } /* kernel_utility */
 
 
-void pp_disk::test_call_kernel_print_sim_data()
+void pp_disk::print_sim_data(computing_device_t comp_dev)
 {
 	const int n_total = get_n_total_body();
 
-	set_kernel_launch_param(n_total);
-
-	kernel_utility::print_vector<<<grid, block>>>(n_total, sim_data->d_y[0]);
+	kernel_utility::print_vector<<<1, 1>>>(n_total, sim_data->d_y[0]);
 	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
+	if (cudaSuccess != cudaStatus)
+	{
 		throw nbody_exception("kernel_utility::print_vector failed", cudaStatus);
 	}
 	cudaDeviceSynchronize();
 
-	kernel_utility::print_vector<<<grid, block>>>(n_total, sim_data->d_y[1]);
+	kernel_utility::print_vector<<<1, 1>>>(n_total, sim_data->d_y[1]);
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
+	if (cudaSuccess != cudaStatus)
+	{
 		throw nbody_exception("kernel_utility::print_vector failed", cudaStatus);
 	}
 	cudaDeviceSynchronize();
 
-	kernel_utility::print_vector<<<grid, block>>>(n_total, (vec_t*)sim_data->d_p);
+	kernel_utility::print_vector<<<1, 1>>>(n_total, (vec_t*)sim_data->d_p);
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
+	if (cudaSuccess != cudaStatus)
+	{
 		throw nbody_exception("kernel_utility::print_vector failed", cudaStatus);
 	}
 	cudaDeviceSynchronize();
 
-	kernel_utility::print_body_metadata<<<grid, block>>>(n_total, sim_data->d_body_md);
+	kernel_utility::print_body_metadata<<<1, 1>>>(n_total, sim_data->d_body_md);
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
+	if (cudaSuccess != cudaStatus)
+	{
 		throw nbody_exception("kernel_utility::print_body_metadata failed", cudaStatus);
 	}
 	cudaDeviceSynchronize();
 
-	kernel_utility::print_epochs<<<grid, block>>>(n_total, sim_data->d_epoch);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		throw nbody_exception("kernel_utility::print_epochs failed", cudaStatus);
-	}
-	cudaDeviceSynchronize();
+	//kernel_utility::print_epochs<<<1, 1>>>(n_total, sim_data->d_epoch);
+	//cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	//if (cudaSuccess != cudaStatus) 
+	//{
+	//	throw nbody_exception("kernel_utility::print_epochs failed", cudaStatus);
+	//}
+	//cudaDeviceSynchronize();
 
 	kernel_utility::print_constant_memory<<<1, 1>>>();
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
+	if (cudaSuccess != cudaStatus)
+	{
 		throw nbody_exception("kernel_utility::print_constant_memory failed", cudaStatus);
 	}
 	cudaDeviceSynchronize();
@@ -1434,13 +1438,10 @@ void pp_disk::initialize()
 	a_gd            = 0x0;
 	f_gd            = 0x0;
 
-	for (int i = 0; i < EVENT_COUNTER_NAME_N; i++)
-	{
-		n_hit_centrum[i] = 0;
-		n_ejection[i]    = 0;
-		n_collision[i]   = 0;
-		n_event[i]       = 0;
-	}
+	memset(n_hit_centrum, 0, sizeof(n_hit_centrum));
+	memset(n_ejection,    0, sizeof(n_ejection));
+	memset(n_collision,   0, sizeof(n_collision));
+	memset(n_event,       0, sizeof(n_event));
 }
 
 void pp_disk::allocate_storage()
@@ -1479,14 +1480,14 @@ void pp_disk::set_computing_device(computing_device_t device)
 	case COMPUTING_DEVICE_CPU:
 		copy_to_host();
 		clear_event_counter();
-		deallocate_device_storage(sim_data);
-		FREE_DEVICE_VECTOR((void **)&d_events);
-		FREE_DEVICE_VECTOR((void **)&d_event_counter);
+		//deallocate_device_storage(sim_data);
+		//FREE_DEVICE_VECTOR((void **)&d_events);
+		//FREE_DEVICE_VECTOR((void **)&d_event_counter);
 		break;
 	case COMPUTING_DEVICE_GPU:
-		allocate_device_storage(sim_data, n_total);
-		ALLOCATE_DEVICE_VECTOR((void **)&d_events,        n_total*sizeof(event_data_t));
-		ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,       1*sizeof(int));
+		//allocate_device_storage(sim_data, n_total);
+		//ALLOCATE_DEVICE_VECTOR((void **)&d_events,        n_total*sizeof(event_data_t));
+		//ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,       1*sizeof(int));
 
 		copy_to_device();
 		copy_disk_params_to_device();
@@ -1620,6 +1621,17 @@ void pp_disk::copy_to_device()
 	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->h_epoch,	 n_body*sizeof(ttt_t));
 
 	copy_vector_to_device((void *)d_event_counter,		(void *)&event_counter,		      1*sizeof(int));
+
+// DEBUG CODE
+	//{
+	//	string path = "C:\\Work\\Projects\\red.cuda\\TestRun\\CPU_GPU_ChangeTest\\result_Y.txt";
+	//	ofstream output(path.c_str());
+	//	print_result_ascii(output);
+	//}
+// DEBUG CODE
+// DEBUG CODE BEGIN
+	print_sim_data(COMPUTING_DEVICE_GPU);
+// DEBUG CODE END
 }
 
 void pp_disk::copy_to_host()
@@ -1998,7 +2010,7 @@ void pp_disk::load_binary(ifstream& input)
 	}
 }
 
-void pp_disk::print_dump(ostream& sout, data_representation_t repres)
+void pp_disk::print_dump(ofstream& sout, data_representation_t repres)
 {
 	switch (repres)
 	{
@@ -2029,7 +2041,7 @@ void pp_disk::print_dump(ostream& sout, data_representation_t repres)
 	}
 }
 
-void pp_disk::print_result_ascii(ostream& sout)
+void pp_disk::print_result_ascii(ofstream& sout)
 {
 	static int int_t_w  =  8;
 	static int var_t_w  = 25;
@@ -2072,7 +2084,7 @@ void pp_disk::print_result_ascii(ostream& sout)
 	sout.flush();
 }
 
-void pp_disk::print_result_binary(ostream& sout)
+void pp_disk::print_result_binary(ofstream& sout)
 {
 	char name_buffer[30];
 
@@ -2102,7 +2114,7 @@ void pp_disk::print_result_binary(ostream& sout)
 	}
 }
 
-void pp_disk::print_event_data(ostream& sout, ostream& log_f)
+void pp_disk::print_event_data(ofstream& sout, ofstream& log_f)
 {
 	static int int_t_w =  8;
 	static int var_t_w = 25;

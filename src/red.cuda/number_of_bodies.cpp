@@ -1,4 +1,5 @@
 // includes system
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 
@@ -10,20 +11,20 @@ using namespace std;
 
 number_of_bodies::number_of_bodies(unsigned int n_s, unsigned int n_gp, unsigned int n_rp, unsigned int n_pp, unsigned int n_spl, unsigned int n_pl, unsigned int n_tp)
 {
-	playing[BODY_TYPE_STAR]              = initial[BODY_TYPE_STAR]              = n_s;
-	playing[BODY_TYPE_GIANTPLANET]       = initial[BODY_TYPE_GIANTPLANET]       = n_gp;
-	playing[BODY_TYPE_ROCKYPLANET]       = initial[BODY_TYPE_ROCKYPLANET]       = n_rp;
-	playing[BODY_TYPE_PROTOPLANET]       = initial[BODY_TYPE_PROTOPLANET]       = n_pp;
-	playing[BODY_TYPE_SUPERPLANETESIMAL] = initial[BODY_TYPE_SUPERPLANETESIMAL] = n_spl;
-	playing[BODY_TYPE_PLANETESIMAL]      = initial[BODY_TYPE_PLANETESIMAL]      = n_pl;
-	playing[BODY_TYPE_TESTPARTICLE]      = initial[BODY_TYPE_TESTPARTICLE]      = n_tp;
-	playing[BODY_TYPE_PADDINGPARTICLE]   = initial[BODY_TYPE_PADDINGPARTICLE]   = 0;
+	initial[BODY_TYPE_STAR]              = n_s;
+	initial[BODY_TYPE_GIANTPLANET]       = n_gp;
+	initial[BODY_TYPE_ROCKYPLANET]       = n_rp;
+	initial[BODY_TYPE_PROTOPLANET]       = n_pp;
+	initial[BODY_TYPE_SUPERPLANETESIMAL] = n_spl;
+	initial[BODY_TYPE_PLANETESIMAL]      = n_pl;
+	initial[BODY_TYPE_TESTPARTICLE]      = n_tp;
+	initial[BODY_TYPE_PADDINGPARTICLE]   = 0;
 
-	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
-	{
-		inactive[i] = 0;
-		removed[i]  = 0;
-	}
+	memcpy(playing, initial, sizeof(playing));
+
+	memset(inactive, 0, sizeof(inactive));
+	memset(removed,  0, sizeof(removed));
+
 	n_removed = 0;
 
     sink.x   = sink.y   = 0;
@@ -120,7 +121,11 @@ string number_of_bodies::get_n_playing()
 		{
 			continue;
 		}
-		result += redutilcu::number_to_string(playing[i]) + '_';
+		result += redutilcu::number_to_string(playing[i]);
+		if (BODY_TYPE_TESTPARTICLE > i)
+		{
+			result += '_';
+		}
 	}
 	return result;
 }

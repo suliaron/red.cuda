@@ -192,6 +192,17 @@ static __global__
 	}
 }
 
+static __global__
+	void print_vector(int n, const vec_t* v)
+{
+	int tid = 0;
+	while (tid < n)
+	{
+		printf("%5d %20.16lf, %20.16lf, %20.16lf, %20.16lf\n", tid, v[tid].x, v[tid].y, v[tid].z, v[tid].w);
+		tid++;
+	}
+}
+
 __global__
 	void kernel_print_array(int n, const var_t* v)
 {
@@ -1035,14 +1046,54 @@ int main()
 
 #endif
 
-
-#if 1
+#if 0
 /*
  *  Howto write/read data in binary representation to/from a file
  */
 
+void print_state(const std::ios& stream)
+{
+	std::cout << " good()=" << stream.good();
+	std::cout << " eof()=" << stream.eof();
+	std::cout << " fail()=" << stream.fail();
+	std::cout << " bad()=" << stream.bad();
+}
+
+void open_streams(ofstream** output)
+{
+	string path = "C:\\Work\\Projects\\red.cuda\\TestRun\\DDD\\hello.txt";
+
+	output[OUTPUT_NAME_RESULT] = new ofstream(path.c_str(), ios::out);
+	if (!(*output[OUTPUT_NAME_RESULT])) 
+	{
+		throw string("Cannot open " + path + ".");
+	}
+	print_state(*output[OUTPUT_NAME_RESULT]);
+
+	*output[OUTPUT_NAME_RESULT] << "Hello World!";
+}
+
+
+
 int main()
 {
+
+	try
+	{
+		ofstream* output[OUTPUT_NAME_N];
+		for (unsigned int i = 0; i < OUTPUT_NAME_N; i++)
+		{
+			output[i] = 0x0;
+		}
+
+		open_streams(output);
+	}
+	catch (const string& msg)
+	{
+		cerr << "Error: " << msg << endl;
+	}
+
+
 	cout << "           sizeof(bool): " << sizeof(bool) << endl;
 	cout << "            sizeof(int): " << sizeof(int) << endl;
 	cout << "        sizeof(int16_t): " << sizeof(int16_t) << endl;
@@ -1099,16 +1150,20 @@ int main()
 
 	// Write out binary data
 	string path = "C:\\Work\\red.cuda.Results\\binary.dat";
-	ofstream sout (path.c_str(), ios::out | ios::binary);
+	ofstream* sout;
+	sout = new ofstream(path.c_str(), ios::out | ios::binary);
 	if (sout)
 	{
+		print_state(*sout);
+		cout << endl;
+
 		for (unsigned int type = 0; type < BODY_TYPE_N; type++)
 		{
 			if (BODY_TYPE_PADDINGPARTICLE == type)
 			{
 				continue;
 			}
-			sout.write((char*)&n_bodies[type], sizeof(n_bodies[type]));
+			sout->write((char*)&n_bodies[type], sizeof(n_bodies[type]));
 		}
 		for (int i = 0; i < n_total; i++)
 		{
@@ -1116,18 +1171,21 @@ int main()
 			memset(name_buffer, 0, sizeof(name_buffer));
 			strcpy(name_buffer, body_names[orig_idx].c_str());
 
-			sout.write((char*)&epoch[i], sizeof(ttt_t));
-			sout.write(name_buffer,      sizeof(name_buffer));
-			sout.write((char*)&bmd[i],   sizeof(body_metadata_t));
-			sout.write((char*)&p[i],     sizeof(param_t));
-			sout.write((char*)&r[i],     sizeof(vec_t));
-			sout.write((char*)&v[i],     sizeof(vec_t));
+			sout->write((char*)&epoch[i], sizeof(ttt_t));
+			sout->write(name_buffer,      sizeof(name_buffer));
+			sout->write((char*)&bmd[i],   sizeof(body_metadata_t));
+			sout->write((char*)&p[i],     sizeof(param_t));
+			sout->write((char*)&r[i],     sizeof(vec_t));
+			sout->write((char*)&v[i],     sizeof(vec_t));
 		}
 
-		sout.close();
+		sout->close();
 	}
 	else
 	{
+		print_state(*sout);
+		cout << endl;
+
 		cerr << "Could not open " << path << "." << endl;
 	}
 
@@ -1161,6 +1219,9 @@ int main()
 	sin.open(path.c_str(), ios::in | ios::binary);
 	if (sin)
 	{
+		print_state(sin);
+		cout << endl;
+
 		// Read back the data
 		for (unsigned int type = 0; type < BODY_TYPE_N; type++)
 		{
@@ -1204,8 +1265,90 @@ int main()
 	}
 	else
 	{
+		print_state(sin);
+		cout << endl;
+
 		cerr << "Could not open " << path.c_str() << "." << endl;
 	}
+}
+
+#endif
+
+
+#if 1
+
+void call_kernel_print_sim_data(unsigned int n, sim_data_t* sim_data)
+{
+	printf("**********************************************************************\n");
+	printf("                 DATA ON THE DEVICE                                   \n");
+	printf("**********************************************************************\n\n");
+
+	printf("position:\n");
+	print_vector<<<1, 1>>>(n, sim_data->d_y[0]);
+	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("print_vector failed", cudaStatus);
+	}
+	cudaDeviceSynchronize();
+}
+
+void print_sim_data(unsigned int n, sim_data_t* sim_data)
+{
+	printf("**********************************************************************\n");
+	printf("                 DATA ON THE HOST                                     \n");
+	printf("**********************************************************************\n\n");
+
+	printf("position:\n");
+	const vec_t* v = sim_data->h_y[0];
+	for (unsigned int i = 0; i < n; i++)
+	{
+		printf("%5d %20.16lf, %20.16lf, %20.16lf, %20.16lf\n", i, v[i].x, v[i].y, v[i].z, v[i].w);
+	}
+}
+
+void copy_to_device(unsigned int n, sim_data_t* sim_data)
+{
+	for (int i = 0; i < 2; i++)
+	{
+		copy_vector_to_device((void *)sim_data->d_y[i],	    (void *)sim_data->h_y[i], n*sizeof(vec_t));
+	}
+
+	copy_vector_to_device((void *)sim_data->d_p,		(void *)sim_data->h_p,		  n*sizeof(param_t));
+	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->h_body_md,  n*sizeof(body_metadata_t));
+	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->h_epoch,	  n*sizeof(ttt_t));
+}
+
+int main()
+{
+	unsigned int n_body = 0;
+	sim_data_t* sd = new sim_data_t;
+	
+	unsigned int n_bodies[] = {1, 99, 0, 0, 0, 0 ,0};
+	for (int i = 0; i < 7; i++)
+	{
+		n_body += n_bodies[i];
+	}
+
+	allocate_host_storage(sd, n_body);
+
+	tools::populate_data(n_bodies, sd);
+	print_sim_data(n_body, sd);
+	
+	for (int i = 0; i < 10; i++)
+	{
+		allocate_device_storage(sd, n_body);
+
+		call_kernel_print_sim_data(n_body, sd);
+
+		copy_to_device(n_body, sd);
+
+		call_kernel_print_sim_data(n_body, sd);
+
+		deallocate_device_storage(sd);
+	}
+
+	return EXIT_SUCCESS;
 }
 
 #endif
