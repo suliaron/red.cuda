@@ -1,5 +1,6 @@
 // includes system
 #include <algorithm>
+#include <cstring>
 #include <iostream>
 
 // includes project
