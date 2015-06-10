@@ -305,6 +305,10 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	unsigned int n_dump = 0;
 	while (1 < ppd->n_bodies->get_n_total_active() && ppd->t <= opt.param->stop_time)
 	{
+//DEBUG CODE BEGIN
+printf("\nStorage for variables: %s", (intgr->get_n_passed_step() % 2 == 0 ? "Y" : "YOUT"));
+printf(" (%s)\n", (ppd->aps == ACTUAL_PHASE_STORAGE_Y ? "Y" : "YOUT"));
+//DEBUG CODE END
 #if 1
 		//if (0 < dummy_k && 0 == dummy_k % 10)
 		//if (n_removed >= 10)
@@ -395,8 +399,26 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			ppd->clear_event_counter();
 		}
 
+//DEBUG CODE BEGIN
+//printf("%s: %s() %d\n", __FILE__, __FUNCTION__, __LINE__);
+//const vec_t* v = ppd->sim_data->h_y[0];
+//for (unsigned int i = 0; i < 10; i++)
+//{
+//	printf("%5d %24.16le %24.16le %24.16le %24.16le\n", i, v[i].x, v[i].y, v[i].z, v[i].w);
+//}
+//DEBUG CODE END
+
 		dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
 		ps += fabs(dt);
+
+//DEBUG CODE BEGIN
+//printf("%s: %s() %d\n", __FILE__, __FUNCTION__, __LINE__);
+//v = ppd->sim_data->h_y[0];
+//for (unsigned int i = 0; i < 10; i++)
+//{
+//	printf("%5d %24.16le %24.16le %24.16le %24.16le\n", i, v[i].x, v[i].y, v[i].z, v[i].w);
+//}
+//DEBUG CODE END
 
 		//if (0.0 < opt.param->thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] && ppd->check_for_collision())
 		//{

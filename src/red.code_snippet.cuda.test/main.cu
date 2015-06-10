@@ -911,7 +911,10 @@ int main(int argc, char** argv)
 
 #endif
 
-#if 0 // Implement the tile-calculation method for the N-body gravity kernel
+#if 1 // Implement the tile-calculation method for the N-body gravity kernel
+
+#define N 512
+#define N_THREAD 128
 
 __host__ __device__
 vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
@@ -938,25 +941,10 @@ vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
 }
 
 
-__device__
-vec_t tile_calculation(vec_t my_pos, var_t* mass, vec_t accel)
-{
-	int i;
-	extern __shared__ vec_t[] sh_pos;
-
-	for (i = 0; i < blockDim.x; i++)
-	{
-		accel = body_body_interaction(my_pos, sh_pos[i], mass[i], accel);
-	}
-}
-
 __global__
-void kernel_calculate_acceleration(void* dev_x, var_t* mass, void* dev_a)
+void kernel_calculate_acceleration(const vec_t* global_x, const var_t* mass, vec_t* global_a)
 {
-	extern __shared__ vec_t[] sh_pos;
-
-	vec_t* global_x = (vec_t*)dev_x;
-	vec_t* global_a = (vec_t*)dev_a;
+	extern __shared__ vec_t sh_pos[];
 
 	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
 	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
@@ -966,12 +954,18 @@ void kernel_calculate_acceleration(void* dev_x, var_t* mass, void* dev_a)
 
 	int gtid = blockIdx.x * blockDim.x + threadIdx.x;
 
-	for (i = 0, tile = 0; i < N; i += p, tile++)
+	my_pos = global_x[gtid];
+	for (i = 0, tile = 0; i < N; i += blockDim.x, tile++)
 	{
 		int idx = tile * blockDim.x + threadIdx.x;
 		sh_pos[threadIdx.x] = global_x[idx];
 		__syncthreads();
-		acc = tile_calculation(my_pos, mass, acc);
+
+		for (i = 0; i < blockDim.x; i++)
+		{
+			acc = body_body_interaction(my_pos, sh_pos[i], mass[i], acc);
+		}
+
 		__syncthreads();
 	}
 
@@ -980,6 +974,52 @@ void kernel_calculate_acceleration(void* dev_x, var_t* mass, void* dev_a)
 
 int main(int argc, char** argv)
 {
+	vec_t* h_x = 0x0;
+	vec_t* h_a = 0x0;
+	var_t* h_m = 0x0;
+
+	vec_t* d_x = 0x0;
+	vec_t* d_a = 0x0;
+	var_t* d_m = 0x0;
+
+	ALLOCATE_HOST_VECTOR((void**)&h_x, N*sizeof(vec_t)); 
+	ALLOCATE_HOST_VECTOR((void**)&h_a, N*sizeof(vec_t)); 
+	ALLOCATE_HOST_VECTOR((void**)&h_m, N*sizeof(var_t)); 
+
+	ALLOCATE_DEVICE_VECTOR((void**)&d_x, N*sizeof(vec_t)); 
+	ALLOCATE_DEVICE_VECTOR((void**)&d_a, N*sizeof(vec_t)); 
+	ALLOCATE_DEVICE_VECTOR((void**)&d_m, N*sizeof(var_t)); 
+
+	memset(    h_a, 0, N*sizeof(vec_t));
+	cudaMemset(d_a, 0, N*sizeof(vec_t));
+
+	for( int i = 0; i < N; i++)
+	{
+		h_x[i].x = rand();
+		h_x[i].y = rand();
+		h_x[i].z = rand();
+		h_x[i].w = 0.0;
+
+		h_m[i] = 1.0;
+	}
+
+	copy_vector_to_device(d_x, h_x, N * sizeof(vec_t));
+	copy_vector_to_device(d_m, h_m, N * sizeof(var_t));
+
+
+	dim3 grid(N/N_THREAD);
+	dim3 block(N_THREAD);
+
+	kernel_calculate_acceleration<<<grid, block, N_THREAD * sizeof(vec_t), 0>>>(d_x, d_m, d_a);
+
+
+	FREE_HOST_VECTOR((void**)&h_x);
+	FREE_HOST_VECTOR((void**)&h_a);
+	FREE_HOST_VECTOR((void**)&h_m);
+
+	FREE_DEVICE_VECTOR((void**)&d_x);
+	FREE_DEVICE_VECTOR((void**)&d_a);
+	FREE_DEVICE_VECTOR((void**)&d_m);
 }
 
 #endif
@@ -1274,9 +1314,10 @@ int main()
 
 #endif
 
-
-#if 1
-
+#if 0
+/*
+ * Test the allocate/memset/copy/free cycle on the device.
+ */
 void call_kernel_print_sim_data(unsigned int n, sim_data_t* sim_data)
 {
 	printf("**********************************************************************\n");

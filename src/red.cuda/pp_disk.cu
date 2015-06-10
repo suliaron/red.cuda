@@ -486,7 +486,7 @@ static __global__
 	int tid = 0;
 	while (tid < n)
 	{
-		printf("%5d %6d %2d %2d %20.16le\n", tid, body_md[tid].id, body_md[tid].body_type, body_md[tid].mig_type, body_md[tid].mig_stop_at);
+		printf("%5d %6d %2d %2d %24.16le\n", tid, body_md[tid].id, body_md[tid].body_type, body_md[tid].mig_type, body_md[tid].mig_stop_at);
 		tid++;
 	}
 }
@@ -508,7 +508,7 @@ static __global__
 	int tid = 0;
 	while (tid < n)
 	{
-		printf("%5d %20.16lf, %20.16lf, %20.16lf, %20.16lf\n", tid, v[tid].x, v[tid].y, v[tid].z, v[tid].w);
+		printf("%5d %24.16le %24.16le %24.16le %24.16le\n", tid, v[tid].x, v[tid].y, v[tid].z, v[tid].w);
 		tid++;
 	}
 }
@@ -525,57 +525,91 @@ static __global__
 } /* kernel_utility */
 
 
-void pp_disk::print_sim_data(computing_device_t comp_dev)
+void pp_disk::print_sim_data(computing_device_t cd)
 {
 	const int n_total = get_n_total_body();
 
-	kernel_utility::print_vector<<<1, 1>>>(n_total, sim_data->d_y[0]);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
+	switch (cd)
 	{
-		throw nbody_exception("kernel_utility::print_vector failed", cudaStatus);
-	}
-	cudaDeviceSynchronize();
+	case COMPUTING_DEVICE_CPU:
+		{
+		printf("**********************************************************************\n");
+		printf("                 DATA ON THE HOST                                     \n");
+		printf("**********************************************************************\n\n");
+		printf("Position:\n");
+		const vec_t* v = sim_data->h_y[0];
+		for (unsigned int i = 0; i < n_total; i++)
+		{
+			printf("%5d %24.16le %24.16le %24.16le %24.16le\n", i, v[i].x, v[i].y, v[i].z, v[i].w);
+		}
 
-	kernel_utility::print_vector<<<1, 1>>>(n_total, sim_data->d_y[1]);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("kernel_utility::print_vector failed", cudaStatus);
-	}
-	cudaDeviceSynchronize();
+		printf("Body metaddata:\n");
+		const body_metadata_t* bmd = sim_data->h_body_md;
+		for (unsigned int i = 0; i < n_total; i++)
+		{
+			printf("%5d %6d %2d %2d %20.16le\n", i, bmd[i].id, bmd[i].body_type, bmd[i].mig_type, bmd[i].mig_stop_at);
+		}
 
-	kernel_utility::print_vector<<<1, 1>>>(n_total, (vec_t*)sim_data->d_p);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("kernel_utility::print_vector failed", cudaStatus);
-	}
-	cudaDeviceSynchronize();
+		}
+		break;
+	case COMPUTING_DEVICE_GPU:
+		{
+		printf("**********************************************************************\n");
+		printf("                 DATA ON THE DEVICE                                   \n");
+		printf("**********************************************************************\n\n");
+		printf("Position:\n");
+		kernel_utility::print_vector<<<1, 1>>>(n_total, sim_data->d_y[0]);
+		cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus)
+		{
+			throw nbody_exception("kernel_utility::print_vector failed", cudaStatus);
+		}
+		cudaDeviceSynchronize();
 
-	kernel_utility::print_body_metadata<<<1, 1>>>(n_total, sim_data->d_body_md);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("kernel_utility::print_body_metadata failed", cudaStatus);
-	}
-	cudaDeviceSynchronize();
+		//kernel_utility::print_vector<<<1, 1>>>(n_total, sim_data->d_y[1]);
+		//cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		//if (cudaSuccess != cudaStatus)
+		//{
+		//	throw nbody_exception("kernel_utility::print_vector failed", cudaStatus);
+		//}
+		//cudaDeviceSynchronize();
 
-	//kernel_utility::print_epochs<<<1, 1>>>(n_total, sim_data->d_epoch);
-	//cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	//if (cudaSuccess != cudaStatus) 
-	//{
-	//	throw nbody_exception("kernel_utility::print_epochs failed", cudaStatus);
-	//}
-	//cudaDeviceSynchronize();
+		//kernel_utility::print_vector<<<1, 1>>>(n_total, (vec_t*)sim_data->d_p);
+		//cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		//if (cudaSuccess != cudaStatus)
+		//{
+		//	throw nbody_exception("kernel_utility::print_vector failed", cudaStatus);
+		//}
+		//cudaDeviceSynchronize();
 
-	kernel_utility::print_constant_memory<<<1, 1>>>();
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("kernel_utility::print_constant_memory failed", cudaStatus);
+		kernel_utility::print_body_metadata<<<1, 1>>>(n_total, sim_data->d_body_md);
+		cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		if (cudaSuccess != cudaStatus)
+		{
+			throw nbody_exception("kernel_utility::print_body_metadata failed", cudaStatus);
+		}
+		cudaDeviceSynchronize();
+
+		//kernel_utility::print_epochs<<<1, 1>>>(n_total, sim_data->d_epoch);
+		//cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		//if (cudaSuccess != cudaStatus) 
+		//{
+		//	throw nbody_exception("kernel_utility::print_epochs failed", cudaStatus);
+		//}
+		//cudaDeviceSynchronize();
+
+		//kernel_utility::print_constant_memory<<<1, 1>>>();
+		//cudaStatus = HANDLE_ERROR(cudaGetLastError());
+		//if (cudaSuccess != cudaStatus)
+		//{
+		//	throw nbody_exception("kernel_utility::print_constant_memory failed", cudaStatus);
+		//}
+		//cudaDeviceSynchronize();
+		break;
+		}
+	default:
+		throw string("Parameter cd is out of range.");
 	}
-	cudaDeviceSynchronize();
 }
 
 void pp_disk::set_kernel_launch_param(int n_data)
@@ -916,6 +950,16 @@ void pp_disk::call_kernel_calc_drag_accel(ttt_t curr_t, const vec_t* r, const ve
 
 bool pp_disk::check_for_ejection_hit_centrum()
 {
+
+//DEBUG CODE BEGIN
+//printf("%s: %s() %d\n", __FILE__, __FUNCTION__, __LINE__);
+//const vec_t* v = sim_data->h_y[0];
+//for (unsigned int i = 0; i < 10; i++)
+//{
+//	printf("%5d %24.16le %24.16le %24.16le %24.16le\n", i, v[i].x, v[i].y, v[i].z, v[i].w);
+//}
+//DEBUG CODE END
+
 	// Number of ejection + hit centrum events
 	int n_event = 0;
 	switch (comp_dev)
@@ -929,6 +973,15 @@ bool pp_disk::check_for_ejection_hit_centrum()
 	default:
 		throw string("Parameter 'comp_dev' is out of range.");
 	}
+
+//DEBUG CODE BEGIN
+//printf("%s: %s() %d\n", __FILE__, __FUNCTION__, __LINE__);
+//v = sim_data->h_y[0];
+//for (unsigned int i = 0; i < 10; i++)
+//{
+//	printf("%5d %24.16le %24.16le %24.16le %24.16le\n", i, v[i].x, v[i].y, v[i].z, v[i].w);
+//}
+//DEBUG CODE END
 
 	if (0 < n_event)
 	{
@@ -1007,8 +1060,8 @@ int pp_disk::cpu_check_for_ejection_hit_centrum()
 	int n_total = n_bodies->get_n_total_playing();
 	interaction_bound int_bound(0, n_total, 0, 0);
 
-	const vec_t* r = sim_data->y[0];
-	const vec_t* v = sim_data->y[1];
+	const vec_t* r = sim_data->r;
+	const vec_t* v = sim_data->v;
 	const param_t* p = sim_data->h_p;
 	body_metadata_t* body_md = sim_data->body_md;
 	
@@ -1049,8 +1102,8 @@ int pp_disk::cpu_check_for_collision(interaction_bound int_bound, bool SI_NSI, b
 {
 	const double f = SQR(threshold[THRESHOLD_RADII_ENHANCE_FACTOR]);
 
-	const vec_t* r = sim_data->y[0];
-	const vec_t* v = sim_data->y[1];
+	const vec_t* r = sim_data->r;
+	const vec_t* v = sim_data->v;
 	const param_t* p = sim_data->h_p;
 	body_metadata_t* body_md = sim_data->body_md;
 
@@ -1104,7 +1157,7 @@ int pp_disk::call_kernel_check_for_ejection_hit_centrum()
 	set_kernel_launch_param(n_total);
 
 	kernel_pp_disk::check_for_ejection_hit_centrum<<<grid, block>>>
-		(t, int_bound, sim_data->p, sim_data->y[0], sim_data->y[1], sim_data->body_md, d_events, d_event_counter);
+		(t, int_bound, sim_data->p, sim_data->r, sim_data->v, sim_data->body_md, d_events, d_event_counter);
 
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus)
@@ -1124,7 +1177,7 @@ int pp_disk::call_kernel_check_for_collision()
 	set_kernel_launch_param(n_total);
 
 	kernel_pp_disk::check_for_collision<<<grid, block>>>
-		(t, int_bound, sim_data->p, sim_data->y[0], sim_data->y[1], sim_data->body_md, d_events, d_event_counter);
+		(t, int_bound, sim_data->p, sim_data->r, sim_data->v, sim_data->body_md, d_events, d_event_counter);
 
 	cudaStatus = HANDLE_ERROR(cudaGetLastError());
 	if (cudaSuccess != cudaStatus)
@@ -1197,6 +1250,23 @@ void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t
 	}
 }
 
+void pp_disk::update(sim_data_t* sim_data, actual_phase_storage_t aps)
+{
+	switch (aps)
+	{
+	case ACTUAL_PHASE_STORAGE_Y:
+		sim_data->r = sim_data->y[0];
+		sim_data->v = sim_data->y[1];
+		break;
+	case ACTUAL_PHASE_STORAGE_YOUT:
+		sim_data->r = sim_data->yout[0];
+		sim_data->v = sim_data->yout[1];
+		break;
+	default:
+		throw string("Parameter 'aps' is out of range.");
+	}
+}
+
 void pp_disk::swap()
 {
 	for (int i = 0; i < 2; i++)
@@ -1213,6 +1283,7 @@ void pp_disk::swap()
 	{
 		aps = ACTUAL_PHASE_STORAGE_Y;
 	}
+	update(sim_data, aps);
 }
 
 void pp_disk::increment_event_counter(int *event_counter)
@@ -1393,6 +1464,8 @@ pp_disk::pp_disk(number_of_bodies *n_bodies, int n_tpb, bool ups, gas_disk_model
 	allocate_storage();
 	redutilcu::create_aliases(comp_dev, sim_data);
 	tools::populate_data(n_bodies->initial, sim_data);
+	
+	update(sim_data, aps);
 }
 
 pp_disk::pp_disk(string& path, bool continue_simulation, int n_tpb, bool ups, gas_disk_model_t g_disk_model, computing_device_t comp_dev) :
@@ -1410,6 +1483,8 @@ pp_disk::pp_disk(string& path, bool continue_simulation, int n_tpb, bool ups, ga
 	allocate_storage();
 	redutilcu::create_aliases(comp_dev, sim_data);
 	load(path, repres);
+	
+	update(sim_data, aps);
 }
 
 pp_disk::~pp_disk()
@@ -1478,18 +1553,27 @@ void pp_disk::set_computing_device(computing_device_t device)
 	switch (device)
 	{
 	case COMPUTING_DEVICE_CPU:
+
+		//print_sim_data(COMPUTING_DEVICE_CPU);
+		//print_sim_data(COMPUTING_DEVICE_GPU);
 		copy_to_host();
+		//print_sim_data(COMPUTING_DEVICE_GPU);
+
 		clear_event_counter();
-		//deallocate_device_storage(sim_data);
-		//FREE_DEVICE_VECTOR((void **)&d_events);
-		//FREE_DEVICE_VECTOR((void **)&d_event_counter);
+		deallocate_device_storage(sim_data);
+		FREE_DEVICE_VECTOR((void **)&d_events);
+		FREE_DEVICE_VECTOR((void **)&d_event_counter);
 		break;
 	case COMPUTING_DEVICE_GPU:
-		//allocate_device_storage(sim_data, n_total);
-		//ALLOCATE_DEVICE_VECTOR((void **)&d_events,        n_total*sizeof(event_data_t));
-		//ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,       1*sizeof(int));
+		allocate_device_storage(sim_data, n_total);
+		ALLOCATE_DEVICE_VECTOR((void **)&d_events,        n_total*sizeof(event_data_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,       1*sizeof(int));
 
+		//print_sim_data(COMPUTING_DEVICE_CPU);
+		//print_sim_data(COMPUTING_DEVICE_GPU);
 		copy_to_device();
+		//print_sim_data(COMPUTING_DEVICE_GPU);
+
 		copy_disk_params_to_device();
 		copy_constant_to_device(dc_threshold, this->threshold, THRESHOLD_N*sizeof(var_t));
 		copy_vector_to_device((void *)d_event_counter, (void *)&event_counter, 1*sizeof(int));
@@ -1498,6 +1582,7 @@ void pp_disk::set_computing_device(computing_device_t device)
 		throw string("Parameter 'device' is out of range.");
 	}
 	redutilcu::create_aliases(device, sim_data);
+	update(sim_data, aps);
 
 	this->comp_dev = device;
 }
@@ -1621,17 +1706,6 @@ void pp_disk::copy_to_device()
 	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->h_epoch,	 n_body*sizeof(ttt_t));
 
 	copy_vector_to_device((void *)d_event_counter,		(void *)&event_counter,		      1*sizeof(int));
-
-// DEBUG CODE
-	//{
-	//	string path = "C:\\Work\\Projects\\red.cuda\\TestRun\\CPU_GPU_ChangeTest\\result_Y.txt";
-	//	ofstream output(path.c_str());
-	//	print_result_ascii(output);
-	//}
-// DEBUG CODE
-// DEBUG CODE BEGIN
-	print_sim_data(COMPUTING_DEVICE_GPU);
-// DEBUG CODE END
 }
 
 void pp_disk::copy_to_host()

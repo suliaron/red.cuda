@@ -340,6 +340,9 @@ typedef struct fargo_gas_disk_params
 
 typedef struct sim_data
 		{
+			vec_t*			r;				//!< Vector of actual positions
+			vec_t*			v;				//!< Vector of actual velocities
+
 			vector<vec_t*>	 y;				//!< Vectors of initial position and velocity of the bodies on the host (either in the DEVICE or HOST memory)
 			vector<vec_t*>	 yout;			//!< Vectors of ODE variables at the end of the step (at time tout) (either in the DEVICE or HOST memory)
 			param_t*		 p;   			//!< Vector of body parameters (either in the DEVICE or HOST memory)
@@ -363,6 +366,8 @@ typedef struct sim_data
 
 			sim_data()
 			{
+				r       = 0x0;
+				v       = 0x0;
 				p       = d_p       = h_p       = 0x0;
 				body_md = d_body_md = h_body_md = 0x0;
 				epoch   = d_epoch   = h_epoch   = 0x0;

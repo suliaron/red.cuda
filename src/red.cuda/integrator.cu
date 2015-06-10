@@ -204,10 +204,10 @@ void integrator::set_computing_device(computing_device_t device)
 	switch (device)
 	{
 	case COMPUTING_DEVICE_CPU:
-		//deallocate_device_storage();
+		deallocate_device_storage();
 		break;
 	case COMPUTING_DEVICE_GPU:
-		//allocate_device_storage(n_body);
+		allocate_device_storage(n_body);
 		break;
 	default:
 		throw string("Parameter 'device' is out of range.");

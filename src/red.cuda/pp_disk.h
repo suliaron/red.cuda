@@ -135,6 +135,7 @@ public:
 
 	//! Swaps the yout with the y variable, i.e. at the end of an integration step the output will be the input of the next step
 	void swap();
+	void update(sim_data_t* sim_data, actual_phase_storage_t aps);
 
 	void remove_inactive_bodies();
 
