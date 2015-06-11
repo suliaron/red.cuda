@@ -305,7 +305,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	unsigned int n_dump = 0;
 	while (1 < ppd->n_bodies->get_n_total_active() && ppd->t <= opt.param->stop_time)
 	{
-#if 1
+#if 0
 		//if (0 < dummy_k && 0 == dummy_k % 10)
 		if (n_removed >= 10)
 		//if (ppd->n_bodies->get_n_total_inactive() >= n_inactive)
