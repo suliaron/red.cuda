@@ -305,14 +305,10 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	unsigned int n_dump = 0;
 	while (1 < ppd->n_bodies->get_n_total_active() && ppd->t <= opt.param->stop_time)
 	{
-//DEBUG CODE BEGIN
-printf("\nStorage for variables: %s", (intgr->get_n_passed_step() % 2 == 0 ? "Y" : "YOUT"));
-printf(" (%s)\n", (ppd->aps == ACTUAL_PHASE_STORAGE_Y ? "Y" : "YOUT"));
-//DEBUG CODE END
 #if 1
 		//if (0 < dummy_k && 0 == dummy_k % 10)
-		//if (n_removed >= 10)
-		if (ppd->n_bodies->get_n_total_inactive() >= n_inactive)
+		if (n_removed >= 10)
+		//if (ppd->n_bodies->get_n_total_inactive() >= n_inactive)
 		{
 			n_removed = 0;
 			n_inactive += 10;
@@ -338,13 +334,13 @@ printf(" (%s)\n", (ppd->aps == ACTUAL_PHASE_STORAGE_Y ? "Y" : "YOUT"));
 				}
 			case COMPUTING_DEVICE_GPU:
 				{
-					int id_of_target_GPU = redutilcu::get_id_fastest_GPU();
+					int id_of_target_GPU = redutilcu::get_id_fastest_cuda_device();
 					redutilcu::set_device(id_of_target_GPU, *output[OUTPUT_NAME_LOG], opt.verbose, opt.print_to_screen);
 
 					intgr->set_computing_device(target_device);
 					if (opt.verbose)
 					{
-						file::log_message(*output[OUTPUT_NAME_LOG], "Execution was transferred to GPU with id: " + redutilcu::number_to_string(id_of_target_GPU), opt.print_to_screen);
+						file::log_message(*output[OUTPUT_NAME_LOG], "Execution was transferred to GPU " + redutilcu::get_name_cuda_device(id_of_target_GPU), opt.print_to_screen);
 					}
 					break;
 				}
@@ -381,7 +377,7 @@ printf(" (%s)\n", (ppd->aps == ACTUAL_PHASE_STORAGE_Y ? "Y" : "YOUT"));
 			intgr->set_computing_device(COMPUTING_DEVICE_CPU);
 			if (opt.verbose)
 			{
-				string msg = "Number of self-interacting bodies dropped below " + redutilcu::number_to_string(opt.n_change_to_cpu) + ". Execution was transferred to CPU";
+				string msg = "Number of self-interacting bodies dropped below " + redutilcu::number_to_string(opt.n_change_to_cpu) + ". Execution was transferred to CPU.";
 				file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
 			}
 		}
@@ -399,32 +395,8 @@ printf(" (%s)\n", (ppd->aps == ACTUAL_PHASE_STORAGE_Y ? "Y" : "YOUT"));
 			ppd->clear_event_counter();
 		}
 
-//DEBUG CODE BEGIN
-//printf("%s: %s() %d\n", __FILE__, __FUNCTION__, __LINE__);
-//const vec_t* v = ppd->sim_data->h_y[0];
-//for (unsigned int i = 0; i < 10; i++)
-//{
-//	printf("%5d %24.16le %24.16le %24.16le %24.16le\n", i, v[i].x, v[i].y, v[i].z, v[i].w);
-//}
-//DEBUG CODE END
-
 		dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
 		ps += fabs(dt);
-
-//DEBUG CODE BEGIN
-//printf("%s: %s() %d\n", __FILE__, __FUNCTION__, __LINE__);
-//v = ppd->sim_data->h_y[0];
-//for (unsigned int i = 0; i < 10; i++)
-//{
-//	printf("%5d %24.16le %24.16le %24.16le %24.16le\n", i, v[i].x, v[i].y, v[i].z, v[i].w);
-//}
-//DEBUG CODE END
-
-		//if (0.0 < opt.param->thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] && ppd->check_for_collision())
-		//{
-		//	ppd->print_event_data(*event_f, *log_f);
-		//	ppd->clear_event_counter();
-		//}
 
 		if (opt.param->output_interval <= fabs(ps))
 		{
@@ -436,8 +408,9 @@ printf(" (%s)\n", (ppd->aps == ACTUAL_PHASE_STORAGE_Y ? "Y" : "YOUT"));
 			ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
 		}
 
-		if (ppd->check_for_rebuild_vectors(100))
+		if (ppd->check_for_rebuild_vectors(4))
 		{
+			n_inactive = 0;
 			n_removed += ppd->n_bodies->n_removed;
 			string msg = "Rebuild the vectors (removed " + redutilcu::number_to_string(ppd->n_bodies->n_removed) + " inactive bodies at t: " + redutilcu::number_to_string(ppd->t / constants::Gauss) + ")";
 			file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
@@ -445,14 +418,14 @@ printf(" (%s)\n", (ppd->aps == ACTUAL_PHASE_STORAGE_Y ? "Y" : "YOUT"));
 
 		if (10 < n_removed || opt.dump_dt < (clock() - time_of_last_dump) / (double)CLOCKS_PER_SEC)
 		{
-			n_removed = 0;
-			time_of_last_dump = clock();
+			//n_removed = 0;
+			//time_of_last_dump = clock();
 			//if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 			//{
 			//	ppd->copy_to_host();
 			//}
 			//print_dump(output[OUTPUT_NAME_DUMP], opt, ppd, n_dump, DATA_REPRESENTATION_BINARY);
-			n_dump++;
+			//n_dump++;
 		}
 
 		if (opt.info_dt < (clock() - time_info_start) / (double)CLOCKS_PER_SEC) 

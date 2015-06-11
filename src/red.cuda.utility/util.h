@@ -10,6 +10,10 @@ namespace redutilcu
 	std::string number_to_string(T number);
 	void device_query(ostream& sout, int id_dev, bool print_to_screen);
 
+	int get_id_fastest_cuda_device();
+	int get_n_cuda_device();
+	string get_name_cuda_device(int id_dev);
+
 	void allocate_host_vector(  void **ptr, size_t size,           const char *file, int line);
 	void allocate_device_vector(void **ptr, size_t size,           const char *file, int line);
 	void allocate_vector(       void **ptr, size_t size, bool cpu, const char *file, int line);
@@ -38,7 +42,7 @@ namespace redutilcu
 
 	void copy_constant_to_device(const void* dst, const void *src, size_t count);
 
-	int get_id_fastest_GPU();
+
 	void set_device(int id_of_target_dev, ostream& sout, bool verbose, bool print_to_screen);
 	void print_array(string path, int n, var_t *data, computing_device_t comp_dev);
 

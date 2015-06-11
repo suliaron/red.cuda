@@ -135,7 +135,6 @@ public:
 
 	//! Swaps the yout with the y variable, i.e. at the end of an integration step the output will be the input of the next step
 	void swap();
-	void update(sim_data_t* sim_data, actual_phase_storage_t aps);
 
 	void remove_inactive_bodies();
 
@@ -154,8 +153,6 @@ public:
 	int n_hit_centrum[EVENT_COUNTER_NAME_N];   //!< Number of hit centrum
 	int n_collision[  EVENT_COUNTER_NAME_N];   //!< Number of collision
 	int n_event[      EVENT_COUNTER_NAME_N];   //!< Number of total events
-
-	actual_phase_storage_t aps;                //!< Shows which storage (y or yout) has the actual phases of the bodies
 
 private:
 	void increment_event_counter(int *event_counter);

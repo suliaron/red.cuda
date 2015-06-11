@@ -81,6 +81,46 @@ inline int _ConvertSMVer2Cores(int major, int minor)
 }
 // end of GPU Architecture definitions
 
+string get_name_cuda_device(int id_dev)
+{
+	string result;
+
+	cudaError_t cudaStatus = cudaSuccess;
+
+	cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, id_dev);
+
+	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("cudaGetDeviceProperties() failed");
+	}
+
+	result = deviceProp.name;
+	return result;
+}
+
+// TODO: implement
+int get_id_fastest_cuda_device()
+{
+	return 0;
+}
+
+int get_n_cuda_device()
+{
+	cudaError_t cudaStatus = cudaSuccess;
+
+	int n_device = 0;
+	cudaGetDeviceCount(&n_device);
+	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw string("cudaGetDeviceCount() failed");
+	}
+
+	return n_device;
+}
+
 void device_query(ostream& sout, int id_dev)
 {
     int deviceCount = 0;
@@ -360,32 +400,17 @@ void copy_constant_to_device(const void* dst, const void *src, size_t count)
 	}
 }
 
-// TODO: implement
-int get_id_fastest_GPU()
-{
-	return 0;
-}
 
 void set_device(int id_of_target_dev, ostream& sout, bool verbose, bool print_to_screen)
 {
 	cudaError_t cudaStatus = cudaSuccess;
 
-	int n_device = 0;
-	cudaGetDeviceCount(&n_device);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaGetDeviceCount() failed");
-	}
+	int n_device = get_n_cuda_device();
 	if (0 == n_device)
 	{
 		throw string("No CUDA device was found. ");
 	}
 
-	if (verbose)
-	{
-		file::log_message(sout, "The number of CUDA device(s): " + number_to_string(n_device), print_to_screen);
-	}
 	if (n_device > id_of_target_dev && 0 <= id_of_target_dev)
 	{
 		// Set the desired id of the device
@@ -395,10 +420,10 @@ void set_device(int id_of_target_dev, ostream& sout, bool verbose, bool print_to
 		{
 			throw string("cudaSetDevice() failed");
 		}
-		if (verbose)
-		{
-			file::log_message(sout, "Execution will be transferred to the GPU with id: " + number_to_string(id_of_target_dev), print_to_screen);
-		}
+		//if (verbose)
+		//{
+		//	file::log_message(sout, "Execution will be transferred to the GPU with id: " + number_to_string(id_of_target_dev), print_to_screen);
+		//}
 	}
 	else
 	{
