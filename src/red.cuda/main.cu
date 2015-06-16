@@ -12,13 +12,15 @@
 #include "device_launch_parameters.h"
 
 // includes project
-#include "parameter.h"
-#include "redutilcu.h"
 #include "nbody_exception.h"
+#include "number_of_bodies.h"
+#include "integrator.h"
 #include "options.h"
+#include "parameter.h"
+#include "test.h"
+
 #include "red_type.h"
 #include "red_constants.h"
-#include "test.h"
 #include "redutilcu.h"
 
 using namespace std;

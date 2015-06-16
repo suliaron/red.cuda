@@ -540,7 +540,7 @@ void pp_disk::benchmark()
 	cudaDeviceProp deviceProp;
 	cudaGetDeviceProperties(&deviceProp, this->id_dev);
 
-	int half_warp_size = deviceProp.warpSize/2;
+	unsigned int half_warp_size = deviceProp.warpSize/2;
 	vector<float2> execution_time;
 
 	unsigned int n_sink = n_bodies->get_n_SI();
