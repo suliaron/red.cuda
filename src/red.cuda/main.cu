@@ -202,7 +202,6 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 		cudaGetDeviceProperties(&deviceProp, opt.id_dev);
 
 		int half_warp_size = deviceProp.warpSize/2;
-		//int n_pass = (deviceProp.maxThreadsPerBlock - half_warp_size)/half_warp_size + 1;
 		vector<float2> execution_time;
 
 		vec_t* d_dy = 0x0;
@@ -223,7 +222,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 
 				clock_t t_start = clock();
 				float cu_elt = ppd->benchmark_calc_grav_accel(curr_t, n_sink, int_bound, bmd, p, r, v, d_dy);
-				clock_t elapsed_time = clock() - t_start;
+				clock_t elapsed_time = ((clock() - t_start)/(double)CLOCKS_PER_SEC)/1000.0; // [ms]
 
 				cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
 				if (cudaSuccess != cudaStatus)
@@ -276,11 +275,12 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 
 			t_start = clock();
 			ppd->cpu_calc_grav_accel_SI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
-			elapsed_time = clock() - t_start;
+			elapsed_time = ((clock() - t_start)/(double)CLOCKS_PER_SEC)/1000.0; // [ms]
+
+			sout << "SI:" << endl;
+			sout << "----------------------------------------------" << endl;
+			sout << "dt: " << setprecision(10) << setw(16) << elapsed_time / CLOCKS_PER_SEC << " s" << endl;
 		}
-		sout << "SI:" << endl;
-		sout << "----------------------------------------------" << endl;
-		sout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
 
 		n_sink = ppd->n_bodies->get_n_NSI();
 		if (0 < n_sink)
@@ -289,11 +289,12 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 
 			t_start = clock();
 			ppd->cpu_calc_grav_accel_NSI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
-			elapsed_time = clock() - t_start;
+			elapsed_time = ((clock() - t_start)/(double)CLOCKS_PER_SEC)/1000.0; // [ms]
+
+			sout << "NSI:" << endl;
+			sout << "----------------------------------------------" << endl;
+			sout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
 		}
-		sout << "NSI:" << endl;
-		sout << "----------------------------------------------" << endl;
-		sout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
 
 		n_sink = ppd->n_bodies->get_n_NI();
 		if (0 < n_sink)
@@ -302,11 +303,12 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 
 			t_start = clock();			
 			ppd->cpu_calc_grav_accel_NI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
-			elapsed_time = clock() - t_start;
+			elapsed_time = ((clock() - t_start)/(double)CLOCKS_PER_SEC)/1000.0; // [ms]
+
+			sout << "NI:" << endl;
+			sout << "----------------------------------------------" << endl;
+			sout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
 		}
-		sout << "NI:" << endl;
-		sout << "----------------------------------------------" << endl;
-		sout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
 	}
 }
 
