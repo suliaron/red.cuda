@@ -36,7 +36,7 @@ public:
 
 	unsigned int n_tpb0;            //!< Number of initial thread per block to use in kernel lunches (default is 64)
 	unsigned int n_change_to_cpu;   //!< The threshold value for the total number of SI bodies to change to the CPU
-	unsigned int id_a_dev;          //!< The id of the device which will execute the code
+	unsigned int id_dev;            //!< The id of the device which will execute the code
 
 	ttt_t info_dt;                  //!< The time interval in seconds between two subsequent information print to the screen (default value is 5 sec)
 	ttt_t dump_dt;                  //!< The time interval in seconds between two subsequent data dump to the hdd (default value is 3600 sec)

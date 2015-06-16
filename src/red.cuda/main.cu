@@ -99,9 +99,11 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 	sout.setf(ios::scientific);
 
 	number_of_bodies* nb = ppd->n_bodies; 
+	string dev = (intgr->get_computing_device() == COMPUTING_DEVICE_CPU ? "CPU" : "GPU");
 
 	*time_info_start = clock();
-	cout << tools::get_time_stamp() 
+	cout << "[" << dev << "] " 
+		 << tools::get_time_stamp() 
 		 << " t: " << setprecision(6) << setw(12) << ppd->t / constants::Gauss
 		 << ", dt: " << setprecision(6) << setw(12)  << dt / constants::Gauss;
 	cout << ", dT: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
@@ -111,7 +113,8 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
 		 << ", N : " << setw(6) << nb->get_n_total_playing() << "(" << setw(3) << nb->get_n_total_inactive() << ", " << setw(5) << nb->get_n_total_removed() << ")" << endl;
 
-	sout << tools::get_time_stamp()
+	sout << "[" << dev << "] " 
+		 << tools::get_time_stamp()
 		 << " t: " << setprecision(6) << setw(12) << ppd->t / constants::Gauss
 		 << ", dt: " << setprecision(6) << setw(12)  << dt / constants::Gauss;
 	sout << ", dT: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
@@ -169,8 +172,10 @@ ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* t_step)
 
 void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream& sout)
 {
-	cout.setf(ios::right);
-	cout.setf(ios::scientific);
+	cout << "See the log file for the result." << endl;
+
+	sout.setf(ios::right);
+	sout.setf(ios::scientific);
 
 	sout.setf(ios::right);
 	sout.setf(ios::scientific);
@@ -183,38 +188,54 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 	param_t* p = ppd->sim_data->p;
 	body_metadata_t* bmd = ppd->sim_data->body_md;
 
+	sout << endl;
 	ttt_t curr_t = 0.0;
 	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 	{
-		cout << "----------------------------------------------" << endl;
-		cout << "GPU:" << endl;
-		cout << "----------------------------------------------" << endl << endl;
+		sout << "----------------------------------------------" << endl;
+		sout << "GPU:" << endl;
+		sout << "----------------------------------------------" << endl << endl;
 
-		int n_pass = (512 - 16)/16 + 1;
+		cudaDeviceProp deviceProp;
+		cudaGetDeviceProperties(&deviceProp, opt.id_dev);
+
+		int half_warp_size = deviceProp.warpSize/2;
+		//int n_pass = (deviceProp.maxThreadsPerBlock - half_warp_size)/half_warp_size + 1;
 		vector<float2> execution_time;
 
 		vec_t* d_dy = 0x0;
 		ALLOCATE_DEVICE_VECTOR((void**)&d_dy, size);
 
-		int n_sink = ppd->n_bodies->get_n_SI();
+		unsigned int n_sink = ppd->n_bodies->get_n_SI();
+		unsigned int n_pass = 0;
 		if (0 < n_sink)
 		{
-			cout << "SI:" << endl;
-			cout << "----------------------------------------------" << endl;
+			sout << "SI:" << endl;
+			sout << "----------------------------------------------" << endl;
 
-			for (int n_tpb = 16; n_tpb <= 512; n_tpb += 16)
+			for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock; n_tpb += half_warp_size)
 			{
+				sout << "n_tpb: " << setw(6) << n_tpb;
 				ppd->set_n_tpb(n_tpb);
 				interaction_bound int_bound = ppd->n_bodies->get_bound_SI(false, n_tpb);
 
 				clock_t t_start = clock();
-				float cu_elt = ppd->wrapper_kernel_pp_disk_calc_grav_accel(curr_t, n_sink, int_bound, bmd, p, r, v, d_dy);
+				float cu_elt = ppd->benchmark_calc_grav_accel(curr_t, n_sink, int_bound, bmd, p, r, v, d_dy);
 				clock_t elapsed_time = clock() - t_start;
+
+				cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+				if (cudaSuccess != cudaStatus)
+				{
+					string msg(cudaGetErrorString( cudaStatus ));
+			        sout << " " << msg << endl;
+					break;
+				}
 
 				float2 exec_t = {(float)elapsed_time, cu_elt};
 				execution_time.push_back(exec_t);
 
-				cout << "n_tpb: " << setw(6) << n_tpb << " dt: " << setprecision(6) << setw(6) << elapsed_time << " (" << setw(6) << cu_elt << ") [ms]" << endl;
+				sout << " dt: " << setprecision(6) << setw(6) << elapsed_time << " (" << setw(6) << cu_elt << ") [ms]" << endl;
+				n_pass++;
 			}
 
 			float min_y = 1.0e10;
@@ -227,7 +248,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 					min_idx = i;
 				}
 			}
-			cout << "Minimum at n_tpb = " << (min_idx * 16 + 16) << ", where execution time is: " << execution_time[min_idx].y << " [ms]" << endl;
+			sout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx].y << " [ms]" << endl;
 		}
 
 		FREE_DEVICE_VECTOR((void**)&d_dy);
@@ -236,9 +257,9 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 	} /* if */
 	else
 	{
-		cout << "----------------------------------------------" << endl;
-		cout << "CPU:" << endl;
-		cout << "----------------------------------------------" << endl << endl;
+		sout << "----------------------------------------------" << endl;
+		sout << "CPU:" << endl;
+		sout << "----------------------------------------------" << endl << endl;
 
 		clock_t t_start;
 		clock_t elapsed_time;
@@ -255,9 +276,9 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 			ppd->cpu_calc_grav_accel_SI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
 			elapsed_time = clock() - t_start;
 		}
-		cout << "SI:" << endl;
-		cout << "----------------------------------------------" << endl;
-		cout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
+		sout << "SI:" << endl;
+		sout << "----------------------------------------------" << endl;
+		sout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
 
 		n_sink = ppd->n_bodies->get_n_NSI();
 		if (0 < n_sink)
@@ -268,9 +289,9 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 			ppd->cpu_calc_grav_accel_NSI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
 			elapsed_time = clock() - t_start;
 		}
-		cout << "NSI:" << endl;
-		cout << "----------------------------------------------" << endl;
-		cout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
+		sout << "NSI:" << endl;
+		sout << "----------------------------------------------" << endl;
+		sout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
 
 		n_sink = ppd->n_bodies->get_n_NI();
 		if (0 < n_sink)
@@ -281,9 +302,9 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 			ppd->cpu_calc_grav_accel_NI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
 			elapsed_time = clock() - t_start;
 		}
-		cout << "NI:" << endl;
-		cout << "----------------------------------------------" << endl;
-		cout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
+		sout << "NI:" << endl;
+		sout << "----------------------------------------------" << endl;
+		sout << "dt: " << setprecision(10) << setw(16) << elapsed_time << " ms" << endl;
 	}
 }
 
@@ -303,6 +324,14 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	unsigned int n_inactive = 10;
 	unsigned int n_removed = 0;
 	unsigned int n_dump = 0;
+
+	ppd->benchmark();
+	if (opt.verbose)
+	{
+		string msg = "Number of thread per block was set to " + redutilcu::number_to_string(ppd->get_n_tpb());
+		file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+	}
+
 	while (1 < ppd->n_bodies->get_n_total_active() && ppd->t <= opt.param->stop_time)
 	{
 #if 0
@@ -414,6 +443,16 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			n_removed += ppd->n_bodies->n_removed;
 			string msg = "Rebuild the vectors (removed " + redutilcu::number_to_string(ppd->n_bodies->n_removed) + " inactive bodies at t: " + redutilcu::number_to_string(ppd->t / constants::Gauss) + ")";
 			file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+
+			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
+			{
+				ppd->benchmark();
+				if (opt.verbose)
+				{
+					string msg = "Number of thread per block was set to " + redutilcu::number_to_string(ppd->get_n_tpb());
+					file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+				}
+			}
 		}
 
 		if (10 < n_removed || opt.dump_dt < (clock() - time_of_last_dump) / (double)CLOCKS_PER_SEC)
@@ -500,7 +539,7 @@ int main(int argc, const char** argv, const char** env)
 		file::log_start_cmd(*output[OUTPUT_NAME_LOG], argc, argv, env, opt.print_to_screen);
 		if (opt.verbose && COMPUTING_DEVICE_GPU == opt.comp_dev)
 		{
-			device_query(*output[OUTPUT_NAME_LOG], opt.id_a_dev, opt.print_to_screen);
+			device_query(*output[OUTPUT_NAME_LOG], opt.id_dev, opt.print_to_screen);
 		}
 
 		if (opt.benchmark)

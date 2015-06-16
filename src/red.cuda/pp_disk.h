@@ -16,8 +16,8 @@ class pp_disk
 {
 public:
 
-	pp_disk(number_of_bodies *n_bodies, int n_tpb, bool ups, gas_disk_model_t g_disk_model, computing_device_t comp_dev);
-	pp_disk(string& path, bool continue_simulation, int n_tpb, bool ups, gas_disk_model_t g_disk_model, computing_device_t comp_dev);
+	pp_disk(number_of_bodies *n_bodies, int n_tpb, bool ups, gas_disk_model_t g_disk_model, int id_dev, computing_device_t comp_dev);
+	pp_disk(string& path, bool continue_simulation, int n_tpb, bool ups, gas_disk_model_t g_disk_model, int id_dev, computing_device_t comp_dev);
 	~pp_disk();
 
 	//! Initialize the members to default values
@@ -44,8 +44,11 @@ public:
 	void set_computing_device(computing_device_t device);
 	computing_device_t get_computing_device() { return comp_dev; }
 
-	void set_n_tpb(int n) { n_tpb = n;    }
-	int  get_n_tpb(void)  { return n_tpb; }
+	void set_n_tpb(int n)   { n_tpb = n;     }
+	int  get_n_tpb(void)    { return n_tpb;  }
+
+	void set_id_dev(int id) { id_dev = id;   }
+	int  get_id_dev(void)   { return id_dev; }
 
 	//! Returns the mass of the central star
 	var_t get_mass_of_star();
@@ -191,7 +194,8 @@ private:
 	void set_kernel_launch_param(int n_data);
 
 public:
-	float wrapper_kernel_pp_disk_calc_grav_accel(ttt_t curr_t, int n_sink, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
+	void benchmark();
+	float benchmark_calc_grav_accel(ttt_t curr_t, int n_sink, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
 
 	void call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void call_kernel_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
@@ -207,6 +211,7 @@ private:
 	
 	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 
+	int id_dev;						//!< The id of the GPU
 	computing_device_t comp_dev;    //!< The computing device to carry out the calculations (cpu or gpu)
 
 	int		n_tpb;					//!< The number of thread per block to use for kernel launches

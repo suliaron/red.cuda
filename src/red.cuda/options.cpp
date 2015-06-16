@@ -23,7 +23,11 @@ options::options(int argc, const char** argv)
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
-		set_device(id_a_dev, std::cout, verbose, print_to_screen);
+		set_device(id_dev, std::cout);
+		if (verbose && print_to_screen)
+		{
+			cout << "Execution was transferred to GPU " << redutilcu::get_name_cuda_device(id_dev) << endl;
+		}
 	}
 	if (COMPUTING_DEVICE_CPU == comp_dev)
 	{
@@ -106,7 +110,7 @@ void options::create_default()
 	info_dt             = 5.0;     // [sec]
 	dump_dt             = 3600.0;  // [sec]
 
-	id_a_dev            = 0;
+	id_dev              = 0;
 	n_tpb0              = 64;
 	n_change_to_cpu     = 100;
 				       
@@ -142,7 +146,7 @@ void options::parse(int argc, const char** argv)
 			{
 				throw string("Invalid number at: " + p);
 			}
-			id_a_dev = atoi(argv[i]);
+			id_dev = atoi(argv[i]);
 		}
 		else if (p == "--use-padded-storage" || p == "-ups")
 		{
@@ -295,12 +299,12 @@ pp_disk* options::create_pp_disk()
 
 	if (benchmark)
 	{
-		ppd = new pp_disk(n_bodies, n_tpb0, ups, g_disk_model, comp_dev);
+		ppd = new pp_disk(n_bodies, n_tpb0, ups, g_disk_model, id_dev, comp_dev);
 	}
 	else
 	{
 		string path = file::combine_path(input_dir, bodylist_filename);
-		ppd = new pp_disk(path, continue_simulation, n_tpb0, ups, g_disk_model, comp_dev);
+		ppd = new pp_disk(path, continue_simulation, n_tpb0, ups, g_disk_model, id_dev, comp_dev);
 	}
 	switch (g_disk_model)
 	{

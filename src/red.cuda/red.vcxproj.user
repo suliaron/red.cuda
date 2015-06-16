@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-gpu -v -pts -ef -n_chg 100 -iDir C:\Work\Projects\red.cuda\TestRun\CPU_GPU_ChangeTest\20150611 -p parameters.txt -ic run_04.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-gpu -v -pts -n_chg 100 -iDir C:\Work\red.cuda.Results\CollisionStatistics\2D\Aref_4\Run_01 -p parameters.txt -ic input.txt </LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-cpu -v -pts -ef -n_chg 0 -iDir C:\Work\Projects\red.cuda\TestRun\CPU_GPU_ChangeTest\20150611 -p parameters.txt -ic run_04.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-gpu -v -pts -ef -n_chg 0 -iDir C:\Work\Projects\red.cuda\TestRun\CPU_GPU_ChangeTest\20150612 -p parameters.txt -ic run_04.txt </LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

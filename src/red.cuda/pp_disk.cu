@@ -525,6 +525,90 @@ static __global__
 } /* kernel_utility */
 
 
+void pp_disk::benchmark()
+{
+	// Create aliases
+	vec_t* r   = sim_data->y[0];
+	vec_t* v   = sim_data->y[1];
+	param_t* p = sim_data->p;
+	body_metadata_t* bmd = sim_data->body_md;
+
+	size_t size = n_bodies->get_n_total_playing() * sizeof(vec_t);
+	vec_t* d_dy = 0x0;
+	ALLOCATE_DEVICE_VECTOR((void**)&d_dy, size);
+
+	cudaDeviceProp deviceProp;
+	cudaGetDeviceProperties(&deviceProp, this->id_dev);
+
+	int half_warp_size = deviceProp.warpSize/2;
+	vector<float2> execution_time;
+
+	unsigned int n_sink = n_bodies->get_n_SI();
+	unsigned int n_pass = 0;
+	unsigned int min_idx = 0;
+	if (0 < n_sink)
+	{
+		for (unsigned int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
+		{
+			set_n_tpb(n_tpb);
+			interaction_bound int_bound = n_bodies->get_bound_SI(false, n_tpb);
+
+			clock_t t_start = clock();
+			float cu_elt = benchmark_calc_grav_accel(t, n_sink, int_bound, bmd, p, r, v, d_dy);
+			clock_t elapsed_time = clock() - t_start;
+
+			cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
+			if (cudaSuccess != cudaStatus)
+			{
+				break;
+			}
+			float2 exec_t = {(float)elapsed_time, cu_elt};
+			execution_time.push_back(exec_t);
+			n_pass++;
+		} /* for */
+
+		float min_y = 1.0e10;
+		for (unsigned int i = 0; i < n_pass; i++)
+		{
+			if (min_y > execution_time[i].y)
+			{
+				min_y = execution_time[i].y;
+				min_idx = i;
+			}
+		}
+	} /* if */
+	FREE_DEVICE_VECTOR((void**)&d_dy);
+
+	this->n_tpb = (min_idx + 1) * half_warp_size;
+}
+
+float pp_disk::benchmark_calc_grav_accel(ttt_t curr_t, int n_sink, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a)
+{
+	cudaError_t cudaStatus = cudaSuccess;
+
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	cudaStatus = HANDLE_ERROR(cudaGetLastError());
+	if (cudaSuccess != cudaStatus)
+	{
+		throw nbody_exception("cudaEventCreate failed", cudaStatus);
+	}
+
+	set_kernel_launch_param(n_sink);
+
+	cudaEventRecord(start, 0);
+	kernel_pp_disk::calc_grav_accel<<<grid, block>>>(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, a, d_events, d_event_counter);
+	cudaDeviceSynchronize();
+	cudaEventRecord(stop, 0);
+	cudaEventSynchronize(stop);
+
+	float elapsed_time = 0.0f;
+	cudaEventElapsedTime(&elapsed_time, start, stop);
+
+	return elapsed_time;
+}
+
 void pp_disk::print_sim_data(computing_device_t cd)
 {
 	const int n_total = get_n_total_body();
@@ -828,39 +912,6 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, 
 		interaction_bound int_bound = n_bodies->get_bound_NI(ups, n_tpb);
 		cpu_calc_grav_accel_NI(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, dy, events, &event_counter);
 	}
-}
-
-float pp_disk::wrapper_kernel_pp_disk_calc_grav_accel(ttt_t curr_t, int n_sink, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a)
-{
-	cudaError_t cudaStatus = cudaSuccess;
-
-	cudaEvent_t start, stop;
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("cudaEventCreate failed", cudaStatus);
-	}
-
-	set_kernel_launch_param(n_sink);
-
-	cudaEventRecord(start, 0);
-	kernel_pp_disk::calc_grav_accel<<<grid, block>>>(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, a, d_events, d_event_counter);
-	cudaDeviceSynchronize();
-	cudaEventRecord(stop, 0);
-	cudaEventSynchronize(stop);
-
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("kernel_pp_disk::calc_grav_accel failed", cudaStatus);
-	}
-
-	float elapsed_time = 0.0f;
-	cudaEventElapsedTime(&elapsed_time, start, stop);
-
-	return elapsed_time;
 }
 
 void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
@@ -1408,11 +1459,12 @@ void pp_disk::handle_collision_pair(int i, event_data_t *collision)
 	}
 }
 
-pp_disk::pp_disk(number_of_bodies *n_bodies, int n_tpb, bool ups, gas_disk_model_t g_disk_model, computing_device_t comp_dev) :
+pp_disk::pp_disk(number_of_bodies *n_bodies, int n_tpb, bool ups, gas_disk_model_t g_disk_model, int id_dev, computing_device_t comp_dev) :
 	n_bodies(n_bodies),
 	n_tpb(n_tpb),
 	ups(ups),
 	g_disk_model(g_disk_model),
+	id_dev(id_dev),
 	comp_dev(comp_dev)
 {
 	initialize();
@@ -1421,11 +1473,12 @@ pp_disk::pp_disk(number_of_bodies *n_bodies, int n_tpb, bool ups, gas_disk_model
 	tools::populate_data(n_bodies->initial, sim_data);
 }
 
-pp_disk::pp_disk(string& path, bool continue_simulation, int n_tpb, bool ups, gas_disk_model_t g_disk_model, computing_device_t comp_dev) :
+pp_disk::pp_disk(string& path, bool continue_simulation, int n_tpb, bool ups, gas_disk_model_t g_disk_model, int id_dev, computing_device_t comp_dev) :
 	n_tpb(n_tpb),
 	continue_simulation(continue_simulation),
 	ups(ups),
 	g_disk_model(g_disk_model),
+	id_dev(id_dev),
 	comp_dev(comp_dev)
 {
 	initialize();

@@ -43,7 +43,7 @@ namespace redutilcu
 	void copy_constant_to_device(const void* dst, const void *src, size_t count);
 
 
-	void set_device(int id_of_target_dev, ostream& sout, bool verbose, bool print_to_screen);
+	void set_device(int id_of_target_dev, ostream& sout);
 	void print_array(string path, int n, var_t *data, computing_device_t comp_dev);
 
 	void create_aliases(computing_device_t comp_dev, sim_data_t *sd);

@@ -401,7 +401,7 @@ void copy_constant_to_device(const void* dst, const void *src, size_t count)
 }
 
 
-void set_device(int id_of_target_dev, ostream& sout, bool verbose, bool print_to_screen)
+void set_device(int id_of_target_dev, ostream& sout)
 {
 	cudaError_t cudaStatus = cudaSuccess;
 
@@ -420,10 +420,6 @@ void set_device(int id_of_target_dev, ostream& sout, bool verbose, bool print_to
 		{
 			throw string("cudaSetDevice() failed");
 		}
-		//if (verbose)
-		//{
-		//	file::log_message(sout, "Execution will be transferred to the GPU with id: " + number_to_string(id_of_target_dev), print_to_screen);
-		//}
 	}
 	else
 	{
