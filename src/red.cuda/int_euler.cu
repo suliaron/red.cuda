@@ -65,12 +65,7 @@ void euler::calc_y_np1(int n_var)
 		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			euler_kernel::sum_vector<<<grid, block>>>(n_var, y_n, f0, dt_try, y_np1);
-
-			cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus) 
-			{
-				throw nbody_exception("euler_kernel::sum_vector failed", cudaStatus);
-			}
+			CUDA_CHECK_ERROR();
 		}
 		else
 		{

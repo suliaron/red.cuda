@@ -123,11 +123,7 @@ void rungekutta4::calc_ytemp_for_fr(int n_var, int r)
 		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			rk4_kernel::sum_vector<<<grid, block>>>(n_var, y_n, fr, a[r] * dt_try, ytmp);
-			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus)
-			{
-				throw string("rk4_kernel::sum_vector failed");
-			}
+			CUDA_CHECK_ERROR();
 		}
 		else
 		{
@@ -150,11 +146,7 @@ void rungekutta4::calc_y_np1(int n_var)
 		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			rk4_kernel::calc_y_np1<<<grid, block>>>(n_var, y_n, f1, f2, f3, f4, b[0] * dt_try, b[1] * dt_try, y_np1);
-			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus)
-			{
-				throw string("rk4_kernel::calc_y_np1 failed");
-			}
+			CUDA_CHECK_ERROR();
 		}
 		else
 		{
@@ -173,11 +165,7 @@ void rungekutta4::calc_error(int n_var)
 		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			rk4_kernel::calc_error<<<grid, block>>>(n_var, f4, f5, err[i]);
-			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus)
-			{
-				throw string("rk4_kernel::calc_error failed");
-			}
+			CUDA_CHECK_ERROR();
 		}
 		else
 		{

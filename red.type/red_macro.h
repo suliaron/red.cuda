@@ -1,6 +1,7 @@
 #pragma once
 // includes system
 #include <stdio.h>
+#include <string>
 
 // include CUDA
 #include "cuda_runtime.h"
@@ -21,18 +22,73 @@
 
 // These macro functions must be enclosed in parentheses in order to give
 // correct results in the case of a division i.e. 1/SQR(x) -> 1/((x)*(x))
-#define	SQR(x)		((x)*(x))
-#define	CUBE(x)		((x)*(x)*(x))
-#define FORTH(x)	((x)*(x)*(x)*(x))
-#define FIFTH(x)	((x)*(x)*(x)*(x)*(x))
+#define	SQR(x)      ((x)*(x))
+#define	CUBE(x)     ((x)*(x)*(x))
+#define FORTH(x)    ((x)*(x)*(x)*(x))
+#define FIFTH(x)    ((x)*(x)*(x)*(x)*(x))
 
-static cudaError_t HandleError(cudaError_t cudaStatus, const char *file, int line)
+// Define this to turn on error checking
+#define CUDA_ERROR_CHECK
+ 
+#define CUDA_SAFE_CALL( err ) __cudaSafeCall( err, __FILE__, __LINE__ )
+#define CUDA_CHECK_ERROR()    __cudaCheckError( __FILE__, __LINE__ )
+ 
+inline void __cudaSafeCall( cudaError err, const char *file, const int line )
 {
-    if (cudaSuccess != cudaStatus) 
-	{
-        printf( "%s in %s at line %d\n", cudaGetErrorString( cudaStatus ), file, line );
-        return cudaStatus;
+#ifdef CUDA_ERROR_CHECK
+    if ( cudaSuccess != err )
+    {
+		char buffer[500];
+
+		sprintf(buffer,"cudaSafeCall() failed at %s:%i : %s", file, line, cudaGetErrorString( err ) );
+		std::string msg(buffer);
+		//fprintf(stderr, "%s\n", buffer);
+
+		throw msg;
     }
-	return cudaStatus;
+#endif
+ 
+    return;
 }
-#define HANDLE_ERROR(cudaStatus) (HandleError(cudaStatus, __FILE__, __LINE__))
+ 
+inline void __cudaCheckError( const char *file, const int line )
+{
+#ifdef CUDA_ERROR_CHECK
+	cudaError err = cudaGetLastError();
+    if ( cudaSuccess != err )
+    {
+		char buffer[500];
+
+		sprintf(buffer,"cudaCheckError() failed at %s:%i : %s", file, line, cudaGetErrorString( err ) );
+		std::string msg(buffer);
+		//fprintf(stderr, "%s\n", buffer);
+
+		throw msg;
+    }
+ 
+    // More careful checking. However, this will affect performance.
+    // Comment away if needed.
+    err = cudaDeviceSynchronize();
+    if( cudaSuccess != err )
+    {
+		char buffer[500];
+
+		sprintf(buffer,"cudaCheckError() with sync failed at %s:%i : %s", file, line, cudaGetErrorString( err ) );
+		std::string msg(buffer);
+		//fprintf(stderr, "%s\n", buffer);
+
+		throw msg;
+    }
+#endif
+ 
+    return;
+}
+
+/*
+ * Using these error checking functions is easy:
+ * 
+ * CudaSafeCall( cudaMalloc( &fooPtr, fooSize ) );
+ *  
+ * fooKernel<<< x, y >>>(); // Kernel call
+ * CudaCheckError();
+ */

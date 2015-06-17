@@ -557,8 +557,7 @@ void pp_disk::benchmark()
 			float cu_elt = benchmark_calc_grav_accel(t, n_sink, int_bound, bmd, p, r, v, d_dy);
 			clock_t elapsed_time = clock() - t_start;
 
-			cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus)
+			if (cudaSuccess != cudaGetLastError())
 			{
 				break;
 			}
@@ -584,27 +583,22 @@ void pp_disk::benchmark()
 
 float pp_disk::benchmark_calc_grav_accel(ttt_t curr_t, int n_sink, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a)
 {
-	cudaError_t cudaStatus = cudaSuccess;
-
 	cudaEvent_t start, stop;
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("cudaEventCreate failed", cudaStatus);
-	}
+
+	CUDA_SAFE_CALL(cudaEventCreate(&start));
+	CUDA_SAFE_CALL(cudaEventCreate(&stop));
 
 	set_kernel_launch_param(n_sink);
 
-	cudaEventRecord(start, 0);
+	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 	kernel_pp_disk::calc_grav_accel<<<grid, block>>>(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, a, d_events, d_event_counter);
+	CUDA_CHECK_ERROR();
 	cudaDeviceSynchronize();
-	cudaEventRecord(stop, 0);
-	cudaEventSynchronize(stop);
+	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
+	CUDA_SAFE_CALL(cudaEventSynchronize(stop));
 
 	float elapsed_time = 0.0f;
-	cudaEventElapsedTime(&elapsed_time, start, stop);
+	CUDA_SAFE_CALL(cudaEventElapsedTime(&elapsed_time, start, stop));
 
 	return elapsed_time;
 }
@@ -619,15 +613,15 @@ void pp_disk::print_sim_data(computing_device_t cd)
 		{
 		printf("**********************************************************************\n");
 		printf("                 DATA ON THE HOST                                     \n");
-		printf("**********************************************************************\n\n");
-		printf("Position:\n");
+		printf("**********************************************************************\n");
+		printf("\nPosition:\n");
 		const vec_t* v = sim_data->h_y[0];
 		for (unsigned int i = 0; i < n_total; i++)
 		{
 			printf("%5d %24.16le %24.16le %24.16le %24.16le\n", i, v[i].x, v[i].y, v[i].z, v[i].w);
 		}
 
-		printf("Body metaddata:\n");
+		printf("\nBody metaddata:\n");
 		const body_metadata_t* bmd = sim_data->h_body_md;
 		for (unsigned int i = 0; i < n_total; i++)
 		{
@@ -640,55 +634,26 @@ void pp_disk::print_sim_data(computing_device_t cd)
 		{
 		printf("**********************************************************************\n");
 		printf("                 DATA ON THE DEVICE                                   \n");
-		printf("**********************************************************************\n\n");
-		printf("Position:\n");
+		printf("**********************************************************************\n");
+		printf("\nPosition:\n");
 		kernel_utility::print_vector<<<1, 1>>>(n_total, sim_data->d_y[0]);
-		cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus)
-		{
-			throw nbody_exception("kernel_utility::print_vector failed", cudaStatus);
-		}
-		cudaDeviceSynchronize();
+		CUDA_CHECK_ERROR();
 
+		//printf("\nVelocity:\n");
 		//kernel_utility::print_vector<<<1, 1>>>(n_total, sim_data->d_y[1]);
-		//cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		//if (cudaSuccess != cudaStatus)
-		//{
-		//	throw nbody_exception("kernel_utility::print_vector failed", cudaStatus);
-		//}
-		//cudaDeviceSynchronize();
+		//CUDA_CHECK_ERROR();
 
 		//kernel_utility::print_vector<<<1, 1>>>(n_total, (vec_t*)sim_data->d_p);
-		//cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		//if (cudaSuccess != cudaStatus)
-		//{
-		//	throw nbody_exception("kernel_utility::print_vector failed", cudaStatus);
-		//}
-		//cudaDeviceSynchronize();
+		//CUDA_CHECK_ERROR();
 
 		kernel_utility::print_body_metadata<<<1, 1>>>(n_total, sim_data->d_body_md);
-		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus)
-		{
-			throw nbody_exception("kernel_utility::print_body_metadata failed", cudaStatus);
-		}
-		cudaDeviceSynchronize();
+		CUDA_CHECK_ERROR();
 
 		//kernel_utility::print_epochs<<<1, 1>>>(n_total, sim_data->d_epoch);
-		//cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		//if (cudaSuccess != cudaStatus) 
-		//{
-		//	throw nbody_exception("kernel_utility::print_epochs failed", cudaStatus);
-		//}
-		//cudaDeviceSynchronize();
+		//CUDA_CHECK_ERROR();
 
 		//kernel_utility::print_constant_memory<<<1, 1>>>();
-		//cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		//if (cudaSuccess != cudaStatus)
-		//{
-		//	throw nbody_exception("kernel_utility::print_constant_memory failed", cudaStatus);
-		//}
-		//cudaDeviceSynchronize();
+		//CUDA_CHECK_ERROR();
 		break;
 		}
 	default:
@@ -916,8 +881,6 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, 
 
 void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
-	cudaError_t cudaStatus = cudaSuccess;
-	
 	int n_sink = ups ? n_bodies->get_n_prime_SI(n_tpb) : n_bodies->get_n_SI();
 	if (0 < n_sink)
 	{
@@ -934,11 +897,7 @@ void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const ve
 			kernel_pp_disk::calc_grav_accel<<<grid, block>>>
 				(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, dy, d_events, d_event_counter);
 		}
-		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus)
-		{
-			throw nbody_exception("kernel_pp_disk::calc_grav_accel failed", cudaStatus);
-		}
+		CUDA_CHECK_ERROR();
 	}
 
 	n_sink = ups ? n_bodies->get_n_prime_NSI(n_tpb) : n_bodies->get_n_NSI();
@@ -957,11 +916,7 @@ void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const ve
 			kernel_pp_disk::calc_grav_accel<<<grid, block>>>
 				(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, dy, d_events, d_event_counter);
 		}
-		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus)
-		{
-			throw nbody_exception("kernel_pp_disk::calc_grav_accel failed", cudaStatus);
-		}
+		CUDA_CHECK_ERROR();
 	}
 
 	n_sink = ups ? n_bodies->get_n_prime_NI(n_tpb) : n_bodies->get_n_NI();
@@ -980,11 +935,7 @@ void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const ve
 			kernel_pp_disk::calc_grav_accel<<<grid, block>>>
 				(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, dy, d_events, d_event_counter);
 		}
-		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus)
-		{
-			throw nbody_exception("kernel_pp_disk::calc_grav_accel failed", cudaStatus);
-		}
+		CUDA_CHECK_ERROR();
 	}
 }
 
@@ -1001,16 +952,6 @@ void pp_disk::call_kernel_calc_drag_accel(ttt_t curr_t, const vec_t* r, const ve
 
 bool pp_disk::check_for_ejection_hit_centrum()
 {
-
-//DEBUG CODE BEGIN
-//printf("%s: %s() %d\n", __FILE__, __FUNCTION__, __LINE__);
-//const vec_t* v = sim_data->h_y[0];
-//for (unsigned int i = 0; i < 10; i++)
-//{
-//	printf("%5d %24.16le %24.16le %24.16le %24.16le\n", i, v[i].x, v[i].y, v[i].z, v[i].w);
-//}
-//DEBUG CODE END
-
 	// Number of ejection + hit centrum events
 	int n_event = 0;
 	switch (comp_dev)
@@ -1024,15 +965,6 @@ bool pp_disk::check_for_ejection_hit_centrum()
 	default:
 		throw string("Parameter 'comp_dev' is out of range.");
 	}
-
-//DEBUG CODE BEGIN
-//printf("%s: %s() %d\n", __FILE__, __FUNCTION__, __LINE__);
-//v = sim_data->h_y[0];
-//for (unsigned int i = 0; i < 10; i++)
-//{
-//	printf("%5d %24.16le %24.16le %24.16le %24.16le\n", i, v[i].x, v[i].y, v[i].z, v[i].w);
-//}
-//DEBUG CODE END
 
 	if (0 < n_event)
 	{
@@ -1201,47 +1133,33 @@ int pp_disk::cpu_check_for_collision(interaction_bound int_bound, bool SI_NSI, b
 
 int pp_disk::call_kernel_check_for_ejection_hit_centrum()
 {
-	cudaError_t cudaStatus = cudaSuccess;
-	
 	int n_total = get_n_total_body();
 	interaction_bound int_bound(0, n_total, 0, 0);
 	set_kernel_launch_param(n_total);
 
 	kernel_pp_disk::check_for_ejection_hit_centrum<<<grid, block>>>
 		(t, int_bound, sim_data->p, sim_data->y[0], sim_data->y[1], sim_data->body_md, d_events, d_event_counter);
-
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("kernel_pp_disk::check_for_ejection_hit_centrum failed", cudaStatus);
-	}
+	CUDA_CHECK_ERROR();
 
 	return get_n_event();
 }
 
 int pp_disk::call_kernel_check_for_collision()
 {
-	cudaError_t cudaStatus = cudaSuccess;
-	
 	int n_total = get_n_total_body();
 	interaction_bound int_bound(0, n_total, 0, n_total);
 	set_kernel_launch_param(n_total);
 
 	kernel_pp_disk::check_for_collision<<<grid, block>>>
 		(t, int_bound, sim_data->p, sim_data->y[0], sim_data->y[1], sim_data->body_md, d_events, d_event_counter);
-
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw nbody_exception("kernel_pp_disk::check_for_collision failed", cudaStatus);
-	}
+	CUDA_CHECK_ERROR();
 
 	return get_n_event();
 }
 
 void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
-	cudaError_t cudaStatus = cudaSuccess;
+	cudaError_t cuda_status = cudaSuccess;
 
 	const int n_total = get_n_total_body();
 
@@ -1254,12 +1172,7 @@ void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t
 		}
 		else
 		{
-			cudaMemcpy(dy, v, n_total * sizeof(vec_t), cudaMemcpyDeviceToDevice);
-			cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus)
-			{
-				throw nbody_exception("cudaMemcpy failed", cudaStatus);
-			}
+			CUDA_SAFE_CALL(cudaMemcpy(dy, v, n_total * sizeof(vec_t), cudaMemcpyDeviceToDevice));
 		}
 		break;
 	case 1:  // Calculate accelerations originated from the gravitational force, drag force etc.
@@ -1291,9 +1204,6 @@ void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t
 			{
 				call_kernel_calc_drag_accel(curr_t, r, v, dy);
 			}
-	// DEBUG CODE
-	//		cudaDeviceSynchronize();
-	// END DEBUG CODE
 		}
 		break;
 	default:
@@ -1555,12 +1465,7 @@ void pp_disk::set_computing_device(computing_device_t device)
 	switch (device)
 	{
 	case COMPUTING_DEVICE_CPU:
-
-		//print_sim_data(COMPUTING_DEVICE_CPU);
-		//print_sim_data(COMPUTING_DEVICE_GPU);
 		copy_to_host();
-		//print_sim_data(COMPUTING_DEVICE_GPU);
-
 		clear_event_counter();
 		deallocate_device_storage(sim_data);
 		FREE_DEVICE_VECTOR((void **)&d_events);
@@ -1570,11 +1475,7 @@ void pp_disk::set_computing_device(computing_device_t device)
 		allocate_device_storage(sim_data, n_total);
 		ALLOCATE_DEVICE_VECTOR((void **)&d_events,        n_total*sizeof(event_data_t));
 		ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,       1*sizeof(int));
-
-		//print_sim_data(COMPUTING_DEVICE_CPU);
-		//print_sim_data(COMPUTING_DEVICE_GPU);
 		copy_to_device();
-		//print_sim_data(COMPUTING_DEVICE_GPU);
 
 		copy_disk_params_to_device();
 		copy_constant_to_device(dc_threshold, this->threshold, THRESHOLD_N*sizeof(var_t));

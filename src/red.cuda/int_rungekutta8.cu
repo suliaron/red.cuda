@@ -445,6 +445,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			else
 			{
 				rk8_kernel::calc_ytemp_for_f1<<<grid, block>>>(n_var, ytmp, dt_try, y_n, f0, a[idx]);
+				CUDA_CHECK_ERROR();
 			}
 			break;
 		case 2:
@@ -456,6 +457,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			else
 			{
 				rk8_kernel::calc_ytemp_for_f2<<<grid, block>>>(n_var, ytmp, dt_try, y_n, f0, f1, a[idx], a[idx+1]);
+				CUDA_CHECK_ERROR();
 			}
 			break;
 		case 3:
@@ -467,6 +469,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			else
 			{
 				rk8_kernel::calc_ytemp_for_f3<<<grid, block>>>(n_var, ytmp, dt_try, y_n, f0, f2, a[idx], a[idx+2]);
+				CUDA_CHECK_ERROR();
 			}
 			break;
 		case 4:
@@ -478,6 +481,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			else
 			{
 				rk8_kernel::calc_ytemp_for_f4<<<grid, block>>>(n_var, ytmp, dt_try, y_n, f0, f2, f3, a[idx], a[idx+2], a[idx+3]);
+				CUDA_CHECK_ERROR();
 			}
 			break;
 		case 5:
@@ -489,6 +493,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			else
 			{
 				rk8_kernel::calc_ytemp_for_f5<<<grid, block>>>(n_var, ytmp, dt_try, y_n, f0, f3, f4, a[idx], a[idx+3], a[idx+4]);
+				CUDA_CHECK_ERROR();
 			}
 			break;
 		case 6:
@@ -500,6 +505,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			else
 			{
 				rk8_kernel::calc_ytemp_for_f6<<<grid, block>>>(n_var, ytmp, dt_try, y_n, f0, f3, f4, f5, a[idx], a[idx+3], a[idx+4], a[idx+5]);
+				CUDA_CHECK_ERROR();
 			}
 			break;
 		case 7:
@@ -511,6 +517,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			else
 			{
 				rk8_kernel::calc_ytemp_for_f7<<<grid, block>>>(n_var, ytmp, dt_try, y_n, f0, f4, f5, f6, a[idx], a[idx+4], a[idx+5], a[idx+6]);
+				CUDA_CHECK_ERROR();
 			}
 			break;
 		case 8:
@@ -522,6 +529,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			else
 			{
 				rk8_kernel::calc_ytemp_for_f8<<<grid, block>>>(n_var, ytmp, dt_try, y_n, f0, f3, f4, f5, f6, f7, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7]);
+				CUDA_CHECK_ERROR();
 			}
 			break;
 		case 9:
@@ -533,6 +541,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			else
 			{
 				rk8_kernel::calc_ytemp_for_f9<<<grid, block>>>(n_var, ytmp, dt_try, y_n, f0, f3, f4, f5, f6, f7, f8, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7], a[idx+8]);
+				CUDA_CHECK_ERROR();
 			}
 			break;
 		case 10:
@@ -544,6 +553,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			else
 			{
 				rk8_kernel::calc_ytemp_for_f10<<<grid, block>>>(n_var, ytmp, dt_try, y_n, f0, f3, f4, f5, f6, f7, f8, f9, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7], a[idx+8], a[idx+9]);
+				CUDA_CHECK_ERROR();
 			}
 			break;
 		case 11:
@@ -555,6 +565,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			else
 			{
 				rk8_kernel::calc_ytemp_for_f11<<<grid, block>>>(n_var, ytmp, dt_try, y_n, f0, f5, f6, f7, f8, f9, a[idx], a[idx+5], a[idx+6], a[idx+7], a[idx+8], a[idx+9]);
+				CUDA_CHECK_ERROR();
 			}
 			break;
 		case 12:
@@ -566,20 +577,12 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 			else
 			{
 				rk8_kernel::calc_ytemp_for_f12<<<grid, block>>>(n_var, ytmp, dt_try, y_n, f0, f3, f4, f5, f6, f7, f8, f9, f11, a[idx], a[idx+3], a[idx+4], a[idx+5], a[idx+6], a[idx+7], a[idx+8], a[idx+9], a[idx+11]);
+				CUDA_CHECK_ERROR();
 			}
 			break;
 		default:
 			throw string("rungekutta8::calc_ytemp_for_fr: parameter out of range.");
 		} /* switch */
-		if (COMPUTING_DEVICE_GPU == comp_dev)
-		{
-			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus)
-			{
-				string err_msg = "rk8_kernel::calc_ytemp_for_f" + redutilcu::number_to_string(r) + " failed";
-				throw err_msg;
-			}
-		}
 	} /* for */
 }
 
@@ -595,11 +598,7 @@ void rungekutta8::calc_error(int n_var)
 		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			rk8_kernel::calc_error<<<grid, block>>>(n_var, err[i], f0, f10, f11, f12);
-			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus)
-			{
-				throw string("rk8_kernel::calc_error failed");
-			}
+			CUDA_CHECK_ERROR();
 		}
 		else
 		{
@@ -626,11 +625,7 @@ void rungekutta8::calc_y_np1(int n_var)
 		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			rk8_kernel::calc_y_np1<<<grid, block>>>(n_var, y_np1, dt_try, y_n, f0, f5, f6, f7, f8, f9, f10, b[0], b[5], b[6], b[7], b[8], b[9], b[10]);
-			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus)
-			{
-				throw string("rk8_kernel::calc_y_np1 failed");
-			}
+			CUDA_CHECK_ERROR();
 		}
 		else
 		{
@@ -809,11 +804,7 @@ void c_rungekutta8::call_kernel_calc_ytemp(int n_var, int r)
 		var_t* ytmp = (var_t*)ytemp[i];
 
 		c_rk8_kernel::calc_ytemp<<<grid, block>>>(n_var, r, idx_array[r], i*r_max, dt_try, y_n, dydt, ytmp);
-		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus)
-		{
-			throw string("c_rk8_kernel::calc_ytemp failed");
-		}
+		CUDA_CHECK_ERROR();
 	}
 }
 
@@ -827,11 +818,7 @@ void c_rungekutta8::call_kernel_calc_error(int n_var)
 		var_t* f12 = (var_t*)dydx[i][12];
 
 		c_rk8_kernel::calc_error<<<grid, block>>>(n_var, f0, f10, f11, f12, err[i]);
-		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus)
-		{
-			throw string("c_rk8_kernel::calc_error failed");
-		}
+		CUDA_CHECK_ERROR();
 	}
 }
 
@@ -844,11 +831,7 @@ void c_rungekutta8::call_kernel_calc_y_np1(int n_var)
 		var_t* y_np1 = (var_t*)ppd->sim_data->yout[i];
 
 		c_rk8_kernel::calc_y_np1<<<grid, block>>>(n_var, i*r_max, dt_try, y_n, dydt, y_np1);
-		cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus)
-		{
-			throw string("c_rk8_kernel::calc_y_np1_kernel failed");
-		}
+		CUDA_CHECK_ERROR();
 	}
 }
 

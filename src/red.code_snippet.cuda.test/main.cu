@@ -279,12 +279,7 @@ static void test_print_position(int n, const vec_t* r)
 
 void allocate_device_vector(void **d_ptr, size_t size)
 {
-	cudaMalloc(d_ptr, size);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaMalloc failed");
-	}
+	CUDA_SAFE_CALL(cudaMalloc(d_ptr, size));
 }
 
 
@@ -313,27 +308,12 @@ int main(int argc, const char** argv)
 	test_print_position(8, sim_data.y[0]);
 
 	// Allocate device pointer.
-	cudaMalloc((void**) &(sim_data.d_y[0]), 8*sizeof(vec_t));
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		cerr << "cudaMalloc failed" << endl;
-		return EXIT_FAILURE;
-	}
+	CUDA_SAFE_CALL(cudaMalloc((void**) &(sim_data.d_y[0]), 8*sizeof(vec_t)));
 	// Copy pointer content (position and mass) from host to device.
-	cudaMemcpy(sim_data.d_y[0], sim_data.y[0], 8*sizeof(vec_t), cudaMemcpyHostToDevice);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		cerr << "cudaMemcpy failed" << endl;
-		return EXIT_FAILURE;
-	}
+	CUDA_SAFE_CALL(cudaMemcpy(sim_data.d_y[0], sim_data.y[0], 8*sizeof(vec_t), cudaMemcpyHostToDevice));
 	
 	kernel_print_position<<<1, 8>>>(8, sim_data.d_y[0]);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		cerr << "kernel_print_position failed" << endl;
-		return EXIT_FAILURE;
-	}
-	cudaDeviceSynchronize();
+	CUDA_CHECK_ERROR();
 
 	// Allocate pointer.
 	vec_t*	v = 0;
@@ -342,28 +322,13 @@ int main(int argc, const char** argv)
 
 	// Allocate device pointer.
 	vec_t*	d_v = 0;
-	cudaMalloc((void**) &(d_v), 8*sizeof(vec_t));
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		cerr << "cudaMalloc failed" << endl;
-		return EXIT_FAILURE;
-	}
+	CUDA_SAFE_CALL(cudaMalloc((void**) &(d_v), 8*sizeof(vec_t)));
 
 	// Copy pointer content from host to device.
-	cudaMemcpy(d_v, v, 8*sizeof(vec_t), cudaMemcpyHostToDevice);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		cerr << "cudaMemcpy failed" << endl;
-		return EXIT_FAILURE;
-	}
+	CUDA_SAFE_CALL(cudaMemcpy(d_v, v, 8*sizeof(vec_t), cudaMemcpyHostToDevice));
 
 	kernel_print_vector<<<1, 8>>>(8, d_v);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus) {
-		cerr << "kernel_print_vector failed" << endl;
-		return EXIT_FAILURE;
-	}
-	cudaDeviceSynchronize();
+	CUDA_CHECK_ERROR();
 
 	free(v);
 	cudaFree(d_v);
@@ -497,12 +462,7 @@ int main()
 	}
 
 	kernel_print_memory_address<<<1, 1>>>(2*r_max, (var_t*)d_dydt);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("kernel_print_memory_address failed");
-	}
-	cudaDeviceSynchronize();
+	CUDA_CHECK_ERROR();
 	// PRINT ALLOCATED ADDRESSES END
 
 	// POPULATE ALLOCATED STORAGE
@@ -512,13 +472,8 @@ int main()
 		{
 			kernel_populate<<<1, 1>>>(n_total, pow(-1.0, i) * r, (var_t*)d_f[i][r]);
 		}
-	}	
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("kernel_populate failed");
 	}
-	cudaDeviceSynchronize();
+	CUDA_CHECK_ERROR();
 	// POPULATE ALLOCATED STORAGE END
 
 	// PRINT DATA
@@ -528,12 +483,7 @@ int main()
 		for (int r = 0; r < r_max; r++) 
 		{
 			kernel_print_array<<<1, 1>>>(n_total, (var_t*)d_f[i][r]);
-			cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus)
-			{
-				throw string("kernel_print_array failed");
-			}
-			cudaDeviceSynchronize();
+			CUDA_CHECK_ERROR();
 		}
 	}
 	// PRINT DATA END
@@ -546,12 +496,7 @@ int main()
 		{
 			var_t** d_ptr = (var_t**)d_dydt;
 			kernel_print_array<<<1, 1>>>(n_total, i*r_max + r, d_ptr);
-			cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus)
-			{
-				throw string("kernel_print_array failed");
-			}
-			cudaDeviceSynchronize();
+			CUDA_CHECK_ERROR();
 		}
 	}	
 	// PRINT DATA END
@@ -565,25 +510,20 @@ int main()
 
 void cpy_cnstnt_to_dvc(const void* dst, const void *src, size_t count)
 {
-	cudaMemcpyToSymbol(dst, src, count);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaMemcpyToSymbol failed (copy_constant_to_device)");
-	}
+	CUDA_SAFE_CALL(cudaMemcpyToSymbol(dst, src, count));
 }
 
 int main(int argc, const char** argv)
 {
-	cudaError_t cudaStatus = cudaSuccess;
+	cudaError_t cuda_status = cudaSuccess;
 
 	int id_active = -1;
 	int n_device = 0;
 
-	cudaStatus = cudaGetDeviceCount(&n_device);
-	if (cudaSuccess != cudaStatus)
+	cuda_status = cudaGetDeviceCount(&n_device);
+	if (cudaSuccess != cuda_status)
 	{
-		printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+		printf("Error: %s\n", cudaGetErrorString(cuda_status));
 		exit(0);
 	}
 	printf("The number of CUDA device(s) : %2d\n", n_device);
@@ -597,25 +537,25 @@ int main(int argc, const char** argv)
     for (int dev = 0; dev < n_device; ++dev)
     {
 		printf("Setting the device id: %2d\n", dev);
-        cudaStatus = cudaSetDevice(dev);
-		if (cudaSuccess != cudaStatus)
+        cuda_status = cudaSetDevice(dev);
+		if (cudaSuccess != cuda_status)
 		{
-			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+			printf("Error: %s\n", cudaGetErrorString(cuda_status));
 			exit(0);
 		}
-		cudaStatus = cudaGetDevice(&id_active);
-		if (cudaSuccess != cudaStatus)
+		cuda_status = cudaGetDevice(&id_active);
+		if (cudaSuccess != cuda_status)
 		{
-			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+			printf("Error: %s\n", cudaGetErrorString(cuda_status));
 			exit(0);
 		}
 		printf("The id of the active device: %2d\n", id_active);
 
         cudaDeviceProp deviceProp;
-        cudaStatus = cudaGetDeviceProperties(&deviceProp, dev);
-		if (cudaSuccess != cudaStatus)
+        cuda_status = cudaGetDeviceProperties(&deviceProp, dev);
+		if (cudaSuccess != cuda_status)
 		{
-			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+			printf("Error: %s\n", cudaGetErrorString(cuda_status));
 			exit(0);
 		}
 
@@ -626,10 +566,10 @@ int main(int argc, const char** argv)
 		cout << "The PCI device ID of the device : " << deviceProp.pciDeviceID << endl;
 
 		char pciBusId[255];
-		cudaStatus = cudaDeviceGetPCIBusId(pciBusId, 255, dev);
-		if (cudaSuccess != cudaStatus)
+		cuda_status = cudaDeviceGetPCIBusId(pciBusId, 255, dev);
+		if (cudaSuccess != cuda_status)
 		{
-			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+			printf("Error: %s\n", cudaGetErrorString(cuda_status));
 			exit(0);
 		}
 		cout << "Identifier string for the device in the following format [domain]:[bus]:[device].[function]: " << pciBusId << endl;
@@ -911,7 +851,7 @@ int main(int argc, char** argv)
 
 #endif
 
-#if 1 // Implement the tile-calculation method for the N-body gravity kernel
+#if 0 // Implement the tile-calculation method for the N-body gravity kernel
 
 #define N 512
 #define N_THREAD 128
@@ -1326,12 +1266,7 @@ void call_kernel_print_sim_data(unsigned int n, sim_data_t* sim_data)
 
 	printf("position:\n");
 	print_vector<<<1, 1>>>(n, sim_data->d_y[0]);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("print_vector failed", cudaStatus);
-	}
-	cudaDeviceSynchronize();
+	CUDA_CHECK_ERROR();
 }
 
 void print_sim_data(unsigned int n, sim_data_t* sim_data)
@@ -1393,3 +1328,43 @@ int main()
 }
 
 #endif
+
+#if 1
+/*
+ * Test the CUDA_SAFE_CALL() and CUDA_CHECK_ERROR() macro functions
+ */
+int main()
+{
+	try
+	{
+		cudaError_t cuda_status = cudaSuccess;
+		CUDA_SAFE_CALL(cuda_status);
+	}
+	catch(const string& msg)
+	{
+		cerr << "Error: " << msg << endl;
+	}
+
+	try
+	{
+		cudaError_t cuda_status = cudaErrorInitializationError;
+		CUDA_SAFE_CALL(cuda_status);
+	}
+	catch(const string& msg)
+	{
+		cerr << "Error: " << msg << endl;
+	}
+
+	try
+	{
+		CUDA_CHECK_ERROR();
+	}
+	catch(const string& msg)
+	{
+		cerr << "Error: " << msg << endl;
+	}
+
+	return (EXIT_SUCCESS);
+}
+#endif
+

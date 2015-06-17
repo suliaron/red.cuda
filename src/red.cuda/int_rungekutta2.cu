@@ -63,11 +63,7 @@ void rungekutta2::calc_ytemp_for_fr(int n_var, int r)
 		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			rk2_kernel::sum_vector<<<grid, block>>>(n_var, y_n, fr, a[r] * dt_try, result);
-			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus)
-			{
-				throw string("rk2_kernel::sum_vector failed");
-			}
+			CUDA_CHECK_ERROR();
 		}
 		else
 		{
@@ -87,11 +83,7 @@ void rungekutta2::calc_y_np1(int n_var)
 		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
 			rk2_kernel::sum_vector<<<grid, block>>>(n_var, y_n, f2, b[1] * dt_try, y_np1);
-			cudaError cudaStatus = HANDLE_ERROR(cudaGetLastError());
-			if (cudaSuccess != cudaStatus)
-			{
-				throw string("rk2_kernel::sum_vector failed");
-			}
+			CUDA_CHECK_ERROR();
 		}
 		else
 		{

@@ -83,20 +83,10 @@ inline int _ConvertSMVer2Cores(int major, int minor)
 
 string get_name_cuda_device(int id_dev)
 {
-	string result;
-
-	cudaError_t cudaStatus = cudaSuccess;
-
 	cudaDeviceProp deviceProp;
-    cudaGetDeviceProperties(&deviceProp, id_dev);
+    CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, id_dev));
 
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaGetDeviceProperties() failed");
-	}
-
-	result = deviceProp.name;
+	string result(deviceProp.name);
 	return result;
 }
 
@@ -108,29 +98,15 @@ int get_id_fastest_cuda_device()
 
 int get_n_cuda_device()
 {
-	cudaError_t cudaStatus = cudaSuccess;
-
 	int n_device = 0;
-	cudaGetDeviceCount(&n_device);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaGetDeviceCount() failed");
-	}
-
+	CUDA_SAFE_CALL(cudaGetDeviceCount(&n_device));
 	return n_device;
 }
 
 void device_query(ostream& sout, int id_dev)
 {
     int deviceCount = 0;
-    cudaError_t error_id = cudaGetDeviceCount(&deviceCount);
-
-    if (error_id != cudaSuccess)
-    {
-        printf("cudaGetDeviceCount returned %d\n-> %s\n", (int)error_id, cudaGetErrorString(error_id));
-		throw string("cudaGetDeviceCount error.");
-    }
+    CUDA_SAFE_CALL(cudaGetDeviceCount(&deviceCount));
 
     // This function call returns 0 if there are no CUDA capable devices.
     if (deviceCount == 0)
@@ -142,7 +118,7 @@ void device_query(ostream& sout, int id_dev)
     int dev, driverVersion = 0, runtimeVersion = 0;
 
     cudaDeviceProp deviceProp;
-    cudaGetDeviceProperties(&deviceProp, id_dev);
+    CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, id_dev));
 
     sout << "The code runs on " << deviceProp.name << " device:" << endl;
 
@@ -234,20 +210,10 @@ void allocate_host_vector(void **ptr, size_t size, const char *file, int line)
 
 void allocate_device_vector(void **ptr, size_t size, const char *file, int line)
 {
-	cudaMalloc(ptr, size);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaMalloc failed (allocate_device_vector)");
-	}
-
+	// Allocate memory
+	CUDA_SAFE_CALL(cudaMalloc(ptr, size));
 	// Clear memory 
-	cudaMemset(*ptr, 0, size);
-	cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaMemset failed (allocate_device_vector)");
-	}
+	CUDA_SAFE_CALL(cudaMemset(*ptr, 0, size));
 }
 
 void allocate_vector(void **ptr, size_t size, bool cpu, const char *file, int line)
@@ -275,12 +241,7 @@ void free_device_vector(void **ptr, const char *file, int line)
 {
 	if (0x0 != *ptr)
 	{
-		cudaFree(*ptr);
-		cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus)
-		{
-			throw string("cudaFree failed (free_device_vector)");
-		}
+		CUDA_SAFE_CALL(cudaFree(*ptr));
 		*ptr = (void *)0x0;
 	}
 }
@@ -362,49 +323,27 @@ void deallocate_device_storage(sim_data_t *sd)
 
 void copy_vector_to_device(void* dst, const void *src, size_t count)
 {
-	cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaMemcpy failed (copy_vector_to_device)");
-	}
+	CUDA_SAFE_CALL(cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice));
 }
 
 void copy_vector_to_host(void* dst, const void *src, size_t count)
 {
-	cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaMemcpy failed (copy_vector_to_host)");
-	}
+	CUDA_SAFE_CALL(cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost));
 }
 
 void copy_vector_d2d(void* dst, const void *src, size_t count)
 {
-	cudaMemcpy(dst, src, count, cudaMemcpyDeviceToDevice);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaMemcpy failed (copy_vector_d2d)");
-	}
+	CUDA_SAFE_CALL(cudaMemcpy(dst, src, count, cudaMemcpyDeviceToDevice));
 }
 
 void copy_constant_to_device(const void* dst, const void *src, size_t count)
 {
-	cudaMemcpyToSymbol(dst, src, count, 0, cudaMemcpyHostToDevice);
-	cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-	if (cudaSuccess != cudaStatus)
-	{
-		throw string("cudaMemcpyToSymbol failed (copy_constant_to_device)");
-	}
+	CUDA_SAFE_CALL(cudaMemcpyToSymbol(dst, src, count, 0, cudaMemcpyHostToDevice));
 }
 
 
 void set_device(int id_of_target_dev, ostream& sout)
 {
-	cudaError_t cudaStatus = cudaSuccess;
-
 	int n_device = get_n_cuda_device();
 	if (0 == n_device)
 	{
@@ -414,12 +353,7 @@ void set_device(int id_of_target_dev, ostream& sout)
 	if (n_device > id_of_target_dev && 0 <= id_of_target_dev)
 	{
 		// Set the desired id of the device
-		cudaSetDevice(id_of_target_dev);
-		cudaStatus = HANDLE_ERROR(cudaGetLastError());
-		if (cudaSuccess != cudaStatus)
-		{
-			throw string("cudaSetDevice() failed");
-		}
+		CUDA_SAFE_CALL(cudaSetDevice(id_of_target_dev));
 	}
 	else
 	{

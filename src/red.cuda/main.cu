@@ -222,12 +222,12 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 
 				clock_t t_start = clock();
 				float cu_elt = ppd->benchmark_calc_grav_accel(curr_t, n_sink, int_bound, bmd, p, r, v, d_dy);
-				clock_t elapsed_time = ((double)(clock() - t_start)/(double)CLOCKS_PER_SEC) * 1000.0; // [ms]
+				ttt_t elapsed_time = ((double)(clock() - t_start)/(double)CLOCKS_PER_SEC) * 1000.0; // [ms]
 
-				cudaError_t cudaStatus = HANDLE_ERROR(cudaGetLastError());
-				if (cudaSuccess != cudaStatus)
+				cudaError_t cuda_status = cudaGetLastError();
+				if (cudaSuccess != cuda_status)
 				{
-					string msg(cudaGetErrorString( cudaStatus ));
+					string msg(cudaGetErrorString(cuda_status));
 			        sout << " " << msg << endl;
 					break;
 				}
@@ -263,7 +263,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 		sout << "----------------------------------------------" << endl << endl;
 
 		clock_t t_start;
-		clock_t elapsed_time;
+		ttt_t elapsed_time;
 
 		vec_t* h_dy = 0x0;
 		ALLOCATE_HOST_VECTOR((void**)&h_dy, size);
