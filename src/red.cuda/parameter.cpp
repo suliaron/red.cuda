@@ -17,7 +17,15 @@ parameter::parameter(string& dir, string& filename, bool verbose) :
 {
 	create_default();
 
-	string path = file::combine_path(dir, filename);
+	string path;
+	if (0 < file::get_directory(filename).length())
+	{
+		path = filename;
+	}
+	else
+	{
+		path = file::combine_path(dir, filename);
+	}
 	file::load_ascii_file(path, data);
 	parse();
 	transform_time();

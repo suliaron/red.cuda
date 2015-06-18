@@ -227,8 +227,6 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 				cudaError_t cuda_status = cudaGetLastError();
 				if (cudaSuccess != cuda_status)
 				{
-					string msg(cudaGetErrorString(cuda_status));
-			        sout << " " << msg << endl;
 					break;
 				}
 

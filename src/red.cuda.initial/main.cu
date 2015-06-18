@@ -21,6 +21,24 @@
 #include "util_init.h"
 #include "red.cuda.initial.type.h"
 
+#if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
+
+#include <windows.h>
+
+inline void delay(unsigned long ms)
+{
+	Sleep( ms );
+}
+#else  /* presume POSIX */
+
+#include <unistd.h>
+
+inline void delay( unsigned long ms )
+{
+	usleep( ms * 1000 );
+}
+#endif 
+
 using namespace std;
 using namespace redutilcu;
 
@@ -238,21 +256,21 @@ void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
 
 void populate_disk(body_disk_t& disk, sim_data_t *sd)
 {
-    ttt_t           epoch   = 0.0;
-	param_t	        param   = {0.0, 0.0, 0.0, 0.0};
+    ttt_t epoch             = 0.0;
+	param_t param           = {0.0, 0.0, 0.0, 0.0};
 	body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
-	orbelem_t       oe      = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+	orbelem_t oe            = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // The id of each body must be larger than 0 in order to indicate inactive body with negative id (ie. zero is not good)
     int bodyIdx = 0;
-	int bodyId = 1;
+	int bodyId  = 1;
 	for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)
 	{
 		for (int i = 0; i < disk.nBody[body_type]; i++, bodyIdx++, bodyId++)
 		{
-			body_md.id = bodyId;
-			body_md.body_type = static_cast<body_type_t>(body_type);
-			body_md.mig_type = disk.mig_type[bodyIdx];
+			body_md.id          = bodyId;
+			body_md.body_type   = static_cast<body_type_t>(body_type);
+			body_md.mig_type    = disk.mig_type[bodyIdx];
 			body_md.mig_stop_at = disk.stop_at[bodyIdx];
 
 			generate_pp(&disk.pp_d[body_type], param);
@@ -293,8 +311,9 @@ void populate_disk(body_disk_t& disk, sim_data_t *sd)
 	} /* for */
 }
 
-
-void set_parameters_of_Chambers2001_disk(nebula& n, body_disk_t& disk)
+namespace set_parameters
+{
+void Chambers2001(nebula& n, body_disk_t& disk)
 {
 	srand(time(NULL));
 
@@ -345,7 +364,7 @@ void set_parameters_of_Chambers2001_disk(nebula& n, body_disk_t& disk)
 	}
 }
 
-void set_parameters_of_solar_system(body_disk_t& disk)
+void solar_system(body_disk_t& disk)
 {
 	srand(time(NULL));
 
@@ -358,8 +377,7 @@ void set_parameters_of_solar_system(body_disk_t& disk)
 	disk.stop_at = new var_t[nBodies];
 }
 
-
-void set_parameters_of_pl_to_test_anal_gd(body_disk_t& disk)
+void pl_to_test_anal_gd(body_disk_t& disk)
 {
 	srand(time(NULL));
 
@@ -405,7 +423,7 @@ void set_parameters_of_pl_to_test_anal_gd(body_disk_t& disk)
 	}
 }
 
-void set_parameters_of_Dvorak_disk(nebula& n, body_disk_t& disk)
+void Dvorak(nebula& n, body_disk_t& disk)
 {
 	srand(time(NULL));
 
@@ -456,7 +474,7 @@ void set_parameters_of_Dvorak_disk(nebula& n, body_disk_t& disk)
 	}
 }
 
-void set_parameters_of_Two_body_disk(body_disk_t& disk)
+void Two_body(body_disk_t& disk)
 {
 	srand(time(NULL));
 
@@ -502,7 +520,7 @@ void set_parameters_of_Two_body_disk(body_disk_t& disk)
 	}
 }
 
-void set_parameters_of_n_gp_body_disk(body_disk_t& disk)
+void n_gp(body_disk_t& disk)
 {
 	srand(time(NULL));
 
@@ -550,7 +568,7 @@ void set_parameters_of_n_gp_body_disk(body_disk_t& disk)
 	}
 }
 
-void set_parameters_of_n_pp_body_disk(body_disk_t& disk)
+void n_pp(body_disk_t& disk)
 {
 	srand(time(NULL));
 
@@ -596,7 +614,7 @@ void set_parameters_of_n_pp_body_disk(body_disk_t& disk)
 	}
 }
 
-void set_parameters_of_n_spl_body_disk(body_disk_t& disk)
+void n_spl(body_disk_t& disk)
 {
 	srand(time(NULL));
 
@@ -647,7 +665,7 @@ void set_parameters_of_n_spl_body_disk(body_disk_t& disk)
 	}
 }
 
-void set_parameters_of_n_pl_body_disk(body_disk_t& disk)
+void n_pl(body_disk_t& disk)
 {
 	srand(time(NULL));
 
@@ -697,7 +715,7 @@ void set_parameters_of_n_pl_body_disk(body_disk_t& disk)
 	}
 }
 
-void set_parameters_of_n_tp_body_disk(body_disk_t& disk)
+void n_tp(body_disk_t& disk)
 {
 	srand(time(NULL));
 
@@ -748,7 +766,7 @@ void set_parameters_of_n_tp_body_disk(body_disk_t& disk)
 	}
 }
 
-void set_parameters_of_GT_scenario(body_disk_t& disk)
+void GT_scenario(body_disk_t& disk)
 {
 	srand(time(NULL));
 
@@ -820,7 +838,7 @@ void set_parameters_of_GT_scenario(body_disk_t& disk)
 	}
 }
 
-void set_parameters_of_GT_scenario_mod(body_disk_t& disk)
+void GT_scenario_mod(body_disk_t& disk)
 {
 	srand(time(NULL));
 
@@ -891,8 +909,11 @@ void set_parameters_of_GT_scenario_mod(body_disk_t& disk)
 		}
 	}
 }
+} /* set_parameters */
 
-void create_Chambers2001_disk(string& dir, string& filename)
+namespace create_disk
+{
+void Chambers2001(string& dir, string& filename)
 {
 	body_disk_t disk;
 
@@ -952,7 +973,7 @@ void create_Chambers2001_disk(string& dir, string& filename)
 		var_t m_pp = (1.0 / 60.0) * constants::EarthToSolar;
 		int_t n_pp = m_solid / m_pp;
 
-		set_parameters_of_Chambers2001_disk(mmsn, disk);
+		set_parameters::Chambers2001(mmsn, disk);
 
 		sim_data_t* sim_data = new sim_data_t;
 		int nBodies = calculate_number_of_bodies(disk);
@@ -1045,7 +1066,7 @@ void create_Chambers2001_disk(string& dir, string& filename)
 	var_t m_gas   = mmsn.gas_c.calc_mass();
 	var_t m_solid = mmsn.solid_c.calc_mass();
 
-	set_parameters_of_Dvorak_disk(mmsn, disk);
+	set_parameters::Dvorak(mmsn, disk);
 
 	sim_data_t* sim_data = new sim_data_t;
 	int nBodies = calculate_number_of_bodies(disk);
@@ -1127,7 +1148,7 @@ void create_Chambers2001_disk(string& dir, string& filename)
 	delete sim_data;
 }
 
-void create_Dvorak_disk(string& dir, string& filename)
+void Dvorak(string& dir, string& filename)
 {
 	body_disk_t disk;
 
@@ -1154,7 +1175,7 @@ void create_Dvorak_disk(string& dir, string& filename)
 	var_t m_gas   = mmsn.gas_c.calc_mass();
 	var_t m_solid = mmsn.solid_c.calc_mass();
 
-	set_parameters_of_Dvorak_disk(mmsn, disk);
+	set_parameters::Dvorak(mmsn, disk);
 
 	sim_data_t* sim_data = new sim_data_t;
 	int nBodies = calculate_number_of_bodies(disk);
@@ -1236,12 +1257,12 @@ void create_Dvorak_disk(string& dir, string& filename)
 	delete sim_data;
 }
 
-void create_GT_scenario(string& dir, string& filename)
+void GT_scenario(string& dir, string& filename)
 {
 	body_disk_t disk;
 
 	initialize(disk);
-	set_parameters_of_GT_scenario(disk);
+	set_parameters::GT_scenario(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
 	int nBodies = calculate_number_of_bodies(disk);
@@ -1349,13 +1370,12 @@ void create_GT_scenario(string& dir, string& filename)
 	delete sim_data;
 }
 
-
-void create_GT_scenario_mod(string& dir, string& filename)
+void GT_scenario_mod(string& dir, string& filename)
 {
 	body_disk_t disk;
 
 	initialize(disk);
-	set_parameters_of_GT_scenario_mod(disk);
+	set_parameters::GT_scenario_mod(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
 	int nBodies = calculate_number_of_bodies(disk);
@@ -1471,13 +1491,13 @@ void create_GT_scenario_mod(string& dir, string& filename)
 	delete sim_data;
 } // end create_GT_scenariomod
 
-void create_two_body_disk(string& dir, string& filename)
+void two_body(string& dir, string& filename)
 {
 	body_disk_t disk;
 
 	initialize(disk);
 
-	set_parameters_of_Two_body_disk(disk);
+	set_parameters::Two_body(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
 	int nBodies = calculate_number_of_bodies(disk);
@@ -1517,13 +1537,13 @@ void create_two_body_disk(string& dir, string& filename)
 	delete sim_data;
 }
 
-void create_n_gp_body_disk(string& dir, string& filename)
+void n_gp(string& dir, string& filename)
 {
 	body_disk_t disk;
 
 	initialize(disk);
 
-	set_parameters_of_n_gp_body_disk(disk);
+	set_parameters::n_gp(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
 	int nBodies = calculate_number_of_bodies(disk);
@@ -1594,11 +1614,11 @@ void create_n_gp_body_disk(string& dir, string& filename)
 	delete sim_data;
 }
 
-void create_n_pp_body_disk(string& dir, string& filename)
+void n_pp(string& dir, string& filename)
 {
 	body_disk_t disk;
 
-	set_parameters_of_n_pp_body_disk(disk);
+	set_parameters::n_pp(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
 	int nBodies = calculate_number_of_bodies(disk);
@@ -1666,13 +1686,13 @@ void create_n_pp_body_disk(string& dir, string& filename)
 	delete sim_data;
 }
 
-void create_n_spl_body_disk(string& dir, string& filename)
+void n_spl(string& dir, string& filename)
 {
 	body_disk_t disk;
 
 	initialize(disk);
 
-	set_parameters_of_n_spl_body_disk(disk);
+	set_parameters::n_spl(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
 	int nBodies = calculate_number_of_bodies(disk);
@@ -1712,13 +1732,13 @@ void create_n_spl_body_disk(string& dir, string& filename)
 	delete sim_data;
 }
 
-void create_n_pl_body_disk(string& dir, string& filename)
+void n_pl(string& dir, string& filename)
 {
 	body_disk_t disk;
 
 	initialize(disk);
 
-	set_parameters_of_n_pl_body_disk(disk);
+	set_parameters::n_pl(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
 	int nBodies = calculate_number_of_bodies(disk);
@@ -1780,13 +1800,13 @@ void create_n_pl_body_disk(string& dir, string& filename)
 	delete sim_data;
 }
 
-void create_n_tp_body_disk(string& dir, string& filename)
+void n_tp(string& dir, string& filename)
 {
 	body_disk_t disk;
 
 	initialize(disk);
 
-	set_parameters_of_n_tp_body_disk(disk);
+	set_parameters::n_tp(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
 	int nBodies = calculate_number_of_bodies(disk);
@@ -1824,14 +1844,13 @@ void create_n_tp_body_disk(string& dir, string& filename)
 	delete sim_data;
 }
 
-
-void create_n_pl_to_test_anal_gd(string& dir, string& filename)
+void n_pl_to_test_anal_gd(string& dir, string& filename)
 {
 	body_disk_t disk;
 
 	initialize(disk);
 
-	set_parameters_of_pl_to_test_anal_gd(disk);
+	set_parameters::pl_to_test_anal_gd(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
 	int nBodies = calculate_number_of_bodies(disk);
@@ -1872,13 +1891,13 @@ void create_n_pl_to_test_anal_gd(string& dir, string& filename)
 	delete sim_data;
 }
 
-void create_solar_system(string& dir, string& filename)
+void solar_system(string& dir, string& filename)
 {
 	body_disk_t disk;
 
 	initialize(disk);
 
-	set_parameters_of_solar_system(disk);
+	set_parameters::solar_system(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
 	int nBodies = calculate_number_of_bodies(disk);
@@ -1917,8 +1936,27 @@ void create_solar_system(string& dir, string& filename)
 
 	delete sim_data;
 }
+} /* create_disk */
 
 
+namespace project_collision_2D
+{
+void create_init_cond(string& out_dir)
+{
+	char buffer[4];
+	// Iterates over the different initial seed
+	for (unsigned int j = 0; j < 10; j++)
+	{
+		sprintf(buffer, "%02d", j+1);
+		string postfix(buffer);
+		string filename = "input_" + postfix;
+		
+		create_disk::n_pp(out_dir, filename);
+		// This is needed to initialize the built-in random number generator with a new seed
+		delay(1600);
+	}
+}
+} /* project_collision_2D */
 
 int parse_options(int argc, const char **argv, string &outDir, string &filename)
 {
@@ -1954,6 +1992,12 @@ int parse_options(int argc, const char **argv, string &outDir, string &filename)
 //-o C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -f Run_cf_5.txt
 int main(int argc, const char **argv)
 {
+	{
+		string out_dir = "C:\\Work\\red.cuda.Results\\CollisionStatistics\\2D";
+		project_collision_2D::create_init_cond(out_dir);
+		return (EXIT_SUCCESS);
+	}
+	
 	string outDir;
 	string filename;
 	string output_path;
@@ -1962,35 +2006,24 @@ int main(int argc, const char **argv)
 
 	try
 	{
-		//create_solar_system(outDir, filename);
-
-		//create_Chambers2001_disk(outDir, filename);
-
-		//create_n_pl_to_test_anal_gd(outDir, filename);
-
-		//create_n_gp_body_disk(outDir, filename);
-
-		//create_n_tp_body_disk(outDir, filename);
-
-		//create_n_pl_body_disk(outDir, filename);
-
-		//create_n_spl_body_disk(outDir, filename);
-
-		//create_n_pp_body_disk(outDir, filename);
-
-		//create_n_massive_body_disk(outDir, filename);
-
-		//create_two_body_disk(outDir, filename);
-
-		//create_Dvorak_disk(outDir, filename);
-
-		//create_GT_scenario(outDir, filename);
-		create_GT_scenario_mod(outDir, filename);
+		//create_disk::solar_system(outDir, filename);
+		//create_disk::Chambers2001(outDir, filename);
+		//create_disk::n_pl_to_test_anal_gd(outDir, filename);
+		//create_disk::n_gp(outDir, filename);
+		//create_disk::n_tp(outDir, filename);
+		//create_disk::n_pl(outDir, filename);
+		//create_disk::n_spl(outDir, filename);
+		create_disk::n_pp(outDir, filename);
+		//create_disk::two_body(outDir, filename);
+		//create_disk::Dvorak(outDir, filename);
+		//create_disk::GT_scenario(outDir, filename);
+		//create_disk::GT_scenario_mod(outDir, filename);
 	}
 	catch (const string& msg)
 	{
 		cerr << "Error: " << msg << endl;
+		return (EXIT_FAILURE);
 	}
 
-	return 0;
+	return (EXIT_SUCCESS);
 }

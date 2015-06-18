@@ -324,14 +324,13 @@ pp_disk* options::create_pp_disk()
 
 	if (!continue_simulation)
 	{
-		//ppd->transform_to_bc(verbose);
+		ppd->transform_to_bc(verbose);
 		ppd->transform_time(verbose);
 		ppd->transform_velocity(verbose);
 	}
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		ppd->copy_to_device();
-		//ppd->print_sim_data(COMPUTING_DEVICE_GPU);
 		ppd->copy_disk_params_to_device();
 	}
 	ppd->copy_threshold(param->thrshld);
