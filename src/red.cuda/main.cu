@@ -61,28 +61,28 @@ void open_streams(const options& opt, ofstream** output)
 	string prefix = create_prefix(opt);
 	string ext = "txt";
 
-	path = file::combine_path(opt.printout_dir, prefix + opt.result_filename) + "." + ext;
+	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_RESULT]) + "." + ext;
 	output[OUTPUT_NAME_RESULT] = new ofstream(path.c_str(), ios::out);
 	if (!*output[OUTPUT_NAME_RESULT]) 
 	{
 		throw string("Cannot open " + path + ".");
 	}
 
-	path = file::combine_path(opt.printout_dir, prefix + opt.info_filename) + "." + ext;
+	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INFO]) + "." + ext;
 	output[OUTPUT_NAME_INFO] = new ofstream(path.c_str(), ios::out);
 	if (!*output[OUTPUT_NAME_INFO]) 
 	{
 		throw string("Cannot open " + path + ".");
 	}
 
-	path = file::combine_path(opt.printout_dir, prefix + opt.event_filename) + "." + ext;
+	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_EVENT]) + "." + ext;
 	output[OUTPUT_NAME_EVENT] = new ofstream(path.c_str(), ios::out);
 	if (!*output[OUTPUT_NAME_EVENT]) 
 	{
 		throw string("Cannot open " + path + ".");
 	}
 
-	path = file::combine_path(opt.printout_dir, prefix + opt.log_filename) + "." + ext;
+	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_LOG]) + "." + ext;
 	output[OUTPUT_NAME_LOG] = new ofstream(path.c_str(), ios::out);
 	if (!*output[OUTPUT_NAME_LOG]) 
 	{
@@ -140,7 +140,7 @@ void print_dump(ofstream *output, const options& opt, pp_disk* ppd, int n_dump, 
 {
 	string prefix = create_prefix(opt);
 	string ext = (repres == DATA_REPRESENTATION_ASCII ? "txt" : "bin");
-	string path = file::combine_path(opt.printout_dir, prefix + "dump" + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + "." + ext);
+	string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DUMP] + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + "." + ext);
 	output = new ofstream(path.c_str(), ios::out | ios::binary);
 	if(!output)
 	{
@@ -155,9 +155,28 @@ void print_dump_aux_data(ofstream& sout, dump_aux_data_t* dump_aux)
 	sout.write((char*)(dump_aux), sizeof(dump_aux_data_t));
 }
 
-void load_dump_aux_data(ifstream& input, dump_aux_data_t* dump_aux)
+void read_dump_aux_data(ifstream& input, dump_aux_data_t* dump_aux)
 {
 	input.read((char*)(dump_aux), sizeof(dump_aux_data_t));
+}
+
+dump_aux_data_t load_dump_aux_data(const options& opt)
+{
+	dump_aux_data_t dump_aux;
+
+	string path = file::combine_path(opt.dir[DIRECTORY_NAME_IN], file::get_filename_without_ext(opt.in_fn[INPUT_NAME_BODYLIST]) + ".aux.dat");
+	ifstream input(path.c_str(), ios::in | ios::binary);
+	if (input) 
+	{
+		read_dump_aux_data(input, &dump_aux);
+	}
+	else
+	{
+		throw string("Cannot open " + path + ".");
+	}
+	input.close();
+
+	return dump_aux;
 }
 
 ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* t_step)
@@ -239,7 +258,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 
 			float min_y = 1.0e10;
 			int min_idx = 0;
-			for (int i = 0; i < n_pass; i++)
+			for (unsigned int i = 0; i < n_pass; i++)
 			{
 				if (min_y > execution_time[i].y)
 				{
@@ -320,20 +339,21 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	time_t time_info_start = clock();
 	time_t time_of_last_dump = clock();
 
-	int dummy_k = 0;
+	//int dummy_k = 0;
 	computing_device_t target_device = intgr->get_computing_device();
 
 	unsigned int n_inactive = 10;
 	unsigned int n_removed = 0;
-	unsigned int n_dump = 0;
+	//unsigned int n_dump = 0;
 
-	ppd->benchmark();
+	ppd->set_n_tpb(ppd->benchmark());
 	if (opt.verbose)
 	{
 		string msg = "Number of thread per block was set to " + redutilcu::number_to_string(ppd->get_n_tpb());
 		file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
 	}
 
+	ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
 	while (1 < ppd->n_bodies->get_n_total_active() && ppd->t <= opt.param->stop_time)
 	{
 #if 0
@@ -413,17 +433,36 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			}
 		}
 
-		if ((0.0 < opt.param->thrshld[THRESHOLD_EJECTION_DISTANCE] || 
-			 0.0 < opt.param->thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]) &&  ppd->check_for_ejection_hit_centrum())
+		if ((0.0 < opt.param->threshold[THRESHOLD_EJECTION_DISTANCE] || 0.0 < opt.param->threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]))
 		{
-			ppd->print_event_data(*output[OUTPUT_NAME_EVENT], *output[OUTPUT_NAME_LOG]);
-			ppd->clear_event_counter();
+			bool eje_hc = ppd->check_for_ejection_hit_centrum();
+			if (eje_hc)
+			{
+				ppd->print_event_data(*output[OUTPUT_NAME_EVENT], *output[OUTPUT_NAME_LOG]);
+				ppd->clear_event_counter();
+			}
 		}
 
-		if (0.0 < opt.param->thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] && ppd->check_for_collision())
+		if (0.0 < opt.param->threshold[THRESHOLD_RADII_ENHANCE_FACTOR])
 		{
-			ppd->print_event_data(*output[OUTPUT_NAME_EVENT], *output[OUTPUT_NAME_LOG]);
-			ppd->clear_event_counter();
+			switch (opt.param->cdm)
+			{
+			case COLLISION_DETECTION_MODEL_STEP:
+			case COLLISION_DETECTION_MODEL_SUB_STEP:
+				{
+				bool collision = ppd->check_for_collision();
+				if (collision)
+				{
+					ppd->print_event_data(*output[OUTPUT_NAME_EVENT], *output[OUTPUT_NAME_LOG]);
+					ppd->clear_event_counter();
+				}
+				}
+				break;
+			case COLLISION_DETECTION_MODEL_INTERPOLATION:
+				break;
+			default:
+				throw string("Parameter 'cdm' is out of range.");
+			}
 		}
 
 		dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
@@ -448,7 +487,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 			{
-				ppd->benchmark();
+				ppd->set_n_tpb(ppd->benchmark());
 				if (opt.verbose)
 				{
 					string msg = "Number of thread per block was set to " + redutilcu::number_to_string(ppd->get_n_tpb());
@@ -486,6 +525,12 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		}
 		ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
 	}
+
+	// Needed by nvprof.exe
+	if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
+	{
+		cudaDeviceReset();
+	}
 }
 
 void run_test()
@@ -507,57 +552,49 @@ int main(int argc, const char** argv, const char** env)
 	try
 	{
 		options opt = options(argc, argv);
+
 		if (opt.test)
 		{
 			run_test();
-			exit(0);
+			return (EXIT_SUCCESS);
 		}
-
-		ttt_t dt = 0.1; // [day]
-		pp_disk *ppd = opt.create_pp_disk();
+		
 		open_streams(opt, output);
 
+		file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, opt.param->cdm, opt.print_to_screen);
+
+		if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+		{
+			set_device(opt.id_dev, std::cout);
+			device_query(*output[OUTPUT_NAME_LOG], opt.id_dev, opt.print_to_screen);
+		}
+		else
+		{
+			opt.ups = false;
+		}
+
+		pp_disk *ppd = opt.create_pp_disk();
+
+		ttt_t dt = 0.1; // [day]
 		if (opt.continue_simulation)
 		{
 			string msg = "Simulation continues from t = " + redutilcu::number_to_string(ppd->t / constants::Gauss) + " [day]";
 			file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
 
-			string path = file::combine_path(opt.input_dir, file::get_filename_without_ext(opt.bodylist_filename) + ".aux.dat");
-			ifstream input(path.c_str(), ios::in | ios::binary);
-			if (input) 
-			{
-				dump_aux_data_t dump_aux;
-				load_dump_aux_data(input, &dump_aux);
-				dt = dump_aux.dt / constants::Gauss;
-			}
-			else
-			{
-				throw string("Cannot open " + path + ".");
-			}
-			input.close();
+			dump_aux_data_t dump_aux = load_dump_aux_data(opt);
+			dt = dump_aux.dt / constants::Gauss;
 		}
-		integrator *intgr = opt.create_integrator(ppd, dt);
 
-		file::log_start_cmd(*output[OUTPUT_NAME_LOG], argc, argv, env, opt.print_to_screen);
-		if (opt.verbose && COMPUTING_DEVICE_GPU == opt.comp_dev)
-		{
-			device_query(*output[OUTPUT_NAME_LOG], opt.id_dev, opt.print_to_screen);
-		}
+		integrator *intgr = opt.create_integrator(ppd, dt);
 
 		if (opt.benchmark)
 		{
 			run_benchmark(opt, ppd, intgr, *output[OUTPUT_NAME_LOG]);
+			return (EXIT_SUCCESS);
 		}
-		else
-		{
-			ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
-			run_simulation(opt, ppd, intgr, output);
-			// Needed by nvprof.exe
-			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
-			{
-				cudaDeviceReset();
-			}
-		} /* else benchmark */
+
+		run_simulation(opt, ppd, intgr, output);
+
 	} /* try */
 	catch (const nbody_exception& ex)
 	{
@@ -575,6 +612,7 @@ int main(int argc, const char** argv, const char** env)
 		}
 		cerr << "Error: " << msg << endl;
 	}
+
 	if (0x0 != output[OUTPUT_NAME_LOG])
 	{
 		file::log_message(*output[OUTPUT_NAME_LOG], "Total time: " + tools::convert_time_t(time(NULL) - start) + " s", false);

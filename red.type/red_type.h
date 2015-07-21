@@ -22,14 +22,29 @@ typedef int2   int2_t;
 
 typedef enum output_name
 		{
-			OUTPUT_NAME_LOG,
-			OUTPUT_NAME_INFO,
 			OUTPUT_NAME_DUMP,
 			OUTPUT_NAME_DUMP_AUX,
 			OUTPUT_NAME_EVENT,
+			OUTPUT_NAME_INFO,
+			OUTPUT_NAME_LOG,
 			OUTPUT_NAME_RESULT,
 			OUTPUT_NAME_N
 		} output_name_t;
+
+typedef enum input_name
+		{
+			INPUT_NAME_BODYLIST,
+			INPUT_NAME_PARAMETER,
+			INPUT_NAME_GAS_DISK_MODEL,
+			INPUT_NAME_N
+		} input_name_t;
+
+typedef enum directory_name
+		{
+			DIRECTORY_NAME_IN,
+			DIRECTORY_NAME_OUT,
+			DIRECTORY_NAME_N
+		} directory_name_t;
 
 typedef enum data_representation
 		{
@@ -41,18 +56,6 @@ static const char* data_representation_name[] =
 {
 			"ASCII",
 			"BINARY"
-};
-
-typedef enum actual_phase_storage
-		{ 
-			ACTUAL_PHASE_STORAGE_Y,
-			ACTUAL_PHASE_STORAGE_YOUT,
-			ACTUAL_PHASE_STORAGE_N
-		} actual_phase_storage_t;
-static const char* actual_phase_storage_name[] = 
-{
-			"Y",
-			"YOUT"
 };
 
 typedef enum gas_decrease
@@ -83,6 +86,20 @@ static const char* gas_disk_model_name[] =
 			"FARGO"
 };
 
+typedef enum collision_detection_model
+		{
+			COLLISION_DETECTION_MODEL_STEP,
+			COLLISION_DETECTION_MODEL_SUB_STEP,
+			COLLISION_DETECTION_MODEL_INTERPOLATION,
+			COLLISION_DETECTION_MODEL_N,
+		} collision_detection_model_t;
+static const char* collision_detection_model_name[] = 
+{
+			"STEP",
+			"SUB_STEP",
+			"INTERPOLATION"
+};
+
 typedef enum computing_device
 		{
 			COMPUTING_DEVICE_CPU,
@@ -100,17 +117,13 @@ typedef enum threshold
 			THRESHOLD_HIT_CENTRUM_DISTANCE,
 			THRESHOLD_EJECTION_DISTANCE,
 			THRESHOLD_RADII_ENHANCE_FACTOR,
-			THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED,
-			THRESHOLD_EJECTION_DISTANCE_SQUARED,
 			THRESHOLD_N
 		} threshold_t;
 static const char* threshold_name[] = 
 {
 			"HIT_CENTRUM_DISTANCE",
 			"EJECTION_DISTANCE",
-			"RADII_ENHANCE_FACTOR",
-			"HIT_CENTRUM_DISTANCE_SQUARED",
-			"EJECTION_DISTANCE_SQUARED"
+			"RADII_ENHANCE_FACTOR"
 };
 
 typedef enum integrator_type

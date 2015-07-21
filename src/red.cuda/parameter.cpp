@@ -48,7 +48,9 @@ void parameter::create_default()
 	simulation_length  = 0.0;		// [day]
 	output_interval    = 0.0;		// [day]
 
-	memset(thrshld, 0, sizeof(thrshld));
+	cdm                = COLLISION_DETECTION_MODEL_SUB_STEP;
+
+	memset(threshold, 0, THRESHOLD_N * sizeof(var_t));
 }
 
 void parameter::parse()
@@ -184,14 +186,33 @@ void parameter::set_param(string& key, string& value)
 		}
 		output_interval = atof(value.c_str()) * constants::YearToDay;
 	}
+    else if (key == "cdm" || key == "collision_detection_method")
+	{
+		transform(value.begin(), value.end(), value.begin(), ::tolower);
+		if (     value == "step")
+		{
+			cdm = COLLISION_DETECTION_MODEL_STEP;
+		}
+		else if (value == "sub_step")
+		{
+			cdm = COLLISION_DETECTION_MODEL_SUB_STEP;
+		}
+		else if (value == "interpolation")
+		{
+			cdm = COLLISION_DETECTION_MODEL_INTERPOLATION;
+		}
+		else
+		{
+			throw string("Invalid collision detection method type: " + value);
+		}
+	}
     else if (key == "ejection")
 	{
 		if (!tools::is_number(value))
 		{
 			throw string("Invalid number at: " + key);
 		}
-		thrshld[THRESHOLD_EJECTION_DISTANCE] = atof(value.c_str());
-		thrshld[THRESHOLD_EJECTION_DISTANCE_SQUARED] = SQR(thrshld[THRESHOLD_EJECTION_DISTANCE]);
+		threshold[THRESHOLD_EJECTION_DISTANCE] = atof(value.c_str());
 	}
     else if (key == "hit_centrum")
 	{
@@ -199,8 +220,7 @@ void parameter::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE] = atof(value.c_str());
-		thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] = SQR(thrshld[THRESHOLD_HIT_CENTRUM_DISTANCE]);
+		threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] = atof(value.c_str());
 	}
     else if (key == "radii_enhance_factor" || key == "collision_factor")
 	{
@@ -208,7 +228,7 @@ void parameter::set_param(string& key, string& value)
 		{
 			throw string("Invalid number at: " + key);
 		}
-		thrshld[THRESHOLD_RADII_ENHANCE_FACTOR] = atof(value.c_str());
+		threshold[THRESHOLD_RADII_ENHANCE_FACTOR] = atof(value.c_str());
 	}
 	else
 	{
@@ -247,9 +267,7 @@ ostream& operator<<(ostream& stream, const parameter* p)
 		{
 			"THRESHOLD_HIT_CENTRUM_DISTANCE",
 			"THRESHOLD_EJECTION_DISTANCE",
-			"THRESHOLD_RADII_ENHANCE_FACTOR",
-			"THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED",
-			"THRESHOLD_EJECTION_DISTANCE_SQUARED"
+			"THRESHOLD_RADII_ENHANCE_FACTOR"
 		};
 
 	stream << "simulation name: " << p->simulation_name << endl;
@@ -263,7 +281,7 @@ ostream& operator<<(ostream& stream, const parameter* p)
 	stream << "simulation output interval: " << p->output_interval << endl;
 	for (int i = 0; i < THRESHOLD_N; i++)
 	{
-		stream << "simulation threshold[" << threshold_name[i] << "]: " << p->thrshld[i] << endl;
+		stream << "simulation threshold[" << threshold_name[i] << "]: " << p->threshold[i] << endl;
 	}
 
 	return stream;

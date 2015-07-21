@@ -44,8 +44,6 @@ static __global__
 	printf("dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE        ] : %lf\n", dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
 	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE           ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE]);
 	printf("dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR        ] : %lf\n", dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR]);
-	printf("dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED] : %lf\n", dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE_SQUARED]);
-	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED   ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE_SQUARED]);
 }
 
 static __global__
@@ -1329,7 +1327,7 @@ int main()
 
 #endif
 
-#if 1
+#if 0
 /*
  * Test the CUDA_SAFE_CALL() and CUDA_CHECK_ERROR() macro functions
  */
@@ -1368,3 +1366,21 @@ int main()
 }
 #endif
 
+int main()
+{
+	int *event_counter = 0x0;
+
+	event_counter = (int*)malloc(sizeof(int));
+
+	*event_counter = 0;
+	int k = (*event_counter)++;
+	printf("k = %d\t*event_counter = %d\n", k, *event_counter);
+
+	k = (*event_counter)++;
+	printf("k = %d\t*event_counter = %d\n", k, *event_counter);
+
+	k = (*event_counter)++;
+	printf("k = %d\t*event_counter = %d\n", k, *event_counter);
+
+	free(event_counter);
+}

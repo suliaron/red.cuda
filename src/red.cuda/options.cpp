@@ -2,55 +2,31 @@
 #include <iostream>
 
 // includes project
-#include "redutilcu.h"
 #include "options.h"
+#include "analytic_gas_disk.h"
+#include "fargo_gas_disk.h"
 #include "gas_disk.h"
 #include "int_euler.h"
 #include "int_rungekutta2.h"
 #include "int_rungekutta4.h"
 #include "int_rungekutta8.h"
 #include "util.h"
+#include "redutilcu.h"
 #include "red_constants.h"
 #include "red_macro.h"
 
 using namespace redutilcu;
 
-options::options(int argc, const char** argv)
+options::options(int argc, const char** argv) :
+	n_bodies(0x0),
+	param(0x0)
 {
-	initialize();
 	create_default();
 	parse(argc, argv);
 
-	if (COMPUTING_DEVICE_GPU == comp_dev)
+	if (!test)
 	{
-		set_device(id_dev, std::cout);
-		if (verbose && print_to_screen)
-		{
-			cout << "Execution was transferred to GPU " << redutilcu::get_name_cuda_device(id_dev) << endl;
-		}
-	}
-	if (COMPUTING_DEVICE_CPU == comp_dev)
-	{
-		ups = false;
-	}
-
-	if (!this->test)
-	{
-		param = new parameter(input_dir, parameters_filename, verbose);
-	}
-
-	switch (g_disk_model)
-	{
-	case GAS_DISK_MODEL_NONE:
-		break;
-	case GAS_DISK_MODEL_ANALYTIC:
-		a_gd = new analytic_gas_disk(input_dir, gasdisk_filename, verbose);
-		break;
-	case GAS_DISK_MODEL_FARGO:
-		f_gd = new fargo_gas_disk(input_dir, gasdisk_filename, comp_dev, verbose);
-		break;
-	default:
-		throw string("Parameter 'g_disk_model' is out of range");
+		param = new parameter(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_PARAMETER], print_to_screen);
 	}
 }
 
@@ -58,166 +34,71 @@ options::~options()
 {
 }
 
-void options::print_usage()
-{
-	cout << "Usage: red.cuda <parameterlist>" << endl;
-	cout << "Parameters:" << endl;
-	cout << "     -id_dev | --id_active_device             : the id of the device which will execute the code" << endl;
-	cout << "     -ups    | --use-padded-storage           : use padded storage to store data (default is false)" << endl; 
-	cout << "     -n_tpb  | --n_thread-per-block           : the number of thread per block to use in kernel lunches (default is 64)" << endl;
-	cout << "     -n_chg  | --n_change_to_cpu              : the threshold value for the total number of SI bodies to change to the CPU (default is 100)" << endl;
-	cout << "     -iDir   | --inputDir <directory>         : the directory containing the input files"  << endl;
-	cout << "     -p      | --parameter <filename>         : the file containing the parameters of the simulation"  << endl;
-	cout << "     -ga     | --analytic_gas_disk <filename> : the file containing the parameters of an analyticaly prescribed gas disk"  << endl;
-	cout << "     -gf     | --fargo_gas_disk <filename>    : the file containing the details of the gas disk resulted from FARGO simulations"  << endl;
-	cout << "     -ic     | --initial_condition <filename> : the file containing the initial conditions"  << endl;
-	cout << "     -info   | --info-filename                : the name of the file where the runtime output of the code will be stored (default is info.txt)" << endl;
-	cout << "     -event  | --event-filename               : the name of the file where the details of each event will be stored (default is event.txt)" << endl;
-	cout << "     -log    | --log-filename                 : the name of the file where the details of the execution of the code will be stored (default is log.txt)" << endl;
-	cout << "     -result | --result-filename              : the name of the file where the simlation data for a time instance will be stored (default is result.txt)" << endl;
-	cout << "                                                where [...] contains data describing the integrator)" << endl;
-	cout << "     -i_dt   | --info-dt                      : the time interval in seconds between two subsequent information print to the screen (default value is 5 sec)" << endl;
-	cout << "     -d_dt   | --dump-dt                      : the time interval in seconds between two subsequent data dump to the hdd (default value is 3600 sec)" << endl;
-	cout << "     -c      | --continue                     : continue a simulation from its last saved state" << endl;
-	cout << "     -b      | --benchmark                    : run benchmark to find out the optimal number of threads per block" << endl;
-	cout << "     -t      | --test                         : run tests" << endl;
-	cout << "     -nb     | --number-of-bodies             : set the number of bodies for benchmarking (pattern: n_st n_gp n_rp n_pp n_spl n_pl n_tp)" << endl;
-	cout << "     -v      | --verbose                      : verbose mode (log all event during the execution fo the code to the log file)" << endl;
-	cout << "     -pts    | --print_to_screen              : verbose mode and print everything to the standard output stream too" << endl;
-	cout << "     -gpu    | --gpu                          : Execute the code on the graphics processing unit (GPU) (default is true)" << endl;
-	cout << "     -cpu    | --cpu                          : Execute the code on the cpu if required by the user or if no GPU is installed (default is false)" << endl;
-	cout << "     -h      | --help                         : print this help" << endl;
-}
-
-void options::initialize()
-{
-	n_bodies = 0x0;
-	param    = 0x0;
-	a_gd     = 0x0;
-	f_gd     = 0x0;
-}
-
 void options::create_default()
 {
 	continue_simulation = false;
 	benchmark           = false;
 	test                = false;
-	ef                  = false;
 	verbose             = false;
 	print_to_screen     = false;
 	ups                 = false;
+	ef                  = false;
 
 	info_dt             = 5.0;     // [sec]
 	dump_dt             = 3600.0;  // [sec]
 
 	id_dev              = 0;
-	n_tpb0              = 64;
 	n_change_to_cpu     = 100;
-				       
+
 	comp_dev            = COMPUTING_DEVICE_GPU;
 	g_disk_model        = GAS_DISK_MODEL_NONE;
-				       
-	info_filename       = "info";
-	event_filename      = "event";
-	log_filename        = "log";
-	result_filename     = "result";
+
+	out_fn[OUTPUT_NAME_DUMP]     = "dump";
+	out_fn[OUTPUT_NAME_DUMP_AUX] = "dump.aux";
+	out_fn[OUTPUT_NAME_EVENT]    = "event";
+	out_fn[OUTPUT_NAME_INFO]     = "info";
+	out_fn[OUTPUT_NAME_LOG]      = "log";
+	out_fn[OUTPUT_NAME_RESULT]   = "result";
 }
 
 void options::parse(int argc, const char** argv)
 {
-	int n_st  = 0;
-	int n_gp  = 0;
-	int n_rp  = 0;
-	int n_pp  = 0;
-	int n_spl = 0;
-	int n_pl  = 0;
-	int n_tp  = 0;
-
 	int i = 1;
 
 	while (i < argc)
 	{
 		string p = argv[i];
 
-		if (     p == "--id_active_device" || p == "-id_dev")
+		if (     p == "--continue" || p == "-c")
 		{
-			i++;
-			if (!tools::is_number(argv[i])) 
-			{
-				throw string("Invalid number at: " + p);
-			}
-			id_dev = atoi(argv[i]);
+			continue_simulation = true;
+		}
+		else if (p == "--benchmark" || p == "-b")
+		{
+			benchmark = true;
+		}
+		else if (p == "--test" || p == "-t")
+		{
+			test = true;
+		}
+		else if (p == "--verbose" || p == "-v")
+		{
+			verbose = true;
+		}
+		else if (p == "--print_to_screen" || p == "-pts")
+		{
+			verbose = true;
+			print_to_screen = true;
 		}
 		else if (p == "--use-padded-storage" || p == "-ups")
 		{
 			ups = true;
 		}
-		else if (p == "--n_thread-per-block" || p == "-n_tpb")
+		else if (p == "-ef")
 		{
-			i++;
-			if (!tools::is_number(argv[i])) 
-			{
-				throw string("Invalid number at: " + p);
-			}
-			n_tpb0 = atoi(argv[i]);
+			ef = true;
 		}
-		else if (p == "--n_change_to_cpu" || p == "-n_chg")
-		{
-			i++;
-			if (!tools::is_number(argv[i])) 
-			{
-				throw string("Invalid number at: " + p);
-			}
-			n_change_to_cpu = atoi(argv[i]);
-		}
-		else if (p == "--inputDir" || p == "-iDir")
-		{
-			i++;
-			input_dir = argv[i];
-			printout_dir = input_dir;
-		}
-		else if (p =="--parameters" || p == "-p")
-		{
-			i++;
-			parameters_filename = argv[i];
-		}
-		else if (p == "--analytic_gas_disk" || p == "-ga")
-		{
-			i++;
-			gasdisk_filename = argv[i];
-			g_disk_model = GAS_DISK_MODEL_ANALYTIC;
-		}
-		else if (p == "--fargo_gas_disk" || p == "-gf")
-		{
-			i++;
-			gasdisk_filename = argv[i];
-			g_disk_model = GAS_DISK_MODEL_FARGO;
-		}
-		else if (p == "--initial_conditions" || p == "-ic")
-		{
-			i++;
-			bodylist_filename = argv[i];
-		}
-		else if (p == "--info-filename" || p == "-info")
-		{
-			i++;
-			info_filename = argv[i];
-		}
-		else if (p == "--event-filename" || p == "-event")
-		{
-			i++;
-			event_filename = argv[i];
-		}
-		else if (p == "--log-filename" || p == "-log")
-		{
-			i++;
-			log_filename = argv[i];
-		}
-		else if (p == "--result-filename" || p == "-result")
-		{
-			i++;
-			result_filename = argv[i];
-		}
+
 		else if (p == "--info-dt" || p == "-i_dt")
 		{
 			i++;
@@ -236,31 +117,26 @@ void options::parse(int argc, const char** argv)
 			}
 			dump_dt = atof(argv[i]);
 		}
-		else if (p == "--verbose" || p == "-v")
+
+		else if (p == "--id_active_device" || p == "-id_dev")
 		{
-			verbose = true;
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			id_dev = atoi(argv[i]);
 		}
-		else if (p == "--print_to_screen" || p == "-pts")
+		else if (p == "--n_change_to_cpu" || p == "-n_chg")
 		{
-			verbose = true;
-			print_to_screen = true;
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			n_change_to_cpu = atoi(argv[i]);
 		}
-		else if (p == "--continue" || p == "-c")
-		{
-			continue_simulation = true;
-		}
-		else if (p == "--benchmark" || p == "-b")
-		{
-			benchmark = true;
-		}
-		else if (p == "--test" || p == "-t")
-		{
-			test = true;
-		}
-		else if (p == "-ef")
-		{
-			ef = true;
-		}
+
 		else if (p == "--cpu" || p == "-cpu")
 		{
 			comp_dev = COMPUTING_DEVICE_CPU;
@@ -269,8 +145,74 @@ void options::parse(int argc, const char** argv)
 		{
 			comp_dev = COMPUTING_DEVICE_GPU;
 		}
+		else if (p == "--analytic_gas_disk" || p == "-ga")
+		{
+			i++;
+			in_fn[INPUT_NAME_GAS_DISK_MODEL] = argv[i];
+			g_disk_model = GAS_DISK_MODEL_ANALYTIC;
+		}
+		else if (p == "--fargo_gas_disk" || p == "-gf")
+		{
+			i++;
+			in_fn[INPUT_NAME_GAS_DISK_MODEL] = argv[i];
+			g_disk_model = GAS_DISK_MODEL_FARGO;
+		}
+
+		else if (p == "--info-filename" || p == "-info")
+		{
+			i++;
+			out_fn[OUTPUT_NAME_INFO] = argv[i];
+		}
+		else if (p == "--event-filename" || p == "-event")
+		{
+			i++;
+			out_fn[OUTPUT_NAME_EVENT] = argv[i];
+		}
+		else if (p == "--log-filename" || p == "-log")
+		{
+			i++;
+			out_fn[OUTPUT_NAME_LOG] = argv[i];
+		}
+		else if (p == "--result-filename" || p == "-result")
+		{
+			i++;
+			out_fn[OUTPUT_NAME_RESULT] = argv[i];
+		}
+
+
+
+		else if (p == "--initial_conditions" || p == "-ic")
+		{
+			i++;
+			in_fn[INPUT_NAME_BODYLIST] = argv[i];
+		}
+
+		else if (p =="--parameters" || p == "-p")
+		{
+			i++;
+			in_fn[INPUT_NAME_PARAMETER] = argv[i];
+		}
+
+		else if (p == "--inputDir" || p == "-iDir")
+		{
+			i++;
+			dir[DIRECTORY_NAME_IN] = argv[i];
+		}
+		else if (p == "--printDir" || p == "-pDir")
+		{
+			i++;
+			dir[DIRECTORY_NAME_OUT] = argv[i];
+		}
+
 		else if (p == "--number-of-bodies"   || p == "-nb")
 		{
+			int n_st  = 0;
+			int n_gp  = 0;
+			int n_rp  = 0;
+			int n_pp  = 0;
+			int n_spl = 0;
+			int n_pl  = 0;
+			int n_tp  = 0;
 			i++;    n_st  = atoi(argv[i]);
 			i++;    n_gp  = atoi(argv[i]);
 			i++;    n_rp  = atoi(argv[i]);
@@ -291,6 +233,11 @@ void options::parse(int argc, const char** argv)
 		}
 		i++;
 	}
+
+	if (0 == dir[DIRECTORY_NAME_OUT].length())
+	{
+		dir[DIRECTORY_NAME_OUT] = dir[DIRECTORY_NAME_IN];
+	}
 }
 
 pp_disk* options::create_pp_disk()
@@ -299,41 +246,42 @@ pp_disk* options::create_pp_disk()
 
 	if (benchmark)
 	{
-		ppd = new pp_disk(n_bodies, n_tpb0, ups, g_disk_model, id_dev, comp_dev);
+		ppd = new pp_disk(n_bodies, ups, g_disk_model, param->cdm, id_dev, comp_dev);
 	}
 	else
 	{
-		string path = file::combine_path(input_dir, bodylist_filename);
-		ppd = new pp_disk(path, continue_simulation, n_tpb0, ups, g_disk_model, id_dev, comp_dev);
+		string path = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_BODYLIST]);
+		ppd = new pp_disk(path, continue_simulation, ups, g_disk_model, param->cdm, id_dev, comp_dev, param->threshold, print_to_screen);
 	}
+
 	switch (g_disk_model)
 	{
 	case GAS_DISK_MODEL_NONE:
 		break;
 	case GAS_DISK_MODEL_ANALYTIC:
-		ppd->a_gd = a_gd;
+		ppd->a_gd = new analytic_gas_disk(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_GAS_DISK_MODEL], print_to_screen);
 		ppd->a_gd->calc(ppd->get_mass_of_star());
-		//ppd->print_result_ascii(cout);
 		break;
 	case GAS_DISK_MODEL_FARGO:
-		ppd->f_gd = f_gd;
+		ppd->f_gd = new fargo_gas_disk(in_fn[INPUT_NAME_BODYLIST], in_fn[INPUT_NAME_GAS_DISK_MODEL], comp_dev, print_to_screen);
 		break;
 	default:
-		throw string("Parameter 'g_disk_model' is out of range.");
+		throw string("Parameter 'g_disk_model' is out of range");
 	}
 
-	if (!continue_simulation)
-	{
-		ppd->transform_to_bc(verbose);
-		ppd->transform_time(verbose);
-		ppd->transform_velocity(verbose);
-	}
+	//if (!continue_simulation)
+	//{
+	//	ppd->transform_to_bc(print_to_screen);
+	//	ppd->transform_time();
+	//	ppd->transform_velocity();
+	//}
+
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		ppd->copy_to_device();
-		ppd->copy_disk_params_to_device();
+		//ppd->copy_disk_params_to_device();
 	}
-	ppd->copy_threshold(param->thrshld);
+	//ppd->copy_threshold(param->threshold);
 	ppd->t = (continue_simulation ? ppd->sim_data->h_epoch[0] : param->start_time);
 
 	return ppd;
@@ -341,7 +289,7 @@ pp_disk* options::create_pp_disk()
 
 integrator* options::create_integrator(pp_disk* ppd, ttt_t dt)
 {
-	integrator* intgr;
+	integrator* intgr = 0x0;
 
 	switch (param->int_type)
 	{
@@ -372,4 +320,41 @@ integrator* options::create_integrator(pp_disk* ppd, ttt_t dt)
 	}
 
 	return intgr;
+}
+
+void options::print_usage()
+{
+	cout << "Usage: red.cuda <parameterlist>" << endl;
+	cout << "Parameters:" << endl;
+	cout << "     -c      | --continue                     : continue a simulation from a previous run's saved state" << endl;
+	cout << "     -b      | --benchmark                    : run benchmark to find out the optimal number of threads per block" << endl;
+	cout << "     -t      | --test                         : run tests" << endl;
+	cout << "     -v      | --verbose                      : verbose mode (log all event during the execution fo the code to the log file)" << endl;
+	cout << "     -pts    | --print_to_screen              : verbose mode and print everything to the standard output stream too" << endl;
+	cout << "     -ups    | --use-padded-storage           : use padded storage to store data (default is false)" << endl; 
+	cout << "     -ef     |                                : use extended file names (use only for debuging purposes)" << endl;
+
+	cout << "     -i_dt   | --info-dt <number>             : the time interval in seconds between two subsequent information print to the screen (default value is 5 sec)" << endl;
+	cout << "     -d_dt   | --dump-dt <number>             : the time interval in seconds between two subsequent data dump to the hard disk (default value is 3600 sec)" << endl;
+
+	cout << "     -id_dev | --id_active_device <number>    : the id of the device which will execute the code (default value is 0)" << endl;
+	cout << "     -n_chg  | --n_change_to_cpu <number>     : the threshold value for the total number of SI bodies to change to the CPU (default value is 100)" << endl;
+
+	cout << "     -gpu    | --gpu                          : execute the code on the graphics processing unit (GPU) (default value is true)" << endl;
+	cout << "     -cpu    | --cpu                          : execute the code on the cpu if required by the user or if no GPU is installed (default value is false)" << endl;
+
+	cout << "     -ic     | --initial_condition <filename> : the file containing the initial conditions"  << endl;
+	cout << "     -info   | --info-filename <filename>     : the name of the file where the runtime output of the code will be stored (default value is info.txt)" << endl;
+	cout << "     -event  | --event-filename <filename>    : the name of the file where the details of each event will be stored (default value is event.txt)" << endl;
+	cout << "     -log    | --log-filename <filename>      : the name of the file where the details of the execution of the code will be stored (default value is log.txt)" << endl;
+	cout << "     -result | --result-filename <filename>   : the name of the file where the simlation data for a time instance will be stored (default value is result.txt)" << endl;
+
+	cout << "     -iDir   | --inputDir <directory>         : the directory containing the input files"  << endl;
+	cout << "     -pDir   | --printDir <directory>         : the directory where the output files will be stored (if omitted the input directory will be used)" << endl;
+	cout << "     -p      | --parameter <filename>         : the file containing the parameters of the simulation"  << endl;
+	cout << "     -ga     | --analytic_gas_disk <filename> : the file containing the parameters of an analyticaly prescribed gas disk"  << endl;
+	cout << "     -gf     | --fargo_gas_disk <filename>    : the file containing the details of the gas disk resulted from FARGO simulations"  << endl;
+	cout << "     -nb     | --number-of-bodies             : set the number of bodies for benchmarking (pattern: n_st n_gp n_rp n_pp n_spl n_pl n_tp)" << endl;
+
+	cout << "     -h      | --help                         : print this help" << endl;
 }

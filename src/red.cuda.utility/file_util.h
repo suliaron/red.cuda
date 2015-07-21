@@ -20,7 +20,7 @@ namespace redutilcu
 
 		void Emese_data_format_to_red_cuda_format(const string& input_path, const string& output_path);
 
-		void log_start_cmd(ostream& sout, int argc, const char** argv, const char** env, bool print_to_screen);
+		void log_start(ostream& sout, int argc, const char** argv, const char** env, collision_detection_model_t cdm, bool print_to_screen);
 		void log_message(ostream& sout, string msg, bool print_to_screen);
 
 		void print_body_record(         ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v);

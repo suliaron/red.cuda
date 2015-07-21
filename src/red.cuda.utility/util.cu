@@ -120,7 +120,7 @@ void device_query(ostream& sout, int id_dev)
     cudaDeviceProp deviceProp;
     CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, id_dev));
 
-    sout << "The code runs on " << deviceProp.name << " device:" << endl;
+    sout << "The code runs on a " << deviceProp.name << " device:" << endl;
 
     // Console log
     cudaDriverGetVersion(&driverVersion);

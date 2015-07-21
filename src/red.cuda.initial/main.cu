@@ -1992,15 +1992,16 @@ int parse_options(int argc, const char **argv, string &outDir, string &filename)
 //-o C:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run_cf_5 -f Run_cf_5.txt
 int main(int argc, const char **argv)
 {
+	string outDir;
+	string filename;
+	string output_path;
+
 	{
 		string out_dir = "C:\\Work\\red.cuda.Results\\CollisionStatistics\\2D";
 		project_collision_2D::create_init_cond(out_dir);
 		return (EXIT_SUCCESS);
 	}
 	
-	string outDir;
-	string filename;
-	string output_path;
 
 	parse_options(argc, argv, outDir, filename);
 

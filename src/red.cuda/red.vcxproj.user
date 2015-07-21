@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-gpu -v -pts -ef -n_chg 0 -iDir C:\Work\Projects\red.cuda\TestRun\CPU_GPU_ChangeTest\20150612 -p C:\Work\red.cuda.Results\CollisionStatistics\2D\Aref_1\parameters.txt -ic run_04.txt </LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-gpu -v -pts -n_chg 100 -iDir C:\Work\red.cuda.Results\CollisionStatistics\2D\Test\Coll_Detect_Model_Step\Aref_5\Run_01 -p C:\Work\red.cuda.Results\CollisionStatistics\2D\Test\Coll_Detect_Model_Step\Aref_5\parameters.txt -ic input_01.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

@@ -130,7 +130,6 @@ void load_binary_file(const string& path, size_t n_data, var_t* data)
 		size_t size = n_data * sizeof(var_t);
 		if (size != N)
 		{
-			//throw string("The file '" + path + "' has '" + number_to_string(N) + ", but was expected to have " + number_to_string(size) + " bytes!\r\n");
 			throw string("The file '" + path + "' has different number of data than expected!\r\n");
 		}
 		file.read(reinterpret_cast<char*>(data), size);
@@ -246,7 +245,7 @@ void Emese_data_format_to_red_cuda_format(const string& input_path, const string
 	}
 }
 
-void log_start_cmd(ostream& sout, int argc, const char** argv, const char** env)
+void log_start(ostream& sout, int argc, const char** argv, const char** env, collision_detection_model_t cdm)
 {
 	sout << tools::get_time_stamp() << " starting " << argv[0] << endl;
 	sout << "Command line arguments: " << endl;
@@ -290,14 +289,30 @@ void log_start_cmd(ostream& sout, int argc, const char** argv, const char** env)
 		env++;
 	}
 	sout << endl;
+
+	sout << "Collision detection model: ";
+	switch (cdm)
+	{
+	case COLLISION_DETECTION_MODEL_STEP:
+		sout << "check at the beginning of each step" << endl;
+		break;
+	case COLLISION_DETECTION_MODEL_SUB_STEP:
+		sout << "check during the integration step" << endl;
+		break;
+	case COLLISION_DETECTION_MODEL_INTERPOLATION:
+		throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
+	default:
+		throw string("Parameter 'cdm' is out of range.");
+	}
+	sout << endl;
 }
 
-void log_start_cmd(ostream& sout, int argc, const char** argv, const char** env, bool print_to_screen)
+void log_start(ostream& sout, int argc, const char** argv, const char** env, collision_detection_model_t cdm, bool print_to_screen)
 {
-	log_start_cmd(sout, argc, argv, env);
+	log_start(sout, argc, argv, env, cdm);
 	if (print_to_screen)
 	{
-		log_start_cmd(std::cout, argc, argv, env);
+		log_start(std::cout, argc, argv, env, cdm);
 	}
 }
 

@@ -329,7 +329,7 @@ var_t get_total_mass(int n, const sim_data_t *sim_data)
 	return total_mass;
 }
 
-void compute_bc(int n, bool verbose, const sim_data_t *sim_data, vec_t* R0, vec_t* V0)
+void compute_bc(int n, bool pts, const sim_data_t *sim_data, vec_t* R0, vec_t* V0)
 {
 	const param_t* p = sim_data->h_p;
 	const vec_t* r = sim_data->h_y[0];
@@ -351,26 +351,26 @@ void compute_bc(int n, bool verbose, const sim_data_t *sim_data, vec_t* R0, vec_
 	R0->x /= M0;	R0->y /= M0;	R0->z /= M0;
 	V0->x /= M0;	V0->y /= M0;	V0->z /= M0;
 
-	if (verbose)
+	if (pts)
 	{
-		cout << "Position and velocity of the barycenter:" << endl;
-		cout << "R0: ";		print_vector(R0);
-		cout << "V0: ";		print_vector(V0);
+		cout << "   Position and velocity of the barycenter:" << endl;
+		cout << "     R0: ";  print_vector(R0);
+		cout << "     V0: ";  print_vector(V0);
 	}
 }
 
-void transform_to_bc(int n, bool verbose, const sim_data_t *sim_data)
+void transform_to_bc(int n, bool pts, const sim_data_t *sim_data)
 {
-	if (verbose)
+	if (pts)
 	{
-		cout << "Transforming to barycentric system ... ";
+		cout << "Transforming to barycentric system ... " << endl;
 	}
 
 	// Position and velocity of the system's barycenter
 	vec_t R0 = {0.0, 0.0, 0.0, 0.0};
 	vec_t V0 = {0.0, 0.0, 0.0, 0.0};
 
-	compute_bc(n, verbose, sim_data, &R0, &V0);
+	compute_bc(n, pts, sim_data, &R0, &V0);
 
 	vec_t* r = sim_data->h_y[0];
 	vec_t* v = sim_data->h_y[1];
@@ -381,7 +381,7 @@ void transform_to_bc(int n, bool verbose, const sim_data_t *sim_data)
 		v[j].x -= V0.x;		v[j].y -= V0.y;		v[j].z -= V0.z;
 	}
 
-	if (verbose)
+	if (pts)
 	{
 		cout << "done" << endl;
 	}

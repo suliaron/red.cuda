@@ -16,29 +16,23 @@ class pp_disk
 {
 public:
 
-	pp_disk(number_of_bodies *n_bodies, int n_tpb, bool ups, gas_disk_model_t g_disk_model, int id_dev, computing_device_t comp_dev);
-	pp_disk(string& path, bool continue_simulation, int n_tpb, bool ups, gas_disk_model_t g_disk_model, int id_dev, computing_device_t comp_dev);
+	pp_disk(number_of_bodies *n_bodies,             bool ups, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, int id_dev, computing_device_t comp_dev);
+	pp_disk(string& path, bool continue_simulation, bool ups, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, int id_dev, computing_device_t comp_dev, const var_t* thrshld, bool pts);
 	~pp_disk();
 
 	//! Initialize the members to default values
 	void initialize();
+
 	//! Copies ODE parameters and variables from the host to the cuda device
 	void copy_to_device();
+	void copy_disk_params_to_device();
 	//! Copies ODE parameters and variables from the cuda device to the host
 	void copy_to_host();
-	//! Copies threshold data (either into HOST or DEVICE memory depending on the cpu boolean value)
-	void copy_threshold(const var_t* thrshld);
 	//! Copies the event data from the cuda device to the host
 	void copy_event_data_to_host();
-	//! Copies the parameters of the analytic disk to the constant memory of the device
-	//void copy_analytic_disk_to_device();
-	//! Copies the parameters of the fargo disk to the constant memory of the device
-	//void copy_fargo_disk_to_device();
-
-	void copy_disk_params_to_device();
 
 	//! Set the computing device to calculate the accelerations
-	/*
+	/*!
 		\param device specifies which device will execute the computations
 	*/
 	void set_computing_device(computing_device_t device);
@@ -50,32 +44,41 @@ public:
 	void set_id_dev(int id) { id_dev = id;   }
 	int  get_id_dev(void)   { return id_dev; }
 
-	//! Returns the mass of the central star
+	void set_cdm(collision_detection_model_t c) { cdm = c;    }
+	collision_detection_model_t get_cdm(void)   { return cdm; }
+
+	//! Determines the mass of the central star
+	/*!
+		\return The mass of the central star
+	*/
 	var_t get_mass_of_star();
 	//! Transforms the system to barycentric reference frame
-	void transform_to_bc(bool verbose);
+	/*!
+		\param pts If true then writes the position and velocity of the barycenter to the standard output.
+	*/
+	void transform_to_bc(bool pts);
 	//! Transform the time using the new time unit: 1/k = 58.13244 ...
-	void transform_time(bool verbose);
+	void transform_time();
 	//! Transform the velocity using the new time unit: 1/k = 58.13244 ...
-	void transform_velocity(bool verbose);
+	void transform_velocity();
 	//! Print the data of all bodies in text format
 	/*   
 		\param sout print the data to this stream
 	*/
 	void print_result_ascii(ofstream& sout);
 	//! Print the data of all bodies in text format
-	/*   
+	/*!
 		\param sout print the data to this stream
 		\param repres indicates the data representation of the file, i.e. text or binary
 	*/
 	void print_dump(ofstream& sout, data_representation_t repres);
 	//! Print the data of all bodies in binary format
-	/*   
+	/*!
 		\param sout print the data to this stream
 	*/
 	void print_result_binary(ofstream& sout);
 	//! Print the event data
-	/*   
+	/*!
 		\param sout print the data to this stream
 		\param log_f print the data to this stream
 	*/
@@ -95,14 +98,14 @@ public:
 	//! Clears the event_counter (sets to 0)
 	void clear_event_counter();
 	//! Sets all event counter to a specific value
-	/*
+	/*!
 		\param field Sets this field
 		\param value The value to set the field
 	*/
 	void set_event_counter(event_counter_name_t field, int value);
 
 	//! From the events it will create a vector containing one entry for each colliding pair with the earliest collision time
-	void create_sp_events();
+	void populate_sp_events();
 
 	bool check_for_ejection_hit_centrum();
 	bool check_for_collision();
@@ -141,9 +144,6 @@ public:
 
 	void remove_inactive_bodies();
 
-	// Input/Output streams
-	friend ostream& operator<<(ostream& stream, const number_of_bodies* n_bodies);
-
 	ttt_t t;
 	number_of_bodies* n_bodies;
 	sim_data_t* sim_data;		/*!< struct containing all the data of the simulation */
@@ -160,18 +160,18 @@ public:
 private:
 	void increment_event_counter(int *event_counter);
 	//! Loads the initial position and velocity of the bodies
-	/*   
+	/*!
 		\param path the full path of the data file
 		\param repres the representation of the data in the file (i.e. ASCII or BINARY)
 	*/
 	void load(string& path, data_representation_t repres);
 	//! Loads the initial position and velocity of the bodies
-	/*   
+	/*!
 		\param input the input stream from which to read the data
 	*/
 	void load_ascii(ifstream& input);
 	//! Loads the initial position and velocity of the bodies
-	/*   
+	/*!
 		\param input the input stream from which to read the data
 	*/
 	void load_binary(ifstream& input);
@@ -179,7 +179,7 @@ private:
 	void load_body_record(ifstream& input, int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 
 	//! Loads the number of bodies from the file
-	/*
+	/*!
 		\param path the full path of the data file
 		\param repres the representation of the data in the file (i.e. ASCII or BINARY)
 	*/
@@ -194,15 +194,22 @@ private:
 	void set_kernel_launch_param(int n_data);
 
 public:
-	void benchmark();
+	//! Run a gravitational benchmark on the GPU and determines the number of threads at which the computation is the fastest.
+	/*!
+		\return The optimal number of threads per block
+	*/
+	unsigned int benchmark();
 	float benchmark_calc_grav_accel(ttt_t curr_t, int n_sink, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
 
 	void call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void call_kernel_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 
 	void cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
+	void cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
 	void cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
+	void cpu_calc_grav_accel_NI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
 	void cpu_calc_grav_accel_NI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
+	void cpu_calc_grav_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
 	void cpu_calc_grav_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
 
 	void cpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
@@ -213,6 +220,7 @@ private:
 
 	int id_dev;						//!< The id of the GPU
 	computing_device_t comp_dev;    //!< The computing device to carry out the calculations (cpu or gpu)
+	collision_detection_model_t cdm;//! Collision detection model
 
 	int		n_tpb;					//!< The number of thread per block to use for kernel launches
 	bool	ups;             		//!< If true use the padded storage scheme
@@ -221,7 +229,7 @@ private:
 	dim3	grid;
 	dim3	block;
 
-	var_t threshold[THRESHOLD_N];
+	var_t threshold[THRESHOLD_N];   //! Contains the threshold values: hit_centrum_dst, ejection_dst, collision_factor
 
 	int	event_counter;				//! Number of events occured during the last check
 	int* d_event_counter;			//! Number of events occured during the last check (stored on the devive)
