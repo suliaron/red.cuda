@@ -4,7 +4,6 @@
 #include <iostream>
 
 // includes project
-#include "gas_disk.h"
 #include "analytic_gas_disk.h"
 #include "red_constants.h"
 #include "redutilcu.h"

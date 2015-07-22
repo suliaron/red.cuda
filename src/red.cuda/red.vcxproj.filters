@@ -52,9 +52,6 @@
     <CudaCompile Include="analytic_gas_disk.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
-    <CudaCompile Include="gas_disk.cu">
-      <Filter>Source Files</Filter>
-    </CudaCompile>
     <CudaCompile Include="fargo_gas_disk.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
@@ -73,9 +70,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="parameter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="gas_disk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="pp_disk.h">

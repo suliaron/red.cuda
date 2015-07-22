@@ -175,9 +175,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   <ItemGroup>
     <CudaCompile Include="analytic_gas_disk.cu" />
     <CudaCompile Include="fargo_gas_disk.cu" />
-    <CudaCompile Include="gas_disk.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </CudaCompile>
     <CudaCompile Include="integrator.cu" />
     <CudaCompile Include="int_euler.cu" />
     <CudaCompile Include="int_rungekutta2.cu" />
@@ -199,9 +196,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="fargo_gas_disk.h" />
     <ClInclude Include="integrator.h" />
     <ClInclude Include="int_euler.h" />
-    <ClInclude Include="gas_disk.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="int_rungekutta2.h" />
     <ClInclude Include="int_rungekutta4.h" />
     <ClInclude Include="int_rungekutta8.h" />

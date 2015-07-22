@@ -5,7 +5,6 @@
 #include "options.h"
 #include "analytic_gas_disk.h"
 #include "fargo_gas_disk.h"
-#include "gas_disk.h"
 #include "int_euler.h"
 #include "int_rungekutta2.h"
 #include "int_rungekutta4.h"

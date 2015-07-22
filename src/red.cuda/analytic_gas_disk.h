@@ -4,7 +4,6 @@
 #include <vector>
 
 // includes project
-#include "gas_disk.h"
 #include "red_type.h"
 
 using namespace std;
