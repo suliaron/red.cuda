@@ -66,9 +66,15 @@ string get_directory(const string& path)
 {
 	string result;
 
-	if (path.size() > 0)
+	if (0 < path.size())
 	{
 		size_t pos = path.find_last_of("/\\");
+		// If path does not contain / or \ than path does not contain any directory so return an empty string
+		if (pos == string::npos)
+		{
+			return result;
+		}
+		// Copy the directory part of path into result
 		result = path.substr(0, pos);
 	}
 

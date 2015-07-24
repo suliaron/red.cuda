@@ -136,23 +136,36 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 	sout << endl;
 }
 
-void print_dump(ofstream *output, const options& opt, pp_disk* ppd, int n_dump, data_representation_t repres)
+void print_dump_aux_data(ofstream& sout, dump_aux_data_t* dump_aux)
+{
+	sout.write((char*)(dump_aux), sizeof(dump_aux_data_t));
+}
+
+void print_dump(ofstream **output, const options& opt, pp_disk* ppd, ttt_t dt, int n_dump, data_representation_t repres)
 {
 	string prefix = create_prefix(opt);
 	string ext = (repres == DATA_REPRESENTATION_ASCII ? "txt" : "bin");
 	string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DUMP] + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + "." + ext);
-	output = new ofstream(path.c_str(), ios::out | ios::binary);
-	if(!output)
+	output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str(), ios::out | ios::binary);
+	if(!output[OUTPUT_NAME_DUMP])
 	{
 		throw string("Cannot open " + path + ".");
 	}
-	ppd->print_dump(*output, repres);
-	output->~ofstream();
-}
+	ppd->print_dump(*output[OUTPUT_NAME_DUMP], repres);
+	//output[OUTPUT_NAME_DUMP]->~ofstream();
+	delete output[OUTPUT_NAME_DUMP];
 
-void print_dump_aux_data(ofstream& sout, dump_aux_data_t* dump_aux)
-{
-	sout.write((char*)(dump_aux), sizeof(dump_aux_data_t));
+	dump_aux_data_t dump_aux;
+	dump_aux.dt = dt;
+
+	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DUMP_AUX] + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + ".dat");
+	output[OUTPUT_NAME_DUMP_AUX] = new ofstream(path.c_str(), ios::out | ios::binary);
+	if(!output[OUTPUT_NAME_DUMP_AUX])
+	{
+		throw string("Cannot open " + path + ".");
+	}
+	print_dump_aux_data(*output[OUTPUT_NAME_DUMP_AUX], &dump_aux);
+	delete output[OUTPUT_NAME_DUMP_AUX];
 }
 
 void read_dump_aux_data(ifstream& input, dump_aux_data_t* dump_aux)
@@ -339,92 +352,27 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	time_t time_info_start = clock();
 	time_t time_of_last_dump = clock();
 
-	//int dummy_k = 0;
 	computing_device_t target_device = intgr->get_computing_device();
 
 	unsigned int n_inactive = 10;
 	unsigned int n_removed = 0;
-	//unsigned int n_dump = 0;
+	unsigned int n_dump = 0;
 
-	ppd->set_n_tpb(ppd->benchmark());
-	if (opt.verbose)
+	if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 	{
-		string msg = "Number of thread per block was set to " + redutilcu::number_to_string(ppd->get_n_tpb());
-		file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+		ppd->set_n_tpb(ppd->benchmark());
+		if (opt.verbose)
+		{
+			string msg = "Number of thread per block was set to " + redutilcu::number_to_string(ppd->get_n_tpb());
+			file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+		}
 	}
 
-	ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
+	//ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
 	while (1 < ppd->n_bodies->get_n_total_active() && ppd->t <= opt.param->stop_time)
 	{
-#if 0
-		//if (0 < dummy_k && 0 == dummy_k % 10)
-		if (n_removed >= 10)
-		//if (ppd->n_bodies->get_n_total_inactive() >= n_inactive)
-		{
-			n_removed = 0;
-			n_inactive += 10;
-
-			int tmp = intgr->get_computing_device();
-			tmp++;
-			if (COMPUTING_DEVICE_N == tmp)
-			{
-				tmp = 0;
-			}
-			target_device = (computing_device_t)tmp;
-
-			switch (target_device)
-			{
-			case COMPUTING_DEVICE_CPU:
-				{
-					intgr->set_computing_device(target_device);
-					if (opt.verbose)
-					{
-						file::log_message(*output[OUTPUT_NAME_LOG], "Execution was transferred to CPU", opt.print_to_screen);
-					}
-					break;
-				}
-			case COMPUTING_DEVICE_GPU:
-				{
-					int id_of_target_GPU = redutilcu::get_id_fastest_cuda_device();
-					redutilcu::set_device(id_of_target_GPU, *output[OUTPUT_NAME_LOG], opt.verbose, opt.print_to_screen);
-
-					intgr->set_computing_device(target_device);
-					if (opt.verbose)
-					{
-						file::log_message(*output[OUTPUT_NAME_LOG], "Execution was transferred to GPU " + redutilcu::get_name_cuda_device(id_of_target_GPU), opt.print_to_screen);
-					}
-					break;
-				}
-			default:
-				{
-					throw string ("Invalid parameter: target_device was out of range.");
-				}
-			}
-		}
-#endif
 		if (COMPUTING_DEVICE_GPU == intgr->get_computing_device() && opt.n_change_to_cpu >= ppd->n_bodies->get_n_SI())
 		{
-			//ppd->copy_to_host();
-
-			//string prefix = create_prefix(opt);
-			//string path = file::combine_path(opt.printout_dir, prefix + "dump_before_change_to_GPU.dat");
-			//output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str(), ios::out | ios::binary);
-			//ppd->print_dump(*output[OUTPUT_NAME_DUMP], DATA_REPRESENTATION_BINARY);
-			//output[OUTPUT_NAME_DUMP]->~ostream();
-
-			//path = file::combine_path(opt.printout_dir, prefix + "dump_before_change_to_GPU.txt");
-			//output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str());
-			//ppd->print_dump(*output[OUTPUT_NAME_DUMP], DATA_REPRESENTATION_ASCII);
-			//output[OUTPUT_NAME_DUMP]->~ostream();
-
-			//dump_aux_data_t dump_aux;
-			//dump_aux.dt = dt;
-
-			//path = file::combine_path(opt.printout_dir, prefix + "dump_before_change_to_GPU.aux.dat");
-			//output[OUTPUT_NAME_DUMP_AUX] = new ofstream(path.c_str(), ios::out | ios::binary);
-			//print_dump_aux_data(*output[OUTPUT_NAME_DUMP_AUX], &dump_aux);
-			//output[OUTPUT_NAME_DUMP_AUX]->~ostream();
-
 			intgr->set_computing_device(COMPUTING_DEVICE_CPU);
 			if (opt.verbose)
 			{
@@ -498,22 +446,21 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 		if (10 < n_removed || opt.dump_dt < (clock() - time_of_last_dump) / (double)CLOCKS_PER_SEC)
 		{
-			//n_removed = 0;
-			//time_of_last_dump = clock();
-			//if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
-			//{
-			//	ppd->copy_to_host();
-			//}
-			//print_dump(output[OUTPUT_NAME_DUMP], opt, ppd, n_dump, DATA_REPRESENTATION_BINARY);
-			//n_dump++;
+			n_removed = 0;
+			time_of_last_dump = clock();
+			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
+			{
+				ppd->copy_to_host();
+			}
+
+			print_dump(output, opt, ppd, dt, n_dump, DATA_REPRESENTATION_BINARY);
+			n_dump++;
 		}
 
 		if (opt.info_dt < (clock() - time_info_start) / (double)CLOCKS_PER_SEC) 
 		{
 			print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
 		}
-
-		//dummy_k++;
 	} /* while */
 	print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
 	// To avoid duplicate save at the end of the simulation

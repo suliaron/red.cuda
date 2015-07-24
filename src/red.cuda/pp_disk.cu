@@ -1673,6 +1673,7 @@ pp_disk::pp_disk(string& path, bool continue_simulation, bool ups, gas_disk_mode
 	comp_dev(comp_dev)
 {
 	initialize();
+	memcpy(threshold, thrshld, THRESHOLD_N * sizeof(var_t));
 
 	data_representation_t repres = (file::get_extension(path) == "txt" ? DATA_REPRESENTATION_ASCII : DATA_REPRESENTATION_BINARY);
 	n_bodies = load_number_of_bodies(path, repres);
@@ -1680,8 +1681,6 @@ pp_disk::pp_disk(string& path, bool continue_simulation, bool ups, gas_disk_mode
 	allocate_storage();
 	redutilcu::create_aliases(comp_dev, sim_data);
 	load(path, repres);
-
-	memcpy(threshold, thrshld, THRESHOLD_N * sizeof(var_t));
 
 	if (!continue_simulation)
 	{
@@ -1723,17 +1722,15 @@ void pp_disk::initialize()
 
 void pp_disk::allocate_storage()
 {
-	int n_total = get_n_total_body();
-
 	sim_data = new sim_data_t;
-	
+
 	// These will be only aliases to the actual storage space either in the HOST or DEVICE memory
 	sim_data->y.resize(2);
 	sim_data->yout.resize(2);
 
+	int n_total = get_n_total_body();
 	allocate_host_storage(sim_data, n_total);
 	ALLOCATE_HOST_VECTOR((void **)&events, n_total*sizeof(event_data_t));
-
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		allocate_device_storage(sim_data, n_total);
@@ -1767,8 +1764,6 @@ void pp_disk::set_computing_device(computing_device_t device)
 		ALLOCATE_DEVICE_VECTOR((void **)&d_event_counter,       1*sizeof(int));
 		copy_to_device();
 
-		//copy_disk_params_to_device();
-		//copy_constant_to_device(dc_threshold, threshold, THRESHOLD_N*sizeof(var_t));
 		copy_vector_to_device((void *)d_event_counter, (void *)&event_counter, 1*sizeof(int));
 		break;
 	default:
@@ -2296,7 +2291,7 @@ void pp_disk::print_result_ascii(ofstream& sout)
 			continue;
 		}
 		int orig_idx = bmd[i].id - 1;
-		sout << setw(int_t_w) << bmd[i].id << SEP                    /* id of the body starting from 1                                (int)              */
+		sout << setw(int_t_w) << bmd[i].id << SEP                    /* id of the body                                                (int)              */
 			 << setw(     30) << body_names[orig_idx] << SEP         /* name of the body                                              (string = 30 char) */ 
 			 << setw(      2) << bmd[i].body_type << SEP             /* type of the body                                              (int)              */
 			 << setw(var_t_w) << t / constants::Gauss << SEP         /* time of the record                           [day]            (double)           */
@@ -2362,44 +2357,51 @@ void pp_disk::print_event_data(ofstream& sout, ofstream& log_f)
 
 	for (unsigned int i = 0; i < sp_events.size(); i++)
 	{
-		sout << setw(16)      << e_names[sp_events[i].event_name] << SEP
-			 << setw(var_t_w) << sp_events[i].t / constants::Gauss << SEP /* time of the event in day */
-			 << setw(var_t_w) << sp_events[i].d << SEP
-			 << setw(int_t_w) << sp_events[i].id1 << SEP		/* id of the survivor */
-			 << setw(int_t_w) << sp_events[i].id2 << SEP		/* id of the merger */
-			 << setw(var_t_w) << sp_events[i].p1.mass << SEP	/* parameters of the survivor before the event */
-			 << setw(var_t_w) << sp_events[i].p1.density << SEP
-			 << setw(var_t_w) << sp_events[i].p1.radius << SEP
-			 << setw(var_t_w) << sp_events[i].r1.x << SEP		/* position of the survivor before the event */
-			 << setw(var_t_w) << sp_events[i].r1.y << SEP
-			 << setw(var_t_w) << sp_events[i].r1.z << SEP
-			 << setw(var_t_w) << sp_events[i].v1.x * constants::Gauss << SEP		/* velocity of the survivor before the event */
-			 << setw(var_t_w) << sp_events[i].v1.y * constants::Gauss << SEP
-			 << setw(var_t_w) << sp_events[i].v1.z * constants::Gauss << SEP
-			 << setw(var_t_w) << sp_events[i].p2.mass << SEP	/* parameters of the merger before the event */
-			 << setw(var_t_w) << sp_events[i].p2.density << SEP
-			 << setw(var_t_w) << sp_events[i].p2.radius << SEP
-			 << setw(var_t_w) << sp_events[i].r2.x << SEP		/* position of the merger before the event */
-			 << setw(var_t_w) << sp_events[i].r2.y << SEP
-			 << setw(var_t_w) << sp_events[i].r2.z << SEP
-			 << setw(var_t_w) << sp_events[i].v2.x * constants::Gauss << SEP		/* velocity of the merger before the event */
-			 << setw(var_t_w) << sp_events[i].v2.y * constants::Gauss << SEP
-			 << setw(var_t_w) << sp_events[i].v2.z * constants::Gauss << SEP
-			 << setw(var_t_w) << sp_events[i].ps.mass << SEP	/* parameters of the survivor after the event */
-			 << setw(var_t_w) << sp_events[i].ps.density << SEP
-			 << setw(var_t_w) << sp_events[i].ps.radius << SEP
-			 << setw(var_t_w) << sp_events[i].rs.x << SEP		/* position of the survivor after the event */
-			 << setw(var_t_w) << sp_events[i].rs.y << SEP
-			 << setw(var_t_w) << sp_events[i].rs.z << SEP
-			 << setw(var_t_w) << sp_events[i].vs.x * constants::Gauss << SEP		/* velocity of the survivor after the event */
-			 << setw(var_t_w) << sp_events[i].vs.y * constants::Gauss << SEP
-			 << setw(var_t_w) << sp_events[i].vs.z * constants::Gauss << SEP << endl;
+		sout << setw(16)      << e_names[sp_events[i].event_name] << SEP       /* type of the event                              []                  */
+			 << setw(var_t_w) << sp_events[i].t / constants::Gauss << SEP      /* time of the event                              [day]               */
+			 << setw(var_t_w) << sp_events[i].d << SEP                         /* distance of the two bodies                     [AU]                */
+			 << setw(int_t_w) << sp_events[i].id1 << SEP		               /* id of the survivor                             []                  */
+			 << setw(int_t_w) << sp_events[i].id2 << SEP		               /* id of the merger                               []                  */
+
+			                                                                   /* BEFORE THE EVENT                                                   */ 
+			 << setw(var_t_w) << sp_events[i].p1.mass << SEP                   /* survivor's mass                                [solar mass]        */
+			 << setw(var_t_w) << sp_events[i].p1.density << SEP                /*            density                             [solar mass / AU^3] */
+			 << setw(var_t_w) << sp_events[i].p1.radius << SEP                 /*            radius                              [AU]                */
+			 << setw(var_t_w) << sp_events[i].r1.x << SEP                      /*            x-coordiante in barycentric system  [AU]                */
+			 << setw(var_t_w) << sp_events[i].r1.y << SEP                      /*            y-coordiante                        [AU]                */
+			 << setw(var_t_w) << sp_events[i].r1.z << SEP                      /*            z-coordiante                        [AU]                */
+			 << setw(var_t_w) << sp_events[i].v1.x * constants::Gauss << SEP   /*            x-velocity                          [AU / day]          */
+			 << setw(var_t_w) << sp_events[i].v1.y * constants::Gauss << SEP   /*            y-velocity                          [AU / day]          */
+			 << setw(var_t_w) << sp_events[i].v1.z * constants::Gauss << SEP   /*            z-velocity                          [AU / day]          */
+
+			 << setw(var_t_w) << sp_events[i].p2.mass << SEP                   /* merger's mass                                  [solar mass]        */
+			 << setw(var_t_w) << sp_events[i].p2.density << SEP                /*          density                               [solar mass / AU^3] */
+			 << setw(var_t_w) << sp_events[i].p2.radius << SEP                 /*          radius                                [AU]                */
+			 << setw(var_t_w) << sp_events[i].r2.x << SEP                      /*          x-coordiante in barycentric system    [AU]                */
+			 << setw(var_t_w) << sp_events[i].r2.y << SEP                      /*          y-coordiante                          [AU]                */
+			 << setw(var_t_w) << sp_events[i].r2.z << SEP                      /*          z-coordiante                          [AU]                */
+			 << setw(var_t_w) << sp_events[i].v2.x * constants::Gauss << SEP   /*          x-velocity                            [AU / day]          */
+			 << setw(var_t_w) << sp_events[i].v2.y * constants::Gauss << SEP   /*          y-velocity                            [AU / day]          */
+			 << setw(var_t_w) << sp_events[i].v2.z * constants::Gauss << SEP   /*          z-velocity                            [AU / day]          */
+
+			                                                                   /* AFTER THE EVENT                                                    */ 
+			 << setw(var_t_w) << sp_events[i].ps.mass << SEP                   /* survivor's mass                                [solar mass]        */
+			 << setw(var_t_w) << sp_events[i].ps.density << SEP                /*            density                             [solar mass / AU^3] */
+			 << setw(var_t_w) << sp_events[i].ps.radius << SEP                 /*            radius                              [AU]                */
+			 << setw(var_t_w) << sp_events[i].rs.x << SEP                      /*            x-coordiante in barycentric system  [AU]                */
+			 << setw(var_t_w) << sp_events[i].rs.y << SEP                      /*            y-coordiante                        [AU]                */
+			 << setw(var_t_w) << sp_events[i].rs.z << SEP                      /*            z-coordiante                        [AU]                */
+			 << setw(var_t_w) << sp_events[i].vs.x * constants::Gauss << SEP   /*            x-velocity                          [AU / day]          */
+			 << setw(var_t_w) << sp_events[i].vs.y * constants::Gauss << SEP   /*            y-velocity                          [AU / day]          */
+			 << setw(var_t_w) << sp_events[i].vs.z * constants::Gauss << SEP   /*            z-velocity                          [AU / day]          */
+			 << endl;
 		if (log_f)
 		{
 			log_f << tools::get_time_stamp() << SEP 
 				  << e_names[sp_events[i].event_name] << SEP
 			      << setw(int_t_w) << sp_events[i].id1 << SEP
-			      << setw(int_t_w) << sp_events[i].id2 << SEP << endl;
+			      << setw(int_t_w) << sp_events[i].id2 << SEP
+				  << endl;
 		}
 	}
 	sout.flush();

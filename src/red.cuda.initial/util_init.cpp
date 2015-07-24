@@ -157,7 +157,9 @@ void generate_pp(phys_prop_dist_t *pp_d, param_t& param)
 
 void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t format)
 {
-	ofstream	output(path.c_str(), ios_base::out);
+	printf("Writing %s to disk .", path.c_str());
+
+	ofstream output(path.c_str(), ios_base::out);
 	if (output)
 	{
 		int_t nBodies = calculate_number_of_bodies(disk);
@@ -204,8 +206,16 @@ void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t 
 			output << "# HEADER_END" << endl;
 		}
 
+		int p = 1;
 		for (int i = 0; i < nBodies; i++)
 		{
+			{
+				if (p <= (int)((((var_t)i/(var_t)nBodies))*100.0))
+				{
+					printf(".");
+					p++;
+				}
+			}
 			switch (format)
 			{
 			case INPUT_FORMAT_RED:
@@ -224,6 +234,8 @@ void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t 
 		}
 		output.flush();
 		output.close();
+		printf(" done\n");
+
 	}
 	else
 	{
