@@ -76,12 +76,19 @@ void trim(string& str)
 	trim_left(str);
 }
 
-string get_time_stamp()
+string get_time_stamp(bool use_comma)
 {
 	static char time_stamp[20];
 
 	time_t now = time(NULL);
-	strftime(time_stamp, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
+	if (use_comma)
+	{
+		strftime(time_stamp, 20, "%Y-%m-%d,%H:%M:%S", localtime(&now));
+	}
+	else
+	{
+		strftime(time_stamp, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
+	}
 
 	return string(time_stamp);
 }

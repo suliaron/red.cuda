@@ -48,8 +48,24 @@ string create_prefix(const options& opt)
 		string adapt = (opt.param->adaptive == true ? "as" : "fs");
 		// ps: padded storage, ns: normal storage
 		string strorage = (opt.ups == true ? "ps" : "ns");
+		// 
+		string cdm;
+		switch (opt.param->cdm)
+		{
+		case COLLISION_DETECTION_MODEL_STEP:
+			cdm = "bs";
+			break;
+		case COLLISION_DETECTION_MODEL_SUB_STEP:
+			cdm = "ss";
+			break;
+		case COLLISION_DETECTION_MODEL_INTERPOLATION:
+			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
+		default:
+			throw string("Parameter 'cdm' is out of range.");
+		}
+
 		string int_name(integrator_type_short_name[opt.param->int_type]);
-		prefix += config + sep + dev + sep + strorage + sep + adapt + sep + int_name + sep;
+		prefix += config + sep + dev + sep + cdm + sep + strorage + sep + adapt + sep + int_name + sep;
 	}
 
 	return prefix;
@@ -90,9 +106,10 @@ void open_streams(const options& opt, ofstream** output)
 	}
 }
 
-void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* sum_time_of_steps, clock_t* time_of_one_step, time_t* time_info_start)
+void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* sum_time_of_steps, clock_t* time_of_one_step)
 {
-	static const char* body_type_name[] = {"N_st", "N_gp", "N_rp", "N_pp", "N_sp", "N_pl", "N_tp"};
+	static const string header_str = "dev,date      ,time    ,t [d]      ,dt [d]     ,dt_avg [d] ,dT [s]     ,dT_avg [s] ,Nc   ,Ne   ,Nh   ,nb_p ,nb_i,nb_r ,ns_t    ,ns_f    ,ns_p    ,ns_a,ns_r  ,ngp_a,ngp_r,nrp_a,nrp_r,npp_a,npp_r,nspl_a,nspl_r,npl_a,npl_r,ntp_a,ntp_r";
+	static bool first_call = true;
 	
 	cout.setf(ios::right);
 	cout.setf(ios::scientific);
@@ -103,35 +120,52 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 	number_of_bodies* nb = ppd->n_bodies; 
 	string dev = (intgr->get_computing_device() == COMPUTING_DEVICE_CPU ? "CPU" : "GPU");
 
-	*time_info_start = clock();
 	cout << "[" << dev << "] " 
-		 << tools::get_time_stamp() 
-		 << " t: " << setprecision(6) << setw(12) << ppd->t / constants::Gauss
-		 << ", dt: " << setprecision(6) << setw(12)  << dt / constants::Gauss;
-	cout << ", dT: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
-	cout << " (" << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s)";
+		 << tools::get_time_stamp(false) 
+		 << " t: " << setprecision(4) << setw(10) << ppd->t / constants::Gauss 
+		 << ", dt: " << setprecision(4) << setw(10) << dt / constants::Gauss
+		 << " (" << setprecision(4) << setw(10) << (ppd->t / constants::Gauss)/intgr->get_n_passed_step() << ") [d]";
+	cout << ", dT: " << setprecision(4) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC;
+	cout << " (" << setprecision(4) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << ") [s]";
 	cout << ", Nc: " << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL]
 	     << ", Ne: " << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL]
 		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
-		 << ", N : " << setw(6) << nb->get_n_total_playing() << "(" << setw(3) << nb->get_n_total_inactive() << ", " << setw(5) << nb->get_n_total_removed() << ")" << endl;
+		 << ", N : " << setw(6) << nb->get_n_total_playing() << "(" << setw(3) << nb->get_n_total_inactive() << ", " << setw(5) << nb->get_n_total_removed() << ")"
+	     << ", nt: " << setw(8) << intgr->get_n_tried_step()
+	     << ", nf: " << setw(8) << intgr->get_n_failed_step()
+	     << ", np: " << setw(8) << intgr->get_n_passed_step()
+		 << endl;
 
-	sout << "[" << dev << "] " 
-		 << tools::get_time_stamp()
-		 << " t: " << setprecision(6) << setw(12) << ppd->t / constants::Gauss
-		 << ", dt: " << setprecision(6) << setw(12)  << dt / constants::Gauss;
-	sout << ", dT: " << setprecision(3) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC << " s";
-	sout << " (" << setprecision(3) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << " s)";
-	sout << ", Nc: " << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL]
-	     << ", Ne: " << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL]
-		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
-		 << ", N : " << setw(6) << nb->get_n_total_playing() << "(" << setw(3) << nb->get_n_total_inactive() << ", " << setw(5) << nb->get_n_total_removed() << ")";
+	if (first_call)
+	{
+		first_call = false;
+		sout << header_str << endl;
+	}
+
+	sout << dev << ","
+		 << tools::get_time_stamp(true) << ","
+		 << setprecision(4) << setw(10) << ppd->t / constants::Gauss << ","
+		 << setprecision(4) << setw(10) << dt / constants::Gauss << ","
+		 << setprecision(4) << setw(10) << (ppd->t / constants::Gauss)/intgr->get_n_passed_step() << ",";
+	sout << setprecision(4) << setw(10) << (*time_of_one_step  / (double)CLOCKS_PER_SEC) << ",";
+	sout << setprecision(4) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << ",";
+	sout << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL] << ","
+	     << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL] << ","
+		 << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL] << ","
+		 << setw(6) << nb->get_n_total_playing()  << ","
+		 << setw(3) << nb->get_n_total_inactive() << ","
+		 << setw(5) << nb->get_n_total_removed()  << ","
+	     << setw(8) << intgr->get_n_tried_step()  << ","
+	     << setw(8) << intgr->get_n_failed_step() << ","
+	     << setw(8) << intgr->get_n_passed_step() << ",";
 	for (int i = 0; i < BODY_TYPE_N; i++)
 	{
 		if (BODY_TYPE_PADDINGPARTICLE == i)
 		{
 			continue;
 		}
-		sout << ", " << body_type_name[i] << ": " << setw(5) << nb->playing[i] - nb->inactive[i] << "(" << setw(5) << nb->removed[i] << ")";
+		sout << setw(5) << nb->playing[i] - nb->inactive[i] << ","
+			<< setw(5) << nb->removed[i] << (i < BODY_TYPE_TESTPARTICLE ? "," : "");
 	}
 	sout << endl;
 }
@@ -352,15 +386,13 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	time_t time_info_start = clock();
 	time_t time_of_last_dump = clock();
 
-	computing_device_t target_device = intgr->get_computing_device();
-
-	unsigned int n_inactive = 10;
 	unsigned int n_removed = 0;
 	unsigned int n_dump = 0;
 
 	if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 	{
-		ppd->set_n_tpb(ppd->benchmark());
+		unsigned int n_tpb = ppd->benchmark();
+		ppd->set_n_tpb(n_tpb);
 		if (opt.verbose)
 		{
 			string msg = "Number of thread per block was set to " + redutilcu::number_to_string(ppd->get_n_tpb());
@@ -369,7 +401,9 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	}
 
 	//ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
-	while (1 < ppd->n_bodies->get_n_total_active() && ppd->t <= opt.param->stop_time)
+
+
+	while (ppd->t <= opt.param->stop_time && 1 < ppd->n_bodies->get_n_total_active())
 	{
 		if (COMPUTING_DEVICE_GPU == intgr->get_computing_device() && opt.n_change_to_cpu >= ppd->n_bodies->get_n_SI())
 		{
@@ -383,38 +417,39 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 		if ((0.0 < opt.param->threshold[THRESHOLD_EJECTION_DISTANCE] || 0.0 < opt.param->threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]))
 		{
-			bool eje_hc = ppd->check_for_ejection_hit_centrum();
+			bool eje_hc = ppd->check_for_ejection_hit_centrum_2();
 			if (eje_hc)
 			{
+				ppd->handle_ejection_hit_centrum();
 				ppd->print_event_data(*output[OUTPUT_NAME_EVENT], *output[OUTPUT_NAME_LOG]);
 				ppd->clear_event_counter();
 			}
 		}
 
+		dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
+		ps += fabs(dt);
+
 		if (0.0 < opt.param->threshold[THRESHOLD_RADII_ENHANCE_FACTOR])
 		{
+			bool collision = false;
 			switch (opt.param->cdm)
 			{
 			case COLLISION_DETECTION_MODEL_STEP:
 			case COLLISION_DETECTION_MODEL_SUB_STEP:
-				{
-				bool collision = ppd->check_for_collision();
+				collision = ppd->check_for_collision_2();
 				if (collision)
 				{
+					ppd->handle_collision();
 					ppd->print_event_data(*output[OUTPUT_NAME_EVENT], *output[OUTPUT_NAME_LOG]);
 					ppd->clear_event_counter();
 				}
-				}
 				break;
 			case COLLISION_DETECTION_MODEL_INTERPOLATION:
-				break;
+				throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
 			default:
 				throw string("Parameter 'cdm' is out of range.");
 			}
 		}
-
-		dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
-		ps += fabs(dt);
 
 		if (opt.param->output_interval <= fabs(ps))
 		{
@@ -426,16 +461,18 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
 		}
 
-		if (ppd->check_for_rebuild_vectors(4))
+		if (4 <= ppd->n_event[EVENT_COUNTER_NAME_LAST_CLEAR])
 		{
-			n_inactive = 0;
+			ppd->set_event_counter(EVENT_COUNTER_NAME_LAST_CLEAR, 0);
+			ppd->rebuild_vectors();
 			n_removed += ppd->n_bodies->n_removed;
-			string msg = "Rebuild the vectors (removed " + redutilcu::number_to_string(ppd->n_bodies->n_removed) + " inactive bodies at t: " + redutilcu::number_to_string(ppd->t / constants::Gauss) + ")";
+			string msg = "Rebuild the vectors (removed " + redutilcu::number_to_string(ppd->n_bodies->n_removed) + " inactive bodies at t: " + redutilcu::number_to_string(ppd->t / constants::Gauss) + " [d])";
 			file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
 
 			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 			{
-				ppd->set_n_tpb(ppd->benchmark());
+				unsigned int n_tpb = ppd->benchmark();
+				ppd->set_n_tpb(n_tpb);
 				if (opt.verbose)
 				{
 					string msg = "Number of thread per block was set to " + redutilcu::number_to_string(ppd->get_n_tpb());
@@ -444,25 +481,27 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			}
 		}
 
-		if (10 < n_removed || opt.dump_dt < (clock() - time_of_last_dump) / (double)CLOCKS_PER_SEC)
-		{
-			n_removed = 0;
-			time_of_last_dump = clock();
-			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
-			{
-				ppd->copy_to_host();
-			}
-
-			print_dump(output, opt, ppd, dt, n_dump, DATA_REPRESENTATION_BINARY);
-			n_dump++;
-		}
+		//if (10 <= n_removed || opt.dump_dt < (clock() - time_of_last_dump) / (double)CLOCKS_PER_SEC)
+		//{
+		//	n_removed = 0;
+		//	time_of_last_dump = clock();
+		//	if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
+		//	{
+		//		ppd->copy_to_host();
+		//	}
+		//	print_dump(output, opt, ppd, dt, n_dump, DATA_REPRESENTATION_BINARY);
+		//	n_dump++;
+		//}
 
 		if (opt.info_dt < (clock() - time_info_start) / (double)CLOCKS_PER_SEC) 
 		{
-			print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
+			time_info_start = clock();
+			print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step);
 		}
 	} /* while */
-	print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step, &time_info_start);
+
+
+	print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step);
 	// To avoid duplicate save at the end of the simulation
 	if (0.0 < ps)
 	{

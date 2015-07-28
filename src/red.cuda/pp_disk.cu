@@ -897,20 +897,23 @@ void pp_disk::cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound,
 
 void pp_disk::cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* bmd, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a)
 {
+	memset(a, 0, (int_bound.sink.y - int_bound.sink.x)*sizeof(vec_t));
+
 	for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
 	{
-		a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
 		if (0 < bmd[i].id)
 		{
 			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
-			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+			//for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+			for (int j = i+1; j < int_bound.source.y; j++) 
 			{
 				/* Skip the body with the same index and those which are inactive ie. id < 0 */
-				if (i == j || 0 > bmd[j].id)
+				//if (i == j || 0 > bmd[j].id)
+				if (0 > bmd[j].id)
 				{
 					continue;
 				}
-				// 3 FLOP
+				// r_ij 3 FLOP
 				dVec.x = r[j].x - r[i].x;
 				dVec.y = r[j].y - r[i].y;
 				dVec.z = r[j].z - r[i].z;
@@ -920,11 +923,20 @@ void pp_disk::cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound,
 				// 20 FLOP
 				var_t d = sqrt(dVec.w);								// = r
 				// 2 FLOP
-				dVec.w = p[j].mass / (d*dVec.w);
+				var_t r_3 = 1.0 / (d*dVec.w);
+				// 1 FLOP
+				dVec.w = p[j].mass * r_3;
 				// 6 FLOP
 				a[i].x += dVec.w * dVec.x;
 				a[i].y += dVec.w * dVec.y;
 				a[i].z += dVec.w * dVec.z;
+
+				// 2 FLOP
+				dVec.w = p[i].mass * r_3;
+				// 6 FLOP
+				a[j].x -= dVec.w * dVec.x;
+				a[j].y -= dVec.w * dVec.y;
+				a[j].z -= dVec.w * dVec.z;
 			} // 36 FLOP
 		}
 	}
@@ -932,16 +944,19 @@ void pp_disk::cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound,
 
 void pp_disk::cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* bmd, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
 {
+	memset(a, 0, (int_bound.sink.y - int_bound.sink.x)*sizeof(vec_t));
+
 	for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
 	{
-		a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
 		if (0 < bmd[i].id)
 		{
 			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
-			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+			//for (int j = int_bound.source.x; j < int_bound.source.y; j++)
+			for (int j = i+1; j < int_bound.source.y; j++) 
 			{
 				/* Skip the body with the same index and those which are inactive ie. id < 0 */
-				if (i == j || 0 > bmd[j].id)
+				//if (i == j || 0 > bmd[j].id)
+				if (0 > bmd[j].id)
 				{
 					continue;
 				}
@@ -955,16 +970,26 @@ void pp_disk::cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound,
 				// 20 FLOP
 				var_t d = sqrt(dVec.w);								// = r
 				// 2 FLOP
-				dVec.w = p[j].mass / (d*dVec.w);
+				var_t r_3 = 1.0 / (d*dVec.w);
+				// 1 FLOP
+				dVec.w = p[j].mass * r_3;
 				// 6 FLOP
 				a[i].x += dVec.w * dVec.x;
 				a[i].y += dVec.w * dVec.y;
 				a[i].z += dVec.w * dVec.z;
 
+				// 2 FLOP
+				dVec.w = p[i].mass * r_3;
+				// 6 FLOP
+				a[j].x -= dVec.w * dVec.x;
+				a[j].y -= dVec.w * dVec.y;
+				a[j].z -= dVec.w * dVec.z;
+
 				// Check for collision - ignore the star (i > 0 criterium)
 				// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
 				// If i < j is the condition than test particles can not collide with massive bodies
-				if (i > 0 && i > j && d < threshold[THRESHOLD_RADII_ENHANCE_FACTOR] * (p[i].radius + p[j].radius))
+				//if (i > 0 && i > j && d < threshold[THRESHOLD_RADII_ENHANCE_FACTOR] * (p[i].radius + p[j].radius))
+				if (i > 0 && d < threshold[THRESHOLD_RADII_ENHANCE_FACTOR] * (p[i].radius + p[j].radius))
 				{
 					int k = (*event_counter)++; // Tested - works as needed
 
@@ -1015,10 +1040,10 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, 
 		switch (cdm)
 		{
 		case COLLISION_DETECTION_MODEL_STEP:
-			cpu_calc_grav_accel_SI( curr_t, int_bound, bmd, p, r, v, dy);
+			cpu_calc_grav_accel_SI(curr_t, int_bound, bmd, p, r, v, dy);
 			break;
 		case COLLISION_DETECTION_MODEL_SUB_STEP:
-			cpu_calc_grav_accel_SI( curr_t, int_bound, bmd, p, r, v, dy, events, &event_counter);
+			cpu_calc_grav_accel_SI(curr_t, int_bound, bmd, p, r, v, dy, events, &event_counter);
 			break;
 		case COLLISION_DETECTION_MODEL_INTERPOLATION:
 			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
@@ -1034,10 +1059,10 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, 
 		switch (cdm)
 		{
 		case COLLISION_DETECTION_MODEL_STEP:
-			cpu_calc_grav_accel_NSI( curr_t, int_bound, bmd, p, r, v, dy);
+			cpu_calc_grav_accel_NSI(curr_t, int_bound, bmd, p, r, v, dy);
 			break;
 		case COLLISION_DETECTION_MODEL_SUB_STEP:
-			cpu_calc_grav_accel_NSI( curr_t, int_bound, bmd, p, r, v, dy, events, &event_counter);
+			cpu_calc_grav_accel_NSI(curr_t, int_bound, bmd, p, r, v, dy, events, &event_counter);
 			break;
 		case COLLISION_DETECTION_MODEL_INTERPOLATION:
 			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
@@ -1053,10 +1078,10 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, 
 		switch (cdm)
 		{
 		case COLLISION_DETECTION_MODEL_STEP:
-			cpu_calc_grav_accel_NI( curr_t, int_bound, bmd, p, r, v, dy);
+			cpu_calc_grav_accel_NI(curr_t, int_bound, bmd, p, r, v, dy);
 			break;
 		case COLLISION_DETECTION_MODEL_SUB_STEP:
-			cpu_calc_grav_accel_NI( curr_t, int_bound, bmd, p, r, v, dy, events, &event_counter);
+			cpu_calc_grav_accel_NI(curr_t, int_bound, bmd, p, r, v, dy, events, &event_counter);
 			break;
 		case COLLISION_DETECTION_MODEL_INTERPOLATION:
 			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
@@ -1210,7 +1235,7 @@ void pp_disk::call_kernel_calc_drag_accel(ttt_t curr_t, const vec_t* r, const ve
 	}
 }
 
-bool pp_disk::check_for_ejection_hit_centrum()
+bool pp_disk::check_for_ejection_hit_centrum_2()
 {
 	// Number of ejection + hit centrum events
 	int n_event = 0;
@@ -1225,26 +1250,44 @@ bool pp_disk::check_for_ejection_hit_centrum()
 	default:
 		throw string("Parameter 'comp_dev' is out of range.");
 	}
-
-	if (0 < n_event)
-	{
-		if (COMPUTING_DEVICE_GPU == comp_dev)
-		{
-			copy_event_data_to_host();
-		}
-		// handle_ejection_hit_centrum() will populate sp_events vector which will explicitly written to the disk via print_event_data()
-		handle_ejection_hit_centrum();
-		cout << n_ejection[   EVENT_COUNTER_NAME_LAST_STEP] << " ejection ";
-		cout << n_hit_centrum[EVENT_COUNTER_NAME_LAST_STEP] << " hit_centrum event(s) occured" << endl;
-
-		n_ejection[   EVENT_COUNTER_NAME_LAST_STEP] = 0;
-		n_hit_centrum[EVENT_COUNTER_NAME_LAST_STEP] = 0;
-
-		return true;
-	}
-
-	return false;
+	return (0 < n_event ? true : false);
 }
+
+//bool pp_disk::check_for_ejection_hit_centrum()
+//{
+//	// Number of ejection + hit centrum events
+//	int n_event = 0;
+//	switch (comp_dev)
+//	{
+//	case COMPUTING_DEVICE_CPU:
+//		n_event = cpu_check_for_ejection_hit_centrum();
+//		break;
+//	case COMPUTING_DEVICE_GPU:
+//		n_event = call_kernel_check_for_ejection_hit_centrum();
+//		break;
+//	default:
+//		throw string("Parameter 'comp_dev' is out of range.");
+//	}
+//
+//	if (0 < n_event)
+//	{
+//		if (COMPUTING_DEVICE_GPU == comp_dev)
+//		{
+//			copy_event_data_to_host();
+//		}
+//		// handle_ejection_hit_centrum() will populate sp_events vector which will explicitly written to the disk via print_event_data()
+//		handle_ejection_hit_centrum();
+//		cout << n_ejection[   EVENT_COUNTER_NAME_LAST_STEP] << " ejection ";
+//		cout << n_hit_centrum[EVENT_COUNTER_NAME_LAST_STEP] << " hit_centrum event(s) occured" << endl;
+//
+//		n_ejection[   EVENT_COUNTER_NAME_LAST_STEP] = 0;
+//		n_hit_centrum[EVENT_COUNTER_NAME_LAST_STEP] = 0;
+//
+//		return true;
+//	}
+//
+//	return false;
+//}
 
 bool pp_disk::check_for_collision()
 {
@@ -1280,7 +1323,7 @@ bool pp_disk::check_for_collision()
 		{
 			copy_event_data_to_host();
 		}
-		// handle_collision() will populate sp_events vector which will explicitly written to the disk via print_event_data()
+		// handle_collision() will populate sp_events vector which will written to the disk via print_event_data()
 		handle_collision();
 		cout << n_collision[EVENT_COUNTER_NAME_LAST_STEP] << " collision event(s) occurred" << endl;
 
@@ -1292,20 +1335,153 @@ bool pp_disk::check_for_collision()
 	return false;
 }
 
-bool pp_disk::check_for_rebuild_vectors(int n)
+bool pp_disk::check_for_collision_2()
 {
-	if (n_event[EVENT_COUNTER_NAME_LAST_CLEAR] >= n)
+	int n_event = 0;
+	switch (cdm)
 	{
-		if (COMPUTING_DEVICE_GPU == comp_dev)
+	case COLLISION_DETECTION_MODEL_STEP:
+		switch (comp_dev)
 		{
-			copy_to_host();
+		case COMPUTING_DEVICE_CPU:
+			n_event = cpu_check_for_collision();
+			break;
+		case COMPUTING_DEVICE_GPU:
+			n_event = call_kernel_check_for_collision();
+			break;
+		default:
+			throw string("Parameter 'comp_dev' is out of range.");
 		}
-		// Rebuild the vectors and remove inactive bodies
-		remove_inactive_bodies();
-		set_event_counter(EVENT_COUNTER_NAME_LAST_CLEAR, 0);
-		return true;
+		break;
+	case COLLISION_DETECTION_MODEL_SUB_STEP:
+		// Here should be continued: this case should be analog to the upper case
+		// TODO: introudce a counter for collision and another one for ejection and hit centrum
+		n_event = get_n_event();
+		break;
+	case COLLISION_DETECTION_MODEL_INTERPOLATION:
+		throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
+	default:
+		throw string("Parameter 'cdm' is out of range.");
 	}
-	return false;
+	return (0 < n_event ? true : false);
+
+	//if (0 < n_event)
+	//{
+	//	if (COMPUTING_DEVICE_GPU == comp_dev)
+	//	{
+	//		copy_event_data_to_host();
+	//	}
+	//	// handle_collision() will populate sp_events vector which will written to the disk via print_event_data()
+	//	handle_collision();
+	//	cout << n_collision[EVENT_COUNTER_NAME_LAST_STEP] << " collision event(s) occurred" << endl;
+
+	//	n_collision[EVENT_COUNTER_NAME_LAST_STEP] = 0;
+
+	//	return true;
+	//}
+
+	//return false;
+}
+
+void pp_disk::rebuild_vectors()
+{
+	if (COMPUTING_DEVICE_GPU == comp_dev)
+	{
+		copy_to_host();
+	}
+	// Rebuild the vectors and remove inactive bodies
+	int n_total_players = get_n_total_body();
+
+	sim_data_t* sim_data_temp = new sim_data_t;
+	// Only the data of the active bodies will be temporarily stored
+	allocate_host_storage(sim_data_temp, n_bodies->get_n_total_active());
+
+	// Create aliases:
+	vec_t* r = sim_data->h_y[0];
+	vec_t* v = sim_data->h_y[1];
+	param_t *p = sim_data->h_p;
+	body_metadata_t *bmd = sim_data->h_body_md;
+
+	// Copy the data of active bodies to sim_data_temp
+	int i = 0;
+	int k = 0;
+	for ( ; i < n_total_players; i++)
+	{
+		if (0 < bmd[i].id && BODY_TYPE_PADDINGPARTICLE != bmd[i].body_type)
+		{
+			sim_data_temp->h_y[0][k]    = r[i];
+			sim_data_temp->h_y[1][k]    = v[i];
+			sim_data_temp->h_p[k]       = p[i];
+			sim_data_temp->h_body_md[k] = bmd[i];
+			k++;
+		}
+	}
+	if (n_bodies->get_n_total_active() != k)
+	{
+		throw string("Number of copied bodies does not equal to the number of active bodies.");
+	}
+	this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE] = 0;
+	this->n_bodies->update();
+
+	int n_SI		= n_bodies->get_n_SI();
+	int n_NSI		= n_bodies->get_n_NSI();
+	int n_total		= n_bodies->get_n_total_active();
+	int n_prime_SI	= n_bodies->get_n_prime_SI(n_tpb);
+	int n_prime_NSI	= n_bodies->get_n_prime_NSI(n_tpb);
+	int n_prime_total=n_bodies->get_n_prime_total(n_tpb);
+
+	k = 0;
+	i = 0;
+	for ( ; i < n_SI; i++, k++)
+	{
+		r[k]   = sim_data_temp->h_y[0][i];
+		v[k]   = sim_data_temp->h_y[1][i];
+		p[k]   = sim_data_temp->h_p[i];
+		bmd[k] = sim_data_temp->h_body_md[i];
+	}
+    while (ups && k < n_prime_SI)
+    {
+		create_padding_particle(k, sim_data->h_epoch, bmd, p, r, v);
+		this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE]++;
+        k++;
+    }
+
+	for ( ; i < n_SI + n_NSI; i++, k++)
+	{
+		r[k]   = sim_data_temp->h_y[0][i];
+		v[k]   = sim_data_temp->h_y[1][i];
+		p[k]   = sim_data_temp->h_p[i];
+		bmd[k] = sim_data_temp->h_body_md[i];
+	}
+    while (ups && k < n_prime_SI + n_prime_NSI)
+    {
+		create_padding_particle(k, sim_data->h_epoch, bmd, p, r, v);
+		this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE]++;
+        k++;
+    }
+
+	for ( ; i < n_total; i++, k++)
+	{
+		r[k]   = sim_data_temp->h_y[0][i];
+		v[k]   = sim_data_temp->h_y[1][i];
+		p[k]   = sim_data_temp->h_p[i];
+		bmd[k] = sim_data_temp->h_body_md[i];
+	}
+    while (ups && k < n_prime_total)
+    {
+		create_padding_particle(k, sim_data->h_epoch, bmd, p, r, v);
+		this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE]++;
+        k++;
+    }
+
+	if (COMPUTING_DEVICE_GPU == comp_dev)
+	{
+		// Copy the active bodies to the device
+		copy_to_device();
+	}
+	deallocate_host_storage(sim_data_temp);
+
+	delete sim_data_temp;
 }
 
 int pp_disk::cpu_check_for_ejection_hit_centrum()
@@ -1437,6 +1613,167 @@ int pp_disk::call_kernel_check_for_collision()
 	return get_n_event();
 }
 
+void pp_disk::increment_event_counter(int *event_counter)
+{
+	for (int i = 0; i < EVENT_COUNTER_NAME_N; i++)
+	{
+		event_counter[i]++;
+		// Increment the total number of events
+		n_event[i]++;
+	}
+}
+
+void pp_disk::set_event_counter(event_counter_name_t field, int value)
+{
+	n_hit_centrum[field] = value;
+	n_ejection[field]    = value;
+	n_collision[field]   = value;
+	n_event[field]       = value;
+}
+
+void pp_disk::handle_collision()
+{
+	if (COMPUTING_DEVICE_GPU == comp_dev)
+	{
+		copy_event_data_to_host();
+	}
+	// handle_collision() will populate sp_events vector which will written to the disk via print_event_data()
+	populate_sp_events();
+
+	// TODO: implement collision graph: bredth-first search
+	for (unsigned int i = 0; i < sp_events.size(); i++)
+	{
+		int ictv_idx = sp_events[i].idx2;
+
+		handle_collision_pair(i, &sp_events[i]);
+		increment_event_counter(n_collision);
+		// Make the merged body inactive 
+		sim_data->h_body_md[ictv_idx].id *= -1;
+		// Copy it up to GPU 
+		if (COMPUTING_DEVICE_GPU == comp_dev)
+		{
+			copy_vector_to_device((void **)&sim_data->d_body_md[ictv_idx], (void **)&sim_data->h_body_md[ictv_idx], sizeof(body_metadata_t));
+		}
+		// Update number of inactive bodies
+		n_bodies->inactive[sim_data->h_body_md[ictv_idx].body_type]++;
+	}
+	cout << n_collision[EVENT_COUNTER_NAME_LAST_STEP] << " collision event(s) occurred" << endl;
+
+	n_collision[EVENT_COUNTER_NAME_LAST_STEP] = 0;
+}
+
+void pp_disk::populate_sp_events()
+{
+	sp_events.resize(event_counter);
+
+	bool *processed = new bool[event_counter];
+	for (int i = 0; i < event_counter; i++)
+	{
+		processed[i] = false;
+	}
+
+	int n = 0;
+	for (int k = 0; k < event_counter; k++)
+	{
+		if (processed[k] == false)
+		{
+			processed[k] = true;
+			sp_events[n] = events[k];
+		}
+		else
+		{
+			continue;
+		}
+		for (int i = k + 1; i < event_counter; i++)
+		{
+			if (sp_events[n].id1 == events[i].id1 && sp_events[n].id2 == events[i].id2)
+			{
+				processed[i] = true;
+				if (sp_events[n].t > events[i].t)
+				{
+					sp_events[n] = events[i];
+				}
+			}
+		}
+		n++;
+	}
+	delete[] processed;
+
+	sp_events.resize(n);
+}
+
+void pp_disk::handle_ejection_hit_centrum()
+{
+	if (COMPUTING_DEVICE_GPU == comp_dev)
+	{
+		copy_event_data_to_host();
+	}
+	sp_events.resize(event_counter);
+
+	for (int i = 0; i < event_counter; i++)
+	{
+		// The events must be copied into sp_events since the print_event_data() write the content of the sp_events to disk.
+		sp_events[i] = events[i];
+		int ictv_idx = sp_events[i].idx2;
+		if (EVENT_NAME_EJECTION == sp_events[i].event_name)
+		{
+			increment_event_counter(n_ejection);
+		}
+		else
+		{
+			handle_collision_pair(i, &sp_events[i]);
+			increment_event_counter(n_hit_centrum);
+		}
+		// Make the body inactive 
+		sim_data->h_body_md[ictv_idx].id *= -1;
+		// Copy it up to GPU 
+		if (COMPUTING_DEVICE_GPU == comp_dev)
+		{
+			copy_vector_to_device((void **)&sim_data->d_body_md[ictv_idx], (void **)&sim_data->h_body_md[ictv_idx], sizeof(body_metadata_t));
+		}
+		// Update number of inactive bodies
+		n_bodies->inactive[sim_data->h_body_md[ictv_idx].body_type]++;
+	}
+	cout << n_ejection[EVENT_COUNTER_NAME_LAST_STEP] << " ejection " << n_hit_centrum[EVENT_COUNTER_NAME_LAST_STEP] << " hit_centrum event(s) occured" << endl;
+
+	n_ejection[   EVENT_COUNTER_NAME_LAST_STEP] = 0;
+	n_hit_centrum[EVENT_COUNTER_NAME_LAST_STEP] = 0;
+}
+
+void pp_disk::handle_collision_pair(int i, event_data_t *collision)
+{
+	int survivIdx = collision->idx1;
+	int mergerIdx = collision->idx2;
+
+	if (BODY_TYPE_SUPERPLANETESIMAL == sim_data->h_body_md[mergerIdx].body_type)
+	{
+		// TODO: implement collision between a body and a super-planetesimal
+		throw string("Collision between a massive body and a super-planetesimal is not yet implemented.");
+	}
+
+	collision->p1 = sim_data->h_p[survivIdx];
+	collision->p2 = sim_data->h_p[mergerIdx];
+
+	// Calculate position and velocitiy of the new object
+	tools::calc_position_after_collision(collision->p1.mass, collision->p2.mass, &(collision->r1), &(collision->r2), collision->rs);
+	tools::calc_velocity_after_collision(collision->p1.mass, collision->p2.mass, &(collision->v1), &(collision->v2), collision->vs);
+	// Update position and velocity of survivor
+	sim_data->h_y[0][survivIdx] = collision->rs;
+	sim_data->h_y[1][survivIdx] = collision->vs;
+
+	// Calculate physical properties of the new object
+	tools::calc_physical_properties(collision->p1, collision->p2, collision->ps);
+	// Update physical properties of survivor
+	sim_data->h_p[survivIdx] = collision->ps;
+
+	if (COMPUTING_DEVICE_GPU == comp_dev)
+	{
+		copy_vector_to_device((void **)&sim_data->d_y[0][survivIdx],	(void *)&sim_data->h_y[0][survivIdx],	 sizeof(vec_t));
+		copy_vector_to_device((void **)&sim_data->d_y[1][survivIdx],	(void *)&sim_data->h_y[1][survivIdx],	 sizeof(vec_t));
+		copy_vector_to_device((void **)&sim_data->d_p[survivIdx], (void *)&sim_data->h_p[survivIdx], sizeof(param_t));
+	}
+}
+
 void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
 	int n_total = get_n_total_body();
@@ -1501,151 +1838,6 @@ void pp_disk::swap()
 		{
 			::swap(sim_data->d_yout[i], sim_data->d_y[i]);
 		}
-	}
-}
-
-void pp_disk::increment_event_counter(int *event_counter)
-{
-	for (int i = 0; i < EVENT_COUNTER_NAME_N; i++)
-	{
-		event_counter[i]++;
-		// Increment the total number of events
-		n_event[i]++;
-	}
-}
-
-void pp_disk::set_event_counter(event_counter_name_t field, int value)
-{
-	n_hit_centrum[field] = value;
-	n_ejection[field]    = value;
-	n_collision[field]   = value;
-	n_event[field]       = value;
-}
-
-void pp_disk::handle_collision()
-{
-	populate_sp_events();
-
-	// TODO: implement collision graph: bredth-first search
-	for (unsigned int i = 0; i < sp_events.size(); i++)
-	{
-		int ictv_idx = sp_events[i].idx2;
-
-		handle_collision_pair(i, &sp_events[i]);
-		increment_event_counter(n_collision);
-		// Make the merged body inactive 
-		sim_data->h_body_md[ictv_idx].id *= -1;
-		// Copy it up to GPU 
-		if (COMPUTING_DEVICE_GPU == comp_dev)
-		{
-			copy_vector_to_device((void **)&sim_data->d_body_md[ictv_idx], (void **)&sim_data->h_body_md[ictv_idx], sizeof(body_metadata_t));
-		}
-		// Update number of inactive bodies
-		n_bodies->inactive[sim_data->h_body_md[ictv_idx].body_type]++;
-	}
-}
-
-void pp_disk::populate_sp_events()
-{
-	sp_events.resize(event_counter);
-
-	bool *processed = new bool[event_counter];
-	for (int i = 0; i < event_counter; i++)
-	{
-		processed[i] = false;
-	}
-
-	int n = 0;
-	for (int k = 0; k < event_counter; k++)
-	{
-		if (processed[k] == false)
-		{
-			processed[k] = true;
-			sp_events[n] = events[k];
-		}
-		else
-		{
-			continue;
-		}
-		for (int i = k + 1; i < event_counter; i++)
-		{
-			if (sp_events[n].id1 == events[i].id1 && sp_events[n].id2 == events[i].id2)
-			{
-				processed[i] = true;
-				if (sp_events[n].t > events[i].t)
-				{
-					sp_events[n] = events[i];
-				}
-			}
-		}
-		n++;
-	}
-	delete[] processed;
-
-	sp_events.resize(n);
-}
-
-void pp_disk::handle_ejection_hit_centrum()
-{
-	sp_events.resize(event_counter);
-
-	for (int i = 0; i < event_counter; i++)
-	{
-		// The events must be copied into sp_events since the print_event_data() write the content of the sp_events to disk.
-		sp_events[i] = events[i];
-		int ictv_idx = sp_events[i].idx2;
-		if (EVENT_NAME_EJECTION == sp_events[i].event_name)
-		{
-			increment_event_counter(n_ejection);
-		}
-		else
-		{
-			handle_collision_pair(i, &sp_events[i]);
-			increment_event_counter(n_hit_centrum);
-		}
-		// Make the body inactive 
-		sim_data->h_body_md[ictv_idx].id *= -1;
-		// Copy it up to GPU 
-		if (COMPUTING_DEVICE_GPU == comp_dev)
-		{
-			copy_vector_to_device((void **)&sim_data->d_body_md[ictv_idx], (void **)&sim_data->h_body_md[ictv_idx], sizeof(body_metadata_t));
-		}
-		// Update number of inactive bodies
-		n_bodies->inactive[sim_data->h_body_md[ictv_idx].body_type]++;
-	}
-}
-
-void pp_disk::handle_collision_pair(int i, event_data_t *collision)
-{
-	int survivIdx = collision->idx1;
-	int mergerIdx = collision->idx2;
-
-	if (BODY_TYPE_SUPERPLANETESIMAL == sim_data->h_body_md[mergerIdx].body_type)
-	{
-		// TODO: implement collision between a body and a super-planetesimal
-		throw string("Collision between a massive body and a super-planetesimal is not yet implemented.");
-	}
-
-	collision->p1 = sim_data->h_p[survivIdx];
-	collision->p2 = sim_data->h_p[mergerIdx];
-
-	// Calculate position and velocitiy of the new object
-	tools::calc_position_after_collision(collision->p1.mass, collision->p2.mass, &(collision->r1), &(collision->r2), collision->rs);
-	tools::calc_velocity_after_collision(collision->p1.mass, collision->p2.mass, &(collision->v1), &(collision->v2), collision->vs);
-	// Update position and velocity of survivor
-	sim_data->h_y[0][survivIdx] = collision->rs;
-	sim_data->h_y[1][survivIdx] = collision->vs;
-
-	// Calculate physical properties of the new object
-	tools::calc_physical_properties(collision->p1, collision->p2, collision->ps);
-	// Update physical properties of survivor
-	sim_data->h_p[survivIdx] = collision->ps;
-
-	if (COMPUTING_DEVICE_GPU == comp_dev)
-	{
-		copy_vector_to_device((void **)&sim_data->d_y[0][survivIdx],	(void *)&sim_data->h_y[0][survivIdx],	 sizeof(vec_t));
-		copy_vector_to_device((void **)&sim_data->d_y[1][survivIdx],	(void *)&sim_data->h_y[1][survivIdx],	 sizeof(vec_t));
-		copy_vector_to_device((void **)&sim_data->d_p[survivIdx], (void *)&sim_data->h_p[survivIdx], sizeof(param_t));
 	}
 }
 
@@ -1774,102 +1966,6 @@ void pp_disk::set_computing_device(computing_device_t device)
 	this->comp_dev = device;
 }
 
-void pp_disk::remove_inactive_bodies()
-{
-	int n_total_players = get_n_total_body();
-
-	sim_data_t* sim_data_temp = new sim_data_t;
-	// Only the data of the active bodies will be temporarily stored
-	allocate_host_storage(sim_data_temp, n_bodies->get_n_total_active());
-
-	// Create aliases:
-	vec_t* r = sim_data->h_y[0];
-	vec_t* v = sim_data->h_y[1];
-	param_t *p = sim_data->h_p;
-	body_metadata_t *bmd = sim_data->h_body_md;
-
-	// Copy the data of active bodies to sim_data_temp
-	int i = 0;
-	int k = 0;
-	for ( ; i < n_total_players; i++)
-	{
-		if (0 < bmd[i].id && BODY_TYPE_PADDINGPARTICLE != bmd[i].body_type)
-		{
-			sim_data_temp->h_y[0][k]    = r[i];
-			sim_data_temp->h_y[1][k]    = v[i];
-			sim_data_temp->h_p[k]       = p[i];
-			sim_data_temp->h_body_md[k] = bmd[i];
-			k++;
-		}
-	}
-	if (n_bodies->get_n_total_active() != k)
-	{
-		throw string("Number of copied bodies does not equal to the number of active bodies.");
-	}
-	this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE] = 0;
-	this->n_bodies->update();
-
-	int n_SI		= n_bodies->get_n_SI();
-	int n_NSI		= n_bodies->get_n_NSI();
-	int n_total		= n_bodies->get_n_total_active();
-	int n_prime_SI	= n_bodies->get_n_prime_SI(n_tpb);
-	int n_prime_NSI	= n_bodies->get_n_prime_NSI(n_tpb);
-	int n_prime_total=n_bodies->get_n_prime_total(n_tpb);
-
-	k = 0;
-	i = 0;
-	for ( ; i < n_SI; i++, k++)
-	{
-		r[k]   = sim_data_temp->h_y[0][i];
-		v[k]   = sim_data_temp->h_y[1][i];
-		p[k]   = sim_data_temp->h_p[i];
-		bmd[k] = sim_data_temp->h_body_md[i];
-	}
-    while (ups && k < n_prime_SI)
-    {
-		create_padding_particle(k, sim_data->h_epoch, bmd, p, r, v);
-		this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE]++;
-        k++;
-    }
-
-	for ( ; i < n_SI + n_NSI; i++, k++)
-	{
-		r[k]   = sim_data_temp->h_y[0][i];
-		v[k]   = sim_data_temp->h_y[1][i];
-		p[k]   = sim_data_temp->h_p[i];
-		bmd[k] = sim_data_temp->h_body_md[i];
-	}
-    while (ups && k < n_prime_SI + n_prime_NSI)
-    {
-		create_padding_particle(k, sim_data->h_epoch, bmd, p, r, v);
-		this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE]++;
-        k++;
-    }
-
-	for ( ; i < n_total; i++, k++)
-	{
-		r[k]   = sim_data_temp->h_y[0][i];
-		v[k]   = sim_data_temp->h_y[1][i];
-		p[k]   = sim_data_temp->h_p[i];
-		bmd[k] = sim_data_temp->h_body_md[i];
-	}
-    while (ups && k < n_prime_total)
-    {
-		create_padding_particle(k, sim_data->h_epoch, bmd, p, r, v);
-		this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE]++;
-        k++;
-    }
-
-	if (COMPUTING_DEVICE_GPU == comp_dev)
-	{
-		// Copy the active bodies to the device
-		copy_to_device();
-	}
-	deallocate_host_storage(sim_data_temp);
-
-	delete sim_data_temp;
-}
-
 void pp_disk::copy_to_device()
 {
 	int n_total = get_n_total_body();
@@ -1903,16 +1999,6 @@ void pp_disk::copy_to_host()
 
 	copy_vector_to_host((void *)&event_counter, (void *)d_event_counter, 1*sizeof(int));
 }
-
-//void pp_disk::copy_threshold(const var_t* thrshld)
-//{
-//	memcpy(threshold, thrshld, THRESHOLD_N * sizeof(var_t));
-//
-//	if (COMPUTING_DEVICE_GPU == comp_dev)
-//	{
-//		copy_constant_to_device(dc_threshold, thrshld, THRESHOLD_N*sizeof(var_t));
-//	}
-//}
 
 void pp_disk::copy_disk_params_to_device()
 {
@@ -2397,7 +2483,7 @@ void pp_disk::print_event_data(ofstream& sout, ofstream& log_f)
 			 << endl;
 		if (log_f)
 		{
-			log_f << tools::get_time_stamp() << SEP 
+			log_f << tools::get_time_stamp(false) << SEP 
 				  << e_names[sp_events[i].event_name] << SEP
 			      << setw(int_t_w) << sp_events[i].id1 << SEP
 			      << setw(int_t_w) << sp_events[i].id2 << SEP

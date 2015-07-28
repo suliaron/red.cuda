@@ -1679,8 +1679,8 @@ void n_pp(string& dir, string& filename)
 	//path = file::combine_path(dir, filename) + "_NONMAE.txt";
 	//print(path, disk, sim_data, INPUT_FORMAT_NONAME);
 
-	//path = file::combine_path(dir, filename) + "_HIPERION.txt";
-	//print(path, disk, sim_data, INPUT_FORMAT_HIPERION);
+	path = file::combine_path(dir, filename) + "_HIPERION.txt";
+	print(path, disk, sim_data, INPUT_FORMAT_HIPERION);
 
 	deallocate_host_storage(sim_data);
 

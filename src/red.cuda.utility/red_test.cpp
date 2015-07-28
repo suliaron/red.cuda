@@ -508,7 +508,7 @@ static void test_tools()
 	{
 		char test_func[] = "get_time_stamp";
 
-		string result = tools::get_time_stamp();
+		string result = tools::get_time_stamp(false);
 
 		fprintf(stderr, "\t%s(): [should print the actual date and time] ", test_func);
 		fprintf(stderr, "%s: PASSED ??\n", result.c_str());

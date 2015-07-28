@@ -17,7 +17,7 @@ namespace redutilcu
 		void trim_right(string& str, char c);
 		void trim_left(string& str);
 		void trim(string& str);
-		string get_time_stamp();
+		string get_time_stamp(bool use_comma);
 		string convert_time_t(time_t t);
 
 		void populate_data(unsigned int* n_bodies, sim_data_t *sim_data);

@@ -107,15 +107,18 @@ public:
 	//! From the events it will create a vector containing one entry for each colliding pair with the earliest collision time
 	void populate_sp_events();
 
-	bool check_for_ejection_hit_centrum();
-	bool check_for_collision();
-	bool check_for_rebuild_vectors(int n);
-
 	void handle_collision();
 	void handle_ejection_hit_centrum();
 	void handle_collision_pair(int i, event_data_t *collision);
 
+	void rebuild_vectors();
+
 	//! Check all bodies against ejection and hit centrum criterium
+	//bool check_for_ejection_hit_centrum();
+	bool check_for_ejection_hit_centrum_2();
+	bool check_for_collision();
+	bool check_for_collision_2();
+
 	int call_kernel_check_for_ejection_hit_centrum();
 	int call_kernel_check_for_collision();
 
@@ -126,7 +129,7 @@ public:
 	/*!
 		\param comp_dev If CPU than prints the data stored in sim_data on the HOST if GPU than on the device
 	*/
-	void print_sim_data(computing_device_t comp_dev);
+
 	//! Calculates the differentials of variables
 	/*!
 		This function is called by the integrator when calculation of the differentials is necessary
@@ -141,8 +144,6 @@ public:
 
 	//! Swaps the yout with the y variable, i.e. at the end of an integration step the output will be the input of the next step
 	void swap();
-
-	void remove_inactive_bodies();
 
 	ttt_t t;
 	number_of_bodies* n_bodies;
@@ -214,6 +215,8 @@ public:
 
 	void cpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
+
+	void print_sim_data(computing_device_t comp_dev);
 private:
 	
 	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);

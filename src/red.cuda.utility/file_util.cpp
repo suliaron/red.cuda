@@ -253,7 +253,7 @@ void Emese_data_format_to_red_cuda_format(const string& input_path, const string
 
 void log_start(ostream& sout, int argc, const char** argv, const char** env, collision_detection_model_t cdm)
 {
-	sout << tools::get_time_stamp() << " starting " << argv[0] << endl;
+	sout << tools::get_time_stamp(false) << " starting " << argv[0] << endl;
 	sout << "Command line arguments: " << endl;
 	for (int i = 1; i < argc; i++)
 	{
@@ -324,10 +324,10 @@ void log_start(ostream& sout, int argc, const char** argv, const char** env, col
 
 void log_message(ostream& sout, string msg, bool print_to_screen)
 {
-	sout << tools::get_time_stamp() << SEP << msg << endl;
+	sout << tools::get_time_stamp(false) << SEP << msg << endl;
 	if (print_to_screen && sout != cout)
 	{
-		std::cout << tools::get_time_stamp() << SEP << msg << endl;
+		std::cout << tools::get_time_stamp(false) << SEP << msg << endl;
 	}
 }
 
