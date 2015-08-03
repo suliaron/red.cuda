@@ -38,14 +38,17 @@ public:
 	void set_computing_device(computing_device_t device);
 	computing_device_t get_computing_device() { return comp_dev; }
 
+	void set_cdm(collision_detection_model_t c) { cdm = c;    }
+	collision_detection_model_t get_cdm(void)   { return cdm; }
+
 	void set_n_tpb(int n)   { n_tpb = n;     }
 	int  get_n_tpb(void)    { return n_tpb;  }
 
 	void set_id_dev(int id) { id_dev = id;   }
 	int  get_id_dev(void)   { return id_dev; }
 
-	void set_cdm(collision_detection_model_t c) { cdm = c;    }
-	collision_detection_model_t get_cdm(void)   { return cdm; }
+	void set_ups(bool b)    { ups = b;       }
+	bool get_ups()          { return ups;    }
 
 	//! Determines the mass of the central star
 	/*!
@@ -61,33 +64,29 @@ public:
 	void transform_time();
 	//! Transform the velocity using the new time unit: 1/k = 58.13244 ...
 	void transform_velocity();
+
 	//! Print the data of all bodies in text format
 	/*   
 		\param sout print the data to this stream
 	*/
 	void print_result_ascii(ofstream& sout);
+	//! Print the data of all bodies in binary format
+	/*!
+		\param sout print the data to this stream
+	*/
+	void print_result_binary(ofstream& sout);
 	//! Print the data of all bodies in text format
 	/*!
 		\param sout print the data to this stream
 		\param repres indicates the data representation of the file, i.e. text or binary
 	*/
 	void print_dump(ofstream& sout, data_representation_t repres);
-	//! Print the data of all bodies in binary format
-	/*!
-		\param sout print the data to this stream
-	*/
-	void print_result_binary(ofstream& sout);
 	//! Print the event data
 	/*!
 		\param sout print the data to this stream
 		\param log_f print the data to this stream
 	*/
 	void print_event_data(ofstream& sout, ofstream& log_f);
-
-	bool get_ups()		{ return ups; }
-
-	//! Returns the number of events during the last step
-	int get_n_event();
 
 	//! Returns the number of events during the simulation
 	int get_n_total_event();
@@ -113,22 +112,18 @@ public:
 
 	void rebuild_vectors();
 
-	//! Check all bodies against ejection and hit centrum criterium
-	//bool check_for_ejection_hit_centrum();
-	bool check_for_ejection_hit_centrum_2();
+	//! Check all bodies against ejection and hit centrum criterium. The number of detected events are stored in the event_counter member variable.
+	bool check_for_ejection_hit_centrum();
+	//! Check collisin between all bodies. The number of detected events are stored in the event_counter member variable.
 	bool check_for_collision();
-	bool check_for_collision_2();
 
-	int call_kernel_check_for_ejection_hit_centrum();
-	int call_kernel_check_for_collision();
+	//! Check all bodies against ejection and hit centrum criterium. The number of detected events are stored in the event_counter member variable.
+	void gpu_check_for_ejection_hit_centrum();
+	void cpu_check_for_ejection_hit_centrum();
 
-	int cpu_check_for_ejection_hit_centrum();
-	int cpu_check_for_collision();
-	int cpu_check_for_collision(interaction_bound int_bound, bool SI_NSI, bool SI_TP, bool NSI, bool NSI_TP);
-	//! Test function: prints the data stored in sim_data 
-	/*!
-		\param comp_dev If CPU than prints the data stored in sim_data on the HOST if GPU than on the device
-	*/
+	void gpu_check_for_collision();
+	void cpu_check_for_collision();
+	void cpu_check_for_collision(interaction_bound int_bound, bool SI_NSI, bool SI_TP, bool NSI, bool NSI_TP);
 
 	//! Calculates the differentials of variables
 	/*!
@@ -145,9 +140,9 @@ public:
 	//! Swaps the yout with the y variable, i.e. at the end of an integration step the output will be the input of the next step
 	void swap();
 
-	ttt_t t;
-	number_of_bodies* n_bodies;
-	sim_data_t* sim_data;		/*!< struct containing all the data of the simulation */
+	ttt_t t;                                   //!< time when the variables are valid
+	number_of_bodies* n_bodies;                //!< class containing the number of different bodies
+	sim_data_t* sim_data;                      //!< struct containing all the data of the simulation
 
 	gas_disk_model_t g_disk_model;
 	analytic_gas_disk* a_gd;
@@ -216,7 +211,12 @@ public:
 	void cpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
 
+	//! Test function: prints the data stored in sim_data 
+	/*!
+		\param comp_dev If CPU than prints the data stored in sim_data on the HOST if GPU than on the device
+	*/
 	void print_sim_data(computing_device_t comp_dev);
+
 private:
 	
 	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);

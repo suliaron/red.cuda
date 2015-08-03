@@ -417,7 +417,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 		if ((0.0 < opt.param->threshold[THRESHOLD_EJECTION_DISTANCE] || 0.0 < opt.param->threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]))
 		{
-			bool eje_hc = ppd->check_for_ejection_hit_centrum_2();
+			bool eje_hc = ppd->check_for_ejection_hit_centrum();
 			if (eje_hc)
 			{
 				ppd->handle_ejection_hit_centrum();
@@ -436,7 +436,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			{
 			case COLLISION_DETECTION_MODEL_STEP:
 			case COLLISION_DETECTION_MODEL_SUB_STEP:
-				collision = ppd->check_for_collision_2();
+				collision = ppd->check_for_collision();
 				if (collision)
 				{
 					ppd->handle_collision();
