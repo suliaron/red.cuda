@@ -1593,9 +1593,15 @@ void pp_disk::rebuild_vectors()
 	int n_SI		= n_bodies->get_n_SI();
 	int n_NSI		= n_bodies->get_n_NSI();
 	int n_total		= n_bodies->get_n_total_active();
-	int n_prime_SI	= n_bodies->get_n_prime_SI(n_tpb);
-	int n_prime_NSI	= n_bodies->get_n_prime_NSI(n_tpb);
-	int n_prime_total=n_bodies->get_n_prime_total(n_tpb);
+	int n_prime_SI	= 0;
+	int n_prime_NSI	= 0;
+	int n_prime_total=0;
+	if (ups)
+	{
+		n_prime_SI	= n_bodies->get_n_prime_SI(n_tpb);
+		n_prime_NSI	= n_bodies->get_n_prime_NSI(n_tpb);
+		n_prime_total=n_bodies->get_n_prime_total(n_tpb); 
+	}
 
 	k = 0;
 	i = 0;
@@ -2135,15 +2141,27 @@ void pp_disk::load_ascii(ifstream& input)
 	int n_SI		= n_bodies->get_n_SI();
 	int n_NSI		= n_bodies->get_n_NSI();
 	int n_total		= n_bodies->get_n_total_playing();
-	int n_prime_SI	= n_bodies->get_n_prime_SI(n_tpb);
-	int n_prime_NSI	= n_bodies->get_n_prime_NSI(n_tpb);
-	int n_prime_total=n_bodies->get_n_prime_total(n_tpb); 
+	int n_prime_SI	= 0;
+	int n_prime_NSI	= 0;
+	int n_prime_total=0;
+	if (ups)
+	{
+		n_prime_SI	= n_bodies->get_n_prime_SI(n_tpb);
+		n_prime_NSI	= n_bodies->get_n_prime_NSI(n_tpb);
+		n_prime_total=n_bodies->get_n_prime_total(n_tpb); 
+	}
 
+	int pcd = 1;
 	int i = 0;
 	int k = 0;
 	for ( ; i < n_SI; i++, k++)
 	{
 		load_body_record(input, k, epoch, bmd, p, r, v);
+		if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
+		{
+			printf(".");
+			pcd++;
+		}
 	}
     while (ups && k < n_prime_SI)
     {
@@ -2155,6 +2173,11 @@ void pp_disk::load_ascii(ifstream& input)
 	for ( ; i < n_SI + n_NSI; i++, k++)
 	{
 		load_body_record(input, k, epoch, bmd, p, r, v);
+		if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
+		{
+			printf(".");
+			pcd++;
+		}
 	}
 	while (ups && k < n_prime_SI + n_prime_NSI)
 	{
@@ -2166,6 +2189,11 @@ void pp_disk::load_ascii(ifstream& input)
 	for ( ; i < n_total; i++, k++)
 	{
 		load_body_record(input, k, epoch, bmd, p, r, v);
+		if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
+		{
+			printf(".");
+			pcd++;
+		}
 	}
 	while (ups && k < n_prime_total)
 	{

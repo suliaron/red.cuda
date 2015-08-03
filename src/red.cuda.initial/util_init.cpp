@@ -209,12 +209,10 @@ void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t 
 		int p = 1;
 		for (int i = 0; i < nBodies; i++)
 		{
+			if (p <= (int)((((var_t)i/(var_t)nBodies))*100.0))
 			{
-				if (p <= (int)((((var_t)i/(var_t)nBodies))*100.0))
-				{
-					printf(".");
-					p++;
-				}
+				printf(".");
+				p++;
 			}
 			switch (format)
 			{
