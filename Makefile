@@ -33,7 +33,6 @@ BIN         := bin
 RED_OBJS := \
 analytic_gas_disk.o \
 fargo_gas_disk.o \
-gas_disk.o \
 int_euler.o \
 int_rungekutta2.o \
 int_rungekutta4.o \
