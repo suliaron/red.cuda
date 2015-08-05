@@ -849,13 +849,17 @@ int main(int argc, char** argv)
 
 #endif
 
-#if 0 // Implement the tile-calculation method for the N-body gravity kernel
+#if 1
+/*
+ * Implement and benchmark the tile-calculation method for the N-body gravity kernel.
+ * Compare times needed by the tile and naive implementation.
+ */
 
-#define N 512
-#define N_THREAD 128
+#define N     12800
+#define NTILE   128
 
-__host__ __device__
-vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
+inline __host__ __device__
+	vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
 {
 	vec_t dVec = {0.0, 0.0, 0.0, 0.0};
 
@@ -878,36 +882,194 @@ vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
 	return aiVec;
 }
 
+__global__
+	void kernel_calc_gravity_accel_tile_verbose(const vec_t* global_x, const var_t* mass, vec_t* global_a)
+{
+	extern __shared__ vec_t sh_pos[];
+	//__shared__ vec_t sh_pos[NTILE];
+
+	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
+	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
+
+	int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (0 == gtid)
+	{
+		printf("[0 == gtid]:  gridDim = [%3d, %3d, %3d]\n", gridDim.x, gridDim.y, gridDim.z);
+		printf("[0 == gtid]: blockDim = [%3d, %3d, %3d]\n", blockDim.x, blockDim.y, blockDim.z);
+		printf("[0 == gtid]: total number of threads = gridDim.x * blockDim.x = %3d\n", gridDim.x * blockDim.x);
+		//printf("[0 == gtid]: sizeof(sh_pos) = %5d [byte]\n", sizeof(sh_pos));
+	}
+
+	if (0 == threadIdx.x)
+	{
+		printf("[0 == threadIdx.x]: blockIdx.x = %3d\n", blockIdx.x);
+	}
+	if (0 == blockIdx.x)
+	{
+		printf("[0 == blockIdx.x]: threadIdx.x = %3d\n", threadIdx.x);
+	}
+
+	my_pos = global_x[gtid];
+	printf("gtid = %3d my_pos = [%10.6le, %10.6le, %10.6le]\n", gtid, my_pos.x, my_pos.y, my_pos.z);
+	if (0 == blockIdx.x)
+	{
+		printf("[0 == blockIdx.x]: gtid = %3d my_pos = [%10.6le, %10.6le, %10.6le]\n", gtid, my_pos.x, my_pos.y, my_pos.z);
+	}
+
+	for (int tile = 0; (tile * NTILE) < N; tile++)
+	{
+		int idx = tile * blockDim.x + threadIdx.x;
+		sh_pos[threadIdx.x] = global_x[idx];
+		if (0 == blockIdx.x)
+		{
+			printf("[0 == blockIdx.x]: tile = %3d threadIdx.x = %3d idx = %3d sh_pos[threadIdx.x] = [%10.6le, %10.6le, %10.6le]\n", tile, threadIdx.x, idx, sh_pos[threadIdx.x].x, sh_pos[threadIdx.x].y, sh_pos[threadIdx.x].z);
+		}
+		__syncthreads();
+		if (0 == blockIdx.x && 0 == threadIdx.x)
+		{
+			printf("After 1st __syncthreads()\n");
+		}
+
+		for (int j = 0; j < blockDim.x; j++)
+		{
+			if (0 == blockIdx.x)
+			{
+				if (gtid == (tile * NTILE)+j)
+				{
+					printf("Warning: gtid (%3d) == (tile * NTILE)+j (%3d)\n", gtid, (tile * NTILE)+j);
+				}
+				printf("[0 == blockIdx.x]: tile = %3d j = %3d threadIdx.x = %3d idx = %3d my_pos = [%10.6le, %10.6le, %10.6le] sh_pos[j] = [%10.6le, %10.6le, %10.6le]\n", tile, j, threadIdx.x, idx, my_pos.x, my_pos.y, my_pos.z, sh_pos[j].x, sh_pos[j].y, sh_pos[j].z);
+			}
+			// To avoid self-interaction or mathematically division by zero
+			if (gtid != (tile * NTILE)+j)
+			{
+				acc = body_body_interaction(my_pos, sh_pos[j], mass[j], acc);
+			}
+		}
+
+		__syncthreads();
+		if (0 == blockIdx.x && 0 == threadIdx.x)
+		{
+			printf("After 2nd __syncthreads()\n");
+		}
+	}
+
+	printf("gtid = %3d acc = [%14.6le, %14.6le, %14.6le]\n", gtid, acc.x, acc.y, acc.z);
+	global_a[gtid] = acc;
+}
 
 __global__
-void kernel_calculate_acceleration(const vec_t* global_x, const var_t* mass, vec_t* global_a)
+	void kernel_calc_gravity_accel_tile(int ntile, const vec_t* global_x, const var_t* mass, vec_t* global_a)
 {
 	extern __shared__ vec_t sh_pos[];
 
 	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
 	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
 
-	int i    = 0;
-	int tile = 0;
-
 	int gtid = blockIdx.x * blockDim.x + threadIdx.x;
-
 	my_pos = global_x[gtid];
-	for (i = 0, tile = 0; i < N; i += blockDim.x, tile++)
+
+	for (int tile = 0; (tile * ntile) < N; tile++)
 	{
 		int idx = tile * blockDim.x + threadIdx.x;
 		sh_pos[threadIdx.x] = global_x[idx];
 		__syncthreads();
 
-		for (i = 0; i < blockDim.x; i++)
+		for (int j = 0; j < blockDim.x; j++)
 		{
-			acc = body_body_interaction(my_pos, sh_pos[i], mass[i], acc);
+			// To avoid self-interaction or mathematically division by zero
+			if (gtid == (tile * ntile) + j)
+			{
+				continue;
+			}
+			acc = body_body_interaction(my_pos, sh_pos[j], mass[j], acc);
 		}
-
 		__syncthreads();
 	}
-
 	global_a[gtid] = acc;
+}
+
+__global__
+	void kernel_calc_gravity_accel_naive(const vec_t* global_x, const var_t* mass, vec_t* global_a)
+{
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+	global_a[i].x = global_a[i].y = global_a[i].z = global_a[i].w = 0.0;
+	vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+	for (int j = 0; j < N; j++) 
+	{
+		/* Skip the body with the same index */
+		if (i == j)
+		{
+			continue;
+		}
+		// 3 FLOP
+		dVec.x = global_x[j].x - global_x[i].x;
+		dVec.y = global_x[j].y - global_x[i].y;
+		dVec.z = global_x[j].z - global_x[i].z;
+		// 5 FLOP
+		dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+
+		// 20 FLOP
+		var_t d = sqrt(dVec.w);								// = r
+		// 2 FLOP
+		dVec.w = mass[j] / (d*dVec.w);
+		// 6 FLOP
+		global_a[i].x += dVec.w * dVec.x;
+		global_a[i].y += dVec.w * dVec.y;
+		global_a[i].z += dVec.w * dVec.z;
+	} // 36 FLOP
+}
+
+float gpu_calc_grav_accel_tile_benchmark(int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
+{
+	cudaEvent_t start, stop;
+
+	CUDA_SAFE_CALL(cudaEventCreate(&start));
+	CUDA_SAFE_CALL(cudaEventCreate(&stop));
+
+	dim3 grid(N/n_tpb);
+	dim3 block(n_tpb);
+
+	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
+
+	//kernel_calc_gravity_accel_verbose<<<grid, block, NTILE * sizeof(vec_t)>>>(d_x, d_m, d_a);
+	//kernel_calc_gravity_accel_tile<<<grid, block, NTILE * sizeof(vec_t)>>>(d_x, d_m, d_a);
+	kernel_calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(n_tpb, d_x, d_m, d_a);
+	CUDA_CHECK_ERROR();
+
+	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
+	CUDA_SAFE_CALL(cudaEventSynchronize(stop));
+
+	float elapsed_time = 0.0f;
+	CUDA_SAFE_CALL(cudaEventElapsedTime(&elapsed_time, start, stop));
+
+	return elapsed_time;
+}
+
+float gpu_calc_grav_accel_naive_benchmark(int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
+{
+	cudaEvent_t start, stop;
+
+	CUDA_SAFE_CALL(cudaEventCreate(&start));
+	CUDA_SAFE_CALL(cudaEventCreate(&stop));
+
+	dim3 grid(N/n_tpb);
+	dim3 block(n_tpb);
+
+	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
+
+	kernel_calc_gravity_accel_naive<<<grid, block>>>(d_x, d_m, d_a);
+	CUDA_CHECK_ERROR();
+
+	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
+	CUDA_SAFE_CALL(cudaEventSynchronize(stop));
+
+	float elapsed_time = 0.0f;
+	CUDA_SAFE_CALL(cudaEventElapsedTime(&elapsed_time, start, stop));
+
+	return elapsed_time;
 }
 
 int main(int argc, char** argv)
@@ -920,46 +1082,112 @@ int main(int argc, char** argv)
 	vec_t* d_a = 0x0;
 	var_t* d_m = 0x0;
 
-	ALLOCATE_HOST_VECTOR((void**)&h_x, N*sizeof(vec_t)); 
-	ALLOCATE_HOST_VECTOR((void**)&h_a, N*sizeof(vec_t)); 
-	ALLOCATE_HOST_VECTOR((void**)&h_m, N*sizeof(var_t)); 
-
-	ALLOCATE_DEVICE_VECTOR((void**)&d_x, N*sizeof(vec_t)); 
-	ALLOCATE_DEVICE_VECTOR((void**)&d_a, N*sizeof(vec_t)); 
-	ALLOCATE_DEVICE_VECTOR((void**)&d_m, N*sizeof(var_t)); 
-
-	memset(    h_a, 0, N*sizeof(vec_t));
-	cudaMemset(d_a, 0, N*sizeof(vec_t));
-
-	for( int i = 0; i < N; i++)
+	try
 	{
-		h_x[i].x = rand();
-		h_x[i].y = rand();
-		h_x[i].z = rand();
-		h_x[i].w = 0.0;
+		device_query(cout, 0, false);
 
-		h_m[i] = 1.0;
+		ALLOCATE_HOST_VECTOR((void**)&h_x, N*sizeof(vec_t)); 
+		ALLOCATE_HOST_VECTOR((void**)&h_a, N*sizeof(vec_t)); 
+		ALLOCATE_HOST_VECTOR((void**)&h_m, N*sizeof(var_t)); 
+
+		ALLOCATE_DEVICE_VECTOR((void**)&d_x, N*sizeof(vec_t)); 
+		ALLOCATE_DEVICE_VECTOR((void**)&d_a, N*sizeof(vec_t)); 
+		ALLOCATE_DEVICE_VECTOR((void**)&d_m, N*sizeof(var_t)); 
+
+		for( int i = 0; i < N; i++)
+		{
+			h_x[i].x = rand();
+			h_x[i].y = rand();
+			h_x[i].z = rand();
+			h_x[i].w = 0.0;
+
+			h_m[i] = 1.0;
+		}
+
+		copy_vector_to_device(d_x, h_x, N * sizeof(vec_t));
+		copy_vector_to_device(d_m, h_m, N * sizeof(var_t));
+
+		cudaDeviceProp deviceProp;
+		CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, 0));
+
+		int half_warp_size = deviceProp.warpSize/2;
+
+		{
+			cout << endl << "Gravity acceleration: Naive calculation:" << endl;
+
+			vector<float2> execution_time;
+			unsigned int n_pass = 0;
+			for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
+			{
+				clock_t t_start = clock();
+				float cu_elt = gpu_calc_grav_accel_naive_benchmark(n_tpb, d_x, d_m, d_a);
+				ttt_t elapsed_time = ((double)(clock() - t_start)/(double)CLOCKS_PER_SEC) * 1000.0; // [ms]
+
+				float2 exec_t = {(float)elapsed_time, cu_elt};
+				execution_time.push_back(exec_t);
+
+				printf("[%3d] dt: %10.6le (%10.6le)\n", n_tpb, elapsed_time, cu_elt);
+				n_pass++;
+			}
+			float min_y = 1.0e10;
+			int min_idx = 0;
+			for (unsigned int i = 0; i < n_pass; i++)
+			{
+				if (min_y > execution_time[i].y)
+				{
+					min_y = execution_time[i].y;
+					min_idx = i;
+				}
+			}
+			cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx].y << " [ms]" << endl;
+			printf("\n");
+		}
+		{
+			cout << "Gravity acceleration: Tile calculation:" << endl;
+
+			vector<float2> execution_time;
+			unsigned int n_pass = 0;
+			for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
+			{
+				clock_t t_start = clock();
+				float cu_elt = gpu_calc_grav_accel_tile_benchmark(n_tpb, d_x, d_m, d_a);
+				ttt_t elapsed_time = ((double)(clock() - t_start)/(double)CLOCKS_PER_SEC) * 1000.0; // [ms]
+
+				float2 exec_t = {(float)elapsed_time, cu_elt};
+				execution_time.push_back(exec_t);
+
+				printf("[%3d] dt: %10.6le (%10.6le)\n", n_tpb, elapsed_time, cu_elt);
+				n_pass++;
+			}
+			float min_y = 1.0e10;
+			int min_idx = 0;
+			for (unsigned int i = 0; i < n_pass; i++)
+			{
+				if (min_y > execution_time[i].y)
+				{
+					min_y = execution_time[i].y;
+					min_idx = i;
+				}
+			}
+			cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx].y << " [ms]" << endl;
+			printf("\n");
+		}
+
+		FREE_HOST_VECTOR((void**)&h_x);
+		FREE_HOST_VECTOR((void**)&h_a);
+		FREE_HOST_VECTOR((void**)&h_m);
+
+		FREE_DEVICE_VECTOR((void**)&d_x);
+		FREE_DEVICE_VECTOR((void**)&d_a);
+		FREE_DEVICE_VECTOR((void**)&d_m);
+	}
+	catch(const string& msg)
+	{
+		cerr << "Error: " << msg << endl;
 	}
 
-	copy_vector_to_device(d_x, h_x, N * sizeof(vec_t));
-	copy_vector_to_device(d_m, h_m, N * sizeof(var_t));
-
-
-	dim3 grid(N/N_THREAD);
-	dim3 block(N_THREAD);
-
-	kernel_calculate_acceleration<<<grid, block, N_THREAD * sizeof(vec_t), 0>>>(d_x, d_m, d_a);
-
-
-	FREE_HOST_VECTOR((void**)&h_x);
-	FREE_HOST_VECTOR((void**)&h_a);
-	FREE_HOST_VECTOR((void**)&h_m);
-
-	FREE_DEVICE_VECTOR((void**)&d_x);
-	FREE_DEVICE_VECTOR((void**)&d_a);
-	FREE_DEVICE_VECTOR((void**)&d_m);
+	return (EXIT_SUCCESS);
 }
-
 #endif
 
 #if 0
@@ -1028,7 +1256,6 @@ int main()
 /*
  *  Howto write/read data in binary representation to/from a file
  */
-
 void print_state(const std::ios& stream)
 {
 	std::cout << " good()=" << stream.good();
@@ -1050,8 +1277,6 @@ void open_streams(ofstream** output)
 
 	*output[OUTPUT_NAME_RESULT] << "Hello World!";
 }
-
-
 
 int main()
 {
@@ -1366,6 +1591,10 @@ int main()
 }
 #endif
 
+#if 0
+/*
+ * Test (*event_counter)++ expression's behaviour
+ */
 int main()
 {
 	int *event_counter = 0x0;
@@ -1384,3 +1613,5 @@ int main()
 
 	free(event_counter);
 }
+#endif
+
