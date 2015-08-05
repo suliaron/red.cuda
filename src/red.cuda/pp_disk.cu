@@ -630,7 +630,7 @@ unsigned int pp_disk::benchmark()
 	ALLOCATE_DEVICE_VECTOR((void**)&d_dy, size);
 
 	cudaDeviceProp deviceProp;
-	cudaGetDeviceProperties(&deviceProp, this->id_dev);
+	CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, this->id_dev));
 
 	int half_warp_size = deviceProp.warpSize/2;
 	vector<float2> execution_time;
@@ -697,7 +697,6 @@ float pp_disk::benchmark_calc_grav_accel(ttt_t curr_t, int n_sink, interaction_b
 		throw string("Parameter 'cdm' is out of range.");
 	}
 	CUDA_CHECK_ERROR();
-	cudaDeviceSynchronize();
 	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
 	CUDA_SAFE_CALL(cudaEventSynchronize(stop));
 
@@ -937,7 +936,7 @@ void pp_disk::cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound,
 				a[j].x -= dVec.w * dVec.x;
 				a[j].y -= dVec.w * dVec.y;
 				a[j].z -= dVec.w * dVec.z;
-			} // 36 FLOP
+			} // 36 + 8 = 44 FLOP
 		}
 	}
 }
