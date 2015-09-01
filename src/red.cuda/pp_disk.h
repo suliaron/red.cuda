@@ -66,6 +66,12 @@ public:
 	void transform_velocity();
 
 	//! Print the data of all bodies in text format
+	/*!
+		\param sout   print the data to this stream
+		\param repres indicates the data representation of the file, i.e. text or binary
+	*/
+	void print_result(ofstream& sout, data_representation_t repres);
+	//! Print the data of all bodies in text format
 	/*   
 		\param sout print the data to this stream
 	*/
@@ -77,7 +83,7 @@ public:
 	void print_result_binary(ofstream& sout);
 	//! Print the data of all bodies in text format
 	/*!
-		\param sout print the data to this stream
+		\param sout   print the data to this stream
 		\param repres indicates the data representation of the file, i.e. text or binary
 	*/
 	void print_dump(ofstream& sout, data_representation_t repres);

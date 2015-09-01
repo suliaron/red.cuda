@@ -106,7 +106,7 @@ void open_streams(const options& opt, ofstream** output)
 	}
 }
 
-void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* sum_time_of_steps, clock_t* time_of_one_step)
+void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* T_CPU, clock_t* dT_CPU)
 {
 	static const string header_str = "dev,date      ,time    ,t [d]      ,dt [d]     ,dt_avg [d] ,dT [s]     ,dT_avg [s] ,Nc   ,Ne   ,Nh   ,nb_p ,nb_i,nb_r ,ns_t    ,ns_f    ,ns_p    ,ns_a,ns_r  ,ngp_a,ngp_r,nrp_a,nrp_r,npp_a,npp_r,nspl_a,nspl_r,npl_a,npl_r,ntp_a,ntp_r";
 	static bool first_call = true;
@@ -125,8 +125,8 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 		 << " t: " << setprecision(4) << setw(10) << ppd->t / constants::Gauss 
 		 << ", dt: " << setprecision(4) << setw(10) << dt / constants::Gauss
 		 << " (" << setprecision(4) << setw(10) << (ppd->t / constants::Gauss)/intgr->get_n_passed_step() << ") [d]";
-	cout << ", dT: " << setprecision(4) << setw(10) << *time_of_one_step / (double)CLOCKS_PER_SEC;
-	cout << " (" << setprecision(4) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << ") [s]";
+	cout << ", dT: " << setprecision(4) << setw(10) << *dT_CPU / (double)CLOCKS_PER_SEC;
+	cout << " (" << setprecision(4) << setw(10) << (*T_CPU / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << ") [s]";
 	cout << ", Nc: " << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL]
 	     << ", Ne: " << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL]
 		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
@@ -147,8 +147,8 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 		 << setprecision(4) << setw(10) << ppd->t / constants::Gauss << ","
 		 << setprecision(4) << setw(10) << dt / constants::Gauss << ","
 		 << setprecision(4) << setw(10) << (ppd->t / constants::Gauss)/intgr->get_n_passed_step() << ",";
-	sout << setprecision(4) << setw(10) << (*time_of_one_step  / (double)CLOCKS_PER_SEC) << ",";
-	sout << setprecision(4) << setw(10) << (*sum_time_of_steps / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << ",";
+	sout << setprecision(4) << setw(10) << (*dT_CPU  / (double)CLOCKS_PER_SEC) << ",";
+	sout << setprecision(4) << setw(10) << (*T_CPU / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << ",";
 	sout << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL] << ","
 	     << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL] << ","
 		 << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL] << ","
@@ -226,14 +226,14 @@ dump_aux_data_t load_dump_aux_data(const options& opt)
 	return dump_aux;
 }
 
-ttt_t step(integrator *intgr, clock_t* sum_time_of_steps, clock_t* t_step)
+ttt_t step(integrator *intgr, clock_t* T_CPU, clock_t* dT_CPU)
 {
 	clock_t t_start = clock();
 	ttt_t dt = intgr->step();
 	clock_t t_stop = clock();
 
-	*t_step = (t_stop - t_start);
-	*sum_time_of_steps += *t_step;
+	*dT_CPU = (t_stop - t_start);
+	*T_CPU += *dT_CPU;
 
 	return dt;
 }
@@ -380,11 +380,12 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 {
 	ttt_t ps = 0.0;
 	ttt_t dt = 0.0;
-	clock_t sum_time_of_steps = 0;
-	clock_t time_of_one_step  = 0;
 
-	time_t time_info_start = clock();
-	time_t time_of_last_dump = clock();
+	clock_t T_CPU = 0;
+	clock_t dT_CPU  = 0;
+
+	time_t time_last_info = clock();
+	time_t time_last_dump = clock();
 
 	unsigned int n_removed = 0;
 	unsigned int n_dump = 0;
@@ -400,9 +401,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		}
 	}
 
-	//ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
-
-
+	ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
 	while (ppd->t <= opt.param->stop_time && 1 < ppd->n_bodies->get_n_total_active())
 	{
 		if (COMPUTING_DEVICE_GPU == intgr->get_computing_device() && opt.n_change_to_cpu >= ppd->n_bodies->get_n_SI())
@@ -426,7 +425,11 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			}
 		}
 
-		dt = step(intgr, &sum_time_of_steps, &time_of_one_step);
+		clock_t T0_CPU = clock();
+		dt = intgr->step();
+		dT_CPU = (clock() - T0_CPU);
+		T_CPU += dT_CPU;
+		//dt = step(intgr, &T_CPU, &dT_CPU);
 		ps += fabs(dt);
 
 		if (0.0 < opt.param->threshold[THRESHOLD_RADII_ENHANCE_FACTOR])
@@ -445,7 +448,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 				}
 				break;
 			case COLLISION_DETECTION_MODEL_INTERPOLATION:
-				throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
+				throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not yet implemented.");
 			default:
 				throw string("Parameter 'cdm' is out of range.");
 			}
@@ -454,11 +457,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		if (opt.param->output_interval <= fabs(ps))
 		{
 			ps = 0.0;
-			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
-			{
-				ppd->copy_to_host();
-			}
-			ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
+			ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
 		}
 
 		if (4 <= ppd->n_event[EVENT_COUNTER_NAME_LAST_CLEAR])
@@ -466,8 +465,11 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			ppd->set_event_counter(EVENT_COUNTER_NAME_LAST_CLEAR, 0);
 			ppd->rebuild_vectors();
 			n_removed += ppd->n_bodies->n_removed;
-			string msg = "Rebuild the vectors (removed " + redutilcu::number_to_string(ppd->n_bodies->n_removed) + " inactive bodies at t: " + redutilcu::number_to_string(ppd->t / constants::Gauss) + " [d])";
-			file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+			if (opt.verbose)
+			{
+				string msg = "Rebuild the vectors (removed " + redutilcu::number_to_string(ppd->n_bodies->n_removed) + " inactive bodies at t: " + redutilcu::number_to_string(ppd->t / constants::Gauss) + " [d])";
+				file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+			}
 
 			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 			{
@@ -481,35 +483,33 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			}
 		}
 
-		//if (10 <= n_removed || opt.dump_dt < (clock() - time_of_last_dump) / (double)CLOCKS_PER_SEC)
-		//{
-		//	n_removed = 0;
-		//	time_of_last_dump = clock();
-		//	if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
-		//	{
-		//		ppd->copy_to_host();
-		//	}
-		//	print_dump(output, opt, ppd, dt, n_dump, DATA_REPRESENTATION_BINARY);
-		//	n_dump++;
-		//}
-
-		if (opt.info_dt < (clock() - time_info_start) / (double)CLOCKS_PER_SEC) 
+		if (10 <= n_removed || opt.dump_dt < (clock() - time_last_dump) / (double)CLOCKS_PER_SEC)
 		{
-			time_info_start = clock();
-			print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step);
+			n_removed = 0;
+			time_last_dump = clock();
+			//print_dump(output, opt, ppd, dt, n_dump, DATA_REPRESENTATION_BINARY);
+			if (opt.verbose)
+			{
+				string msg = "Dump file was created with number " + redutilcu::number_to_string(n_dump);
+				file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+			}
+			n_dump++;
+		}
+
+		if (opt.info_dt < (clock() - time_last_info) / (double)CLOCKS_PER_SEC) 
+		{
+			time_last_info = clock();
+			print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &T_CPU, &dT_CPU);
 		}
 	} /* while */
 
 
-	print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &sum_time_of_steps, &time_of_one_step);
+	print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &T_CPU, &dT_CPU);
 	// To avoid duplicate save at the end of the simulation
 	if (0.0 < ps)
 	{
-		if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
-		{
-			ppd->copy_to_host();
-		}
-		ppd->print_result_ascii(*output[OUTPUT_NAME_RESULT]);
+		ps = 0.0;
+		ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
 	}
 
 	// Needed by nvprof.exe
@@ -576,10 +576,11 @@ int main(int argc, const char** argv, const char** env)
 		if (opt.benchmark)
 		{
 			run_benchmark(opt, ppd, intgr, *output[OUTPUT_NAME_LOG]);
-			return (EXIT_SUCCESS);
 		}
-
-		run_simulation(opt, ppd, intgr, output);
+		else
+		{
+			run_simulation(opt, ppd, intgr, output);
+		}
 
 	} /* try */
 	catch (const nbody_exception& ex)

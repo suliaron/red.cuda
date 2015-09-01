@@ -2093,7 +2093,7 @@ void pp_disk::load_body_record(ifstream& input, int k, ttt_t* epoch, body_metada
 
 void pp_disk::load(string& path, data_representation_t repres)
 {
-	cout << "Loading " << path << " ... ";
+	cout << "Loading " << path << " ";
 
 	ifstream input;
 	switch (repres)
@@ -2123,7 +2123,7 @@ void pp_disk::load(string& path, data_representation_t repres)
 	}
 	input.close();
 
-	cout << "done" << endl;
+	cout << " done" << endl;
 }
 
 void pp_disk::load_ascii(ifstream& input)
@@ -2239,6 +2239,11 @@ void pp_disk::load_binary(ifstream& input)
 
 void pp_disk::print_dump(ofstream& sout, data_representation_t repres)
 {
+	if (COMPUTING_DEVICE_GPU == comp_dev)
+	{
+		copy_to_host();
+	}
+
 	switch (repres)
 	{
 	case DATA_REPRESENTATION_ASCII:
@@ -2263,6 +2268,24 @@ void pp_disk::print_dump(ofstream& sout, data_representation_t repres)
 			unsigned int _n = n_bodies->get_n_active_by((body_type_t)type);
 			sout.write((char*)&_n, sizeof(_n));
 		}
+		print_result_binary(sout);
+		break;
+	}
+}
+
+void pp_disk::print_result(ofstream& sout, data_representation_t repres)
+{
+	if (COMPUTING_DEVICE_GPU == comp_dev)
+	{
+		copy_to_host();
+	}
+
+	switch (repres)
+	{
+	case DATA_REPRESENTATION_ASCII:
+		print_result_ascii(sout);
+		break;
+	case DATA_REPRESENTATION_BINARY:
 		print_result_binary(sout);
 		break;
 	}
