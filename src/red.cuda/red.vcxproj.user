@@ -9,11 +9,11 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>-v -ef -cpu -n_tpb 64 -iDir D:\Work\Projects\red.cuda\TestRun\InputTest\Test_Collision -p parameters.txt -ic input.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -ef -gpu -iDir D:\Work\red.cuda.Results\Temp -p parameters.txt -ic input.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LocalDebuggerCommandArguments>-iDir D:\Work\Projects\red.cuda\TestRun\DvorakDisk\Run01 -ic run01.txt -p parameters.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-gpu -v -pts -iDir D:\Work\red.cuda.Results\Temp -p parameters.txt -ic input_01.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

@@ -15,6 +15,7 @@
 // includes, project
 #include "distribution.h"
 #include "nebula.h"
+#include "number_of_bodies.h"
 #include "red_constants.h"
 #include "red_type.h"
 #include "redutilcu.h"
@@ -1964,7 +1965,8 @@ int parse_options(int argc, const char **argv, string &outDir, string &filename)
 {
 	int i = 1;
 
-	while (i < argc) {
+	while (i < argc)
+	{
 		string p = argv[i];
 
 		if (     p == "-o")

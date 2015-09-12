@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.initial", "src\red
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.utility", "src\red.cuda.utility\red.cuda.utility.vcxproj", "{9136AC9B-7FB0-43F4-968B-0AD558F8B638}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.processdata", "src\red.cuda.processdata\red.cuda.vcxproj", "{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -48,6 +50,14 @@ Global
 		{9136AC9B-7FB0-43F4-968B-0AD558F8B638}.Release|Win32.Build.0 = Release|Win32
 		{9136AC9B-7FB0-43F4-968B-0AD558F8B638}.Release|x64.ActiveCfg = Release|x64
 		{9136AC9B-7FB0-43F4-968B-0AD558F8B638}.Release|x64.Build.0 = Release|x64
+		{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}.Debug|Win32.Build.0 = Debug|Win32
+		{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}.Debug|x64.ActiveCfg = Debug|x64
+		{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}.Debug|x64.Build.0 = Debug|x64
+		{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}.Release|Win32.ActiveCfg = Release|Win32
+		{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}.Release|Win32.Build.0 = Release|Win32
+		{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}.Release|x64.ActiveCfg = Release|x64
+		{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

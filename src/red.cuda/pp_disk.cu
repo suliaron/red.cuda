@@ -449,51 +449,51 @@ static __global__
 	}
 }
 
-static __global__
-	void calc_gravity_accel_tile(int ntile, const vec_t* global_x, const var_t* mass, vec_t* global_a)
-{
-	extern __shared__ vec_t sh_pos[];
-
-	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
-	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
-
-	int gtid = blockIdx.x * blockDim.x + threadIdx.x;
-
-	// To avoid overruning the global_x buffer
-	if (N > gtid)
-	{
-		my_pos = global_x[gtid];
-	}
-	for (int tile = 0; (tile * ntile) < N; tile++)
-	{
-		int idx = tile * blockDim.x + threadIdx.x;
-		// To avoid overruning the global_x buffer
-		if (N > idx)
-		{
-			sh_pos[threadIdx.x] = global_x[idx];
-		}
-		__syncthreads();
-		for (int j = 0; j < blockDim.x; j++)
-		{
-			// To avoid overrun the mass buffer
-			if (N <= (tile * ntile) + j)
-			{
-				break;
-			}
-			// To avoid self-interaction or mathematically division by zero
-			if (gtid != (tile * ntile)+j)
-			{
-				acc = pp_disk_utility::body_body_interaction(my_pos, sh_pos[j], mass[j], acc);
-			}
-		}
-		__syncthreads();
-	}
-	// To avoid overruning the global_a buffer
-	if (N > gtid)
-	{
-		global_a[gtid] = acc;
-	}
-}
+//static __global__
+//	void calc_gravity_accel_tile(int ntile, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+//{
+//	extern __shared__ vec_t sh_pos[];
+//
+//	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
+//	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
+//
+//	int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+//
+//	// To avoid overruning the global_x buffer
+//	if (N > gtid)
+//	{
+//		my_pos = global_x[gtid];
+//	}
+//	for (int tile = 0; (tile * ntile) < N; tile++)
+//	{
+//		int idx = tile * blockDim.x + threadIdx.x;
+//		// To avoid overruning the global_x buffer
+//		if (N > idx)
+//		{
+//			sh_pos[threadIdx.x] = global_x[idx];
+//		}
+//		__syncthreads();
+//		for (int j = 0; j < blockDim.x; j++)
+//		{
+//			// To avoid overrun the mass buffer
+//			if (N <= (tile * ntile) + j)
+//			{
+//				break;
+//			}
+//			// To avoid self-interaction or mathematically division by zero
+//			if (gtid != (tile * ntile)+j)
+//			{
+//				acc = pp_disk_utility::body_body_interaction(my_pos, sh_pos[j], mass[j], acc);
+//			}
+//		}
+//		__syncthreads();
+//	}
+//	// To avoid overruning the global_a buffer
+//	if (N > gtid)
+//	{
+//		global_a[gtid] = acc;
+//	}
+//}
 
 static __global__
 	void calc_drag_accel_NSI
