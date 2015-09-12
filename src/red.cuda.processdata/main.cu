@@ -368,7 +368,7 @@ int main(int argc, const char **argv)
 		{
 			for (int i = 1; i < n_total; i++)
 			{
-				var_t mu = K2 *(sim_data->h_p[0] + sim_data->h_p[i].mass);
+				var_t mu = K2 *(sim_data->h_p[0].mass + sim_data->h_p[i].mass);
 			}
 		}
 	}
