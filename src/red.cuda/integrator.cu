@@ -69,7 +69,7 @@ void integrator::initialize()
 
 void integrator::allocate_storage()
 {	
-	int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total(ppd->get_n_tpb()) : ppd->n_bodies->get_n_total_playing();
+	int n_body = ppd->n_bodies->get_n_total_playing();
 
 	allocate_host_storage(n_body);
 	if (COMPUTING_DEVICE_GPU == comp_dev)
@@ -199,7 +199,7 @@ void integrator::set_computing_device(computing_device_t device)
 		return;
 	}
 
-	int n_body = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total(ppd->get_n_tpb()) : ppd->n_bodies->get_n_total_playing();
+	int n_body = ppd->n_bodies->get_n_total_playing();
 
 	switch (device)
 	{

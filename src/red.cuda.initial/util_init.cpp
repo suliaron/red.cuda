@@ -166,7 +166,7 @@ void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t 
 
 		if (INPUT_FORMAT_RED == format)
 		{
-			for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_PADDINGPARTICLE; body_type++)
+			for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)
 			{
 				output << disk.nBody[body_type] << SEP;
 			}

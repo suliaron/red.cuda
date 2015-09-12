@@ -18,7 +18,6 @@ number_of_bodies::number_of_bodies(unsigned int n_s, unsigned int n_gp, unsigned
 	initial[BODY_TYPE_SUPERPLANETESIMAL] = n_spl;
 	initial[BODY_TYPE_PLANETESIMAL]      = n_pl;
 	initial[BODY_TYPE_TESTPARTICLE]      = n_tp;
-	initial[BODY_TYPE_PADDINGPARTICLE]   = 0;
 
 	memcpy(playing, initial, sizeof(playing));
 
@@ -36,10 +35,6 @@ void number_of_bodies::update()
 	n_removed = 0;
 	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
-		if (BODY_TYPE_PADDINGPARTICLE == i)
-		{
-			continue;
-		}
 		playing[i] -= inactive[i];
 		removed[i] += inactive[i];
 		n_removed  += inactive[i];
@@ -67,7 +62,7 @@ unsigned int number_of_bodies::get_n_total_initial()
 	unsigned int n = 0;
 	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
-		n += (i != BODY_TYPE_PADDINGPARTICLE ? initial[i] : 0);
+		n += initial[i];
 	}
 	return n; 
 }
@@ -77,7 +72,7 @@ unsigned int number_of_bodies::get_n_total_playing()
 	unsigned int n = 0;
 	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
-		n += (i != BODY_TYPE_PADDINGPARTICLE ? playing[i] : 0);
+		n += playing[i];
 	}
 	return n; 
 }
@@ -87,7 +82,7 @@ unsigned int number_of_bodies::get_n_total_active()
 	unsigned int n = 0;
 	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
-		n += (i != BODY_TYPE_PADDINGPARTICLE ? playing[i] - inactive[i] : 0);
+		n += playing[i] - inactive[i];
 	}
 	return n; 
 }
@@ -97,7 +92,7 @@ unsigned int number_of_bodies::get_n_total_inactive()
 	unsigned int n = 0;
 	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
-		n += (i != BODY_TYPE_PADDINGPARTICLE ? inactive[i] : 0);
+		n += inactive[i];
 	}
 	return n; 
 }
@@ -107,7 +102,7 @@ unsigned int number_of_bodies::get_n_total_removed()
 	unsigned int n = 0;
 	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
-		n += (i != BODY_TYPE_PADDINGPARTICLE ? removed[i] : 0);
+		n += removed[i];
 	}
 	return n; 
 }
@@ -117,10 +112,6 @@ string number_of_bodies::get_n_playing()
 	string result;
 	for (unsigned int i = 0; i < BODY_TYPE_N; i++)
 	{
-		if (BODY_TYPE_PADDINGPARTICLE == i)
-		{
-			continue;
-		}
 		result += redutilcu::number_to_string(playing[i]);
 		if (BODY_TYPE_TESTPARTICLE > i)
 		{
@@ -150,115 +141,39 @@ unsigned int number_of_bodies::get_n_massive()
 	return (get_n_SI() + get_n_NSI());
 }
 
-unsigned int number_of_bodies::get_n_prime_SI(unsigned int n_tpb)
-{
-	// The number of self-interacting (SI) bodies alligned to n_tbp
-	return ((get_n_SI() + n_tpb - 1) / n_tpb) * n_tpb;
-}
-
-unsigned int number_of_bodies::get_n_prime_NSI(unsigned int n_tpb)
-{
-	// The number of non-self-interacting (NSI) bodies alligned to n_tbp
-	return ((get_n_NSI() + n_tpb - 1) / n_tpb) * n_tpb;
-}
-
-unsigned int number_of_bodies::get_n_prime_NI(unsigned int n_tpb)
-{
-	// The number of non-interacting (NI) bodies alligned to n_tbp
-	return ((get_n_NI() + n_tpb - 1) / n_tpb) * n_tpb;
-}
-
-unsigned int number_of_bodies::get_n_prime_total(unsigned int n_tpb)
-{
-	return (get_n_prime_SI(n_tpb) + get_n_prime_NSI(n_tpb) + get_n_prime_NI(n_tpb));
-}
-
 unsigned int number_of_bodies::get_n_active_by(body_type_t type)
 {
 	return (playing[type] - inactive[type]);
 }
 
-
-//unsigned int	number_of_bodies::get_n_prime_GD()
-//{
-//	return ((active_body[BODY_TYPE_SUPERPLANETESIMAL] + active_body[BODY_TYPE_PLANETESIMAL] + n_tpb - 1) / n_tpb) * n_tpb;
-//}
-//
-//unsigned int	number_of_bodies::get_n_prime_MT1()
-//{
-//	return (n_rp + n_pp);
-//}
-//
-//unsigned int	number_of_bodies::get_n_prime_MT2()
-//{
-//	return n_gp;
-//}
-
-unsigned int number_of_bodies::get_n_prime_massive(unsigned int n_tpb)
+interaction_bound number_of_bodies::get_bound_SI(unsigned int n_tpb)
 {
-	return (get_n_prime_SI(n_tpb) + get_n_prime_NSI(n_tpb));
-}
-
-interaction_bound number_of_bodies::get_bound_SI(bool ups, unsigned int n_tpb)
-{
-	if (ups)
-	{
-		sink.x	 = 0, sink.y   = sink.x + get_n_prime_SI(n_tpb);
-		source.x = 0, source.y = source.x + get_n_prime_massive(n_tpb);
-	}
-	else
-	{
-		sink.x   = 0, sink.y   = sink.x + get_n_SI();
-		source.x = 0, source.y = source.x + get_n_massive();
-	}
+	sink.x   = 0, sink.y   = sink.x + get_n_SI();
+	source.x = 0, source.y = source.x + get_n_massive();
 
 	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bound_NSI(bool ups, unsigned int n_tpb)
+interaction_bound number_of_bodies::get_bound_NSI(unsigned int n_tpb)
 {
-	if (ups)
-	{
-		sink.x   = get_n_prime_SI(n_tpb), sink.y   = sink.x + get_n_prime_NSI(n_tpb);
-		source.x = 0,				      source.y = source.x + get_n_prime_SI(n_tpb);
-	}
-	else
-	{
-		sink.x   = get_n_SI(), sink.y   = sink.x + get_n_NSI();
-		source.x = 0,		   source.y = source.x + get_n_SI();
-	}
+	sink.x   = get_n_SI(), sink.y   = sink.x + get_n_NSI();
+	source.x = 0,		   source.y = source.x + get_n_SI();
 
 	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bound_NI(bool ups, unsigned int n_tpb)
+interaction_bound number_of_bodies::get_bound_NI(unsigned int n_tpb)
 {
-	if (ups)
-	{
-		sink.x   = get_n_prime_massive(n_tpb), sink.y   = sink.x + get_n_prime_NI(n_tpb);
-		source.x = 0,				           source.y = source.x + get_n_prime_massive(n_tpb);
-	}
-	else
-	{
-		sink.x   = get_n_massive(), sink.y   = sink.x + get_n_NI();
-		source.x = 0,   	        source.y = source.x + get_n_massive();
-	}
+	sink.x   = get_n_massive(), sink.y   = sink.x + get_n_NI();
+	source.x = 0,   	        source.y = source.x + get_n_massive();
 
 	return interaction_bound(sink, source);
 }
 
-interaction_bound number_of_bodies::get_bound_GD(bool ups, unsigned int n_tpb)
+interaction_bound number_of_bodies::get_bound_GD(unsigned int n_tpb)
 {
-	if (ups)
-	{
-		sink.x   = get_n_prime_SI(n_tpb), sink.y   = sink.x;// + get_n_prime_GD();
-		source.x = 0,		              source.y = 0;
-	}
-	else
-	{
-		sink.x   = get_n_SI(), sink.y   = sink.x + get_n_NSI();
-		source.x = 0,		   source.y = 0;
-	}
+	sink.x   = get_n_SI(), sink.y   = sink.x + get_n_NSI();
+	source.x = 0,		   source.y = 0;
 
 	return interaction_bound(sink, source);
 }

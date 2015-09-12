@@ -27,7 +27,6 @@ public:
 	bool test;                      //!< Run tests for functions
 	bool verbose;                   //!< Print every event to the log file
 	bool print_to_screen;           //!< Print every event to the standard output stream (cout) 
-	bool ups;                       //!< Use padded storage to store data (default is false)
 	bool ef;                        //!< Extend the file names with command line information. Only for developer and debugger purposes.
 
 	ttt_t info_dt;                  //!< The time interval in seconds between two subsequent information print to the screen (default value is 5 sec)

@@ -76,7 +76,7 @@ void euler::calc_y_np1(int n_var)
 
 ttt_t euler::step()
 {
-	const int n_body_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total(ppd->get_n_tpb()) : ppd->n_bodies->get_n_total_playing();
+	const int n_body_total = ppd->n_bodies->get_n_total_playing();
 	const int n_var_total = NDIM * n_body_total;
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)

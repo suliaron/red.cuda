@@ -16,8 +16,8 @@ class pp_disk
 {
 public:
 
-	pp_disk(number_of_bodies *n_bodies,             bool ups, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, int id_dev, computing_device_t comp_dev);
-	pp_disk(string& path, bool continue_simulation, bool ups, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, int id_dev, computing_device_t comp_dev, const var_t* thrshld, bool pts);
+	pp_disk(number_of_bodies *n_bodies,             gas_disk_model_t g_disk_model, collision_detection_model_t cdm, int id_dev, computing_device_t comp_dev);
+	pp_disk(string& path, bool continue_simulation, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, int id_dev, computing_device_t comp_dev, const var_t* thrshld, bool pts);
 	~pp_disk();
 
 	//! Initialize the members to default values
@@ -46,9 +46,6 @@ public:
 
 	void set_id_dev(int id) { id_dev = id;   }
 	int  get_id_dev(void)   { return id_dev; }
-
-	void set_ups(bool b)    { ups = b;       }
-	bool get_ups()          { return ups;    }
 
 	//! Determines the mass of the central star
 	/*!
@@ -96,9 +93,6 @@ public:
 
 	//! Returns the number of events during the simulation
 	int get_n_total_event();
-
-	//! Returns the number of bodies actually participating in the simulation (i.e. the number of playing bodies)
-	int get_n_total_body();
 
 	//! Clears the event_counter (sets to 0)
 	void clear_event_counter();
@@ -203,8 +197,8 @@ public:
 	unsigned int benchmark();
 	float benchmark_calc_grav_accel(ttt_t curr_t, int n_sink, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
 
-	void call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
-	void call_kernel_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
+	void gpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
+	void gpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 
 	void cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
@@ -225,14 +219,11 @@ public:
 
 private:
 	
-	void create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
-
 	int id_dev;						//!< The id of the GPU
 	computing_device_t comp_dev;    //!< The computing device to carry out the calculations (cpu or gpu)
 	collision_detection_model_t cdm;//! Collision detection model
 
 	int		n_tpb;					//!< The number of thread per block to use for kernel launches
-	bool	ups;             		//!< If true use the padded storage scheme
 	bool    continue_simulation;    //!< Continues a simulation from its last saved output
 
 	dim3	grid;

@@ -176,7 +176,7 @@ void rungekutta4::calc_error(int n_var)
 
 ttt_t rungekutta4::step()
 {
-	const int n_body_total = ppd->get_ups() ? ppd->n_bodies->get_n_prime_total(ppd->get_n_tpb()) : ppd->n_bodies->get_n_total_playing();
+	const int n_body_total = ppd->n_bodies->get_n_total_playing();
 	const int n_var_total = NDIM * n_body_total;
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
@@ -226,15 +226,7 @@ ttt_t rungekutta4::step()
 				ppd->calc_dydx(i, r, ttemp, ppd->sim_data->yout[0], ppd->sim_data->yout[1], dydx[i][r]);
 			}
 
-			int n_var = 0;
-			if (ppd->get_ups())
-			{
-				n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_prime_massive(ppd->get_n_tpb()));
-			}
-			else
-			{
-				n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_massive());
-			}
+			int n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_massive());
 			// calculate: err = (f4 - f5)
 			calc_error(n_var);
 			max_err = get_max_error(n_var, LAMBDA);

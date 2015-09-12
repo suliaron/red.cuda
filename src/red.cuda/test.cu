@@ -375,121 +375,15 @@ void test_number_of_bodies()
 		}
 	}
 
-	// Test get_n_prime_SI()
-	{
-		char test_func[] = "get_n_prime_SI";
-
-		number_of_bodies n_bodies(1, 1, 1, 0, 2, 3, 2);
-		int n_tpb = 4;
-
-		int expected = 1 + 1 + 1 + (1);
-		int result = n_bodies.get_n_prime_SI(n_tpb);
-
-		fprintf(stderr, "\t%s(): ", test_func);
-		if (expected != result)
-		{
-			fprintf(stderr, "FAILED (Line: %4d)\n\t\tExpected: %4d,\n\t\t But was: %4d\n", __LINE__, expected, result);
-		}
-		else
-		{
-			fprintf(stderr, "PASSED\n");
-		}
-	}
-
-	// Test get_n_prime_NSI()
-	{
-		char test_func[] = "get_n_prime_NSI";
-
-		number_of_bodies n_bodies(1, 1, 1, 0, 2, 3, 2);
-		int n_tpb = 4;
-
-		int expected = 2 + 3 + (3);
-		int result = n_bodies.get_n_prime_NSI(n_tpb);
-
-		fprintf(stderr, "\t%s(): ", test_func);
-		if (expected != result)
-		{
-			fprintf(stderr, "FAILED (Line: %4d)\n\t\tExpected: %4d,\n\t\t But was: %4d\n", __LINE__, expected, result);
-		}
-		else
-		{
-			fprintf(stderr, "PASSED\n");
-		}
-	}
-
-	// Test get_n_prime_NI()
-	{
-		char test_func[] = "get_n_prime_NI";
-
-		number_of_bodies n_bodies(1, 1, 1, 0, 2, 3, 2);
-		int n_tpb = 4;
-
-		int expected = 2 + (2);
-		int result = n_bodies.get_n_prime_NI(n_tpb);
-
-		fprintf(stderr, "\t%s(): ", test_func);
-		if (expected != result)
-		{
-			fprintf(stderr, "FAILED (Line: %4d)\n\t\tExpected: %4d,\n\t\t But was: %4d\n", __LINE__, expected, result);
-		}
-		else
-		{
-			fprintf(stderr, "PASSED\n");
-		}
-	}
-
-	// Test get_n_prime_total()
-	{
-		char test_func[] = "get_n_prime_total";
-
-		number_of_bodies n_bodies(1, 1, 1, 0, 2, 3, 2);
-		int n_tpb = 4;
-
-		int expected = 16;
-		int result = n_bodies.get_n_prime_total(n_tpb);
-
-		fprintf(stderr, "\t%s(): ", test_func);
-		if (expected != result)
-		{
-			fprintf(stderr, "FAILED (Line: %4d)\n\t\tExpected: %4d,\n\t\t But was: %4d\n", __LINE__, expected, result);
-		}
-		else
-		{
-			fprintf(stderr, "PASSED\n");
-		}
-	}
-
-	// Test get_n_prime_massive()
-	{
-		char test_func[] = "get_n_prime_massive";
-
-		number_of_bodies n_bodies(1, 1, 1, 0, 2, 3, 2);
-		int n_tpb = 4;
-
-		int expected = 12;
-		int result = n_bodies.get_n_prime_massive(n_tpb);
-
-		fprintf(stderr, "\t%s(): ", test_func);
-		if (expected != result)
-		{
-			fprintf(stderr, "FAILED (Line: %4d)\n\t\tExpected: %4d,\n\t\t But was: %4d\n", __LINE__, expected, result);
-		}
-		else
-		{
-			fprintf(stderr, "PASSED\n");
-		}
-	}
-
 	// Test get_bound_SI()
 	{
 		char test_func[] = "get_bound_SI";
 
 		number_of_bodies n_bodies(1, 1, 1, 0, 2, 3, 2);
-		bool ups = false;
 		int n_tpb = 1;
 
 		interaction_bound expected(0, 3, 0, 8);
-		interaction_bound result = n_bodies.get_bound_SI(ups, n_tpb);
+		interaction_bound result = n_bodies.get_bound_SI(n_tpb);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (expected.sink.x   != result.sink.x   || expected.sink.y   != result.sink.y ||
@@ -502,13 +396,12 @@ void test_number_of_bodies()
 			fprintf(stderr, "PASSED\n");
 		}
 
-		ups = true;
 		n_tpb = 4;
 
 		expected.sink.x = 0;		
 		expected.sink.y = 4;
 		expected.source.x = 0;		expected.source.y = 12;
-		result = n_bodies.get_bound_SI(ups, n_tpb);
+		result = n_bodies.get_bound_SI(n_tpb);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (expected.sink.x   != result.sink.x   || expected.sink.y   != result.sink.y ||
@@ -527,11 +420,10 @@ void test_number_of_bodies()
 		char test_func[] = "get_bound_NSI";
 
 		number_of_bodies n_bodies(1, 1, 1, 0, 2, 3, 2);
-		bool ups = false;
 		int n_tpb = 1;
 
 		interaction_bound expected(3, 8, 0, 3);
-		interaction_bound result = n_bodies.get_bound_NSI(ups, n_tpb);
+		interaction_bound result = n_bodies.get_bound_NSI(n_tpb);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (expected.sink.x != result.sink.x     || expected.sink.y != result.sink.y ||
@@ -544,13 +436,12 @@ void test_number_of_bodies()
 			fprintf(stderr, "PASSED\n");
 		}
 
-		ups = true;
 		n_tpb = 4;
 
 		expected.sink.x = 4;		
 		expected.sink.y = 12;
 		expected.source.x = 0;		expected.source.y = 4;
-		result = n_bodies.get_bound_NSI(ups, n_tpb);
+		result = n_bodies.get_bound_NSI(n_tpb);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (expected.sink.x   != result.sink.x   || expected.sink.y   != result.sink.y ||
@@ -569,11 +460,10 @@ void test_number_of_bodies()
 		char test_func[] = "get_bound_NI";
 
 		number_of_bodies n_bodies(1, 1, 1, 0, 2, 3, 2);
-		bool ups = false;
 		int n_tpb = 1;
 
 		interaction_bound expected(8, 10, 0, 8);
-		interaction_bound result = n_bodies.get_bound_NI(ups, n_tpb);
+		interaction_bound result = n_bodies.get_bound_NI(n_tpb);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (expected.sink.x != result.sink.x     || expected.sink.y != result.sink.y ||
@@ -586,13 +476,12 @@ void test_number_of_bodies()
 			fprintf(stderr, "PASSED\n");
 		}
 
-		ups = true;
 		n_tpb = 4;
 
 		expected.sink.x = 12;		
 		expected.sink.y = 16;
 		expected.source.x = 0;		expected.source.y = 12;
-		result = n_bodies.get_bound_NI(ups, n_tpb);
+		result = n_bodies.get_bound_NI(n_tpb);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (expected.sink.x   != result.sink.x   || expected.sink.y   != result.sink.y ||

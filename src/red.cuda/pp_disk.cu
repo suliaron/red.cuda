@@ -33,7 +33,6 @@ __constant__ fargo_gas_disk_params_t    dc_fargo_gd_params;
 
 namespace pp_disk_utility
 {
-
 __host__ __device__
 	var_t reduction_factor(gas_decrease_t gas_decrease, ttt_t t0, ttt_t t1, ttt_t e_folding_time, ttt_t t)
 {
@@ -170,7 +169,7 @@ __host__ __device__
 	}
 }
 
-static __host__ __device__ 
+__host__ __device__ 
 	void store_event_data
 	(
 		event_name_t name,
@@ -220,6 +219,30 @@ static __host__ __device__
 	}
 }
 
+inline __host__ __device__
+	vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
+{
+	vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+
+	// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
+	dVec.x = rjVec.x - riVec.x;
+	dVec.y = rjVec.y - riVec.y;
+	dVec.z = rjVec.z - riVec.z;
+
+	// compute norm square of d vector [5 FLOPS] [3 read, 1 write]
+	dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);
+	// compute norm of d vector [1 FLOPS] [1 read, 1 write] TODO: how long does it take to compute sqrt ???
+	var_t s = sqrt(dVec.w);
+	// compute m_j / d^3 []
+	s = mj * 1.0 / (s * dVec.w);
+
+	aiVec.x += s * dVec.x;
+	aiVec.y += s * dVec.y;
+	aiVec.z += s * dVec.z;
+
+	return aiVec;
+}
+
 } /* pp_disk_utility */
 
 namespace kernel_pp_disk
@@ -241,7 +264,7 @@ static __global__
 
 	var_t ed2  = SQR(dc_threshold[THRESHOLD_EJECTION_DISTANCE]);
 	var_t hcd2 = SQR(dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
-	// Ignore the star, the padding particles (whose id = 0) and the inactive bodies (whose id < 0)
+	// Ignore the inactive bodies (whose id < 0) and the star
 	if (i < int_bound.sink.y && bmd[i].id > 0 && bmd[i].body_type != BODY_TYPE_STAR)
 	{
 		unsigned int k = 0;
@@ -315,118 +338,12 @@ static __global__
 }
 
 static __global__
-	void calc_grav_accel_int_mul_of_thread_per_block
+	void calc_grav_accel_naive
 	(
-		ttt_t curr_t, 
 		interaction_bound int_bound, 
 		const body_metadata_t* body_md, 
 		const param_t* p, 
 		const vec_t* r, 
-		const vec_t* v, 
-		vec_t* a
-	)
-{
-	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
-
-	vec_t dVec;
-	// This line (beyond my depth) speeds up the kernel
-	a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
-	for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
-	{
-		/* Skip the body with the same index */
-		if (i == j)
-		{
-			continue;
-		}
-		// 3 FLOP
-		dVec.x = r[j].x - r[i].x;
-		dVec.y = r[j].y - r[i].y;
-		dVec.z = r[j].z - r[i].z;
-		// 5 FLOP
-		dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
-
-		// 20 FLOP
-		var_t d = sqrt(dVec.w);								// = r
-		// 2 FLOP
-		dVec.w = p[j].mass / (d*dVec.w);					// = m / r^3
-		// 6 FLOP
-		a[i].x += dVec.w * dVec.x;
-		a[i].y += dVec.w * dVec.y;
-		a[i].z += dVec.w * dVec.z;
-	}
-}
-
-static __global__
-	void calc_grav_accel_int_mul_of_thread_per_block
-	(
-		ttt_t curr_t, 
-		interaction_bound int_bound, 
-		const body_metadata_t* body_md, 
-		const param_t* p, 
-		const vec_t* r, 
-		const vec_t* v, 
-		vec_t* a,
-		event_data_t* events,
-		int *event_counter
-	)
-{
-	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
-
-	vec_t dVec;
-	// This line (beyond my depth) speeds up the kernel
-	a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
-	for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
-	{
-		/* Skip the body with the same index */
-		if (i == j)
-		{
-			continue;
-		}
-		// 3 FLOP
-		dVec.x = r[j].x - r[i].x;
-		dVec.y = r[j].y - r[i].y;
-		dVec.z = r[j].z - r[i].z;
-		// 5 FLOP
-		dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
-
-		// 20 FLOP
-		var_t d = sqrt(dVec.w);								// = r
-		// 2 FLOP
-		dVec.w = p[j].mass / (d*dVec.w);					// = m / r^3
-		// 6 FLOP
-		a[i].x += dVec.w * dVec.x;
-		a[i].y += dVec.w * dVec.y;
-		a[i].z += dVec.w * dVec.z;
-
-		// Check for collision - ignore the star (i > 0 criterium)
-		// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
-		// If i < j is the condition than test particles can not collide with massive bodies
-		if (i > 0 && i > j && d < dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR] * (p[i].radius + p[j].radius))
-		{
-			unsigned int k = atomicAdd(event_counter, 1);
-
-			int survivIdx = i;
-			int mergerIdx = j;
-			if (p[mergerIdx].mass > p[survivIdx].mass)
-			{
-				int m = survivIdx;
-				survivIdx = mergerIdx;
-				mergerIdx = m;
-			}
-			pp_disk_utility::store_event_data(EVENT_NAME_COLLISION, curr_t, d, survivIdx, mergerIdx, p, r, v, body_md, &events[k]);
-		}
-	}
-}
-
-static __global__
-	void calc_grav_accel
-	(
-		ttt_t curr_t, 
-		interaction_bound int_bound, 
-		const body_metadata_t* body_md, 
-		const param_t* p, 
-		const vec_t* r, 
-		const vec_t* v, 
 		vec_t* a
 	)
 {
@@ -466,7 +383,7 @@ static __global__
 }
 
 static __global__
-	void calc_grav_accel
+	void calc_grav_accel_naive
 	(
 		ttt_t curr_t, 
 		interaction_bound int_bound, 
@@ -529,6 +446,52 @@ static __global__
 				}
 			} // 36 FLOP
 		}
+	}
+}
+
+static __global__
+	void calc_gravity_accel_tile(int ntile, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+{
+	extern __shared__ vec_t sh_pos[];
+
+	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
+	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
+
+	int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	// To avoid overruning the global_x buffer
+	if (N > gtid)
+	{
+		my_pos = global_x[gtid];
+	}
+	for (int tile = 0; (tile * ntile) < N; tile++)
+	{
+		int idx = tile * blockDim.x + threadIdx.x;
+		// To avoid overruning the global_x buffer
+		if (N > idx)
+		{
+			sh_pos[threadIdx.x] = global_x[idx];
+		}
+		__syncthreads();
+		for (int j = 0; j < blockDim.x; j++)
+		{
+			// To avoid overrun the mass buffer
+			if (N <= (tile * ntile) + j)
+			{
+				break;
+			}
+			// To avoid self-interaction or mathematically division by zero
+			if (gtid != (tile * ntile)+j)
+			{
+				acc = pp_disk_utility::body_body_interaction(my_pos, sh_pos[j], mass[j], acc);
+			}
+		}
+		__syncthreads();
+	}
+	// To avoid overruning the global_a buffer
+	if (N > gtid)
+	{
+		global_a[gtid] = acc;
 	}
 }
 
@@ -643,7 +606,7 @@ unsigned int pp_disk::benchmark()
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
 			set_n_tpb(n_tpb);
-			interaction_bound int_bound = n_bodies->get_bound_SI(false, n_tpb);
+			interaction_bound int_bound = n_bodies->get_bound_SI(n_tpb);
 
 			clock_t t_start = clock();
 			float cu_elt = benchmark_calc_grav_accel(t, n_sink, int_bound, bmd, p, r, v, d_dy);
@@ -686,10 +649,10 @@ float pp_disk::benchmark_calc_grav_accel(ttt_t curr_t, int n_sink, interaction_b
 	switch (cdm)
 	{
 	case COLLISION_DETECTION_MODEL_STEP:
-		kernel_pp_disk::calc_grav_accel<<<grid, block>>>(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, a);
+		kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(int_bound, sim_data->body_md, sim_data->p, r, a);
 		break;
 	case COLLISION_DETECTION_MODEL_SUB_STEP:
-		kernel_pp_disk::calc_grav_accel<<<grid, block>>>(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, a, d_events, d_event_counter);
+		kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, a, d_events, d_event_counter);
 		break;
 	case COLLISION_DETECTION_MODEL_INTERPOLATION:
 		throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
@@ -708,7 +671,7 @@ float pp_disk::benchmark_calc_grav_accel(ttt_t curr_t, int n_sink, interaction_b
 
 void pp_disk::print_sim_data(computing_device_t cd)
 {
-	int n_total = get_n_total_body();
+	int n_total = n_bodies->get_n_total_playing();
 
 	switch (cd)
 	{
@@ -778,7 +741,7 @@ void pp_disk::cpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, 
 	int n_sink = n_bodies->get_n_NSI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_GD(ups, n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_GD(n_tpb);
 		cpu_calc_drag_accel_NSI(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, dy);
 	}
 }
@@ -1035,7 +998,7 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, 
 	int n_sink = n_bodies->get_n_SI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_SI(ups, n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_SI(n_tpb);
 		switch (cdm)
 		{
 		case COLLISION_DETECTION_MODEL_STEP:
@@ -1054,7 +1017,7 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, 
 	n_sink = n_bodies->get_n_NSI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_NSI(ups, n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_NSI(n_tpb);
 		switch (cdm)
 		{
 		case COLLISION_DETECTION_MODEL_STEP:
@@ -1073,7 +1036,7 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, 
 	n_sink = n_bodies->get_n_NI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_NI(ups, n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_NI(n_tpb);
 		switch (cdm)
 		{
 		case COLLISION_DETECTION_MODEL_STEP:
@@ -1090,136 +1053,79 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, 
 	}
 }
 
-void pp_disk::call_kernel_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
+void pp_disk::gpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
 	const param_t* p = sim_data->p;
 	const body_metadata_t* bmd = sim_data->body_md;
 
-	int n_sink = ups ? n_bodies->get_n_prime_SI(n_tpb) : n_bodies->get_n_SI();
+	int n_sink = n_bodies->get_n_SI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_SI(ups, n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_SI(n_tpb);
 		set_kernel_launch_param(n_sink);
 
-		if (ups)
+		switch (cdm)
 		{
-			switch (cdm)
-			{
-			case COLLISION_DETECTION_MODEL_STEP:
-				kernel_pp_disk::calc_grav_accel_int_mul_of_thread_per_block<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy);
-				break;
-			case COLLISION_DETECTION_MODEL_SUB_STEP:
-				kernel_pp_disk::calc_grav_accel_int_mul_of_thread_per_block<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy, d_events, d_event_counter);
-				break;
-			case COLLISION_DETECTION_MODEL_INTERPOLATION:
-				throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-			default:
-				throw string("Parameter 'cdm' is out of range.");
-			}
-		}
-		else
-		{
-			switch (cdm)
-			{
-			case COLLISION_DETECTION_MODEL_STEP:
-				kernel_pp_disk::calc_grav_accel<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy);
-				break;
-			case COLLISION_DETECTION_MODEL_SUB_STEP:
-				kernel_pp_disk::calc_grav_accel<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy, d_events, d_event_counter);
-				break;
-			case COLLISION_DETECTION_MODEL_INTERPOLATION:
-				throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-			default:
-				throw string("Parameter 'cdm' is out of range.");
-			}
+		case COLLISION_DETECTION_MODEL_STEP:
+			kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(int_bound, bmd, p, r, dy);
+			break;
+		case COLLISION_DETECTION_MODEL_SUB_STEP:
+			kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy, d_events, d_event_counter);
+			break;
+		case COLLISION_DETECTION_MODEL_INTERPOLATION:
+			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
+		default:
+			throw string("Parameter 'cdm' is out of range.");
 		}
 		CUDA_CHECK_ERROR();
 	}
 
-	n_sink = ups ? n_bodies->get_n_prime_NSI(n_tpb) : n_bodies->get_n_NSI();
+	n_sink = n_bodies->get_n_NSI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_NSI(ups, n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_NSI(n_tpb);
 		set_kernel_launch_param(n_sink);
 
-		if (ups)
+		switch (cdm)
 		{
-			switch (cdm)
-			{
-			case COLLISION_DETECTION_MODEL_STEP:
-				kernel_pp_disk::calc_grav_accel_int_mul_of_thread_per_block<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy);
-				break;
-			case COLLISION_DETECTION_MODEL_SUB_STEP:
-				kernel_pp_disk::calc_grav_accel_int_mul_of_thread_per_block<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy, d_events, d_event_counter);
-				break;
-			case COLLISION_DETECTION_MODEL_INTERPOLATION:
-				throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-			default:
-				throw string("Parameter 'cdm' is out of range.");
-			}
-		}
-		else
-		{
-			switch (cdm)
-			{
-			case COLLISION_DETECTION_MODEL_STEP:
-				kernel_pp_disk::calc_grav_accel<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy);
-				break;
-			case COLLISION_DETECTION_MODEL_SUB_STEP:
-				kernel_pp_disk::calc_grav_accel<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy, d_events, d_event_counter);
-				break;
-			case COLLISION_DETECTION_MODEL_INTERPOLATION:
-				throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-			default:
-				throw string("Parameter 'cdm' is out of range.");
-			}
+		case COLLISION_DETECTION_MODEL_STEP:
+			kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(int_bound, bmd, p, r, dy);
+			break;
+		case COLLISION_DETECTION_MODEL_SUB_STEP:
+			kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy, d_events, d_event_counter);
+			break;
+		case COLLISION_DETECTION_MODEL_INTERPOLATION:
+			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
+		default:
+			throw string("Parameter 'cdm' is out of range.");
 		}
 		CUDA_CHECK_ERROR();
 	}
 
-	n_sink = ups ? n_bodies->get_n_prime_NI(n_tpb) : n_bodies->get_n_NI();
+	n_sink = n_bodies->get_n_NI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_NI(ups, n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_NI(n_tpb);
 		set_kernel_launch_param(n_sink);
 
-		if (ups)
+		switch (cdm)
 		{
-			switch (cdm)
-			{
-			case COLLISION_DETECTION_MODEL_STEP:
-				kernel_pp_disk::calc_grav_accel_int_mul_of_thread_per_block<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy);
-				break;
-			case COLLISION_DETECTION_MODEL_SUB_STEP:
-				kernel_pp_disk::calc_grav_accel_int_mul_of_thread_per_block<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy, d_events, d_event_counter);
-				break;
-			case COLLISION_DETECTION_MODEL_INTERPOLATION:
-				throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-			default:
-				throw string("Parameter 'cdm' is out of range.");
-			}
-		}
-		else
-		{
-			switch (cdm)
-			{
-			case COLLISION_DETECTION_MODEL_STEP:
-				kernel_pp_disk::calc_grav_accel<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy);
-				break;
-			case COLLISION_DETECTION_MODEL_SUB_STEP:
-				kernel_pp_disk::calc_grav_accel<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy, d_events, d_event_counter);
-				break;
-			case COLLISION_DETECTION_MODEL_INTERPOLATION:
-				throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-			default:
-				throw string("Parameter 'cdm' is out of range.");
-			}
+		case COLLISION_DETECTION_MODEL_STEP:
+			kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(int_bound, bmd, p, r, dy);
+			break;
+		case COLLISION_DETECTION_MODEL_SUB_STEP:
+			kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy, d_events, d_event_counter);
+			break;
+		case COLLISION_DETECTION_MODEL_INTERPOLATION:
+			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
+		default:
+			throw string("Parameter 'cdm' is out of range.");
 		}
 		CUDA_CHECK_ERROR();
 	}
 }
 
-void pp_disk::call_kernel_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
+void pp_disk::gpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
 	const param_t* p = sim_data->p;
 	const body_metadata_t* bmd = sim_data->body_md;
@@ -1228,7 +1134,7 @@ void pp_disk::call_kernel_calc_drag_accel(ttt_t curr_t, const vec_t* r, const ve
 	if (0 < n_sink)
 	{
 		set_kernel_launch_param(n_sink);
-		interaction_bound int_bound = n_bodies->get_bound_GD(ups, n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_GD(n_tpb);
 		kernel_pp_disk::calc_drag_accel_NSI<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy);
 		CUDA_CHECK_ERROR();
 	}
@@ -1379,7 +1285,7 @@ void pp_disk::gpu_check_for_ejection_hit_centrum()
 	const param_t* p = sim_data->p;
 	const body_metadata_t* bmd = sim_data->body_md;
 
-	int n_total = get_n_total_body();
+	int n_total = n_bodies->get_n_total_playing();
 	interaction_bound int_bound(0, n_total, 0, 0);
 	set_kernel_launch_param(n_total);
 
@@ -1396,7 +1302,7 @@ void pp_disk::gpu_check_for_collision()
 	const param_t* p = sim_data->p;
 	const body_metadata_t* bmd = sim_data->body_md;
 
-	int n_total = get_n_total_body();
+	int n_total = n_bodies->get_n_total_playing();
 	interaction_bound int_bound(0, n_total, 0, n_total);
 	set_kernel_launch_param(n_total);
 
@@ -1555,12 +1461,12 @@ void pp_disk::rebuild_vectors()
 	{
 		copy_to_host();
 	}
-	// Rebuild the vectors and remove inactive bodies
-	int n_total_players = get_n_total_body();
+	int n_total_players = n_bodies->get_n_total_playing();
+	int n_total_active  = n_bodies->get_n_total_active();
 
 	sim_data_t* sim_data_temp = new sim_data_t;
 	// Only the data of the active bodies will be temporarily stored
-	allocate_host_storage(sim_data_temp, n_bodies->get_n_total_active());
+	allocate_host_storage(sim_data_temp, n_total_active);//n_bodies->get_n_total_active());
 
 	// Create aliases:
 	vec_t* r = sim_data->h_y[0];
@@ -1573,7 +1479,8 @@ void pp_disk::rebuild_vectors()
 	int k = 0;
 	for ( ; i < n_total_players; i++)
 	{
-		if (0 < bmd[i].id && BODY_TYPE_PADDINGPARTICLE != bmd[i].body_type)
+		// Active?
+		if (0 < bmd[i].id)
 		{
 			sim_data_temp->h_y[0][k]    = r[i];
 			sim_data_temp->h_y[1][k]    = v[i];
@@ -1582,69 +1489,20 @@ void pp_disk::rebuild_vectors()
 			k++;
 		}
 	}
-	if (n_bodies->get_n_total_active() != k)
+	if (n_total_active != k)
 	{
 		throw string("Number of copied bodies does not equal to the number of active bodies.");
 	}
-	this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE] = 0;
 	this->n_bodies->update();
 
-	int n_SI		= n_bodies->get_n_SI();
-	int n_NSI		= n_bodies->get_n_NSI();
-	int n_total		= n_bodies->get_n_total_active();
-	int n_prime_SI	= 0;
-	int n_prime_NSI	= 0;
-	int n_prime_total=0;
-	if (ups)
+	//int n_total = n_bodies->get_n_total_active();
+	for (i = 0; i < n_total_active; i++)
 	{
-		n_prime_SI	= n_bodies->get_n_prime_SI(n_tpb);
-		n_prime_NSI	= n_bodies->get_n_prime_NSI(n_tpb);
-		n_prime_total=n_bodies->get_n_prime_total(n_tpb); 
+		r[i]   = sim_data_temp->h_y[0][i];
+		v[i]   = sim_data_temp->h_y[1][i];
+		p[i]   = sim_data_temp->h_p[i];
+		bmd[i] = sim_data_temp->h_body_md[i];
 	}
-
-	k = 0;
-	i = 0;
-	for ( ; i < n_SI; i++, k++)
-	{
-		r[k]   = sim_data_temp->h_y[0][i];
-		v[k]   = sim_data_temp->h_y[1][i];
-		p[k]   = sim_data_temp->h_p[i];
-		bmd[k] = sim_data_temp->h_body_md[i];
-	}
-    while (ups && k < n_prime_SI)
-    {
-		create_padding_particle(k, sim_data->h_epoch, bmd, p, r, v);
-		this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE]++;
-        k++;
-    }
-
-	for ( ; i < n_SI + n_NSI; i++, k++)
-	{
-		r[k]   = sim_data_temp->h_y[0][i];
-		v[k]   = sim_data_temp->h_y[1][i];
-		p[k]   = sim_data_temp->h_p[i];
-		bmd[k] = sim_data_temp->h_body_md[i];
-	}
-    while (ups && k < n_prime_SI + n_prime_NSI)
-    {
-		create_padding_particle(k, sim_data->h_epoch, bmd, p, r, v);
-		this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE]++;
-        k++;
-    }
-
-	for ( ; i < n_total; i++, k++)
-	{
-		r[k]   = sim_data_temp->h_y[0][i];
-		v[k]   = sim_data_temp->h_y[1][i];
-		p[k]   = sim_data_temp->h_p[i];
-		bmd[k] = sim_data_temp->h_body_md[i];
-	}
-    while (ups && k < n_prime_total)
-    {
-		create_padding_particle(k, sim_data->h_epoch, bmd, p, r, v);
-		this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE]++;
-        k++;
-    }
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
@@ -1676,18 +1534,18 @@ void pp_disk::set_event_counter(event_counter_name_t field, int value)
 
 void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy)
 {
-	int n_total = get_n_total_body();
+	int n_total = n_bodies->get_n_total_playing();
 
 	switch (i)
 	{
 	case 0:
-		if (COMPUTING_DEVICE_CPU == comp_dev)
+		if (COMPUTING_DEVICE_GPU == comp_dev)
 		{
-			memcpy(dy, v, n_total * sizeof(vec_t));
+			CUDA_SAFE_CALL(cudaMemcpy(dy, v, n_total * sizeof(vec_t), cudaMemcpyDeviceToDevice));
 		}
 		else
 		{
-			CUDA_SAFE_CALL(cudaMemcpy(dy, v, n_total * sizeof(vec_t), cudaMemcpyDeviceToDevice));
+			memcpy(dy, v, n_total * sizeof(vec_t));
 		}
 		break;
 	case 1:  // Calculate accelerations originating from the gravitational force, drag force etc.
@@ -1696,30 +1554,30 @@ void pp_disk::calc_dydx(int i, int rr, ttt_t curr_t, const vec_t* r, const vec_t
 		* 1. Gravity
 		* 2. other forces
 		*/
-		if (COMPUTING_DEVICE_CPU == comp_dev)
+		if (COMPUTING_DEVICE_GPU == comp_dev)
+		{
+			gpu_calc_grav_accel(curr_t, r, v, dy);
+			// This if will be used to speed-up the calculation when gas drag is also acting on the bodies.
+			// (BUT early optimization is the root of much evil)
+			if (0 == rr)
+			{
+			}
+			if (GAS_DISK_MODEL_NONE != g_disk_model)
+			{
+				gpu_calc_drag_accel(curr_t, r, v, dy);
+			}
+		}
+		else
 		{
 			cpu_calc_grav_accel(curr_t, r, v, dy);
 			// This if will be used to speed-up the calculation when gas drag is also acting on the bodies.
 			// (BUT early optimization is the root of much evil)
-			if (rr == 0)
+			if (0 == rr)
 			{
 			}
 			if (GAS_DISK_MODEL_NONE != g_disk_model)
 			{
 				cpu_calc_drag_accel(curr_t, r, v, dy);
-			}
-		}
-		else
-		{
-			call_kernel_calc_grav_accel(curr_t, r, v, dy);
-			// This if will be used to speed-up the calculation when gas drag is also acting on the bodies.
-			// (BUT early optimization is the root of much evil)
-			if (rr == 0)
-			{
-			}
-			if (GAS_DISK_MODEL_NONE != g_disk_model)
-			{
-				call_kernel_calc_drag_accel(curr_t, r, v, dy);
 			}
 		}
 		break;
@@ -1743,9 +1601,8 @@ void pp_disk::swap()
 
 
 
-pp_disk::pp_disk(number_of_bodies *n_bodies, bool ups, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, int id_dev, computing_device_t comp_dev) :
+pp_disk::pp_disk(number_of_bodies *n_bodies, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, int id_dev, computing_device_t comp_dev) :
 	n_bodies(n_bodies),
-	ups(ups),
 	g_disk_model(g_disk_model),
 	cdm(cdm),
 	id_dev(id_dev),
@@ -1758,9 +1615,8 @@ pp_disk::pp_disk(number_of_bodies *n_bodies, bool ups, gas_disk_model_t g_disk_m
 	tools::populate_data(n_bodies->initial, sim_data);
 }
 
-pp_disk::pp_disk(string& path, bool continue_simulation, bool ups, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, int id_dev, computing_device_t comp_dev, const var_t* thrshld, bool pts) :
+pp_disk::pp_disk(string& path, bool continue_simulation, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, int id_dev, computing_device_t comp_dev, const var_t* thrshld, bool pts) :
 	continue_simulation(continue_simulation),
-	ups(ups),
 	g_disk_model(g_disk_model),
 	cdm(cdm),
 	id_dev(id_dev),
@@ -1822,7 +1678,7 @@ void pp_disk::allocate_storage()
 	sim_data->y.resize(2);
 	sim_data->yout.resize(2);
 
-	int n_total = get_n_total_body();
+	int n_total = n_bodies->get_n_total_playing();
 	allocate_host_storage(sim_data, n_total);
 	ALLOCATE_HOST_VECTOR((void **)&events, n_total*sizeof(event_data_t));
 	if (COMPUTING_DEVICE_GPU == comp_dev)
@@ -1841,7 +1697,7 @@ void pp_disk::set_computing_device(computing_device_t device)
 		return;
 	}
 
-	int n_total = get_n_total_body();
+	int n_total = n_bodies->get_n_total_playing();
 
 	switch (device)
 	{
@@ -1870,7 +1726,7 @@ void pp_disk::set_computing_device(computing_device_t device)
 
 void pp_disk::copy_to_device()
 {
-	int n_total = get_n_total_body();
+	int n_total = n_bodies->get_n_total_playing();
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -1889,7 +1745,7 @@ void pp_disk::copy_to_device()
 
 void pp_disk::copy_to_host()
 {
-	int n_total = get_n_total_body();
+	int n_total = n_bodies->get_n_total_playing();
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -1938,14 +1794,9 @@ int pp_disk::get_n_total_event()
 	return (n_collision[EVENT_COUNTER_NAME_TOTAL] + n_ejection[EVENT_COUNTER_NAME_TOTAL] + n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]);
 }
 
-int pp_disk::get_n_total_body()
-{
-	return (ups ? n_bodies->get_n_prime_total(n_tpb) : n_bodies->get_n_total_playing());
-}
-
 var_t pp_disk::get_mass_of_star()
 {
-	int n_massive = ups ? n_bodies->get_n_prime_massive(n_tpb) : n_bodies->get_n_massive();
+	int n_massive = n_bodies->get_n_massive();
 
 	body_metadata_t* bmd = sim_data->h_body_md;
 	for (int j = 0; j < n_massive; j++ )
@@ -1955,12 +1806,12 @@ var_t pp_disk::get_mass_of_star()
 			return sim_data->h_p[j].mass;
 		}
 	}
-	throw string("No star is included!");
+	throw string("No star is included.");
 }
 
 void pp_disk::transform_to_bc(bool pts)
 {
-	int n_total = get_n_total_body();
+	int n_total = n_bodies->get_n_total_playing();
 
 	tools::transform_to_bc(n_total, pts, sim_data);
 }
@@ -1968,7 +1819,7 @@ void pp_disk::transform_to_bc(bool pts)
 void pp_disk::transform_time()
 {
 	// Transform the bodies' epochs
-	int n_total = get_n_total_body();
+	int n_total = n_bodies->get_n_total_playing();
 	for (int j = 0; j < n_total; j++ )
 	{
 		sim_data->h_epoch[j] *= constants::Gauss;
@@ -1979,36 +1830,13 @@ void pp_disk::transform_velocity()
 {
 	vec_t* v = sim_data->h_y[1];
 	// Transform the bodies' velocities
-	int n_total = get_n_total_body();
+	int n_total = n_bodies->get_n_total_playing();
 	for (int j = 0; j < n_total; j++ )
 	{
 		v[j].x /= constants::Gauss;	
 		v[j].y /= constants::Gauss;	
 		v[j].z /= constants::Gauss;
 	}
-}
-
-void pp_disk::create_padding_particle(int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v)
-{
-	body_md[k].id = 0;
-	body_names.push_back("Pad_Part");
-
-	body_md[k].body_type = static_cast<body_type_t>(BODY_TYPE_PADDINGPARTICLE);
-	epoch[k] = 0.0;
-	p[k].mass = 0.0;
-	p[k].radius = 0.0;
-	p[k].density = 0.0;
-	p[k].cd = 0.0;
-
-	body_md[k].mig_type = static_cast<migration_type_t>(MIGRATION_TYPE_NO);
-	body_md[k].mig_stop_at = 0.0;
-
-	r[k].x = 1.0e9 + (var_t)rand() / RAND_MAX * 1.0e9;
-	r[k].y = r[k].x + (var_t)rand() / RAND_MAX * 1.0e9;
-	r[k].z = 0.0;
-	r[k].w = 0.0;
-
-	v[k].x = v[k].y = v[k].z = v[k].w = 0.0;
 }
 
 number_of_bodies* pp_disk::load_number_of_bodies(string& path, data_representation_t repres)
@@ -2137,68 +1965,17 @@ void pp_disk::load_ascii(ifstream& input)
 	body_metadata_t* bmd = sim_data->h_body_md;
 	ttt_t* epoch = sim_data->h_epoch;
 
-	int n_SI		= n_bodies->get_n_SI();
-	int n_NSI		= n_bodies->get_n_NSI();
-	int n_total		= n_bodies->get_n_total_playing();
-	int n_prime_SI	= 0;
-	int n_prime_NSI	= 0;
-	int n_prime_total=0;
-	if (ups)
-	{
-		n_prime_SI	= n_bodies->get_n_prime_SI(n_tpb);
-		n_prime_NSI	= n_bodies->get_n_prime_NSI(n_tpb);
-		n_prime_total=n_bodies->get_n_prime_total(n_tpb); 
-	}
-
 	int pcd = 1;
-	int i = 0;
-	int k = 0;
-	for ( ; i < n_SI; i++, k++)
-	{
-		load_body_record(input, k, epoch, bmd, p, r, v);
-		if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
-		{
-			printf(".");
-			pcd++;
-		}
-	}
-    while (ups && k < n_prime_SI)
-    {
-		create_padding_particle(k, epoch, bmd, p, r, v);
-		this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE]++;
-        k++;
-    }
 
-	for ( ; i < n_SI + n_NSI; i++, k++)
+	unsigned int n_total = n_bodies->get_n_total_playing();
+	for (unsigned int i = 0; i < n_total; i++)
 	{
-		load_body_record(input, k, epoch, bmd, p, r, v);
+		load_body_record(input, i, epoch, bmd, p, r, v);
 		if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
 		{
 			printf(".");
 			pcd++;
 		}
-	}
-	while (ups && k < n_prime_SI + n_prime_NSI)
-	{
-		create_padding_particle(k, epoch, bmd, p, r, v);
-		this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE]++;
-		k++;
-	}
-
-	for ( ; i < n_total; i++, k++)
-	{
-		load_body_record(input, k, epoch, bmd, p, r, v);
-		if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
-		{
-			printf(".");
-			pcd++;
-		}
-	}
-	while (ups && k < n_prime_total)
-	{
-		create_padding_particle(k, epoch, bmd, p, r, v);
-		this->n_bodies->playing[BODY_TYPE_PADDINGPARTICLE]++;
-		k++;
 	}
 }
 
@@ -2206,10 +1983,6 @@ void pp_disk::load_binary(ifstream& input)
 {
 	for (unsigned int type = 0; type < BODY_TYPE_N; type++)
 	{
-		if (BODY_TYPE_PADDINGPARTICLE == type)
-		{
-			continue;
-		}
 		unsigned int tmp = 0;
 		input.read((char*)&tmp, sizeof(tmp));
 	}
@@ -2249,10 +2022,6 @@ void pp_disk::print_dump(ofstream& sout, data_representation_t repres)
 	case DATA_REPRESENTATION_ASCII:
 		for (unsigned int type = 0; type < BODY_TYPE_N; type++)
 		{
-			if (BODY_TYPE_PADDINGPARTICLE == type)
-			{
-				continue;
-			}
 			sout << n_bodies->get_n_active_by((body_type_t)type) << SEP;
 		}
 		sout << endl;
@@ -2261,10 +2030,6 @@ void pp_disk::print_dump(ofstream& sout, data_representation_t repres)
 	case DATA_REPRESENTATION_BINARY:
 		for (unsigned int type = 0; type < BODY_TYPE_N; type++)
 		{
-			if (BODY_TYPE_PADDINGPARTICLE == type)
-			{
-				continue;
-			}
 			unsigned int _n = n_bodies->get_n_active_by((body_type_t)type);
 			sout.write((char*)&_n, sizeof(_n));
 		}
@@ -2305,11 +2070,11 @@ void pp_disk::print_result_ascii(ofstream& sout)
 	param_t* p = sim_data->h_p;
 	body_metadata_t* bmd = sim_data->h_body_md;
 
-	int n = get_n_total_body();
+	int n = n_bodies->get_n_total_playing();
 	for (int i = 0; i < n; i++)
     {
-		// Skip inactive bodies and padding particles and alike
-		if (bmd[i].id <= 0 || bmd[i].body_type >= BODY_TYPE_PADDINGPARTICLE)
+		// Skip inactive bodies
+		if (bmd[i].id < 0)
 		{
 			continue;
 		}
@@ -2343,11 +2108,11 @@ void pp_disk::print_result_binary(ofstream& sout)
 	param_t* p = sim_data->h_p;
 	body_metadata_t* bmd = sim_data->h_body_md;
 
-	int n = get_n_total_body();
+	int n = n_bodies->get_n_total_playing();
 	for (int i = 0; i < n; i++)
     {
-		// Skip inactive bodies and padding particles and alike
-		if (bmd[i].id <= 0 || bmd[i].body_type >= BODY_TYPE_PADDINGPARTICLE)
+		// Skip inactive bodies
+		if (bmd[i].id < 0)
 		{
 			continue;
 		}
@@ -2418,6 +2183,7 @@ void pp_disk::print_event_data(ofstream& sout, ofstream& log_f)
 			 << setw(var_t_w) << sp_events[i].vs.y * constants::Gauss << SEP   /*            y-velocity                          [AU / day]          */
 			 << setw(var_t_w) << sp_events[i].vs.z * constants::Gauss << SEP   /*            z-velocity                          [AU / day]          */
 			 << endl;
+
 		if (log_f)
 		{
 			log_f << tools::get_time_stamp(false) << SEP 

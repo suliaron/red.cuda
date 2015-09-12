@@ -4,10 +4,6 @@
 #include <string>
 #include <vector>
 
-// includes CUDA
-
-// includes Thrust
-
 // includes project
 #include "pp_disk.h"
 #include "red_type.h"
@@ -19,14 +15,6 @@ class integrator
 public:
 	integrator(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, int r_max, computing_device_t comp_dev);
 	~integrator();
-
-	//! Allocates storage for data on the host and device memory
-	void allocate_storage();
-	void allocate_host_storage(int n_body);
-	void allocate_device_storage(int n_body);
-
-	void deallocate_host_storage();
-	void deallocate_device_storage();
 
 	//! Set the computing device to calculate the integration step
 	/*
@@ -43,9 +31,9 @@ public:
 	virtual ttt_t step() = 0;
 
 	bool error_check_for_tp;	//!< Check the error also for the test particles
-
 	string name;
 	string short_name;
+
 protected:
 	void calc_grid(int nData, int threads_per_block);
 	var_t get_max_error(int n_var, var_t lambda);
@@ -86,4 +74,12 @@ protected:
 private:
 	void initialize();
 	void create_aliases();
+
+	//! Allocates storage for data on the host and device memory
+	void allocate_storage();
+	void allocate_host_storage(int n_body);
+	void allocate_device_storage(int n_body);
+
+	void deallocate_host_storage();
+	void deallocate_device_storage();
 };

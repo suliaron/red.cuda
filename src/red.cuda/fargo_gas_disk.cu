@@ -242,7 +242,7 @@ void fargo_gas_disk::load_used_rad(string& path, size_t)
 		num.resize(k);
 		if (!tools::is_number(num))
 		{
-			throw string("Invalid number (" + num + ") in file '" + path + "'!\n");
+			throw string("Invalid number (" + num + ") in file '" + path + ".");
 		}
 		h_used_rad[0][m] = atof(num.c_str());   // [AU]
 		m++;
@@ -340,7 +340,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.aspect_ratio = atof(value.c_str());
     } 
@@ -348,7 +348,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.sigma_0 = atof(value.c_str());
     }
@@ -356,7 +356,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.alpha_viscosity = atof(value.c_str());
     }
@@ -364,7 +364,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.sigma_slope = atof(value.c_str());
     }
@@ -372,7 +372,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.flaring_index = atof(value.c_str());
     }
@@ -389,7 +389,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.thickness_smoothing = atof(value.c_str());
     }
@@ -413,7 +413,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.omega_frame = atof(value.c_str());
     }
@@ -429,7 +429,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.n_rad = atoi(value.c_str());
     }
@@ -437,7 +437,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.n_sec = atoi(value.c_str());
     }
@@ -445,7 +445,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.r_min = atof(value.c_str());
     }
@@ -453,7 +453,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.r_max = atof(value.c_str());
     }
@@ -465,7 +465,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.n_tot = atoi(value.c_str());
     }
@@ -473,7 +473,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.n_interm = atoi(value.c_str());
     }
@@ -481,7 +481,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.dT = atof(value.c_str());
     }
@@ -493,7 +493,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.visc_mod_r1 = atof(value.c_str());
     }
@@ -501,7 +501,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.visc_mod_delta_r1 = atof(value.c_str());
     }
@@ -509,7 +509,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.visc_mod_r2 = atof(value.c_str());
     }
@@ -517,7 +517,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.visc_mod_delta_r2 = atof(value.c_str());
     }
@@ -525,7 +525,7 @@ void fargo_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.visc_mod = atof(value.c_str());
     }

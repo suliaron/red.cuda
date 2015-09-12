@@ -120,14 +120,14 @@ void analytic_gas_disk::set_param(string& key, string& value)
 		}
 		else
 		{
-			throw string("Invalid value at: " + key);
+			throw string("Invalid value at: " + key + ".");
 		}
 	}
 	else if (key == "t0")
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.t0 = atof(value.c_str()) * constants::YearToDay;
 	}
@@ -135,7 +135,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.t1 = atof(value.c_str()) * constants::YearToDay;
 	}
@@ -143,7 +143,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.e_folding_time = atof(value.c_str()) * constants::YearToDay;
 	}
@@ -152,7 +152,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.alpha = atof(value.c_str());
 	}
@@ -160,7 +160,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.mean_molecular_weight = atof(value.c_str()) * constants::GramToSolar;
 	}
@@ -168,7 +168,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.particle_diameter = atof(value.c_str()) * constants::MeterToAu;
 	}
@@ -177,7 +177,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.eta.x = atof(value.c_str());
 	}
@@ -185,7 +185,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.eta.y = atof(value.c_str());
 	}
@@ -194,7 +194,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.rho.x = atof(value.c_str()) * constants::GramPerCm3ToSolarPerAu3;
 	}
@@ -202,7 +202,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.rho.y = atof(value.c_str());
 	}
@@ -211,7 +211,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.sch.x = atof(value.c_str());
 	}
@@ -219,7 +219,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.sch.y = atof(value.c_str());
 	}
@@ -228,7 +228,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.tau.x = atof(value.c_str());
 	}
@@ -236,7 +236,7 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	{
 		if (!tools::is_number(value))
 		{
-			throw string("Invalid number at: " + key);
+			throw string("Invalid number at: " + key + ".");
 		}
 		params.tau.y = atof(value.c_str());
 	}

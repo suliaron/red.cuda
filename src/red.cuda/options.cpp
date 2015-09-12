@@ -40,7 +40,6 @@ void options::create_default()
 	test                = false;
 	verbose             = false;
 	print_to_screen     = false;
-	ups                 = false;
 	ef                  = false;
 
 	info_dt             = 5.0;     // [sec]
@@ -88,10 +87,6 @@ void options::parse(int argc, const char** argv)
 		{
 			verbose = true;
 			print_to_screen = true;
-		}
-		else if (p == "--use-padded-storage" || p == "-ups")
-		{
-			ups = true;
 		}
 		else if (p == "-ef")
 		{
@@ -245,12 +240,12 @@ pp_disk* options::create_pp_disk()
 
 	if (benchmark)
 	{
-		ppd = new pp_disk(n_bodies, ups, g_disk_model, param->cdm, id_dev, comp_dev);
+		ppd = new pp_disk(n_bodies, g_disk_model, param->cdm, id_dev, comp_dev);
 	}
 	else
 	{
 		string path = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_BODYLIST]);
-		ppd = new pp_disk(path, continue_simulation, ups, g_disk_model, param->cdm, id_dev, comp_dev, param->threshold, print_to_screen);
+		ppd = new pp_disk(path, continue_simulation, g_disk_model, param->cdm, id_dev, comp_dev, param->threshold, print_to_screen);
 	}
 
 	switch (g_disk_model)
@@ -268,19 +263,10 @@ pp_disk* options::create_pp_disk()
 		throw string("Parameter 'g_disk_model' is out of range");
 	}
 
-	//if (!continue_simulation)
-	//{
-	//	ppd->transform_to_bc(print_to_screen);
-	//	ppd->transform_time();
-	//	ppd->transform_velocity();
-	//}
-
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		ppd->copy_to_device();
-		//ppd->copy_disk_params_to_device();
 	}
-	//ppd->copy_threshold(param->threshold);
 	ppd->t = (continue_simulation ? ppd->sim_data->h_epoch[0] : param->start_time);
 
 	return ppd;
@@ -330,7 +316,6 @@ void options::print_usage()
 	cout << "     -t      | --test                         : run tests" << endl;
 	cout << "     -v      | --verbose                      : verbose mode (log all event during the execution fo the code to the log file)" << endl;
 	cout << "     -pts    | --print_to_screen              : verbose mode and print everything to the standard output stream too" << endl;
-	cout << "     -ups    | --use-padded-storage           : use padded storage to store data (default is false)" << endl; 
 	cout << "     -ef     |                                : use extended file names (use only for debuging purposes)" << endl;
 
 	cout << "     -i_dt   | --info-dt <number>             : the time interval in seconds between two subsequent information print to the screen (default value is 5 sec)" << endl;

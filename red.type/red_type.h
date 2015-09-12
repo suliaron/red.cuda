@@ -202,7 +202,6 @@ typedef enum body_type
 			BODY_TYPE_SUPERPLANETESIMAL,
 			BODY_TYPE_PLANETESIMAL,
 			BODY_TYPE_TESTPARTICLE,
-			BODY_TYPE_PADDINGPARTICLE,
 			BODY_TYPE_N
 		} body_type_t;
 
@@ -214,8 +213,7 @@ static const char* body_type_name[] =
 			"PROTOPLANET",
 			"SUPERPLANETESIMAL",
 			"PLANETESIMAL",
-			"TESTPARTICLE",
-			"PADDINGPARTICLE"
+			"TESTPARTICLE"
 		};
 
 typedef struct dump_aux_data

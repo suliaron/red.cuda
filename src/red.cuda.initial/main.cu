@@ -573,8 +573,9 @@ void n_pp(body_disk_t& disk)
 	srand(time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
+	disk.nBody[BODY_TYPE_PROTOPLANET] = 500;
 	//disk.nBody[BODY_TYPE_PROTOPLANET] = 2000;
-	disk.nBody[BODY_TYPE_PROTOPLANET] = 10000;
+	//disk.nBody[BODY_TYPE_PROTOPLANET] = 10000;
 
 	int_t nBodies = calculate_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
@@ -593,15 +594,15 @@ void n_pp(body_disk_t& disk)
 
 	type = BODY_TYPE_PROTOPLANET;
 	{
-		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 2.0);
+  		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 0.6, 2.6);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.1);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 1.0 * constants::DegreeToRadian);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
-		//disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.1 * constants::CeresToSolar, 1.0 * constants::CeresToSolar);
-		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 1.0e2 * constants::KilometerToAu, 1.0e2 * constants::KilometerToAu);
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.5 * constants::MoonToEarth*constants::EarthToSolar, 2.0 * constants::MoonToEarth*constants::EarthToSolar);
+		//disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 1.0e2 * constants::KilometerToAu, 1.0e2 * constants::KilometerToAu);
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 2.7 * constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
@@ -1679,8 +1680,8 @@ void n_pp(string& dir, string& filename)
 	//path = file::combine_path(dir, filename) + "_NONMAE.txt";
 	//print(path, disk, sim_data, INPUT_FORMAT_NONAME);
 
-	path = file::combine_path(dir, filename) + "_HIPERION.txt";
-	print(path, disk, sim_data, INPUT_FORMAT_HIPERION);
+	//path = file::combine_path(dir, filename) + "_HIPERION.txt";
+	//print(path, disk, sim_data, INPUT_FORMAT_HIPERION);
 
 	deallocate_host_storage(sim_data);
 

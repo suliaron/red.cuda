@@ -46,16 +46,16 @@ string create_prefix(const options& opt)
 		string dev = (opt.comp_dev == COMPUTING_DEVICE_CPU ? "cpu" : "gpu");
 		// as: adaptive step-size, fs: fix step-size
 		string adapt = (opt.param->adaptive == true ? "as" : "fs");
-		// ps: padded storage, ns: normal storage
-		string strorage = (opt.ups == true ? "ps" : "ns");
-		// 
+		// collision detection model
 		string cdm;
 		switch (opt.param->cdm)
 		{
 		case COLLISION_DETECTION_MODEL_STEP:
+			// bs: between step
 			cdm = "bs";
 			break;
 		case COLLISION_DETECTION_MODEL_SUB_STEP:
+			// bs: sub-step
 			cdm = "ss";
 			break;
 		case COLLISION_DETECTION_MODEL_INTERPOLATION:
@@ -65,7 +65,7 @@ string create_prefix(const options& opt)
 		}
 
 		string int_name(integrator_type_short_name[opt.param->int_type]);
-		prefix += config + sep + dev + sep + cdm + sep + strorage + sep + adapt + sep + int_name + sep;
+		prefix += config + sep + dev + sep + cdm + sep + sep + adapt + sep + int_name + sep;
 	}
 
 	return prefix;
@@ -160,10 +160,6 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 	     << setw(8) << intgr->get_n_passed_step() << ",";
 	for (int i = 0; i < BODY_TYPE_N; i++)
 	{
-		if (BODY_TYPE_PADDINGPARTICLE == i)
-		{
-			continue;
-		}
 		sout << setw(5) << nb->playing[i] - nb->inactive[i] << ","
 			<< setw(5) << nb->removed[i] << (i < BODY_TYPE_TESTPARTICLE ? "," : "");
 	}
@@ -226,18 +222,6 @@ dump_aux_data_t load_dump_aux_data(const options& opt)
 	return dump_aux;
 }
 
-ttt_t step(integrator *intgr, clock_t* T_CPU, clock_t* dT_CPU)
-{
-	clock_t t_start = clock();
-	ttt_t dt = intgr->step();
-	clock_t t_stop = clock();
-
-	*dT_CPU = (t_stop - t_start);
-	*T_CPU += *dT_CPU;
-
-	return dt;
-}
-
 void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream& sout)
 {
 	cout << "See the log file for the result." << endl;
@@ -284,7 +268,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 			{
 				sout << "n_tpb: " << setw(6) << n_tpb;
 				ppd->set_n_tpb(n_tpb);
-				interaction_bound int_bound = ppd->n_bodies->get_bound_SI(false, n_tpb);
+				interaction_bound int_bound = ppd->n_bodies->get_bound_SI(n_tpb);
 
 				clock_t t_start = clock();
 				float cu_elt = ppd->benchmark_calc_grav_accel(curr_t, n_sink, int_bound, bmd, p, r, v, d_dy);
@@ -335,7 +319,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 		int n_sink = ppd->n_bodies->get_n_SI();
 		if (0 < n_sink)
 		{
-			interaction_bound int_bound = ppd->n_bodies->get_bound_SI(false, 1);
+			interaction_bound int_bound = ppd->n_bodies->get_bound_SI(1);
 
 			t_start = clock();
 			ppd->cpu_calc_grav_accel_SI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
@@ -349,7 +333,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 		n_sink = ppd->n_bodies->get_n_NSI();
 		if (0 < n_sink)
 		{
-			interaction_bound int_bound = ppd->n_bodies->get_bound_NSI(false, 1);
+			interaction_bound int_bound = ppd->n_bodies->get_bound_NSI(1);
 
 			t_start = clock();
 			ppd->cpu_calc_grav_accel_NSI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
@@ -363,7 +347,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 		n_sink = ppd->n_bodies->get_n_NI();
 		if (0 < n_sink)
 		{
-			interaction_bound int_bound = ppd->n_bodies->get_bound_NI(false, 1);
+			interaction_bound int_bound = ppd->n_bodies->get_bound_NI(1);
 
 			t_start = clock();			
 			ppd->cpu_calc_grav_accel_NI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
@@ -425,11 +409,11 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			}
 		}
 
+		// make the integration step, and measure the time it takes
 		clock_t T0_CPU = clock();
 		dt = intgr->step();
 		dT_CPU = (clock() - T0_CPU);
 		T_CPU += dT_CPU;
-		//dt = step(intgr, &T_CPU, &dT_CPU);
 		ps += fabs(dt);
 
 		if (0.0 < opt.param->threshold[THRESHOLD_RADII_ENHANCE_FACTOR])
@@ -490,7 +474,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			//print_dump(output, opt, ppd, dt, n_dump, DATA_REPRESENTATION_BINARY);
 			if (opt.verbose)
 			{
-				string msg = "Dump file was created with number " + redutilcu::number_to_string(n_dump);
+				string msg = "Dump file was created with ordinal number: " + redutilcu::number_to_string(n_dump);
 				file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
 			}
 			n_dump++;
@@ -553,10 +537,6 @@ int main(int argc, const char** argv, const char** env)
 		{
 			set_device(opt.id_dev, std::cout);
 			device_query(*output[OUTPUT_NAME_LOG], opt.id_dev, opt.print_to_screen);
-		}
-		else
-		{
-			opt.ups = false;
 		}
 
 		pp_disk *ppd = opt.create_pp_disk();

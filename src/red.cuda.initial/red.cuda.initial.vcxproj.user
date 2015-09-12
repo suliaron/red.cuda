@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-o C:\Work\red.cuda.Results\LargeNumber\2D\CDM_Step\Npp1e4 -f input_n1e4</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-o C:\Work\red.cuda.Results\Dvorak\3D\500\Run_01 -f input</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

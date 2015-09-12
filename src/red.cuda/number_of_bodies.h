@@ -36,20 +36,10 @@ public:
 	//! Returns the number of body with the specified type
 	unsigned int get_n_active_by(body_type_t type);
 
-	unsigned int get_n_prime_SI(unsigned int n_tpb);
-	unsigned int get_n_prime_NSI(unsigned int n_tpb);
-	unsigned int get_n_prime_NI(unsigned int n_tpb);
-	unsigned int get_n_prime_total(unsigned int n_tpb);
-	unsigned int get_n_prime_massive(unsigned int n_tpb);
-
-	//unsigned int get_n_prime_GD();
-	//unsigned int get_n_prime_MT1();
-	//unsigned int get_n_prime_MT2();
-
-	interaction_bound get_bound_SI(bool ups, unsigned int n_tpb);
-	interaction_bound get_bound_NSI(bool ups, unsigned int n_tpb);
-	interaction_bound get_bound_NI(bool ups, unsigned int n_tpb);
-	interaction_bound get_bound_GD(bool ups, unsigned int n_tpb);
+	interaction_bound get_bound_SI( unsigned int n_tpb);
+	interaction_bound get_bound_NSI(unsigned int n_tpb);
+	interaction_bound get_bound_NI( unsigned int n_tpb);
+	interaction_bound get_bound_GD( unsigned int n_tpb);
 	//interaction_bound get_bound_MT1();
 	//interaction_bound get_bound_MT2();
 
