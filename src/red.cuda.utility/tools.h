@@ -39,6 +39,7 @@ namespace redutilcu
 
 		void kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E);
 		void calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec);
+		void calculate_oe(var_t mu, const vec_t* rVec, const vec_t* vVec, orbelem_t* oe);
 
 		void print_vector(const vec_t *v);
 		void print_parameter(const param_t *p);

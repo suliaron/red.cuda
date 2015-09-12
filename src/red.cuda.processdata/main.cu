@@ -346,6 +346,7 @@ int main(int argc, const char **argv)
 
 		sim_data = new sim_data_t;
 		sim_data->h_y.resize(2);
+		ALLOCATE_HOST_VECTOR((void **)&(sim_data->h_oe), n_total*sizeof(orbelem_t));
 
 		sim_data->h_epoch = g_epoch.data();
 		sim_data->h_body_md = g_bmd.data();
@@ -369,6 +370,30 @@ int main(int argc, const char **argv)
 			for (int i = 1; i < n_total; i++)
 			{
 				var_t mu = K2 *(sim_data->h_p[0].mass + sim_data->h_p[i].mass);
+				tools::calculate_oe(mu, &(sim_data->h_y[0][i]), &(sim_data->h_y[1][i]), (&sim_data->h_oe[i]));
+			}
+
+			ostringstream ss;
+			ss.setf(ios::right);
+			ss.setf(ios::scientific);
+
+			ss << setw(23) << setprecision(16) << t;
+
+			string output_file = "snapshot_t_" + ss.str();
+			path = file::combine_path(iDir, output_file) + ".oe.txt";
+
+			ofstream output(path.c_str(), ios_base::out);
+			if (output)
+			{		
+				for (int i = 0; i < n_total; i++)
+				{
+					file::print_oe_record(output, &sim_data->h_oe[i]);
+				}
+				output.close();
+			}
+			else
+			{
+				throw string("Cannot open " + path + "!");
 			}
 		}
 	}

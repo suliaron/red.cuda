@@ -448,6 +448,39 @@ void calc_physical_properties(const param_t &p1, const param_t &p2, param_t &p)
 	p.cd      = p1.cd;
 }
 
+inline var_t norm(const vec_t* r)
+{
+	return sqrt(SQR(r->x) + SQR(r->y) + SQR(r->z));
+}
+
+inline var_t calc_kinetic_energy(const vec_t* v)
+{
+	return (SQR(v->x) + SQR(v->y) + SQR(v->z)) / 2.0;
+}
+
+inline var_t calc_pot_energy(var_t mu, const vec_t* r)
+{
+    return -mu / norm(r);
+}
+
+inline var_t calc_energy(var_t mu, const vec_t* r, const vec_t* v)
+{
+	return calc_kinetic_energy(v) + calc_pot_energy(mu, r);
+}
+
+void shift_into_range(var_t lower, var_t upper, var_t &value)
+{
+    var_t range = upper - lower;
+    while (value >= upper)
+    {
+        value -= range;
+    }
+    while (value < lower)
+    {
+        value += range;
+    }
+}
+
 void kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E)
 {
 	if (ecc == 0.0 || mean == 0.0 || mean == PI)
@@ -508,6 +541,105 @@ void calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec)
 	vVec->x = vKszi * P.x + vEta * Q.x;
 	vVec->y = vKszi * P.y + vEta * Q.y;
 	vVec->z = vKszi * P.z + vEta * Q.z;
+}
+
+void calculate_oe(var_t mu, const vec_t* rVec, const vec_t* vVec, orbelem_t* oe)
+{
+    const var_t sq2 = 1.0e-14;
+    const var_t sq3 = 1.0e-14;
+
+	var_t r_norm = norm(rVec);
+	var_t v_norm = norm(vVec);
+
+	// Calculate energy, h
+    var_t h = calc_energy(mu, rVec, vVec);
+    if (h >= 0.0)
+    {
+		throw string("The Kepler-energy is positive. calculate_oe() failed.");
+    }
+
+	vec_t cVec;
+    cVec.x = rVec->y * vVec->z - rVec->z * vVec->y;
+    cVec.y = rVec->z * vVec->x - rVec->x * vVec->z;
+    cVec.z = rVec->x * vVec->y - rVec->y * vVec->x;
+	cVec.w = 0.0;
+	var_t c_norm = norm(&cVec);
+
+	vec_t lVec;
+	lVec.x = -mu / r_norm * rVec->x + vVec->y * cVec.z - vVec->z * cVec.y;
+	lVec.y = -mu / r_norm * rVec->y + vVec->z * cVec.x - vVec->x * cVec.z;
+	lVec.z = -mu / r_norm * rVec->z + vVec->x * cVec.y - vVec->y * cVec.x;
+	lVec.w = 0.0;
+	var_t l_norm = norm(&lVec);
+
+	var_t rv = rVec->x * vVec->x + rVec->y * vVec->y + rVec->z * vVec->z;
+
+    var_t e2 = 1.0 + 2.0 * SQR(c_norm) * h / (SQR(mu));
+    if (abs(e2) < sq3)
+    {
+        e2 = 0.0;
+    }
+    var_t e = sqrt(e2);
+    /*
+    * Calculate semi-major axis, a
+    */
+    var_t a = -mu / (2.0 * h);
+    /*
+    * Calculate inclination, incl
+    */
+    var_t cosi = cVec.z / c_norm;
+    var_t sini = sqrt(cVec.x * cVec.x + cVec.y * cVec.y) / c_norm;
+    var_t incl = acos(cosi);
+    if (incl < sq2)
+    {
+        incl = 0.0;
+    }
+    /*
+    * Calculate longitude of node, O
+    */
+    var_t node = 0.0;
+    if (incl != 0.0)
+    {
+        var_t tmpx = -cVec.y / (c_norm * sini);
+        var_t tmpy =  cVec.x / (c_norm * sini);
+		node = atan2(tmpy, tmpx);
+		shift_into_range(0.0, 2.0*PI, node);
+    }
+    /*
+    * Calculate argument of pericenter, w
+    */
+    var_t E = 0.0;
+    var_t peri = 0.0;
+    if (e2 != 0.0)
+    {
+        var_t tmpx = (lVec.x * cos(node) + lVec.y * sin(node)) / l_norm;
+        var_t tmpy = (-lVec.x * sin(node) + lVec.y * cos(node)) / (l_norm * cosi);
+        peri = atan2(tmpy, tmpx);
+        shift_into_range(0.0, 2.0*PI, peri);
+
+        tmpx = 1.0 / e * (1.0 - r_norm / a);
+        tmpy = rv / (sqrt(mu * a) * e);
+        E = atan2(tmpy, tmpx);
+        shift_into_range(0.0, 2.0*PI, E);
+    }
+    else
+    {
+        peri = 0.0;
+        E = atan2(rVec->y, rVec->x);
+        shift_into_range(0, 2.0*PI, E);
+    }
+    /*
+    * Calculate mean anomaly, M
+    */
+    var_t M = E - e * sin(E);
+    shift_into_range(0, 2.0*PI, M);
+
+	oe->sma  = a;
+	oe->ecc	 = e;
+	oe->inc  = incl;
+	oe->peri = peri;
+	oe->node = node;
+	oe->mean = M;
 }
 
 void print_vector(const vec_t *v)
