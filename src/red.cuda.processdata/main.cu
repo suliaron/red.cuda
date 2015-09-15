@@ -311,7 +311,7 @@ int parse_options(int argc, const char **argv, string &iDir, string &input_file,
 			i++;
 			input_file = argv[i];
 		}
-		else if (p == "-snapshot")
+		else if (p == "-snapshot" || p == "-ts")
 		{
 			i++;
 			if (!tools::is_number(argv[i])) 
@@ -322,7 +322,7 @@ int parse_options(int argc, const char **argv, string &iDir, string &input_file,
 		}
 		else
 		{
-			throw string("Invalid switch on command-line.");
+			throw string("Invalid switch on command-line: " + p + ".");
 		}
 		i++;
 	}
@@ -370,7 +370,9 @@ int main(int argc, const char **argv)
 			for (int i = 1; i < n_total; i++)
 			{
 				var_t mu = K2 *(sim_data->h_p[0].mass + sim_data->h_p[i].mass);
-				tools::calculate_oe(mu, &(sim_data->h_y[0][i]), &(sim_data->h_y[1][i]), (&sim_data->h_oe[i]));
+				vec_t rVec = {sim_data->h_y[0][i].x - sim_data->h_y[0][0].x, sim_data->h_y[0][i].y - sim_data->h_y[0][0].y, sim_data->h_y[0][i].z - sim_data->h_y[0][0].z, 0.0};
+				vec_t vVec = {sim_data->h_y[1][i].x - sim_data->h_y[1][0].x, sim_data->h_y[1][i].y - sim_data->h_y[1][0].y, sim_data->h_y[1][i].z - sim_data->h_y[1][0].z, 0.0};
+				tools::calculate_oe(mu, &rVec, &vVec, (&sim_data->h_oe[i]));
 			}
 
 			ostringstream ss;

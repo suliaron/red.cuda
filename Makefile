@@ -23,6 +23,7 @@ RED         := $(SRC)/red.cuda
 RED_TEST    := $(SRC)/red.code_snippet.cuda.test
 RED_INITIAL := $(SRC)/red.cuda.initial
 RED_UTILITY := $(SRC)/red.cuda.utility
+RED_PROCESSDATA := $(SRC)/red.cuda.processdata
 
 INCLUDES    := -Ired.type -I$(RED_UTILITY)
 
@@ -59,19 +60,24 @@ red_test.o \
 tools.o \
 util.o
 
+RED_PROCESSDATA_OBJS := \
+main.cu
+
 RED_DEPS := $(RED_OBJS:.o=.d)
 RED_INITIAL_DEPS := $(RED_INITIAL_OBJS:.o=.d)
 RED_UTILITY_DEPS := $(RED_UTILITY_OBJS:.o=.d)
+RED_PROCESSDATA_DEPS := $(RED_PROCESSDATA_OBJS:.o=.d)
 
 # Targets
-all : redutilcu red redinit redtest
-
+all : redutilcu red redinit redtest redprocess
 
 red : redutilcu $(RED)/red | $(BIN)
 
 redinit : redutilcu $(RED_INITIAL)/redinit | $(BIN)
 
 redtest : redutilcu $(RED_TEST)/redtest | $(BIN)
+
+redprocess : redutilcu $(RED_PROCESSDATA)/redprocess | $(BIN)
 
 redutilcu : $(RED_UTILITY)/redutil.a | $(RED_LIBRARY)
 
@@ -98,6 +104,10 @@ $(RED_INITIAL)/redinit : $(addprefix $(RED_INITIAL)/, $(RED_INITIAL_OBJS)) | $(B
 	$(LINK) $(RED_LIBRARY)/redutil.a -o $@ $?
 	cp $@ $(BIN)/
 
+$(RED_PROCESSDATA)/redprocess : $(addprefix $(RED_PROCESSDATA)/, $(RED_PROCESSDATA_OBJS)) | $(BIN)
+	$(LINK) $(RED_LIBRARY)/redutil.a -o $@ $?
+	cp $@ $(BIN)/
+	
 $(RED_UTILITY)/redutil.a : $(addprefix $(RED_UTILITY)/, $(RED_UTILITY_OBJS)) | $(RED_LIBRARY)
 	ar cr $@ $?
 	cp $@ $(RED_LIBRARY)/
@@ -149,6 +159,24 @@ $(RED_INITIAL)/%.o : $(RED_INITIAL)/%.cpp
 
 # compile and generate dependency info
 $(RED_INITIAL)/%.o : $(RED_INITIAL)/%.cu
+	@echo 'Building file: $<'
+	@echo 'Invoking $(NVCC) Compiler'
+	$(NVCC) -c $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+	$(NVCC) -M -odir "" $(NVCC_FLAGS) $(INCLUDES) -o "$(@:%.o=%.d)" $<
+	@echo 'Finished building: $<'
+	@echo ''
+
+# compile and generate dependency info
+$(RED_PROCESSDATA)/%.o : $(RED_PROCESSDATA)/%.cpp
+	@echo 'Building file: $<'
+	@echo 'Invoking $(NVCC) Compiler'
+	$(NVCC) -c $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+	$(NVCC) -M -odir "" $(NVCC_FLAGS) $(INCLUDES) -o "$(@:%.o=%.d)" $<
+	@echo 'Finished building: $<'
+	@echo ''
+
+# compile and generate dependency info
+$(RED_PROCESSDATA)/%.o : $(RED_PROCESSDATA)/%.cu
 	@echo 'Building file: $<'
 	@echo 'Invoking $(NVCC) Compiler'
 	$(NVCC) -c $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
