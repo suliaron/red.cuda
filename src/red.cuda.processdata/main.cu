@@ -437,7 +437,7 @@ int main(int argc, const char **argv)
 			{		
 				for (int i = 0; i < n_total; i++)
 				{
-					file::print_oe_record(output, &sim_data->h_oe[i]);
+					file::print_oe_record(output, &sim_data->h_oe[i], &sim_data->h_p[i]);
 				}
 				output.close();
 			}
