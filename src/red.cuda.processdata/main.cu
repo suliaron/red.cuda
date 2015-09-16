@@ -76,18 +76,24 @@ void get_number_of_bodies(string& path, ttt_t t, data_representation_t repres)
 		input.open(path.c_str());
 		if (input) 
 		{
-			cout << "Searching for the records in the input file for epoch: " << number_to_string(t) << " [d] ..." << endl;
+			cout << "Searching for the records in the input file with epoch: " << number_to_string(t) << " [d] ..." << endl;
+			ttt_t t_tmp = 0.0;
 			do
 			{
 				load_body_record(input, 0, epoch, bmd, p, r, v);
+				if (t_tmp != epoch[0])
+				{
+					t_tmp = epoch[0];
+					printf("t = %20.16le\r", epoch[0]);
+				}
 			} while (!input.eof() && t > epoch[0]);
 			if (input.eof())
 			{
 				input.close();
-				throw string("The end of file was reached and the requested epoch was not found.");
+				throw string("\nThe end of file was reached and the requested epoch was not found.");
 			}
 			t = epoch[0];
-			cout << "The records in the input file for epoch: " << number_to_string(t) << " [d] was found." << endl;
+			cout << "\nThe records in the input file for epoch: " << number_to_string(t) << " [d] was found." << endl;
 			printf("Reading and counting the records ");
 			do
 			{
@@ -293,7 +299,7 @@ void load(string& path, sim_data_t *sim_data, data_representation_t repres)
 	cout << " done" << endl;
 }
 
-int parse_options(int argc, const char **argv, string &iDir, string &input_file, ttt_t &t)
+int parse_options(int argc, const char **argv, string &iDir, string &oDir, string &input_file, ttt_t &t)
 {
 	int i = 1;
 
@@ -305,6 +311,11 @@ int parse_options(int argc, const char **argv, string &iDir, string &input_file,
 		{
 			i++;
 			iDir = argv[i];
+		}
+		else if (p == "-oDir")
+		{
+			i++;
+			oDir = argv[i];
 		}
 		else if (p == "-i")
 		{
@@ -333,13 +344,14 @@ int parse_options(int argc, const char **argv, string &iDir, string &input_file,
 int main(int argc, const char **argv)
 {
 	string iDir;
+	string oDir;
 	string input_file;
 	ttt_t t = 0.0;
 
 	sim_data_t* sim_data = 0x0;
 	try
 	{
-		parse_options(argc, argv, iDir, input_file, t);
+		parse_options(argc, argv, iDir, oDir,input_file, t);
 
 		string path = file::combine_path(iDir, input_file);
 		get_number_of_bodies(path, t, DATA_REPRESENTATION_ASCII);
@@ -362,7 +374,7 @@ int main(int argc, const char **argv)
 			ss << setw(23) << setprecision(16) << t;
 
 			string output_file = "snapshot_t_" + ss.str();
-			path = file::combine_path(iDir, output_file) + ".txt";
+			path = file::combine_path(oDir, output_file) + ".txt";
 			print(path, sim_data);
 		}
 
@@ -382,7 +394,7 @@ int main(int argc, const char **argv)
 			ss << setw(23) << setprecision(16) << t;
 
 			string output_file = "snapshot_t_" + ss.str();
-			path = file::combine_path(iDir, output_file) + ".oe.txt";
+			path = file::combine_path(oDir, output_file) + ".oe.txt";
 
 			ofstream output(path.c_str(), ios_base::out);
 			if (output)

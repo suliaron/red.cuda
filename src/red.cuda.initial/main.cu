@@ -15,7 +15,6 @@
 // includes, project
 #include "distribution.h"
 #include "nebula.h"
-#include "number_of_bodies.h"
 #include "red_constants.h"
 #include "red_type.h"
 #include "redutilcu.h"
