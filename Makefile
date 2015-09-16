@@ -18,17 +18,17 @@ NVCC_FLAGS := -Xcompiler -Wall -O2 -gencode arch=compute_20,code=sm_20 -gencode 
 # NVCC_FLAGS := -Xcompiler -Wall -O2 -fmad=false
 
 # Paths
-SRC         := src
-RED         := $(SRC)/red.cuda
-RED_TEST    := $(SRC)/red.code_snippet.cuda.test
-RED_INITIAL := $(SRC)/red.cuda.initial
-RED_UTILITY := $(SRC)/red.cuda.utility
+SRC             := src
+RED             := $(SRC)/red.cuda
+RED_TEST        := $(SRC)/red.code_snippet.cuda.test
+RED_INITIAL     := $(SRC)/red.cuda.initial
+RED_UTILITY     := $(SRC)/red.cuda.utility
 RED_PROCESSDATA := $(SRC)/red.cuda.processdata
 
-INCLUDES    := -Ired.type -I$(RED_UTILITY)
+INCLUDES        := -Ired.type -I$(RED_UTILITY)
 
-RED_LIBRARY := red.library
-BIN         := bin
+RED_LIBRARY     := red.library
+BIN             := bin
 
 # List the objects for the executables and library
 RED_OBJS := \
@@ -61,7 +61,7 @@ tools.o \
 util.o
 
 RED_PROCESSDATA_OBJS := \
-main.cu
+main.o
 
 RED_DEPS := $(RED_OBJS:.o=.d)
 RED_INITIAL_DEPS := $(RED_INITIAL_OBJS:.o=.d)
@@ -84,6 +84,7 @@ redutilcu : $(RED_UTILITY)/redutil.a | $(RED_LIBRARY)
 -include $(addprefix $(RED)/, $(RED_DEPS))
 -include $(addprefix $(RED_INITIAL)/, $(RED_INITIAL_DEPS))
 -include $(addprefix $(RED_UTILITY)/, $(RED_UTILITY_DEPS))
+-include $(addprefix $(RED_PROCESSDATA)/, $(RED_PROCESSDATA_DEPS))
 
 print:
 	@echo 'Red dependency files: $(RED_DEPS)'

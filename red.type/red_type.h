@@ -52,11 +52,11 @@ typedef enum data_representation
 			DATA_REPRESENTATION_BINARY,
 			DATA_REPRESENTATION_N,
 		} data_representation_t;
-static const char* data_representation_name[] = 
-{
-			"ASCII",
-			"BINARY"
-};
+//static const char* data_representation_name[] = 
+//{
+//			"ASCII",
+//			"BINARY"
+//};
 
 typedef enum gas_decrease
 		{ 
@@ -65,12 +65,12 @@ typedef enum gas_decrease
 			GAS_DENSITY_DECREASE_EXPONENTIAL,
 			GAS_DENSITY_N
 		} gas_decrease_t;
-static const char* gas_decrease_name[] = 
-{
-			"CONSTANT",
-			"DECREASE_LINEAR",
-			"DECREASE_EXPONENTIAL"
-};
+//static const char* gas_decrease_name[] = 
+//{
+//			"CONSTANT",
+//			"DECREASE_LINEAR",
+//			"DECREASE_EXPONENTIAL"
+//};
 
 typedef enum gas_disk_model
 		{
@@ -79,12 +79,12 @@ typedef enum gas_disk_model
 			GAS_DISK_MODEL_FARGO,
 			GAS_DISK_MODEL_N,
 		} gas_disk_model_t;
-static const char* gas_disk_model_name[] = 
-{
-			"NONE",
-			"ANALYTIC",
-			"FARGO"
-};
+//static const char* gas_disk_model_name[] = 
+//{
+//			"NONE",
+//			"ANALYTIC",
+//			"FARGO"
+//};
 
 typedef enum collision_detection_model
 		{
@@ -93,12 +93,12 @@ typedef enum collision_detection_model
 			COLLISION_DETECTION_MODEL_INTERPOLATION,
 			COLLISION_DETECTION_MODEL_N,
 		} collision_detection_model_t;
-static const char* collision_detection_model_name[] = 
-{
-			"STEP",
-			"SUB_STEP",
-			"INTERPOLATION"
-};
+//static const char* collision_detection_model_name[] = 
+//{
+//			"STEP",
+//			"SUB_STEP",
+//			"INTERPOLATION"
+//};
 
 typedef enum computing_device
 		{
@@ -106,11 +106,11 @@ typedef enum computing_device
 			COMPUTING_DEVICE_GPU,
 			COMPUTING_DEVICE_N
 		} computing_device_t;
-static const char* computing_device_name[] = 
-{
-			"CPU",
-			"GPU"
-};
+//static const char* computing_device_name[] = 
+//{
+//			"CPU",
+//			"GPU"
+//};
 
 typedef enum threshold
 		{
@@ -119,12 +119,12 @@ typedef enum threshold
 			THRESHOLD_RADII_ENHANCE_FACTOR,
 			THRESHOLD_N
 		} threshold_t;
-static const char* threshold_name[] = 
-{
-			"HIT_CENTRUM_DISTANCE",
-			"EJECTION_DISTANCE",
-			"RADII_ENHANCE_FACTOR"
-};
+//static const char* threshold_name[] = 
+//{
+//			"HIT_CENTRUM_DISTANCE",
+//			"EJECTION_DISTANCE",
+//			"RADII_ENHANCE_FACTOR"
+//};
 
 typedef enum integrator_type
 		{ 
@@ -135,15 +135,15 @@ typedef enum integrator_type
 			INTEGRATOR_RUNGEKUTTAFEHLBERG78,
 			INTEGRATOR_RUNGEKUTTANYSTROM,
 		} integrator_type_t;
-static const char* integrator_type_name[] = 
-{
-			"EULER",
-			"RUNGEKUTTA2",
-			"RUNGEKUTTA4",
-			"RUNGEKUTTA5",
-			"RUNGEKUTTAFEHLBERG78",
-			"RUNGEKUTTANYSTROM"
-};
+//static const char* integrator_type_name[] = 
+//{
+//			"EULER",
+//			"RUNGEKUTTA2",
+//			"RUNGEKUTTA4",
+//			"RUNGEKUTTA5",
+//			"RUNGEKUTTAFEHLBERG78",
+//			"RUNGEKUTTANYSTROM"
+//};
 static const char* integrator_type_short_name[] = 
 {
 			"E",
@@ -163,14 +163,14 @@ typedef enum event_name
 			EVENT_NAME_COLLISION,
 			EVENT_NAME_N
 		} event_name_t;
-static const char* event_name_name[] = 
-{
-			"NONE",
-			"HIT_CENTRUM",
-			"EJECTION",
-			"CLOSE_ENCOUNTER",
-			"COLLISION",
-};
+//static const char* event_name_name[] = 
+//{
+//			"NONE",
+//			"HIT_CENTRUM",
+//			"EJECTION",
+//			"CLOSE_ENCOUNTER",
+//			"COLLISION",
+//};
 
 typedef enum event_counter_name
 		{
@@ -204,7 +204,6 @@ typedef enum body_type
 			BODY_TYPE_TESTPARTICLE,
 			BODY_TYPE_N
 		} body_type_t;
-
 static const char* body_type_name[] = 
 		{
 			"STAR",
@@ -240,56 +239,56 @@ typedef struct orbelem
 // int4_t gets aligned to 16 bytes.
 typedef struct __BUILTIN_ALIGN__ _int4
 		{
-			int_t x;  // [4 byte]
-			int_t y;  // [4 byte]
-			int_t z;  // [4 byte]
-			int_t w;  // [4 byte] -> 16 byte
-		} int4_t;
+			int_t x;  // [ 4 byte]
+			int_t y;  // [ 4 byte]
+			int_t z;  // [ 4 byte]
+			int_t w;  // [ 4 byte]
+		} int4_t;     // [16 byte]
 
 // var2_t gets aligned to 16 bytes.
 typedef struct __BUILTIN_ALIGN__ _var2
 		{
-			var_t x;  // [8 byte]
-			var_t y;  // [8 byte] -> 16 byte
-		} var2_t;
+			var_t x;  // [ 8 byte]
+			var_t y;  // [ 8 byte]
+		} var2_t;     // [16 byte]
 
 // vec_t gets aligned to 16 bytes.
 typedef struct __BUILTIN_ALIGN__ vec
 		{
-			var_t x;  // [8 byte]
-			var_t y;  // [8 byte]
-			var_t z;  // [8 byte]
-			var_t w;  // [8 byte] -> 32 byte
-		} vec_t;
+			var_t x;  // [ 8 byte]
+			var_t y;  // [ 8 byte]
+			var_t z;  // [ 8 byte]
+			var_t w;  // [ 8 byte]
+		} vec_t;      // [32 byte]
 
 // param_t gets aligned to 16 bytes.
 typedef struct __BUILTIN_ALIGN__ param
 		{
-			var_t mass;      // [8 byte]
-			var_t radius;    // [8 byte]
-			var_t density;   // [8 byte]
-			var_t cd;	     // [8 byte] -> 32 byte
-		} param_t;
+			var_t mass;      // [ 8 byte]
+			var_t radius;    // [ 8 byte]
+			var_t density;   // [ 8 byte]
+			var_t cd;	     // [ 8 byte]
+		} param_t;           // [32 byte]
 
 // body_metadata_t gets aligned to 16 bytes.
 typedef struct __BUILTIN_ALIGN__ body_metadata
 		{
-			int32_t id;             // [4 byte]
-			int32_t body_type;	    // [4 byte]
-			int32_t mig_type;	    // [4 byte]
-			var_t	mig_stop_at;    // [8 byte] -> 20 byte !!!
-		} body_metadata_t;
+			int32_t id;             // [ 4 byte]
+			int32_t body_type;	    // [ 4 byte]
+			int32_t mig_type;	    // [ 4 byte]
+			var_t	mig_stop_at;    // [ 8 byte]
+		} body_metadata_t;          // [20 byte]
 
 // body_metadata_t gets aligned to 16 bytes.
 typedef struct __BUILTIN_ALIGN__ body_metadata_new
 		{
-			int32_t id;            // [4 byte]
-			char    body_type;     // [1 byte]
-			char    mig_type;      // [1 byte]
-			bool	active;        // [1 byte]
-			bool	unused;        // [1 byte]
-			var_t   mig_stop_at;   // [8 byte] -> 16 byte
-		} body_metadata_new_t;
+			int32_t id;            // [ 4 byte]
+			char    body_type;     // [ 1 byte]
+			char    mig_type;      // [ 1 byte]
+			bool	active;        // [ 1 byte]
+			bool	unused;        // [ 1 byte]
+			var_t   mig_stop_at;   // [ 8 byte]
+		} body_metadata_new_t;     // [16 byte]
 
 typedef struct analytic_gas_disk_params
 		{
