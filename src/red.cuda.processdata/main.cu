@@ -18,6 +18,33 @@
 using namespace std;
 using namespace redutilcu;
 
+#if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
+
+inline string epoch_to_string(ttt_t epoch)
+{
+	ostringstream ss;
+	ss.setf(ios::right);
+	ss.setf(ios::scientific);
+
+	ss << setw(23) << setprecision(16) << epoch;
+
+	return ss.str();
+}
+#else  /* presume POSIX */
+
+inline string epoch_to_string(ttt_t epoch)
+{
+	ostringstream ss;
+	ss.setf(ios::right);
+	ss.setf(ios::scientific);
+
+	ss << setw(22) << setprecision(16) << epoch;
+
+	return ss.str();
+}
+#endif 
+
+
 vector<string> body_names;
 
 vector<ttt_t> g_epoch;
@@ -367,13 +394,8 @@ int main(int argc, const char **argv)
 		sim_data->h_y[1] = g_velo.data();
 
 		{
-			ostringstream ss;
-			ss.setf(ios::right);
-			ss.setf(ios::scientific);
-
-			ss << setw(23) << setprecision(16) << t;
-
-			string output_file = "snapshot_t_" + ss.str();
+			string epoch_str = epoch_to_string(t);
+			string output_file = "snapshot_t_" + epoch_str;
 			path = file::combine_path(oDir, output_file) + ".txt";
 			print(path, sim_data);
 		}
@@ -387,13 +409,8 @@ int main(int argc, const char **argv)
 				tools::calculate_oe(mu, &rVec, &vVec, (&sim_data->h_oe[i]));
 			}
 
-			ostringstream ss;
-			ss.setf(ios::right);
-			ss.setf(ios::scientific);
-
-			ss << setw(23) << setprecision(16) << t;
-
-			string output_file = "snapshot_t_" + ss.str();
+			string epoch_str = epoch_to_string(t);
+			string output_file = "snapshot_t_" + epoch_str;
 			path = file::combine_path(oDir, output_file) + ".oe.txt";
 
 			ofstream output(path.c_str(), ios_base::out);
