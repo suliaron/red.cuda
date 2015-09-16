@@ -55,7 +55,7 @@ vector<vec_t> g_velo;
 
 unsigned int ns, ngp, nrp, npp, nspl, npl, ntp, n_total;
 
-void load_body_record(ifstream& input, int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
+void extract_body_record(string& line, int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 
 void print(string &path, sim_data_t *sd)
 {
@@ -105,9 +105,13 @@ void get_number_of_bodies(string& path, ttt_t t, data_representation_t repres)
 		{
 			cout << "Searching for the records in the input file with epoch: " << number_to_string(t) << " [d] ..." << endl;
 			ttt_t t_tmp = 0.0;
+			string line;
 			do
 			{
-				load_body_record(input, 0, epoch, bmd, p, r, v);
+				getline(input, line);
+				string epoch_str = line.substr(46, 23);
+
+				epoch[0] = atof(epoch_str.c_str());
 				if (t_tmp != epoch[0])
 				{
 					t_tmp = epoch[0];
@@ -119,11 +123,18 @@ void get_number_of_bodies(string& path, ttt_t t, data_representation_t repres)
 				input.close();
 				throw string("\nThe end of file was reached and the requested epoch was not found.");
 			}
+
 			t = epoch[0];
-			cout << "\nThe records in the input file for epoch: " << number_to_string(t) << " [d] was found." << endl;
+			cout << "\nThe records in the input file for epoch: " << epoch_to_string(t) << " [d] was found." << endl;
 			printf("Reading and counting the records ");
 			do
 			{
+				extract_body_record(line, 0, epoch, bmd, p, r, v);
+				if (t != epoch[0])
+				{
+					break;
+				}
+
 				g_epoch.push_back(epoch[0]);
 				g_bmd.push_back(bmd[0]);
 				g_param.push_back(p[0]);
@@ -161,7 +172,7 @@ void get_number_of_bodies(string& path, ttt_t t, data_representation_t repres)
 					default:
 						throw string("Unknown body type " + number_to_string((int)bmd[0].body_type) + ".");
 				}
-				load_body_record(input, 0, epoch, bmd, p, r, v);
+				getline(input, line);
 			} while (!input.eof() && t == epoch[0]);
 			printf(" done\n");
 			if (n_total != g_bmd.size())
@@ -229,102 +240,110 @@ void load_binary(ifstream& input, sim_data_t *sim_data)
 	}
 }
 
-void load_body_record(ifstream& input, int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v)
+void extract_body_record(string& line, int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v)
 {
 	int_t	type = 0;
 	string	dummy;
 
+	stringstream ss;
+	ss << line;
+
 	// id
-	input >> body_md[k].id;
+	ss >> body_md[k].id;
+
 	// name
-	input >> dummy;
+	ss >> dummy;
 	// The names must be less than or equal to 30 chars
 	if (dummy.length() > 30)
 	{
 		dummy = dummy.substr(0, 30);
 	}
 	body_names.push_back(dummy);
+
 	// body type
-	input >> type;
+	ss >> type;
 	body_md[k].body_type = static_cast<body_type_t>(type);
+
 	// epoch
-	input >> epoch[k];
+	ss >> epoch[k];
 
 	// mass, radius density and stokes coefficient
-	input >> p[k].mass >> p[k].radius >> p[k].density >> p[k].cd;
+	ss >> p[k].mass >> p[k].radius >> p[k].density >> p[k].cd;
 
 	// migration type
-	input >> type;
+	ss >> type;
 	body_md[k].mig_type = static_cast<migration_type_t>(type);
+
 	// migration stop at
-	input >> body_md[k].mig_stop_at;
+	ss >> body_md[k].mig_stop_at;
 
 	// position
-	input >> r[k].x >> r[k].y >> r[k].z;
+	ss >> r[k].x >> r[k].y >> r[k].z;
+
 	// velocity
-	input >> v[k].x >> v[k].y >> v[k].z;
+	ss >> v[k].x >> v[k].y >> v[k].z;
 
 	r[k].w = v[k].w = 0.0;
 }
 
-void load_ascii(ifstream& input, sim_data_t *sim_data)
-{
-	int ns, ngp, nrp, npp, nspl, npl, ntp;
-	input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp;
+//void load_ascii(ifstream& input, sim_data_t *sim_data)
+//{
+//	int ns, ngp, nrp, npp, nspl, npl, ntp;
+//	input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp;
+//
+//	vec_t* r = sim_data->h_y[0];
+//	vec_t* v = sim_data->h_y[1];
+//	param_t* p = sim_data->h_p;
+//	body_metadata_t* bmd = sim_data->h_body_md;
+//	ttt_t* epoch = sim_data->h_epoch;
+//
+//	int pcd = 1;
+//
+//	for (unsigned int i = 0; i < n_total; i++)
+//	{
+//		load_body_record(input, i, epoch, bmd, p, r, v);
+//		if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
+//		{
+//			printf(".");
+//			pcd++;
+//		}
+//	}
+//}
 
-	vec_t* r = sim_data->h_y[0];
-	vec_t* v = sim_data->h_y[1];
-	param_t* p = sim_data->h_p;
-	body_metadata_t* bmd = sim_data->h_body_md;
-	ttt_t* epoch = sim_data->h_epoch;
-
-	int pcd = 1;
-
-	for (unsigned int i = 0; i < n_total; i++)
-	{
-		load_body_record(input, i, epoch, bmd, p, r, v);
-		if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
-		{
-			printf(".");
-			pcd++;
-		}
-	}
-}
-
-void load(string& path, sim_data_t *sim_data, data_representation_t repres)
-{
-	cout << "Loading " << path << " ";
-
-	ifstream input;
-	switch (repres)
-	{
-	case DATA_REPRESENTATION_ASCII:
-		input.open(path.c_str());
-		if (input) 
-		{
-			load_ascii(input, sim_data);
-		}
-		else 
-		{
-			throw string("Cannot open " + path + ".");
-		}
-		break;
-	case DATA_REPRESENTATION_BINARY:
-		input.open(path.c_str(), ios::in | ios::binary);
-		if (input) 
-		{
-			load_binary(input, sim_data);
-		}
-		else 
-		{
-			throw string("Cannot open " + path + ".");
-		}
-		break;
-	}
-	input.close();
-
-	cout << " done" << endl;
-}
+//void load(string& path, sim_data_t *sim_data, data_representation_t repres)
+//{
+//	cout << "Loading " << path << " ";
+//
+//	ifstream input;
+//	switch (repres)
+//	{
+//	case DATA_REPRESENTATION_ASCII:
+//		input.open(path.c_str());
+//		if (input) 
+//		{
+//			load_ascii(input, sim_data);
+//		}
+//		else 
+//		{
+//			throw string("Cannot open " + path + ".");
+//		}
+//		break;
+//	case DATA_REPRESENTATION_BINARY:
+//		input.open(path.c_str(), ios::in | ios::binary);
+//		if (input) 
+//		{
+//			load_binary(input, sim_data);
+//		}
+//		else 
+//		{
+//			throw string("Cannot open " + path + ".");
+//		}
+//		break;
+//	}
+//	input.close();
+//
+//	cout << " done" << endl;
+//}
 
 int parse_options(int argc, const char **argv, string &iDir, string &oDir, string &input_file, ttt_t &t)
 {
@@ -394,7 +413,7 @@ int main(int argc, const char **argv)
 		sim_data->h_y[1] = g_velo.data();
 
 		{
-			string epoch_str = epoch_to_string(t);
+			string epoch_str = epoch_to_string(sim_data->h_epoch[0]);
 			string output_file = "snapshot_t_" + epoch_str;
 			path = file::combine_path(oDir, output_file) + ".txt";
 			print(path, sim_data);
@@ -409,7 +428,7 @@ int main(int argc, const char **argv)
 				tools::calculate_oe(mu, &rVec, &vVec, (&sim_data->h_oe[i]));
 			}
 
-			string epoch_str = epoch_to_string(t);
+			string epoch_str = epoch_to_string(sim_data->h_epoch[0]);
 			string output_file = "snapshot_t_" + epoch_str;
 			path = file::combine_path(oDir, output_file) + ".oe.txt";
 
