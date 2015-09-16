@@ -162,7 +162,7 @@ void get_number_of_bodies(string& path, ttt_t t, data_representation_t repres)
 						throw string("Unknown body type " + number_to_string((int)bmd[0].body_type) + ".");
 				}
 				load_body_record(input, 0, epoch, bmd, p, r, v);
-			} while (t == epoch[0]);
+			} while (!input.eof() && t == epoch[0]);
 			printf(" done\n");
 			if (n_total != g_bmd.size())
 			{
