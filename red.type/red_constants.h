@@ -23,6 +23,7 @@ namespace constants
 	const var_t DegreeToRadian		      = 1.745329251994329509e-2;
 	const var_t RadianToDegree		      = 1.0 / DegreeToRadian;
 
+	const var_t SolarToMoon               = 2.7071155e7;
 	const var_t SolarToMercury		      = 6.023600e6;
 	const var_t SolarToVenus		      = 4.0852371e5;
 	const var_t SolarToEarth		      = 3.3294605e5;
@@ -38,6 +39,7 @@ namespace constants
 	const var_t SolarToKilogram			  = 1.98911e30;
 	const var_t SolarToGram				  = 1.0e3 * SolarToKilogram;
 
+	const var_t MoonToSolar               = 1.0 / 2.7071155e7;
 	const var_t MercuryToSolar		      = 1.0 / SolarToMercury;
 	const var_t VenusToSolar		      = 1.0 / SolarToVenus;
 	const var_t EarthToSolar		      = 1.0 / SolarToEarth;

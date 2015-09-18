@@ -38,9 +38,74 @@ using namespace redutilcu;
 __constant__ var_t dc_threshold[THRESHOLD_N];
 __constant__ analytic_gas_disk_params_t dc_anal_gd_params;
 
+#define N    17
 
 namespace kernel
 {
+static __global__
+	void populate(int n, var_t value, var_t* dst)
+{
+	for (int i = 0; i < n; i++)
+	{
+		dst[i] = value;
+	}
+}
+
+static __global__
+	void set_element_of_array(int n, int idx, var_t* v, var_t value)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (i < n && idx == i)
+	{
+		v[idx] = value;
+	}
+}
+
+static __global__
+	void print_memory_address(int n, var_t* adr)
+{
+	for (int i = 0; i < n; i++)
+	{
+		printf("adr[%2d]: %p\n", i, adr[i]);
+	}
+}
+
+static __global__
+	void print_vector(int n, const vec_t* v)
+{
+	int tid = 0;
+	while (tid < n)
+	{
+		printf("%5d %20.16lf, %20.16lf, %20.16lf, %20.16lf\n", tid, v[tid].x, v[tid].y, v[tid].z, v[tid].w);
+		tid++;
+	}
+}
+
+static __global__
+	void print_array(int n, const var_t* v)
+{
+	printf("v: %p\n", v);
+
+	for (int i = 0; i < n; i++)
+	{
+		printf("v[%4d] : %20.16lf\n", i, v[i]);
+	}
+}
+
+static __global__
+	void print_array(int n, int k, var_t** v)
+{
+	printf("k: %2d\n", k);
+	printf("v: %p\n", v);
+	printf("v[%2d]: %p\n", k, v[k]);
+
+	for (int i = 0; i < n; i++)
+	{
+		printf("v[%2d][%2d] : %20.16lf\n", k, i, v[k][i]);
+	}
+}
+
 static __global__
 	void print_constant_memory()
 {
@@ -72,13 +137,7 @@ static __global__
 }
 
 static __global__
-	void	calc_grav_accel_int_mul_of_thread_per_block
-	(
-		interaction_bound int_bound, 
-		const param_t* p, 
-		const vec_t* r, 
-		vec_t* a
-	)
+	void calc_grav_accel_int_mul_of_thread_per_block(interaction_bound int_bound, const param_t* p, const vec_t* r, vec_t* a)
 {
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -110,18 +169,7 @@ static __global__
 }
 
 static __global__
-	void	calc_grav_accel
-	(
-		ttt_t t, 
-		interaction_bound int_bound, 
-		const body_metadata_t* body_md, 
-		const param_t* p, 
-		const vec_t* r, 
-		const vec_t* v, 
-		vec_t* a,
-		event_data_t* events,
-		int *event_counter
-	)
+	void calc_grav_accel(ttt_t t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
 {
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -193,49 +241,456 @@ static __global__
 	}
 }
 
-static __global__
-	void print_vector(int n, const vec_t* v)
+inline __host__ __device__
+	vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
 {
-	int tid = 0;
-	while (tid < n)
+	vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+
+	// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
+	dVec.x = rjVec.x - riVec.x;
+	dVec.y = rjVec.y - riVec.y;
+	dVec.z = rjVec.z - riVec.z;
+
+	// compute norm square of d vector [5 FLOPS] [3 read, 1 write]
+	dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);
+	// compute norm of d vector [1 FLOPS] [1 read, 1 write] TODO: how long does it take to compute sqrt ???
+	var_t s = sqrt(dVec.w);
+	// compute m_j / d^3 []
+	s = mj * 1.0 / (s * dVec.w);
+
+	aiVec.x += s * dVec.x;
+	aiVec.y += s * dVec.y;
+	aiVec.z += s * dVec.z;
+
+	return aiVec;
+}
+
+/*
+ * riVec = {x, y, z,  }
+ * rjVec = {x, y, z, m}
+ */
+inline __host__ __device__
+	vec_t body_body_interaction(vec_t riVec, vec_t rjVec, vec_t aiVec)
+{
+	vec_t dVec;
+
+	// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
+	dVec.x = rjVec.x - riVec.x;
+	dVec.y = rjVec.y - riVec.y;
+	dVec.z = rjVec.z - riVec.z;
+
+	// compute norm square of d vector [5 FLOPS] [3 read, 1 write]
+	dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);
+	// compute norm of d vector [1 FLOPS] [1 read, 1 write] TODO: how long does it take to compute sqrt ???
+	var_t d = sqrt(dVec.w);
+	// compute m_j / d^3 []
+	dVec.w = rjVec.w * 1.0 / (d * dVec.w);
+
+	aiVec.x += dVec.w * dVec.x;
+	aiVec.y += dVec.w * dVec.y;
+	aiVec.z += dVec.w * dVec.z;
+
+	return aiVec;
+}
+
+__global__
+	void calc_gravity_accel_tile_verbose(int tile_size, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+{
+	extern __shared__ vec_t sh_pos[];
+
+	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
+	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
+
+	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (0 == gtid)
 	{
-		printf("%5d %20.16lf, %20.16lf, %20.16lf, %20.16lf\n", tid, v[tid].x, v[tid].y, v[tid].z, v[tid].w);
-		tid++;
+		printf("[0 == gtid]:  gridDim = [%3d, %3d, %3d]\n", gridDim.x, gridDim.y, gridDim.z);
+		printf("[0 == gtid]: blockDim = [%3d, %3d, %3d]\n", blockDim.x, blockDim.y, blockDim.z);
+		printf("[0 == gtid]: total number of threads = gridDim.x * blockDim.x = %3d\n", gridDim.x * blockDim.x);
+		//printf("[0 == gtid]: sizeof(sh_pos) = %5d [byte]\n", sizeof(sh_pos));
+	}
+
+	if (0 == threadIdx.x)
+	{
+		printf("[0 == threadIdx.x]: blockIdx.x = %3d\n", blockIdx.x);
+	}
+	if (0 == blockIdx.x)
+	{
+		printf("[0 == blockIdx.x]: threadIdx.x = %3d\n", threadIdx.x);
+	}
+
+	// To avoid overruning the global_x buffer
+	if (N > gtid)
+	{
+		my_pos = global_x[gtid];
+	}
+	printf("gtid = %3d my_pos = [%10.6le, %10.6le, %10.6le]\n", gtid, my_pos.x, my_pos.y, my_pos.z);
+	if (0 == blockIdx.x)
+	{
+		printf("[0 == blockIdx.x]: gtid = %3d my_pos = [%10.6le, %10.6le, %10.6le]\n", gtid, my_pos.x, my_pos.y, my_pos.z);
+	}
+
+	for (int tile = 0; (tile * tile_size) < N; tile++)
+	{
+		int idx = tile * blockDim.x + threadIdx.x;
+		// To avoid overruning the global_x buffer
+		if (N > idx)
+		{
+			sh_pos[threadIdx.x] = global_x[idx];
+		}
+		if (0 == blockIdx.x)
+		{
+			printf("[0 == blockIdx.x]: tile = %3d threadIdx.x = %3d idx = %3d sh_pos[threadIdx.x] = [%10.6le, %10.6le, %10.6le]\n", tile, threadIdx.x, idx, sh_pos[threadIdx.x].x, sh_pos[threadIdx.x].y, sh_pos[threadIdx.x].z);
+		}
+		__syncthreads();
+		if (0 == blockIdx.x && 0 == threadIdx.x)
+		{
+			printf("After 1st __syncthreads()\n");
+		}
+
+		for (int j = 0; j < blockDim.x; j++)
+		{
+			if (0 == blockIdx.x)
+			{
+				// To avoid overrun the mass buffer
+				if (N <= (tile * tile_size) + j)
+				{
+					printf("Warning: N (%3d) <= tile * tile_size + j (%3d)\n", N, (tile * tile_size) + j);
+				}
+				// To avoid self-interaction or mathematically division by zero
+				if (gtid == (tile * tile_size)+j)
+				{
+					printf("Warning: gtid (%3d) == (tile * tile_size)+j (%3d)\n", gtid, (tile * tile_size)+j);
+				}
+				printf("[0 == blockIdx.x]: tile = %3d j = %3d threadIdx.x = %3d idx = %3d my_pos = [%10.6le, %10.6le, %10.6le] sh_pos[j] = [%10.6le, %10.6le, %10.6le]\n", tile, j, threadIdx.x, idx, my_pos.x, my_pos.y, my_pos.z, sh_pos[j].x, sh_pos[j].y, sh_pos[j].z);
+			}
+			// To avoid overrun the mass buffer
+			if (N <= (tile * tile_size) + j)
+			{
+				break;
+			}
+			// To avoid self-interaction or mathematically division by zero
+			if (gtid != (tile * tile_size)+j)
+			{
+				acc = body_body_interaction(my_pos, sh_pos[j], mass[idx], acc);
+			}
+		}
+
+		__syncthreads();
+		if (0 == blockIdx.x && 0 == threadIdx.x)
+		{
+			printf("After 2nd __syncthreads()\n");
+		}
+	}
+
+	// To avoid overruning the global_a buffer
+	if (N > gtid)
+	{
+		printf("gtid = %3d acc = [%14.6le, %14.6le, %14.6le]\n", gtid, acc.x, acc.y, acc.z);
+		global_a[gtid] = acc;
 	}
 }
 
 __global__
-	void print_array(int n, const var_t* v)
+	void calc_gravity_accel_tile(int tile_size, const vec_t* global_x, const var_t* mass, vec_t* global_a)
 {
-	printf("v: %p\n", v);
+	extern __shared__ vec_t sh_pos[];
 
-	for (int i = 0; i < n; i++)
+	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
+	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
+
+	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	// To avoid overruning the global_x buffer
+	if (N > gtid)
 	{
-		printf("v[%4d] : %20.16lf\n", i, v[i]);
+		my_pos = global_x[gtid];
+	}
+	for (int tile = 0; (tile * tile_size) < N; tile++)
+	{
+		int idx = tile * blockDim.x + threadIdx.x;
+		// To avoid overruning the global_x buffer
+		if (N > idx)
+		{
+			sh_pos[threadIdx.x] = global_x[idx];
+		}
+		__syncthreads();
+		for (int j = 0; j < blockDim.x; j++)
+		{
+			// To avoid overrun the mass buffer
+			if (N <= (tile * tile_size) + j)
+			{
+				break;
+			}
+			// To avoid self-interaction or mathematically division by zero
+			if (gtid != (tile * tile_size)+j)
+			{
+				acc = body_body_interaction(my_pos, sh_pos[j], mass[idx], acc);
+				//vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+
+				//// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
+				//dVec.x = sh_pos[j].x - my_pos.x;
+				//dVec.y = sh_pos[j].y - my_pos.y;
+				//dVec.z = sh_pos[j].z - my_pos.z;
+
+				//// compute norm square of d vector [5 FLOPS] [3 read, 1 write]
+				//dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);
+				//// compute norm of d vector [1 FLOPS] [1 read, 1 write] TODO: how long does it take to compute sqrt ???
+				//var_t s = sqrt(dVec.w);
+				//// compute m_j / d^3 []
+				//s = mass[j] * 1.0 / (s * dVec.w);
+
+				//acc.x += s * dVec.x;
+				//acc.y += s * dVec.y;
+				//acc.z += s * dVec.z;
+			}
+		}
+		__syncthreads();
+	}
+	// To avoid overruning the global_a buffer
+	if (N > gtid)
+	{
+		global_a[gtid] = acc;
+	}
+}
+
+#define GTID     16
+#define BLKIDX    4
+/*
+ * The same as above but the blockDim.x is used instead of tile_size (both variable have the same value)
+ */
+__global__
+	void calc_gravity_accel_tile_verbose(const vec_t* global_x, const var_t* mass, vec_t* global_a)
+{
+	extern __shared__ vec_t sh_pos[];
+	// extern __shared__ var_t sh_mass[512]; // This ruins the code !!!
+	//__shared__ var_t sh_mass[512];         // This is OK but it is a static allocation, NOT NICE
+
+	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (0 == gtid)
+	{
+		//printf("[0 == gtid]:  gridDim = [%3d, %3d, %3d] [block]\n", gridDim.x, gridDim.y, gridDim.z);
+		//printf("[0 == gtid]: blockDim = [%3d, %3d, %3d] [thread]\n", blockDim.x, blockDim.y, blockDim.z);
+		//printf("[0 == gtid]: total size of the grid = gridDim.x * blockDim.x = %3d [thread]\n", gridDim.x * blockDim.x);
+		//printf("[0 == gtid]: sizeof(sh_pos) = %5d [byte]\n", sizeof(sh_pos));
+	}
+
+	vec_t acc = {0.0, 0.0, 0.0, 0.0};
+	vec_t my_pos;
+
+	// To avoid overruning the global_x buffer
+	if (N > gtid)
+	{
+		my_pos = global_x[gtid];
+		if (GTID == gtid)
+		{
+			printf("[%2d == i] rVec = [%16.8le, %16.8le, %16.8le]\n", GTID, my_pos.x, my_pos.y, my_pos.z);
+			printf("[%2d == i], blockIdx.x = %2d\n", GTID, blockIdx.x);
+		}
+	}
+	
+	for (int tile = 0; (tile * blockDim.x) < N; tile++)
+	{
+		const int idx = tile * blockDim.x + threadIdx.x;
+		if (BLKIDX == blockIdx.x)
+		{
+			printf("[%2d == blockIdx.x]: tile = %3d threadIdx.x = %3d idx = %3d\n", BLKIDX, tile, threadIdx.x, idx);
+		}
+		// To avoid overruning the global_x and mass buffer
+		if (N > idx)
+		{
+			if (GTID == gtid)
+			{
+				//printf("[Ln: %3d] [%2d == i] global_x = [%16.8le, %16.8le, %16.8le]\n", __LINE__, GTID, global_x[idx].x, global_x[idx].y, global_x[idx].z);
+				printf("[Ln: %3d] [%2d == i] idx = [%5d]\n", __LINE__, GTID, idx);
+			}
+			sh_pos[ threadIdx.x]   = global_x[idx];
+			sh_pos[ threadIdx.x].w = mass[idx];
+			//sh_mass[threadIdx.x] = mass[idx];
+			// This thread block executes the GTID thread
+			if (BLKIDX == blockIdx.x)
+			{
+				printf("[Ln: %3d] [%2d == i] threadIdx.x = %2d sh_pos = [%16.8le, %16.8le, %16.8le]\n", __LINE__, GTID, threadIdx.x, sh_pos[threadIdx.x].x, sh_pos[threadIdx.x].y, sh_pos[threadIdx.x].z);
+			}
+		}
+		__syncthreads();
+
+		for (int j = 0; j < blockDim.x; j++)
+		{
+			// To avoid overrun the mass buffer
+			if (N <= (tile * blockDim.x) + j)
+			{
+				break;
+			}
+			// To avoid self-interaction or mathematically division by zero
+			if (gtid != (tile * blockDim.x) + j)
+			{
+				//acc = body_body_interaction(my_pos, sh_pos[j], mass[j], acc);
+				// WARNING: not mass[j] BUT mass[idx] !! Check the other functions!!
+				//acc = body_body_interaction(my_pos, sh_pos[j], mass[idx], acc);
+				vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+
+				// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
+				dVec.x = sh_pos[j].x - my_pos.x;
+				dVec.y = sh_pos[j].y - my_pos.y;
+				dVec.z = sh_pos[j].z - my_pos.z;
+
+				// compute norm square of d vector [5 FLOPS] [3 read, 1 write]
+				dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);
+				// compute norm of d vector [1 FLOPS] [1 read, 1 write] TODO: how long does it take to compute sqrt ???
+				var_t d = sqrt(dVec.w);
+				// compute m_j / d^3 []
+				//dVec.w = mass[(tile * blockDim.x) + j] * 1.0 / (d * dVec.w);
+				//dVec.w = sh_mass[j] * 1.0 / (d * dVec.w);
+				dVec.w = sh_pos[j].w * 1.0 / (d * dVec.w);
+
+				acc.x += dVec.w * dVec.x;
+				acc.y += dVec.w * dVec.y;
+				acc.z += dVec.w * dVec.z;
+
+				if (GTID == gtid)
+				{
+					//printf("[%2d == i, j = %2d] dVec = [%16.8le, %16.8le, %16.8le] mj = %16.8le d = %16.8le w = %16.8le a = [%16.8le, %16.8le, %16.8le]\n", GTID, (tile * blockDim.x) + j, dVec.x, dVec.y, dVec.z, mass[(tile * blockDim.x) + j], d, dVec.w, acc.x, acc.y, acc.z);
+					//printf("[%2d == i, j = %2d] dVec = [%16.8le, %16.8le, %16.8le] mj = %16.8le d = %16.8le w = %16.8le a = [%16.8le, %16.8le, %16.8le]\n", GTID, (tile * blockDim.x) + j, dVec.x, dVec.y, dVec.z, sh_mass[j], d, dVec.w, acc.x, acc.y, acc.z);
+					printf("[%2d == i, j = %2d] dVec = [%16.8le, %16.8le, %16.8le] mj = %16.8le d = %16.8le w = %16.8le a = [%16.8le, %16.8le, %16.8le]\n", GTID, (tile * blockDim.x) + j, dVec.x, dVec.y, dVec.z, sh_pos[j].w, d, dVec.w, acc.x, acc.y, acc.z);
+				}
+			}
+		}
+		__syncthreads();
+	}
+	if (N > gtid)
+	{
+		global_a[gtid] = acc;
+	}
+}
+#undef GTID
+#undef BLKIDX
+
+/*
+ * The same as above but the blockDim.x is used instead of tile_size (both variable have the same value)
+ */
+__global__
+	void calc_gravity_accel_tile(const vec_t* global_x, const var_t* mass, vec_t* global_a)
+{
+	extern __shared__ vec_t sh_pos[];
+
+	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	vec_t acc = {0.0, 0.0, 0.0, 0.0};
+	vec_t my_pos;
+
+	// To avoid overruning the global_x buffer
+	if (N > gtid)
+	{
+		my_pos = global_x[gtid];
+	}
+	
+	for (int tile = 0; (tile * blockDim.x) < N; tile++)
+	{
+		const int idx = tile * blockDim.x + threadIdx.x;
+		// To avoid overruning the global_x and mass buffer
+		if (N > idx)
+		{
+			sh_pos[threadIdx.x]   = global_x[idx];
+			sh_pos[threadIdx.x].w = mass[idx];
+		}
+		__syncthreads();
+
+		for (int j = 0; j < blockDim.x; j++)
+		{
+			// To avoid overrun the input arrays
+			if (N <= (tile * blockDim.x) + j)
+			{
+				break;
+			}
+			// To avoid self-interaction or mathematically division by zero
+			if (gtid != (tile * blockDim.x) + j)
+			{
+				acc = body_body_interaction(my_pos, sh_pos[j], acc);
+			}
+		}
+		__syncthreads();
+	}
+	if (N > gtid)
+	{
+		global_a[gtid] = acc;
 	}
 }
 
 __global__
-	void print_array(int n, int k, var_t** v)
+	void calc_gravity_accel_naive(const vec_t* global_x, const var_t* mass, vec_t* global_a)
 {
-	printf("k: %2d\n", k);
-	printf("v: %p\n", v);
-	printf("v[%2d]: %p\n", k, v[k]);
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-	for (int i = 0; i < n; i++)
+	if (N > i)
 	{
-		printf("v[%2d][%2d] : %20.16lf\n", k, i, v[k][i]);
+		global_a[i].x = global_a[i].y = global_a[i].z = global_a[i].w = 0.0;
+		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		for (int j = 0; j < N; j++) 
+		{
+			/* Skip the body with the same index */
+			if (i == j)
+			{
+				continue;
+			}
+			//global_a[i] = body_body_interaction(global_x[i], global_x[j], mass[j], global_a[i]);
+			// 3 FLOP
+			dVec.x = global_x[j].x - global_x[i].x;
+			dVec.y = global_x[j].y - global_x[i].y;
+			dVec.z = global_x[j].z - global_x[i].z;
+			// 5 FLOP
+			dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+
+			// 20 FLOP
+			var_t d = sqrt(dVec.w);								// = r
+			// 2 FLOP
+			dVec.w = mass[j] / (d*dVec.w);
+			// 6 FLOP
+			global_a[i].x += dVec.w * dVec.x;
+			global_a[i].y += dVec.w * dVec.y;
+			global_a[i].z += dVec.w * dVec.z;
+		} // 36 FLOP
 	}
 }
 
+// NOTE: Before calling this function, the global_a array must be cleared!
 __global__
-	void set_element_of_array(int n, int idx, var_t* v, var_t value)
+	void calc_gravity_accel_naive_sym(const vec_t* global_x, const var_t* mass, vec_t* global_a)
 {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (i < n && idx == i)
+	if (N > i)
 	{
-		v[idx] = value;
+		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		for (int j = i+1; j < N; j++) 
+		{
+			// 3 FLOP
+			dVec.x = global_x[j].x - global_x[i].x;
+			dVec.y = global_x[j].y - global_x[i].y;
+			dVec.z = global_x[j].z - global_x[i].z;
+			// 5 FLOP
+			dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+
+			// sqrt operation takes approximately 20 FLOP
+			var_t d = sqrt(dVec.w);								// = r
+			// 2 FLOP
+			var_t r_3 = 1.0 / (d*dVec.w);
+			// 1 FLOP
+			dVec.w = mass[j] * r_3;
+			// 6 FLOP
+			global_a[i].x += dVec.w * dVec.x;
+			global_a[i].y += dVec.w * dVec.y;
+			global_a[i].z += dVec.w * dVec.z;
+
+			// 2 FLOP
+			dVec.w = mass[i] * r_3;
+			// 6 FLOP
+			global_a[j].x -= dVec.w * dVec.x;
+			global_a[j].y -= dVec.w * dVec.y;
+			global_a[j].z -= dVec.w * dVec.z;
+		} // 36 + 8 = 44 FLOP
 	}
 }
 } /* namespace kernel */
@@ -387,25 +842,8 @@ int main(int argc, const char** argv)
 #endif
 
 #if 0
-
-static __global__
-	void kernel_print_memory_address(int n, var_t* adr)
-{
-	for (int i = 0; i < n; i++)
-	{
-		printf("adr[%2d]: %p\n", i, adr[i]);
-	}
-}
-
-static __global__
-	void kernel_populate(int n, var_t value, var_t* dst)
-{
-	for (int i = 0; i < n; i++)
-	{
-		dst[i] = value;
-	}
-}
-
+// Strudy for the c_rkf8 integrator
+// Howto pass an array of address to the kernel
 int main()
 {
 	vector<vector <vec_t*> >	d_f(2);
@@ -590,7 +1028,7 @@ int main(int argc, const char** argv)
 #endif
 
 #if 0
-
+// Test the ALLOCATE_VECTOR and FREE_VECTOR macro functions
 void free_h_vector(void **ptr, const char *file, int line)
 {
 	delete[] *ptr;
@@ -820,382 +1258,17 @@ int main(int argc, char** argv)
  * Compare times needed by the tile and naive implementation.
  */
 
-#define N           19
-#define NTILE      256
-
-inline __host__ __device__
-	vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
-{
-	vec_t dVec = {0.0, 0.0, 0.0, 0.0};
-
-	// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
-	dVec.x = rjVec.x - riVec.x;
-	dVec.y = rjVec.y - riVec.y;
-	dVec.z = rjVec.z - riVec.z;
-
-	// compute norm square of d vector [5 FLOPS] [3 read, 1 write]
-	dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);
-	// compute norm of d vector [1 FLOPS] [1 read, 1 write] TODO: how long does it take to compute sqrt ???
-	var_t s = sqrt(dVec.w);
-	// compute m_j / d^3 []
-	s = mj * 1.0 / (s * dVec.w);
-
-	aiVec.x += s * dVec.x;
-	aiVec.y += s * dVec.y;
-	aiVec.z += s * dVec.z;
-
-	return aiVec;
-}
-
-__global__
-	void kernel_calc_gravity_accel_tile_verbose(int tile_size, const vec_t* global_x, const var_t* mass, vec_t* global_a)
-{
-	extern __shared__ vec_t sh_pos[];
-
-	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
-	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
-
-	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
-
-	if (0 == gtid)
-	{
-		printf("[0 == gtid]:  gridDim = [%3d, %3d, %3d]\n", gridDim.x, gridDim.y, gridDim.z);
-		printf("[0 == gtid]: blockDim = [%3d, %3d, %3d]\n", blockDim.x, blockDim.y, blockDim.z);
-		printf("[0 == gtid]: total number of threads = gridDim.x * blockDim.x = %3d\n", gridDim.x * blockDim.x);
-		//printf("[0 == gtid]: sizeof(sh_pos) = %5d [byte]\n", sizeof(sh_pos));
-	}
-
-	if (0 == threadIdx.x)
-	{
-		printf("[0 == threadIdx.x]: blockIdx.x = %3d\n", blockIdx.x);
-	}
-	if (0 == blockIdx.x)
-	{
-		printf("[0 == blockIdx.x]: threadIdx.x = %3d\n", threadIdx.x);
-	}
-
-	// To avoid overruning the global_x buffer
-	if (N > gtid)
-	{
-		my_pos = global_x[gtid];
-	}
-	printf("gtid = %3d my_pos = [%10.6le, %10.6le, %10.6le]\n", gtid, my_pos.x, my_pos.y, my_pos.z);
-	if (0 == blockIdx.x)
-	{
-		printf("[0 == blockIdx.x]: gtid = %3d my_pos = [%10.6le, %10.6le, %10.6le]\n", gtid, my_pos.x, my_pos.y, my_pos.z);
-	}
-
-	for (int tile = 0; (tile * tile_size) < N; tile++)
-	{
-		int idx = tile * blockDim.x + threadIdx.x;
-		// To avoid overruning the global_x buffer
-		if (N > idx)
-		{
-			sh_pos[threadIdx.x] = global_x[idx];
-		}
-		if (0 == blockIdx.x)
-		{
-			printf("[0 == blockIdx.x]: tile = %3d threadIdx.x = %3d idx = %3d sh_pos[threadIdx.x] = [%10.6le, %10.6le, %10.6le]\n", tile, threadIdx.x, idx, sh_pos[threadIdx.x].x, sh_pos[threadIdx.x].y, sh_pos[threadIdx.x].z);
-		}
-		__syncthreads();
-		if (0 == blockIdx.x && 0 == threadIdx.x)
-		{
-			printf("After 1st __syncthreads()\n");
-		}
-
-		for (int j = 0; j < blockDim.x; j++)
-		{
-			if (0 == blockIdx.x)
-			{
-				// To avoid overrun the mass buffer
-				if (N <= (tile * tile_size) + j)
-				{
-					printf("Warning: N (%3d) <= tile * tile_size + j (%3d)\n", N, (tile * tile_size) + j);
-				}
-				// To avoid self-interaction or mathematically division by zero
-				if (gtid == (tile * tile_size)+j)
-				{
-					printf("Warning: gtid (%3d) == (tile * tile_size)+j (%3d)\n", gtid, (tile * tile_size)+j);
-				}
-				printf("[0 == blockIdx.x]: tile = %3d j = %3d threadIdx.x = %3d idx = %3d my_pos = [%10.6le, %10.6le, %10.6le] sh_pos[j] = [%10.6le, %10.6le, %10.6le]\n", tile, j, threadIdx.x, idx, my_pos.x, my_pos.y, my_pos.z, sh_pos[j].x, sh_pos[j].y, sh_pos[j].z);
-			}
-			// To avoid overrun the mass buffer
-			if (N <= (tile * tile_size) + j)
-			{
-				break;
-			}
-			// To avoid self-interaction or mathematically division by zero
-			if (gtid != (tile * tile_size)+j)
-			{
-				acc = body_body_interaction(my_pos, sh_pos[j], mass[j], acc);
-			}
-		}
-
-		__syncthreads();
-		if (0 == blockIdx.x && 0 == threadIdx.x)
-		{
-			printf("After 2nd __syncthreads()\n");
-		}
-	}
-
-	// To avoid overruning the global_a buffer
-	if (N > gtid)
-	{
-		printf("gtid = %3d acc = [%14.6le, %14.6le, %14.6le]\n", gtid, acc.x, acc.y, acc.z);
-		global_a[gtid] = acc;
-	}
-}
-
-__global__
-	void kernel_calc_gravity_accel_tile(int tile_size, const vec_t* global_x, const var_t* mass, vec_t* global_a)
-{
-	extern __shared__ vec_t sh_pos[];
-
-	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
-	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
-
-	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
-
-	// To avoid overruning the global_x buffer
-	if (N > gtid)
-	{
-		my_pos = global_x[gtid];
-	}
-	for (int tile = 0; (tile * tile_size) < N; tile++)
-	{
-		int idx = tile * blockDim.x + threadIdx.x;
-		// To avoid overruning the global_x buffer
-		if (N > idx)
-		{
-			sh_pos[threadIdx.x] = global_x[idx];
-		}
-		__syncthreads();
-		for (int j = 0; j < blockDim.x; j++)
-		{
-			// To avoid overrun the mass buffer
-			if (N <= (tile * tile_size) + j)
-			{
-				break;
-			}
-			// To avoid self-interaction or mathematically division by zero
-			if (gtid != (tile * tile_size)+j)
-			{
-				acc = body_body_interaction(my_pos, sh_pos[j], mass[j], acc);
-				//vec_t dVec = {0.0, 0.0, 0.0, 0.0};
-
-				//// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
-				//dVec.x = sh_pos[j].x - my_pos.x;
-				//dVec.y = sh_pos[j].y - my_pos.y;
-				//dVec.z = sh_pos[j].z - my_pos.z;
-
-				//// compute norm square of d vector [5 FLOPS] [3 read, 1 write]
-				//dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);
-				//// compute norm of d vector [1 FLOPS] [1 read, 1 write] TODO: how long does it take to compute sqrt ???
-				//var_t s = sqrt(dVec.w);
-				//// compute m_j / d^3 []
-				//s = mass[j] * 1.0 / (s * dVec.w);
-
-				//acc.x += s * dVec.x;
-				//acc.y += s * dVec.y;
-				//acc.z += s * dVec.z;
-			}
-		}
-		__syncthreads();
-	}
-	// To avoid overruning the global_a buffer
-	if (N > gtid)
-	{
-		global_a[gtid] = acc;
-	}
-}
-
-/*
- * The same as above but the blockDim.x is used instead of tile_size (both variable have the same value)
- */
-__global__
-	void kernel_calc_gravity_accel_tile(const vec_t* global_x, const var_t* mass, vec_t* global_a)
-{
-	extern __shared__ vec_t sh_pos[];
-
-	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
-
-	// To avoid overruning the global_x buffer
-	if (N > gtid)
-	{
-		vec_t acc    = {0.0, 0.0, 0.0, 0.0};
-		vec_t my_pos = global_x[gtid];
-
-		for (int tile = 0; (tile * blockDim.x) < N; tile++)
-		{
-			const int idx = tile * blockDim.x + threadIdx.x;
-			// To avoid overruning the global_x buffer
-			if (N > idx)
-			{
-				sh_pos[threadIdx.x] = global_x[idx];
-			}
-			__syncthreads();
-
-			for (int j = 0; j < blockDim.x; j++)
-			{
-				// To avoid overrun the mass buffer
-				if (N <= (tile * blockDim.x) + j)
-				{
-					break;
-				}
-				// To avoid self-interaction or mathematically division by zero
-				if (gtid != (tile * blockDim.x) + j)
-				{
-					acc = body_body_interaction(my_pos, sh_pos[j], mass[j], acc);
-				}
-			}
-			__syncthreads();
-		}
-		global_a[gtid] = acc;
-	}
-}
-
-/*
- * The same as above but the blockDim.x is used instead of tile_size (both variable have the same value)
- */
-__global__
-	void kernel_calc_gravity_accel_tile_verbose(const vec_t* global_x, const var_t* mass, vec_t* global_a)
-{
-	extern __shared__ vec_t sh_pos[];
-
-	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
-
-	if (0 == gtid)
-	{
-		printf("[0 == gtid]:  gridDim = [%3d, %3d, %3d] [block]\n", gridDim.x, gridDim.y, gridDim.z);
-		printf("[0 == gtid]: blockDim = [%3d, %3d, %3d] [thread]\n", blockDim.x, blockDim.y, blockDim.z);
-		printf("[0 == gtid]: total size of the grid = gridDim.x * blockDim.x = %3d [thread]\n", gridDim.x * blockDim.x);
-		//printf("[0 == gtid]: sizeof(sh_pos) = %5d [byte]\n", sizeof(sh_pos));
-	}
-
-	// To avoid overruning the global_x buffer
-	if (N > gtid)
-	{
-		vec_t acc    = {0.0, 0.0, 0.0, 0.0};
-		vec_t my_pos = global_x[gtid];
-
-		printf("gtid = %3d my_pos = [%10.6le, %10.6le, %10.6le]\n", gtid, my_pos.x, my_pos.y, my_pos.z);
-
-		for (int tile = 0; (tile * blockDim.x) < N; tile++)
-		{
-			const int idx = tile * blockDim.x + threadIdx.x;
-			if (0 == blockIdx.x)
-			{
-				printf("[0 == blockIdx.x]: tile = %3d threadIdx.x = %3d idx = %3d\n", tile, threadIdx.x, idx);
-			}
-			// To avoid overruning the global_x buffer
-			if (N > idx)
-			{
-				sh_pos[threadIdx.x] = global_x[idx];
-			}
-			__syncthreads();
-
-			for (int j = 0; j < blockDim.x; j++)
-			{
-				// To avoid overrun the mass buffer
-				if (N <= (tile * blockDim.x) + j)
-				{
-					break;
-				}
-				// To avoid self-interaction or mathematically division by zero
-				if (gtid != (tile * blockDim.x) + j)
-				{
-					//acc = body_body_interaction(my_pos, sh_pos[j], mass[j], acc);
-					// WARNING: not mass[j] BUT mass[idx] !! Check the other functions!!
-					acc = body_body_interaction(my_pos, sh_pos[j], mass[idx], acc);
-				}
-			}
-			__syncthreads();
-		}
-		global_a[gtid] = acc;
-	}
-}
-
-__global__
-	void kernel_calc_gravity_accel_naive(const vec_t* global_x, const var_t* mass, vec_t* global_a)
-{
-	const int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-	if (N > i)
-	{
-		global_a[i].x = global_a[i].y = global_a[i].z = global_a[i].w = 0.0;
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
-		for (int j = 0; j < N; j++) 
-		{
-			/* Skip the body with the same index */
-			if (i == j)
-			{
-				continue;
-			}
-			//global_a[i] = body_body_interaction(global_x[i], global_x[j], mass[j], global_a[i]);
-			// 3 FLOP
-			dVec.x = global_x[j].x - global_x[i].x;
-			dVec.y = global_x[j].y - global_x[i].y;
-			dVec.z = global_x[j].z - global_x[i].z;
-			// 5 FLOP
-			dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
-
-			// 20 FLOP
-			var_t d = sqrt(dVec.w);								// = r
-			// 2 FLOP
-			dVec.w = mass[j] / (d*dVec.w);
-			// 6 FLOP
-			global_a[i].x += dVec.w * dVec.x;
-			global_a[i].y += dVec.w * dVec.y;
-			global_a[i].z += dVec.w * dVec.z;
-		} // 36 FLOP
-	}
-}
-
-// NOTE: Before calling this function, the global_a array must be cleared!
-__global__
-	void kernel_calc_gravity_accel_naive_sym(const vec_t* global_x, const var_t* mass, vec_t* global_a)
-{
-	const int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-	if (N > i)
-	{
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
-		for (int j = i+1; j < N; j++) 
-		{
-			// 3 FLOP
-			dVec.x = global_x[j].x - global_x[i].x;
-			dVec.y = global_x[j].y - global_x[i].y;
-			dVec.z = global_x[j].z - global_x[i].z;
-			// 5 FLOP
-			dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
-
-			// sqrt operation takes approximately 20 FLOP
-			var_t d = sqrt(dVec.w);								// = r
-			// 2 FLOP
-			var_t r_3 = 1.0 / (d*dVec.w);
-			// 1 FLOP
-			dVec.w = mass[j] * r_3;
-			// 6 FLOP
-			global_a[i].x += dVec.w * dVec.x;
-			global_a[i].y += dVec.w * dVec.y;
-			global_a[i].z += dVec.w * dVec.z;
-
-			// 2 FLOP
-			dVec.w = mass[i] * r_3;
-			// 6 FLOP
-			global_a[j].x -= dVec.w * dVec.x;
-			global_a[j].y -= dVec.w * dVec.y;
-			global_a[j].z -= dVec.w * dVec.z;
-		} // 36 + 8 = 44 FLOP
-	}
-}
-
 void cpu_calc_grav_accel_naive(int n, const vec_t* r, const var_t* mass, vec_t* a)
 {
 	memset(a, 0, n*sizeof(vec_t));
 
 	for (int i = 0; i < n; i++)
 	{
+		//if (GTID == i)
+		//{
+		//	printf("[%2d == i] rVec = [%16.8le, %16.8le, %16.8le]\n", GTID, r[i].x, r[i].y, r[i].z);
+		//}
+
 		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
 		for (int j = 0; j < n; j++) 
 		{
@@ -1217,9 +1290,15 @@ void cpu_calc_grav_accel_naive(int n, const vec_t* r, const var_t* mass, vec_t* 
 			// 1 FLOP
 			dVec.w = mass[j] * r_3;
 			// 6 FLOP
+
 			a[i].x += dVec.w * dVec.x;
 			a[i].y += dVec.w * dVec.y;
 			a[i].z += dVec.w * dVec.z;
+
+			//if (GTID == i)
+			//{
+			//	printf("[%2d == i, j = %2d] dVec = [%16.8le, %16.8le, %16.8le] mj = %16.8le d = %16.8le w = %16.8le a = [%16.8le, %16.8le, %16.8le] \n", GTID, j, dVec.x, dVec.y, dVec.z, mass[j], d, dVec.w, a[i].x, a[i].y, a[i].z);
+			//}
 		} // 36 FLOP
 	}
 }
@@ -1273,7 +1352,7 @@ float gpu_calc_grav_accel_naive_benchmark(int n_tpb, const vec_t* d_x, const var
 
 	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 
-	kernel_calc_gravity_accel_naive<<<grid, block>>>(d_x, d_m, d_a);
+	kernel::calc_gravity_accel_naive<<<grid, block>>>(d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 
 	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
@@ -1298,7 +1377,7 @@ float gpu_calc_grav_accel_naive_sym_benchmark(int n_tpb, const vec_t* d_x, const
 	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 
 	CUDA_SAFE_CALL(cudaMemset(d_a, 0, N*sizeof(vec_t)));
-	kernel_calc_gravity_accel_naive_sym<<<grid, block>>>(d_x, d_m, d_a);
+	kernel::calc_gravity_accel_naive_sym<<<grid, block>>>(d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 
 	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
@@ -1322,9 +1401,7 @@ float gpu_calc_grav_accel_tile_benchmark(int n_tpb, const vec_t* d_x, const var_
 
 	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 
-	//kernel_calc_gravity_accel_verbose<<<grid, block, NTILE * sizeof(vec_t)>>>(d_x, d_m, d_a);
-	//kernel_calc_gravity_accel_tile<<<grid, block, NTILE * sizeof(vec_t)>>>(d_x, d_m, d_a);
-	kernel_calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(n_tpb, d_x, d_m, d_a);
+	kernel::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(n_tpb, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 
 	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
@@ -1349,7 +1426,7 @@ float gpu_calc_grav_accel_tile_benchmark_2(int n_tpb, const vec_t* d_x, const va
 
 	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 
-	kernel_calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(d_x, d_m, d_a);
+	kernel::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 
 	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
@@ -1517,59 +1594,61 @@ bool compare_vectors(int n, const vec_t* v1, const vec_t* v2, var_t tolerance, b
 	for (int i = 0; i < n; i++)
 	{
 		var_t diff = fabs(v1[i].x - v2[i].x);
-		if (tolerance != diff)
+		var_t rel  = diff / v1[i].x;
+		if (tolerance <= diff)
 		{
 			if (success && verbose) printf("\n");
-			if (verbose) printf("\tError: i = [%5d] acceleration vector's x-component differs by %20.16le\n", i, diff);
+			if (verbose) printf("\tError: i = [%5d] v1.x = %16.8le v2.x = %16.8le D = %16.8le rel = %16.8le\n", i, v1[i].x, v2[i].x, diff, rel);
 			success = false;
 		}
 		diff = fabs(v1[i].y - v2[i].y);
-		if (tolerance != diff)
+		rel  = diff / v1[i].y;
+		if (tolerance <= diff)
 		{
 			if (success && verbose) printf("\n");
-			if (verbose) printf("\tError: i = [%5d] acceleration vector's y-component differs by %20.16le\n", i, diff);
+			if (verbose) printf("\tError: i = [%5d] v1.y = %16.8le v2.y = %16.8le D = %16.8le rel = %16.8le\n", i, v1[i].y, v2[i].y, diff, rel);
 			success = false;
 		}
 		diff = fabs(v1[i].z - v2[i].z);
-		if (tolerance != diff)
+		rel  = diff / v1[i].z;
+		if (tolerance <= diff)
 		{
 			if (success && verbose) printf("\n");
-			if (verbose) printf("\tError: i = [%5d] acceleration vector's z-component differs by %20.16le\n", i, diff);
+			if (verbose) printf("\tError: i = [%5d] v1.z = %16.8le v2.x = %16.8le D = %16.8le rel = %16.8le\n", i, v1[i].z, v2[i].z, diff, rel);
 			success = false;
 		}
 	}
 	if (success)
 	{
-		printf("the results are identical!\n");
+		printf("The results are identical with a tolerance of %20.16le.\n", tolerance);
 	}
 	else
 	{
-		printf("the results are different!\n");
+		printf("The results are different with a tolerance of %20.16le.\n", tolerance);
 	}
 	return success;
 }
 
-void compare_results(const vec_t* d_x, const var_t* d_m, vec_t* d_a, const vec_t* h_x, const var_t* h_m, vec_t* h_a, vec_t* h_at)
+void compare_results(int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a, const vec_t* h_x, const var_t* h_m, vec_t* h_a, vec_t* h_at, var_t tolerance)
 {
 	bool result = true;
-	var_t tolerance = 0.0;
 
 	printf("\nComparing the computations of the gravitational accelerations performed\non the CPU with two different functions naive() and naive_sym(): ");
 	cpu_calc_grav_accel_naive(    N, h_x, h_m, h_a );
 	cpu_calc_grav_accel_naive_sym(N, h_x, h_m, h_at);
 
-	result = compare_vectors(N, h_a, h_at, 0.0, false);
+	result = compare_vectors(N, h_a, h_at, tolerance, false);
 
 	memset(h_a,  0, N*sizeof(vec_t));
 	memset(h_at, 0, N*sizeof(vec_t));
 
-	dim3 grid((N + NTILE - 1)/NTILE);
-	dim3 block(NTILE);
+	dim3 grid((N + n_tpb - 1)/n_tpb);
+	dim3 block(n_tpb);
 
 	printf("\nComparing the computations of the gravitational accelerations performed on the CPU and GPU:\n");
 	printf("1. CPU naive vs GPU naive    : ");
 	cpu_calc_grav_accel_naive(N, h_x, h_m, h_a);
-	kernel_calc_gravity_accel_naive<<<grid, block>>>(d_x, d_m, d_a);
+	kernel::calc_gravity_accel_naive<<<grid, block>>>(d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 	copy_vector_to_host(h_at, d_a, N*sizeof(vec_t));
 	result = compare_vectors(N, h_a, h_at, tolerance, false);
@@ -1577,14 +1656,21 @@ void compare_results(const vec_t* d_x, const var_t* d_m, vec_t* d_a, const vec_t
 
 	printf("2. CPU naive vs GPU naive_sym: ");
 	CUDA_SAFE_CALL(cudaMemset(d_a, 0, N*sizeof(vec_t)));
-	kernel_calc_gravity_accel_naive_sym<<<grid, block>>>(d_x, d_m, d_a);
+	kernel::calc_gravity_accel_naive_sym<<<grid, block>>>(d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 	copy_vector_to_host(h_at, d_a, N*sizeof(vec_t));
 	result = compare_vectors(N, h_a, h_at, tolerance, false);
 	memset(h_at, 0, N*sizeof(vec_t));
 
 	printf("3. CPU naive vs GPU tile     : ");
-	kernel_calc_gravity_accel_tile<<<grid, block, NTILE*sizeof(vec_t)>>>(NTILE, d_x, d_m, d_a);
+	kernel::calc_gravity_accel_tile<<<grid, block, n_tpb*sizeof(vec_t)>>>(n_tpb, d_x, d_m, d_a);
+	CUDA_CHECK_ERROR();
+	copy_vector_to_host(h_at, d_a, N*sizeof(vec_t));
+	result = compare_vectors(N, h_a, h_at, tolerance, false);
+	memset(h_at, 0, N*sizeof(vec_t));
+
+	printf("4. CPU naive vs GPU tile (without the explicit use of tile_size): ");
+	kernel::calc_gravity_accel_tile<<<grid, block, n_tpb*sizeof(vec_t)>>>(d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 	copy_vector_to_host(h_at, d_a, N*sizeof(vec_t));
 	result = compare_vectors(N, h_a, h_at, tolerance, false);
@@ -1602,34 +1688,34 @@ int main(int argc, char** argv)
 	var_t* d_m = 0x0;
 
 	vec_t* h_at = 0x0;
+
 	try
 	{
 		device_query(cout, 0, false);
 
-		ALLOCATE_HOST_VECTOR((void**)&h_x, N*sizeof(vec_t)); 
-		ALLOCATE_HOST_VECTOR((void**)&h_a, N*sizeof(vec_t)); 
-		ALLOCATE_HOST_VECTOR((void**)&h_m, N*sizeof(var_t)); 
+		ALLOCATE_HOST_VECTOR((void**)&h_x,  N*sizeof(vec_t)); 
+		ALLOCATE_HOST_VECTOR((void**)&h_a,  N*sizeof(vec_t)); 
+		ALLOCATE_HOST_VECTOR((void**)&h_at, N*sizeof(vec_t)); 
+		ALLOCATE_HOST_VECTOR((void**)&h_m,  N*sizeof(var_t)); 
 
 		ALLOCATE_DEVICE_VECTOR((void**)&d_x, N*sizeof(vec_t)); 
 		ALLOCATE_DEVICE_VECTOR((void**)&d_a, N*sizeof(vec_t)); 
 		ALLOCATE_DEVICE_VECTOR((void**)&d_m, N*sizeof(var_t)); 
 
-		ALLOCATE_HOST_VECTOR((void**)&h_at, N*sizeof(vec_t)); 
-
 		for (int i = 0; i < N; i++)
 		{
-			h_x[i].x = rand();
-			h_x[i].y = rand();
-			h_x[i].z = rand();
+			h_x[i].x = -50.0 + ((var_t)rand() / RAND_MAX) * 100.0;
+			h_x[i].y = -50.0 + ((var_t)rand() / RAND_MAX) * 100.0;
+			h_x[i].z = -50.0 + ((var_t)rand() / RAND_MAX) * 100.0;
 			h_x[i].w = 0.0;
 
-			h_m[i] = 1.0;
+			h_m[i] = 1.0 * i;
 		}
 
 		copy_vector_to_device(d_x, h_x, N * sizeof(vec_t));
 		copy_vector_to_device(d_m, h_m, N * sizeof(var_t));
 
-#if 1
+#if 0
 		{
 			cpu_calc_grav_accel_naive(N, h_x, h_m, h_a);
 
@@ -1637,20 +1723,21 @@ int main(int argc, char** argv)
 			dim3 grid((N + n_tpb - 1)/n_tpb);
 			dim3 block(n_tpb);
 
-			kernel_calc_gravity_accel_tile_verbose<<<grid, block, n_tpb * sizeof(vec_t)>>>(d_x, d_m, d_a);
+			kernel::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(d_x, d_m, d_a);
 			CUDA_CHECK_ERROR();
 
 			copy_vector_to_host(h_at, d_a, N*sizeof(vec_t));
-			bool result = compare_vectors(N, h_a, h_at, 0.0, true);
+			bool result = compare_vectors(N, h_a, h_at, 1.0e-15, true);
 		}
 #endif
 
 
 // Compare the results computed on the CPU with 2 different methods
 // and those computed on the GPU with 3 different methods
-#if 0
+#if 1
 		// Compare results computed on the CPU with those computed on the GPU
-		compare_results(d_x, d_m, d_a, h_x, h_m, h_a, h_at);
+		int n_tpb = min(N, 4);
+		compare_results(n_tpb, d_x, d_m, d_a, h_x, h_m, h_a, h_at, 1.0e-15);
 
 		benchmark_CPU_and_kernels(d_x, d_m, d_a, h_x, h_m, h_a);
 #endif
@@ -2082,4 +2169,3 @@ int main()
 	free(event_counter);
 }
 #endif
-

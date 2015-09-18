@@ -596,12 +596,12 @@ void n_pp(body_disk_t& disk)
 	{
   		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 0.6, 2.6);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.1);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 1.0 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0 * constants::DegreeToRadian);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0 * PI);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
-		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.5 * constants::MoonToEarth*constants::EarthToSolar, 2.0 * constants::MoonToEarth*constants::EarthToSolar);
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.5 * constants::MoonToSolar, 2.0 * constants::MoonToSolar);
 		//disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 1.0e2 * constants::KilometerToAu, 1.0e2 * constants::KilometerToAu);
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 2.7 * constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
