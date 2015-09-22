@@ -24,6 +24,7 @@ RED_TEST        := $(SRC)/red.code_snippet.cuda.test
 RED_INITIAL     := $(SRC)/red.cuda.initial
 RED_UTILITY     := $(SRC)/red.cuda.utility
 RED_PROCESSDATA := $(SRC)/red.cuda.processdata
+RED_BENCHMARK   := $(SRC)/red.cuda.benchmark
 
 INCLUDES        := -Ired.type -I$(RED_UTILITY)
 
@@ -63,13 +64,17 @@ util.o
 RED_PROCESSDATA_OBJS := \
 main.o
 
+RED_BENCHMARK_OBJS := \
+main.o
+
 RED_DEPS := $(RED_OBJS:.o=.d)
 RED_INITIAL_DEPS := $(RED_INITIAL_OBJS:.o=.d)
 RED_UTILITY_DEPS := $(RED_UTILITY_OBJS:.o=.d)
 RED_PROCESSDATA_DEPS := $(RED_PROCESSDATA_OBJS:.o=.d)
+RED_BENCHMARK_DEPS := $(RED_BENCHMARK_OBJS:.o=.d)
 
 # Targets
-all : redutilcu red redinit redtest redprocess
+all : redutilcu red redinit redtest redprocess redbenchmark
 
 red : redutilcu $(RED)/red | $(BIN)
 
@@ -79,17 +84,21 @@ redtest : redutilcu $(RED_TEST)/redtest | $(BIN)
 
 redprocess : redutilcu $(RED_PROCESSDATA)/redprocess | $(BIN)
 
+redbenchmark : redutilcu $(RED_BENCHMARK)/redbenchmark | $(BIN)
+
 redutilcu : $(RED_UTILITY)/redutil.a | $(RED_LIBRARY)
 
 -include $(addprefix $(RED)/, $(RED_DEPS))
 -include $(addprefix $(RED_INITIAL)/, $(RED_INITIAL_DEPS))
 -include $(addprefix $(RED_UTILITY)/, $(RED_UTILITY_DEPS))
 -include $(addprefix $(RED_PROCESSDATA)/, $(RED_PROCESSDATA_DEPS))
+-include $(addprefix $(RED_BENCHMARK)/, $(RED_BENCHMARK_DEPS))
 
 print:
 	@echo 'Red dependency files: $(RED_DEPS)'
-	@echo 'Red_initial dependency files: $(RED_INITIAL_DEPS)'
-	@echo 'Red_utility dependency files: $(RED_UTILITY_DEPS)'
+	@echo 'Red initial dependency files: $(RED_INITIAL_DEPS)'
+	@echo 'Red process dependency files: $(RED_PROCESSDATA_DEPS)'
+	@echo 'Red benchmark dependency files: $(RED_BENCHMARK_DEPS)'
 
 
 # Build rules
@@ -106,6 +115,10 @@ $(RED_INITIAL)/redinit : $(addprefix $(RED_INITIAL)/, $(RED_INITIAL_OBJS)) | $(B
 	cp $@ $(BIN)/
 
 $(RED_PROCESSDATA)/redprocess : $(addprefix $(RED_PROCESSDATA)/, $(RED_PROCESSDATA_OBJS)) | $(BIN)
+	$(LINK) $(RED_LIBRARY)/redutil.a -o $@ $?
+	cp $@ $(BIN)/
+	
+$(RED_BENCHMARK)/redbenchmark : $(addprefix $(RED_BENCHMARK)/, $(RED_BENCHMARK_OBJS)) | $(BIN)
 	$(LINK) $(RED_LIBRARY)/redutil.a -o $@ $?
 	cp $@ $(BIN)/
 	
@@ -186,6 +199,24 @@ $(RED_PROCESSDATA)/%.o : $(RED_PROCESSDATA)/%.cu
 	@echo ''
 
 # compile and generate dependency info
+$(RED_BENCHMARK)/%.o : $(RED_BENCHMARK)/%.cpp
+	@echo 'Building file: $<'
+	@echo 'Invoking $(NVCC) Compiler'
+	$(NVCC) -c $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+	$(NVCC) -M -odir "" $(NVCC_FLAGS) $(INCLUDES) -o "$(@:%.o=%.d)" $<
+	@echo 'Finished building: $<'
+	@echo ''
+
+# compile and generate dependency info
+$(RED_BENCHMARK)/%.o : $(RED_BENCHMARK)/%.cu
+	@echo 'Building file: $<'
+	@echo 'Invoking $(NVCC) Compiler'
+	$(NVCC) -c $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+	$(NVCC) -M -odir "" $(NVCC_FLAGS) $(INCLUDES) -o "$(@:%.o=%.d)" $<
+	@echo 'Finished building: $<'
+	@echo ''
+
+# compile and generate dependency info
 $(RED_UTILITY)/%.o : $(RED_UTILITY)/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking $(NVCC) Compiler'
@@ -210,4 +241,4 @@ $(BIN) :
 	mkdir $(BIN)
 
 clean:
-	-$(RM) $(RED_LIBRARY)/*.a $(RED_UTILITY)/*.o $(RED_UTILITY)/*.d $(RED_INITIAL)/*.o $(RED_INITIAL)/*.d $(RED_TEST)/*.o $(RED_TEST)/*.d $(RED)/*.o $(RED)/*.d $(BIN)/*
+	-$(RM) $(RED_LIBRARY)/*.a $(RED_UTILITY)/*.o $(RED_UTILITY)/*.d $(RED_INITIAL)/*.o $(RED_INITIAL)/*.d $(RED_TEST)/*.o $(RED_TEST)/*.d $(RED_PROCESSDATA)/*.o $(RED_PROCESSDATA)/*.d $(RED_BENCHMARK)/*.o $(RED_BENCHMARK)/*.d $(RED)/*.o $(RED)/*.d $(BIN)/*

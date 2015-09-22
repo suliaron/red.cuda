@@ -1,4 +1,5 @@
 // includes system
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <fstream>
@@ -87,6 +88,7 @@ string get_name_cuda_device(int id_dev)
     CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, id_dev));
 
 	string result(deviceProp.name);
+	std::replace(result.begin(), result.end(), ' ', '_');
 	return result;
 }
 
@@ -185,6 +187,16 @@ void device_query(ostream& sout, int id_dev)
     sProfileString += "\n";
 
 	sout << sProfileString;
+}
+
+string get_device_name(int id_dev)
+{
+    cudaDeviceProp deviceProp;
+    CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, id_dev));
+
+	string name = deviceProp.name;
+
+	return name;
 }
 
 void device_query(ostream& sout, int id_dev, bool print_to_screen)

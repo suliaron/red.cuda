@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.utility", "src\red
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.processdata", "src\red.cuda.processdata\red.cuda.vcxproj", "{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.benchmark", "src\red.cuda.benchmark\red.cuda.benchmark.vcxproj", "{F784F19E-4A6F-469D-B8CF-57C88EDAFFD1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -58,6 +60,14 @@ Global
 		{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}.Release|Win32.Build.0 = Release|Win32
 		{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}.Release|x64.ActiveCfg = Release|x64
 		{BDB0E0BC-9852-45E2-A4A0-3D1D8A063747}.Release|x64.Build.0 = Release|x64
+		{F784F19E-4A6F-469D-B8CF-57C88EDAFFD1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F784F19E-4A6F-469D-B8CF-57C88EDAFFD1}.Debug|Win32.Build.0 = Debug|Win32
+		{F784F19E-4A6F-469D-B8CF-57C88EDAFFD1}.Debug|x64.ActiveCfg = Debug|x64
+		{F784F19E-4A6F-469D-B8CF-57C88EDAFFD1}.Debug|x64.Build.0 = Debug|x64
+		{F784F19E-4A6F-469D-B8CF-57C88EDAFFD1}.Release|Win32.ActiveCfg = Release|Win32
+		{F784F19E-4A6F-469D-B8CF-57C88EDAFFD1}.Release|Win32.Build.0 = Release|Win32
+		{F784F19E-4A6F-469D-B8CF-57C88EDAFFD1}.Release|x64.ActiveCfg = Release|x64
+		{F784F19E-4A6F-469D-B8CF-57C88EDAFFD1}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
