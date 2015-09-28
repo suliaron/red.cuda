@@ -2210,7 +2210,10 @@ int main()
 }
 #endif
 
+
 #if 1
+#ifdef _WIN32
+
 /*
  * Getting Hardware Information
  * The following example uses the GetSystemInfo function to obtain hardware information such as the OEM identifier,
@@ -2252,4 +2255,5 @@ int main()
 
 	return 0;
 }
+#endif
 #endif
