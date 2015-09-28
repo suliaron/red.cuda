@@ -26,8 +26,61 @@
 #include "redutilcu.h"
 #include "red_test.h"
 
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <sys/time.h>
+#include <ctime>
+#endif
+
+/* Remove if already defined */
+typedef long long int64; 
+typedef unsigned long long uint64;
+
 using namespace std;
 using namespace redutilcu;
+
+//https://aufather.wordpress.com/2010/09/08/high-performance-time-measuremen-in-linux/
+
+/* 
+ * Returns the amount of milliseconds elapsed since the UNIX epoch. Works on both
+ * windows and linux.
+ */
+uint64 GetTimeMs64()
+{
+#ifdef _WIN32
+	/* Windows */
+	FILETIME ft;
+	LARGE_INTEGER li;
+
+	/* Get the amount of 100 nano seconds intervals elapsed since January 1, 1601 (UTC) and copy it
+	* to a LARGE_INTEGER structure. */
+	GetSystemTimeAsFileTime(&ft);
+	li.LowPart = ft.dwLowDateTime;
+	li.HighPart = ft.dwHighDateTime;
+
+	uint64 ret = li.QuadPart;
+	ret -= 116444736000000000LL; /* Convert from file time to UNIX epoch time. */
+	ret /= 10000; /* From 100 nano seconds (10^-7) to 1 millisecond (10^-3) intervals */
+
+	return ret;
+#else
+	/* Linux */
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+
+	uint64 ret = tv.tv_usec;
+	/* Convert from micro seconds (10^-6) to milliseconds (10^-3) */
+	ret /= 1000;
+
+	/* Adds the seconds (10^0) after converting them to milliseconds (10^-3) */
+	ret += (tv.tv_sec * 1000);
+
+	return ret;
+#endif
+}
+
 
 namespace kernel
 {
@@ -569,6 +622,334 @@ __global__
 }
 } /* namespace kernel */
 
+namespace kernel2
+{
+static __global__
+	void calc_grav_accel_int_mul_of_thread_per_block(interaction_bound int_bound, const param_t* p, const vec_t* r, vec_t* a)
+{
+	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
+
+	vec_t dVec;
+	// This line (beyond my depth) speeds up the kernel
+	a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
+	for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+	{
+		/* Skip the body with the same index */
+		if (i == j)
+		{
+			continue;
+		}
+		// 3 FLOP
+		dVec.x = r[j].x - r[i].x;
+		dVec.y = r[j].y - r[i].y;
+		dVec.z = r[j].z - r[i].z;
+		// 5 FLOP
+		dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+		// 20 FLOP
+		var_t d = sqrt(dVec.w);								// = r
+		// 2 FLOP
+		dVec.w = p[j].mass / (d*dVec.w);					// = m / r^3
+		// 6 FLOP
+		a[i].x += dVec.w * dVec.x;
+		a[i].y += dVec.w * dVec.y;
+		a[i].z += dVec.w * dVec.z;
+	}
+}
+
+static __global__
+	void calc_grav_accel(ttt_t t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
+{
+	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (i < int_bound.sink.y)
+	{
+		// This line (beyond my depth) speeds up the kernel
+		a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
+		if (body_md[i].id > 0)
+		{
+			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+			{
+				/* Skip the body with the same index and those which are inactive ie. id < 0 */
+				if (i == j || body_md[j].id < 0)
+				{
+					continue;
+				}
+				// 3 FLOP
+				dVec.x = r[j].x - r[i].x;
+				dVec.y = r[j].y - r[i].y;
+				dVec.z = r[j].z - r[i].z;
+				// 5 FLOP
+				dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+				// 20 FLOP
+				var_t d = sqrt(dVec.w);								// = r
+				// 2 FLOP
+				dVec.w = p[j].mass / (d*dVec.w);
+				// 6 FLOP
+				a[i].x += dVec.w * dVec.x;
+				a[i].y += dVec.w * dVec.y;
+				a[i].z += dVec.w * dVec.z;
+
+				// Check for collision - ignore the star (i > 0 criterium)
+				// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
+				// If i < j is the condition than test particles can not collide with massive bodies
+				if (i > 0 && i > j && d < /* dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR] */ 5.0 * (p[i].radius + p[j].radius))
+				{
+					unsigned int k = atomicAdd(event_counter, 1);
+
+					int survivIdx = i;
+					int mergerIdx = j;
+					if (p[mergerIdx].mass > p[survivIdx].mass)
+					{
+						int t = survivIdx;
+						survivIdx = mergerIdx;
+						mergerIdx = t;
+					}
+					//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
+
+					events[k].event_name = EVENT_NAME_COLLISION;
+					events[k].d = d;
+					events[k].t = t;
+					events[k].id1 = body_md[survivIdx].id;
+					events[k].id2 = body_md[mergerIdx].id;
+					events[k].idx1 = survivIdx;
+					events[k].idx2 = mergerIdx;
+					events[k].r1 = r[survivIdx];
+					events[k].v1 = v[survivIdx];
+					events[k].r2 = r[mergerIdx];
+					events[k].v2 = v[mergerIdx];
+				}
+			}
+			// 36 FLOP
+		}
+	}
+}
+
+inline __host__ __device__
+	vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
+{
+	vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+
+	// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
+	dVec.x = rjVec.x - riVec.x;
+	dVec.y = rjVec.y - riVec.y;
+	dVec.z = rjVec.z - riVec.z;
+
+	// compute norm square of d vector [5 FLOPS] [3 read, 1 write]
+	dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);
+	// compute norm of d vector [1 FLOPS] [1 read, 1 write] TODO: how long does it take to compute sqrt ???
+	var_t s = sqrt(dVec.w);
+	// compute m_j / d^3 []
+	s = mj * 1.0 / (s * dVec.w);
+
+	aiVec.x += s * dVec.x;
+	aiVec.y += s * dVec.y;
+	aiVec.z += s * dVec.z;
+
+	return aiVec;
+}
+
+/*
+ * riVec.xyz  = {x, y, z,  }
+ * rjVec.xyzw = {x, y, z, m}
+ */
+inline __host__ __device__
+	vec_t body_body_interaction(vec_t riVec, vec_t rjVec, vec_t aiVec)
+{
+	vec_t dVec;
+
+	// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
+	dVec.x = rjVec.x - riVec.x;
+	dVec.y = rjVec.y - riVec.y;
+	dVec.z = rjVec.z - riVec.z;
+
+	// compute norm square of d vector [5 FLOPS] [3 read, 1 write]
+	dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);
+	// compute norm of d vector [1 FLOPS] [1 read, 1 write] TODO: how long does it take to compute sqrt ???
+	var_t d = sqrt(dVec.w);
+	// compute m_j / d^3 []
+	dVec.w = rjVec.w * 1.0 / (d * dVec.w);
+
+	aiVec.x += dVec.w * dVec.x;
+	aiVec.y += dVec.w * dVec.y;
+	aiVec.z += dVec.w * dVec.z;
+
+	return aiVec;
+}
+
+__global__
+	void calc_gravity_accel_tile(int n_body, int tile_size, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+{
+	extern __shared__ vec_t sh_pos[];
+
+	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
+	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
+
+	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	// To avoid overruning the global_x buffer
+	if (n_body > gtid)
+	{
+		my_pos = global_x[gtid];
+	}
+	for (int tile = 0; (tile * tile_size) < n_body; tile++)
+	{
+		int idx = tile * blockDim.x + threadIdx.x;
+		// To avoid overruning the global_x buffer
+		if (n_body > idx)
+		{
+			sh_pos[threadIdx.x] = global_x[idx];
+		}
+		__syncthreads();
+		for (int j = 0; j < blockDim.x; j++)
+		{
+			// To avoid overrun the mass buffer
+			if (n_body <= (tile * tile_size) + j)
+			{
+				break;
+			}
+			// To avoid self-interaction or mathematically division by zero
+			if (gtid != (tile * tile_size)+j)
+			{
+				acc = body_body_interaction(my_pos, sh_pos[j], mass[idx], acc);
+			}
+		}
+		__syncthreads();
+	}
+	// To avoid overruning the global_a buffer
+	if (n_body > gtid)
+	{
+		global_a[gtid] = acc;
+	}
+}
+
+/*
+ * The same as above but the blockDim.x is used instead of tile_size (both variable have the same value)
+ */
+__global__
+	void calc_gravity_accel_tile(int n_body, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+{
+	extern __shared__ vec_t sh_pos[];
+
+	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	vec_t acc = {0.0, 0.0, 0.0, 0.0};
+	vec_t my_pos;
+
+	// To avoid overruning the global_x buffer
+	if (n_body > gtid)
+	{
+		my_pos = global_x[gtid];
+	}
+	
+	for (int tile = 0; (tile * blockDim.x) < n_body; tile++)
+	{
+		const int idx = tile * blockDim.x + threadIdx.x;
+		// To avoid overruning the global_x and mass buffer
+		if (n_body > idx)
+		{
+			sh_pos[threadIdx.x]   = global_x[idx];
+			sh_pos[threadIdx.x].w = mass[idx];
+		}
+		__syncthreads();
+
+		for (int j = 0; j < blockDim.x; j++)
+		{
+			// To avoid overrun the input arrays
+			if (n_body <= (tile * blockDim.x) + j)
+			{
+				break;
+			}
+			// To avoid self-interaction or mathematically division by zero
+			if (gtid != (tile * blockDim.x) + j)
+			{
+				acc = body_body_interaction(my_pos, sh_pos[j], acc);
+			}
+		}
+		__syncthreads();
+	}
+	if (n_body > gtid)
+	{
+		global_a[gtid] = acc;
+	}
+}
+
+__global__
+	void calc_gravity_accel_naive(interaction_bound int_bound, const vec_t* r, const var_t* m, vec_t* a)
+{
+	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (int_bound.sink.y > i)
+	{
+		a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
+		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+		{
+			/* Skip the body with the same index */
+			if (i == j)
+			{
+				continue;
+			}
+			//global_a[i] = body_body_interaction(global_x[i], global_x[j], mass[j], global_a[i]);
+			// 3 FLOP
+			dVec.x = r[j].x - r[i].x;
+			dVec.y = r[j].y - r[i].y;
+			dVec.z = r[j].z - r[i].z;
+			// 5 FLOP
+			dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+
+			// 20 FLOP
+			var_t d = sqrt(dVec.w);								// = r
+			// 2 FLOP
+			dVec.w = m[j] / (d*dVec.w);
+			// 6 FLOP
+			a[i].x += dVec.w * dVec.x;
+			a[i].y += dVec.w * dVec.y;
+			a[i].z += dVec.w * dVec.z;
+		} // 36 FLOP
+	}
+}
+
+// NOTE: Before calling this function, the global_a array must be cleared!
+__global__
+	void calc_gravity_accel_naive_sym(interaction_bound int_bound, const vec_t* r, const var_t* m, vec_t* a)
+{
+	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (int_bound.sink.y > i)
+	{
+		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		for (int j = i+1; j < n_body; j++) 
+		{
+			// 3 FLOP
+			dVec.x = r[j].x - r[i].x;
+			dVec.y = r[j].y - r[i].y;
+			dVec.z = r[j].z - r[i].z;
+			// 5 FLOP
+			dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+
+			// sqrt operation takes approximately 20 FLOP
+			var_t d = sqrt(dVec.w);								// = r
+			// 2 FLOP
+			var_t r_3 = 1.0 / (d*dVec.w);
+			// 1 FLOP
+			dVec.w = m[j] * r_3;
+			// 6 FLOP
+			a[i].x += dVec.w * dVec.x;
+			a[i].y += dVec.w * dVec.y;
+			a[i].z += dVec.w * dVec.z;
+
+			// 2 FLOP
+			dVec.w = m[i] * r_3;
+			// 6 FLOP
+			a[j].x -= dVec.w * dVec.x;
+			a[j].y -= dVec.w * dVec.y;
+			a[j].z -= dVec.w * dVec.z;
+		} // 36 + 8 = 44 FLOP
+	}
+}
+} /* namespace kernel_2 */
+
 
 void cpu_calc_grav_accel_naive(int n_body, const vec_t* r, const var_t* mass, vec_t* a)
 {
@@ -744,25 +1125,30 @@ void print(int n_body, string& method_name, int n_tpb, ttt_t Dt_CPU, ttt_t Dt_GP
 {
 	static char sep = ',';
 
-	printf("[%4d] dt: %10.6le, %10.6le [ms]\n", n_tpb, Dt_CPU, Dt_GPU);
+	cout << tools::get_time_stamp(false) << sep
+		 << setw(6) << n_body << sep
+		 << setw(20) << method_name << sep
+		 << setw(5) << n_tpb << sep
+		 << setprecision(6) << setw(10) << Dt_CPU << sep
+		 << setprecision(6) << setw(10) << Dt_GPU  << endl;
 
 	sout << tools::get_time_stamp(true) << sep
 		 << setw(6) << n_body << sep
 		 << method_name << sep
-		 << setw(4) << n_tpb << sep
+		 << setw(5) << n_tpb << sep
 		 << setprecision(6) << setw(10) << Dt_CPU << sep
 		 << setprecision(6) << setw(10) << Dt_GPU  << endl;
 }
 
-int get_min_idx(vector<float2>& execution_time)
+int get_min_idx(vector<float>& execution_time)
 {
-	float min_y = 1.0e10;
+	float min = 1.0e10;
 	int min_idx = 0;
 	for (int i = 0; i < execution_time.size(); i++)
 	{
-		if (min_y > execution_time[i].y)
+		if (min > execution_time[i])
 		{
-			min_y = execution_time[i].y;
+			min = execution_time[i];
 			min_idx = i;
 		}
 	}
@@ -786,113 +1172,154 @@ void benchmark_CPU_and_kernels(int n_body, int dev_id, const vec_t* d_x, const v
 
 	cudaDeviceProp deviceProp;
 	CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, dev_id));
-
 	int half_warp_size = deviceProp.warpSize/2;
 
+	vector<float> execution_time;
+	ttt_t Dt_CPU = 0.0;
+	ttt_t Dt_GPU = 0.0;
+	int i = 0;
 	{
 		cout << endl << "CPU Gravity acceleration: Naive calculation:" << endl;
 
-		clock_t t_start = clock();
-		cpu_calc_grav_accel_naive(n_body, h_x, h_m, h_a);
-		ttt_t Dt_CPU = ((double)(clock() - t_start)/(double)CLOCKS_PER_SEC) * 1000.0; // [ms]
+		uint64 _t0 = GetTimeMs64();
+		if (50 >= n_body)
+		{
+			for (i = 0; i < 1000; i++)
+			{
+				cpu_calc_grav_accel_naive(n_body, h_x, h_m, h_a);
+			}
+		}
+		else if (50 < n_body && 200 >= n_body)
+		{
+			for (i = 0; i < 100; i++)
+			{
+				cpu_calc_grav_accel_naive(n_body, h_x, h_m, h_a);
+			}
+		}
+		else if (200 < n_body && 2000 >= n_body)
+		{
+			for (i = 0; i < 10; i++)
+			{
+				cpu_calc_grav_accel_naive(n_body, h_x, h_m, h_a);
+			}
+		}
+		else
+		{
+			cpu_calc_grav_accel_naive(n_body, h_x, h_m, h_a);
+		}
+		Dt_CPU = ((ttt_t)(GetTimeMs64() - _t0))/(ttt_t)(i+1);
 
-		print(n_body, method_name[0], 1, Dt_CPU, 0.0, sout);
-		printf("\n");
+		print(n_body, method_name[0], 1, Dt_CPU, Dt_GPU, sout);
 	}
+	printf("\n");
+
 	{
 		cout << endl << "CPU Gravity acceleration: Naive symmetric calculation:" << endl;
 
-		clock_t t_start = clock();
-		cpu_calc_grav_accel_naive_sym(n_body, h_x, h_m, h_a);
-		ttt_t Dt_CPU = ((double)(clock() - t_start)/(double)CLOCKS_PER_SEC) * 1000.0; // [ms]
+		uint64 _t0 = GetTimeMs64();
+		if (50 >= n_body)
+		{
+			for (i = 0; i < 1000; i++)
+			{
+				cpu_calc_grav_accel_naive_sym(n_body, h_x, h_m, h_a);
+			}
+		}
+		else if (50 < n_body && 200 >= n_body)
+		{
+			for (i = 0; i < 100; i++)
+			{
+				cpu_calc_grav_accel_naive_sym(n_body, h_x, h_m, h_a);
+			}
+		}
+		else if (200 < n_body && 2000 >= n_body)
+		{
+			for (i = 0; i < 10; i++)
+			{
+				cpu_calc_grav_accel_naive_sym(n_body, h_x, h_m, h_a);
+			}
+		}
+		else
+		{
+			cpu_calc_grav_accel_naive_sym(n_body, h_x, h_m, h_a);
+		}
+		Dt_CPU = ((ttt_t)(GetTimeMs64() - _t0))/(ttt_t)(i+1);
 
-		print(n_body, method_name[1], 1, Dt_CPU, 0.0, sout);
-		printf("\n");
+		print(n_body, method_name[1], 1, Dt_CPU, Dt_GPU, sout);
 	}
+	printf("\n");
+
+	Dt_CPU = 0.0;
 	{
 		cout << endl << "GPU Gravity acceleration: Naive calculation:" << endl;
 
-		vector<float2> execution_time;
 		unsigned int n_pass = 0;
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
-			clock_t t_start = clock();
-			float Dt_GPU = gpu_calc_grav_accel_naive_benchmark(n_body, n_tpb, d_x, d_m, d_a);
-			ttt_t Dt_CPU = ((double)(clock() - t_start)/(double)CLOCKS_PER_SEC) * 1000.0; // [ms]
-
-			float2 exec_t = {(float)Dt_CPU, Dt_GPU};
-			execution_time.push_back(exec_t);
+			Dt_GPU = gpu_calc_grav_accel_naive_benchmark(n_body, n_tpb, d_x, d_m, d_a);
+			execution_time.push_back(Dt_GPU);
 			n_pass++;
 
 			print(n_body, method_name[2], n_tpb, Dt_CPU, Dt_GPU, sout);
 		}
 		int min_idx = get_min_idx(execution_time);
-		cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx].y << " [ms]" << endl;
-		printf("\n");
+		cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx] << " [ms]" << endl;
 	}
+	execution_time.clear();
+	printf("\n");
+
 	{
 		cout << endl << "GPU Gravity acceleration: Naive symmetric calculation:" << endl;
 
-		vector<float2> execution_time;
 		unsigned int n_pass = 0;
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
-			clock_t t_start = clock();
 			float Dt_GPU = gpu_calc_grav_accel_naive_sym_benchmark(n_body, n_tpb, d_x, d_m, d_a);
-			ttt_t Dt_CPU = ((double)(clock() - t_start)/(double)CLOCKS_PER_SEC) * 1000.0; // [ms]
-
-			float2 exec_t = {(float)Dt_CPU, Dt_GPU};
-			execution_time.push_back(exec_t);
+			execution_time.push_back(Dt_GPU);
 			n_pass++;
 
 			print(n_body, method_name[3], n_tpb, Dt_CPU, Dt_GPU, sout);
 		}
 		int min_idx = get_min_idx(execution_time);
-		cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx].y << " [ms]" << endl;
-		printf("\n");
+		cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx] << " [ms]" << endl;
 	}
+	execution_time.clear();
+	printf("\n");
+
 	{
 		cout << "GPU Gravity acceleration: Tile calculation:" << endl;
 
-		vector<float2> execution_time;
 		unsigned int n_pass = 0;
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
-			clock_t t_start = clock();
 			float Dt_GPU = gpu_calc_grav_accel_tile_benchmark(n_body, n_tpb, d_x, d_m, d_a);
-			ttt_t Dt_CPU = ((double)(clock() - t_start)/(double)CLOCKS_PER_SEC) * 1000.0; // [ms]
-
-			float2 exec_t = {(float)Dt_CPU, Dt_GPU};
-			execution_time.push_back(exec_t);
+			execution_time.push_back(Dt_GPU);
 			n_pass++;
 
 			print(n_body, method_name[4], n_tpb, Dt_CPU, Dt_GPU, sout);
 		}
 		int min_idx = get_min_idx(execution_time);
-		cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx].y << " [ms]" << endl;
-		printf("\n");
+		cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx] << " [ms]" << endl;
 	}
+	execution_time.clear();
+	printf("\n");
+
 	{
 		cout << "GPU Gravity acceleration: Tile calculation (without the explicit use of tile_size):" << endl;
 
-		vector<float2> execution_time;
 		unsigned int n_pass = 0;
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
-			clock_t t_start = clock();
 			float Dt_GPU = gpu_calc_grav_accel_tile_benchmark_2(n_body, n_tpb, d_x, d_m, d_a);
-			ttt_t Dt_CPU = ((double)(clock() - t_start)/(double)CLOCKS_PER_SEC) * 1000.0; // [ms]
-
-			float2 exec_t = {(float)Dt_CPU, Dt_GPU};
-			execution_time.push_back(exec_t);
+			execution_time.push_back(Dt_GPU);
 			n_pass++;
 
 			print(n_body, method_name[5], n_tpb, Dt_CPU, Dt_GPU, sout);
 		}
 		int min_idx = get_min_idx(execution_time);
-		cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx].y << " [ms]" << endl;
-		printf("\n");
+		cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx] << " [ms]" << endl;
 	}
+	execution_time.clear();
+	printf("\n");
 }
 
 bool compare_vectors(int n, const vec_t* v1, const vec_t* v2, var_t tolerance, bool verbose)
@@ -1038,7 +1465,7 @@ void open_streams(int id_dev, string& cpu_name, string& o_dir, ofstream** output
 	}
 }
 
-int parse_options(int argc, const char **argv, string& o_dir, string& o_file, int& id_dev, int& n_body)
+int parse_options(int argc, const char **argv, string& o_dir, string& o_file, int& id_dev, int& n0, int& n1, int& dn, int& n_iter)
 {
 	int i = 1;
 
@@ -1065,23 +1492,53 @@ int parse_options(int argc, const char **argv, string& o_dir, string& o_file, in
 			}
 			id_dev = atoi(argv[i]);
 		}
-		else if (p == "-n")
+		else if (p == "-n0")
 		{
 			i++;
 			if (!tools::is_number(argv[i])) 
 			{
 				throw string("Invalid number at: " + p);
 			}
-			n_body = atoi(argv[i]);
+			n0 = atoi(argv[i]);
+		}
+		else if (p == "-n1")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			n1 = atoi(argv[i]);
+		}
+		else if (p == "-dn")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			dn = atoi(argv[i]);
+		}
+		else if (p == "-n_iter")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			n_iter = atoi(argv[i]);
 		}
 		else if (p == "-h")
 		{
 			printf("Usage:\n");
-			printf("\n\t-devId <number>  : the id of the GPU to benchmark\n");
-			printf("\n\t-n <number>      : the number of SI bodies\n");
-			printf("\n\t-oDir <filename> : the output file will be stored in this directory\n");
-			printf("\n\t-oFile <filename>: the name of the output file\n");
-			printf("\n\t-h               : print this help\n");
+			printf("\n\t-devId <number>    : the id of the GPU to benchmark\n");
+			printf("\n\t-n0 <number>       : the starting number of SI bodies\n");
+			printf("\n\t-n1 <number>       : the end number of SI bodies\n");
+			printf("\n\t-dn <number>       : at each iteration the number of bodies will be increased by dn\n");
+			printf("\n\t-n_iter <number>   : after n_iter the value of dn will be multiplyed by a factor of 10\n");
+			printf("\n\t-oDir <filename>   : the output file will be stored in this directory\n");
+			printf("\n\t-oFile <filename>  : the name of the output file\n");
+			printf("\n\t-h                 : print this help\n");
 			exit(EXIT_SUCCESS);
 		}
 		else
@@ -1134,10 +1591,10 @@ int main(int argc, const char** argv, const char** env)
 	string proc_identifier;
 
 	int id_dev = 0;
-	int n_body = 0;
 	int n0 = 0;
-	int dn = 0;
 	int n1 = 0;
+	int dn = 0;
+	int n_iter = 0;
 
 	vec_t* h_x = 0x0;
 	vec_t* h_a = 0x0;
@@ -1151,7 +1608,7 @@ int main(int argc, const char** argv, const char** env)
 
 	try
 	{
-		parse_options(argc, argv, o_dir, o_file, id_dev, n_body);
+		parse_options(argc, argv, o_dir, o_file, id_dev, n0, n1, dn, n_iter);
 		parse_env(env, proc_arch, proc_identifier);
 
 		ofstream* output[OUTPUT_NAME_N];
@@ -1164,58 +1621,59 @@ int main(int argc, const char** argv, const char** env)
 		device_query(cout, id_dev, false);
 		device_query(*output[OUTPUT_NAME_LOG], id_dev, false);
 
-		// The user defined the -n option, so the benchmark will be carry on only for that number
-		if (0 < n_body)
+		// The user wants a benchmark only for the specified number of bodies
+		if (0 == dn)
 		{
-			n0 = n1 = n_body;
+			n0 = n1;
 		}
-		// The user did not defined the -n option, so the benchmark will be carry on for different numbers
-		// from n0 to n1
+		// The user defined dn in order to carry out a benchmark for different number of bodies
+		// so the benchmark will be carry on for different numbers from n0 to n1
 		else
 		{
-			n0 = 100;
-			dn = 100;
-			n1 = n_body = 10000;
+			;
 		}
-
-		ALLOCATE_HOST_VECTOR((void**)&h_x,  n_body*sizeof(vec_t)); 
-		ALLOCATE_HOST_VECTOR((void**)&h_a,  n_body*sizeof(vec_t)); 
-		ALLOCATE_HOST_VECTOR((void**)&h_at, n_body*sizeof(vec_t)); 
-		ALLOCATE_HOST_VECTOR((void**)&h_m,  n_body*sizeof(var_t)); 
-
-		ALLOCATE_DEVICE_VECTOR((void**)&d_x, n_body*sizeof(vec_t)); 
-		ALLOCATE_DEVICE_VECTOR((void**)&d_a, n_body*sizeof(vec_t)); 
-		ALLOCATE_DEVICE_VECTOR((void**)&d_m, n_body*sizeof(var_t)); 
-
-		populate(n_body, h_x, h_m);
-
-		copy_vector_to_device(d_x, h_x, n_body*sizeof(vec_t));
-		copy_vector_to_device(d_m, h_m, n_body*sizeof(var_t));
-
-		// Compare results computed on the CPU with those computed on the GPU
-		int n_tpb = min(n_body, 256);
-		compare_results(n_body, n_tpb, d_x, d_m, d_a, h_x, h_m, h_a, h_at, 1.0e-15);
 
 		int k = 1;
 		for (int nn = n0; nn <= n1; nn += dn, k++)
 		{
+			ALLOCATE_HOST_VECTOR((void**)&h_x,  nn*sizeof(vec_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_a,  nn*sizeof(vec_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_at, nn*sizeof(vec_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_m,  nn*sizeof(var_t)); 
+
+			ALLOCATE_DEVICE_VECTOR((void**)&d_x, nn*sizeof(vec_t)); 
+			ALLOCATE_DEVICE_VECTOR((void**)&d_a, nn*sizeof(vec_t)); 
+			ALLOCATE_DEVICE_VECTOR((void**)&d_m, nn*sizeof(var_t)); 
+
+			populate(nn, h_x, h_m);
+
+			copy_vector_to_device(d_x, h_x, nn*sizeof(vec_t));
+			copy_vector_to_device(d_m, h_m, nn*sizeof(var_t));
+
+			// Compare results computed on the CPU with those computed on the GPU
+			if (nn == n0)
+			{
+				int n_tpb = min(nn, 256);
+				compare_results(nn, n_tpb, d_x, d_m, d_a, h_x, h_m, h_a, h_at, 1.0e-15);
+			}
+
 			benchmark_CPU_and_kernels(nn, id_dev, d_x, d_m, d_a, h_x, h_m, h_a, *output[OUTPUT_NAME_RESULT]);
-			if (0 == k % 10)
+
+			if (0 < n_iter && 0 == k % n_iter)
 			{
 				k = 1;
 				dn *= 10;
 			}
+
+			FREE_HOST_VECTOR((void**)&h_x);
+			FREE_HOST_VECTOR((void**)&h_a);
+			FREE_HOST_VECTOR((void**)&h_m);
+			FREE_HOST_VECTOR((void**)&h_at);
+
+			FREE_DEVICE_VECTOR((void**)&d_x);
+			FREE_DEVICE_VECTOR((void**)&d_a);
+			FREE_DEVICE_VECTOR((void**)&d_m);
 		}
-
-		FREE_HOST_VECTOR((void**)&h_x);
-		FREE_HOST_VECTOR((void**)&h_a);
-		FREE_HOST_VECTOR((void**)&h_m);
-
-		FREE_DEVICE_VECTOR((void**)&d_x);
-		FREE_DEVICE_VECTOR((void**)&d_a);
-		FREE_DEVICE_VECTOR((void**)&d_m);
-
-		FREE_HOST_VECTOR((void**)&h_at);
 	}
 	catch(const string& msg)
 	{

@@ -8,6 +8,46 @@
 #include <sstream>
 #include <stdlib.h>
 #include <string>
+#include <windows.h>
+#include <stdio.h>
+#pragma comment(lib, "user32.lib")
+
+#ifndef CPUID_H
+#define CPUID_H
+
+#ifdef _WIN32
+#include <limits.h>
+#include <intrin.h>
+typedef unsigned __int32  uint32_t;
+
+#else
+#include <stdint.h>
+#endif
+
+class CPUID {
+  uint32_t regs[4];
+
+public:
+  explicit CPUID(unsigned i) {
+#ifdef _WIN32
+    __cpuid((int *)regs, (int)i);
+
+#else
+    asm volatile
+      ("cpuid" : "=a" (regs[0]), "=b" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
+       : "a" (i), "c" (0));
+    // ECX is set to zero for CPUID function 4
+#endif
+  }
+
+  const uint32_t &EAX() const {return regs[0];}
+  const uint32_t &EBX() const {return regs[1];}
+  const uint32_t &ECX() const {return regs[2];}
+  const uint32_t &EDX() const {return regs[3];}
+};
+
+#endif // CPUID_H
+
 
 // includes CUDA
 #include "cuda_runtime.h"
@@ -1252,7 +1292,7 @@ int main(int argc, char** argv)
 
 #endif
 
-#if 1
+#if 0
 /*
  * Implement and benchmark the tile-calculation method for the N-body gravity kernel.
  * Compare times needed by the tile and naive implementation.
@@ -2167,5 +2207,49 @@ int main()
 	printf("k = %d\t*event_counter = %d\n", k, *event_counter);
 
 	free(event_counter);
+}
+#endif
+
+#if 1
+/*
+ * Getting Hardware Information
+ * The following example uses the GetSystemInfo function to obtain hardware information such as the OEM identifier,
+ * processor type, page size, and so on. The example displays the information in the console.
+ */
+
+int main()
+{
+	SYSTEM_INFO siSysInfo;
+ 
+	// Copy the hardware information to the SYSTEM_INFO structure. 
+ 
+	GetSystemInfo(&siSysInfo); 
+ 
+	// Display the contents of the SYSTEM_INFO structure. 
+
+	printf("Hardware information: \n");  
+	printf("  OEM ID: %u\n", siSysInfo.dwOemId);
+	printf("  Number of processors: %u\n", 
+	siSysInfo.dwNumberOfProcessors); 
+	printf("  Page size: %u\n", siSysInfo.dwPageSize); 
+	printf("  Processor type: %u\n", siSysInfo.dwProcessorType); 
+	printf("  Minimum application address: %lx\n", 
+	siSysInfo.lpMinimumApplicationAddress); 
+	printf("  Maximum application address: %lx\n", 
+	siSysInfo.lpMaximumApplicationAddress); 
+	printf("  Active processor mask: %u\n", 
+	siSysInfo.dwActiveProcessorMask); 
+
+
+	CPUID cpuID(0); // Get CPU vendor
+
+	string vendor;
+	vendor += string((const char *)&cpuID.EBX(), 4);
+	vendor += string((const char *)&cpuID.EDX(), 4);
+	vendor += string((const char *)&cpuID.ECX(), 4);
+
+	cout << "CPU vendor = " << vendor << endl;
+
+	return 0;
 }
 #endif
