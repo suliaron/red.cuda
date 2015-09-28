@@ -8,7 +8,6 @@
 #include <sstream>
 #include <stdlib.h>
 #include <string>
-#include <windows.h>
 #include <stdio.h>
 #pragma comment(lib, "user32.lib")
 
@@ -16,6 +15,7 @@
 #define CPUID_H
 
 #ifdef _WIN32
+#include <windows.h>
 #include <limits.h>
 #include <intrin.h>
 typedef unsigned __int32  uint32_t;
