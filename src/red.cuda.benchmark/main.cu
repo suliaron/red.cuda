@@ -84,107 +84,6 @@ uint64 GetTimeMs64()
 
 namespace kernel
 {
-static __global__
-	void calc_grav_accel_int_mul_of_thread_per_block(interaction_bound int_bound, const param_t* p, const vec_t* r, vec_t* a)
-{
-	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
-
-	vec_t dVec;
-	// This line (beyond my depth) speeds up the kernel
-	a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
-	for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
-	{
-		/* Skip the body with the same index */
-		if (i == j)
-		{
-			continue;
-		}
-		// 3 FLOP
-		dVec.x = r[j].x - r[i].x;
-		dVec.y = r[j].y - r[i].y;
-		dVec.z = r[j].z - r[i].z;
-		// 5 FLOP
-		dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
-		// 20 FLOP
-		var_t d = sqrt(dVec.w);								// = r
-		// 2 FLOP
-		dVec.w = p[j].mass / (d*dVec.w);					// = m / r^3
-		// 6 FLOP
-		a[i].x += dVec.w * dVec.x;
-		a[i].y += dVec.w * dVec.y;
-		a[i].z += dVec.w * dVec.z;
-	}
-}
-
-static __global__
-	void calc_grav_accel(ttt_t t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
-{
-	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
-
-	if (i < int_bound.sink.y)
-	{
-		// This line (beyond my depth) speeds up the kernel
-		a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
-		if (body_md[i].id > 0)
-		{
-			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
-			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
-			{
-				/* Skip the body with the same index and those which are inactive ie. id < 0 */
-				if (i == j || body_md[j].id < 0)
-				{
-					continue;
-				}
-				// 3 FLOP
-				dVec.x = r[j].x - r[i].x;
-				dVec.y = r[j].y - r[i].y;
-				dVec.z = r[j].z - r[i].z;
-				// 5 FLOP
-				dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
-				// 20 FLOP
-				var_t d = sqrt(dVec.w);								// = r
-				// 2 FLOP
-				dVec.w = p[j].mass / (d*dVec.w);
-				// 6 FLOP
-				a[i].x += dVec.w * dVec.x;
-				a[i].y += dVec.w * dVec.y;
-				a[i].z += dVec.w * dVec.z;
-
-				// Check for collision - ignore the star (i > 0 criterium)
-				// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
-				// If i < j is the condition than test particles can not collide with massive bodies
-				if (i > 0 && i > j && d < /* dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR] */ 5.0 * (p[i].radius + p[j].radius))
-				{
-					unsigned int k = atomicAdd(event_counter, 1);
-
-					int survivIdx = i;
-					int mergerIdx = j;
-					if (p[mergerIdx].mass > p[survivIdx].mass)
-					{
-						int t = survivIdx;
-						survivIdx = mergerIdx;
-						mergerIdx = t;
-					}
-					//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
-
-					events[k].event_name = EVENT_NAME_COLLISION;
-					events[k].d = d;
-					events[k].t = t;
-					events[k].id1 = body_md[survivIdx].id;
-					events[k].id2 = body_md[mergerIdx].id;
-					events[k].idx1 = survivIdx;
-					events[k].idx2 = mergerIdx;
-					events[k].r1 = r[survivIdx];
-					events[k].v1 = v[survivIdx];
-					events[k].r2 = r[mergerIdx];
-					events[k].v2 = v[mergerIdx];
-				}
-			}
-			// 36 FLOP
-		}
-	}
-}
-
 inline __host__ __device__
 	vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
 {
@@ -549,12 +448,14 @@ __global__
 __global__
 	void calc_gravity_accel_naive(int n_body, const vec_t* global_x, const var_t* mass, vec_t* global_a)
 {
+	// i is the index of the SINK body
 	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (n_body > i)
 	{
 		global_a[i].x = global_a[i].y = global_a[i].z = global_a[i].w = 0.0;
 		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		// j is the index of the SOURCE body
 		for (int j = 0; j < n_body; j++) 
 		{
 			/* Skip the body with the same index */
@@ -586,11 +487,13 @@ __global__
 __global__
 	void calc_gravity_accel_naive_sym(int n_body, const vec_t* global_x, const var_t* mass, vec_t* global_a)
 {
+	// i is the index of the SINK body
 	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (n_body > i)
 	{
 		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		// j is the index of the SOURCE body
 		for (int j = i+1; j < n_body; j++) 
 		{
 			// 3 FLOP
@@ -622,16 +525,20 @@ __global__
 }
 } /* namespace kernel */
 
+
+
 namespace kernel2
 {
 static __global__
 	void calc_grav_accel_int_mul_of_thread_per_block(interaction_bound int_bound, const param_t* p, const vec_t* r, vec_t* a)
 {
+	// i is the index of the SINK body
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
 	vec_t dVec;
 	// This line (beyond my depth) speeds up the kernel
 	a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
+	// j is the index of the SOURCE body
 	for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 	{
 		/* Skip the body with the same index */
@@ -657,21 +564,23 @@ static __global__
 }
 
 static __global__
-	void calc_grav_accel(ttt_t t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
+	void calc_grav_accel(ttt_t t, interaction_bound int_bound, const body_metadata_t* bmd, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
 {
+	// i is the index of the SINK body
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (i < int_bound.sink.y)
 	{
 		// This line (beyond my depth) speeds up the kernel
 		a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
-		if (body_md[i].id > 0)
+		if (bmd[i].id > 0)
 		{
 			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+			// j is the index of the SOURCE body
 			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 			{
 				/* Skip the body with the same index and those which are inactive ie. id < 0 */
-				if (i == j || body_md[j].id < 0)
+				if (i == j || bmd[j].id < 0)
 				{
 					continue;
 				}
@@ -705,13 +614,13 @@ static __global__
 						survivIdx = mergerIdx;
 						mergerIdx = t;
 					}
-					//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, body_md[survivIdx].id, body_md[mergerIdx].id);
+					//printf("t = %20.10le d = %20.10le %d. COLLISION detected: id: %5d id: %5d\n", t, d, k+1, bmd[survivIdx].id, bmd[mergerIdx].id);
 
 					events[k].event_name = EVENT_NAME_COLLISION;
 					events[k].d = d;
 					events[k].t = t;
-					events[k].id1 = body_md[survivIdx].id;
-					events[k].id2 = body_md[mergerIdx].id;
+					events[k].id1 = bmd[survivIdx].id;
+					events[k].id2 = bmd[mergerIdx].id;
 					events[k].idx1 = survivIdx;
 					events[k].idx2 = mergerIdx;
 					events[k].r1 = r[survivIdx];
@@ -778,48 +687,52 @@ inline __host__ __device__
 }
 
 __global__
-	void calc_gravity_accel_tile(int n_body, int tile_size, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+	void calc_gravity_accel_tile(interaction_bound int_bound, int tile_size, const vec_t* r, const var_t* m, vec_t* a)
 {
 	extern __shared__ vec_t sh_pos[];
 
 	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
 	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
 
-	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+	// i is the index of the SINK body
+	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
-	// To avoid overruning the global_x buffer
-	if (n_body > gtid)
+	// To avoid overruning the r buffer
+	if (int_bound.sink.y > i)
 	{
-		my_pos = global_x[gtid];
+		my_pos = r[i];
 	}
-	for (int tile = 0; (tile * tile_size) < n_body; tile++)
+	for (int tile = 0; (tile * tile_size) < int_bound.source.y; tile++)
 	{
-		int idx = tile * blockDim.x + threadIdx.x;
-		// To avoid overruning the global_x buffer
-		if (n_body > idx)
+		// src_idx is the index of the SOURCE body in the tile
+		int src_idx = int_bound.source.x + tile * tile_size + threadIdx.x;
+		// To avoid overruning the r buffer
+		if (int_bound.source.y > src_idx)
 		{
-			sh_pos[threadIdx.x] = global_x[idx];
+			sh_pos[threadIdx.x] = r[src_idx];
 		}
 		__syncthreads();
+		// j is the index of the SOURCE body in the current tile
 		for (int j = 0; j < blockDim.x; j++)
 		{
 			// To avoid overrun the mass buffer
-			if (n_body <= (tile * tile_size) + j)
+			if (int_bound.source.y <= int_bound.source.x + (tile * tile_size) + j)
 			{
 				break;
 			}
 			// To avoid self-interaction or mathematically division by zero
-			if (gtid != (tile * tile_size)+j)
+			if (i != int_bound.source.x + (tile * tile_size)+j)
 			{
-				acc = body_body_interaction(my_pos, sh_pos[j], mass[idx], acc);
+				acc = body_body_interaction(my_pos, sh_pos[j], m[src_idx], acc);
 			}
 		}
 		__syncthreads();
 	}
-	// To avoid overruning the global_a buffer
-	if (n_body > gtid)
+
+	// To avoid overruning the a buffer
+	if (int_bound.sink.y > i)
 	{
-		global_a[gtid] = acc;
+		a[i] = acc;
 	}
 }
 
@@ -827,62 +740,69 @@ __global__
  * The same as above but the blockDim.x is used instead of tile_size (both variable have the same value)
  */
 __global__
-	void calc_gravity_accel_tile(int n_body, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+	void calc_gravity_accel_tile(interaction_bound int_bound, const vec_t* r, const var_t* m, vec_t* a)
 {
 	extern __shared__ vec_t sh_pos[];
 
-	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+	// i is the index of the SINK body
+	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
 	vec_t acc = {0.0, 0.0, 0.0, 0.0};
 	vec_t my_pos;
 
-	// To avoid overruning the global_x buffer
-	if (n_body > gtid)
+	// To avoid overruning the r buffer
+	if (int_bound.sink.y > i)
 	{
-		my_pos = global_x[gtid];
+		my_pos = r[i];
 	}
 	
-	for (int tile = 0; (tile * blockDim.x) < n_body; tile++)
+	for (int tile = 0; (tile * blockDim.x) < int_bound.source.y; tile++)
 	{
-		const int idx = tile * blockDim.x + threadIdx.x;
-		// To avoid overruning the global_x and mass buffer
-		if (n_body > idx)
+		// src_idx is the index of the SOURCE body in the tile
+		const int src_idx = int_bound.source.x + tile * blockDim.x + threadIdx.x;
+		// To avoid overruning the r and mass buffer
+		if (int_bound.source.y > src_idx)
 		{
-			sh_pos[threadIdx.x]   = global_x[idx];
-			sh_pos[threadIdx.x].w = mass[idx];
+			sh_pos[threadIdx.x]   = r[src_idx];
+			sh_pos[threadIdx.x].w = m[src_idx];
 		}
 		__syncthreads();
 
+		// j is the index of the SOURCE body in the current tile
 		for (int j = 0; j < blockDim.x; j++)
 		{
-			// To avoid overrun the input arrays
-			if (n_body <= (tile * blockDim.x) + j)
+			// To avoid overrun the mass buffer
+			if (int_bound.source.y <= int_bound.source.x + (tile * blockDim.x) + j)
 			{
 				break;
 			}
 			// To avoid self-interaction or mathematically division by zero
-			if (gtid != (tile * blockDim.x) + j)
+			if (i != int_bound.source.x + (tile * blockDim.x)+j)
 			{
 				acc = body_body_interaction(my_pos, sh_pos[j], acc);
 			}
 		}
 		__syncthreads();
 	}
-	if (n_body > gtid)
+
+	// To avoid overruning the a buffer
+	if (int_bound.sink.y > i)
 	{
-		global_a[gtid] = acc;
+		a[i] = acc;
 	}
 }
 
 __global__
 	void calc_gravity_accel_naive(interaction_bound int_bound, const vec_t* r, const var_t* m, vec_t* a)
 {
+	// i is the index of the SINK body
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (int_bound.sink.y > i)
 	{
 		a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
 		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		// j is the index of the SOURCE body
 		for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 		{
 			/* Skip the body with the same index */
@@ -910,15 +830,17 @@ __global__
 	}
 }
 
-// NOTE: Before calling this function, the global_a array must be cleared!
+// NOTE: Before calling this function, the a array must be cleared!
 __global__
 	void calc_gravity_accel_naive_sym(interaction_bound int_bound, const vec_t* r, const var_t* m, vec_t* a)
 {
+	// i is the index of the SINK body
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (int_bound.sink.y > i)
 	{
 		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		// j is the index of the SOURCE body
 		for (int j = i+1; j < int_bound.source.y; j++) 
 		{
 			// 3 FLOP
@@ -1047,6 +969,33 @@ float gpu_calc_grav_accel_naive_benchmark(int n_body, int n_tpb, const vec_t* d_
 	return elapsed_time;
 }
 
+float gpu_calc_grav_accel_naive_benchmark(interaction_bound int_bound, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
+{
+	cudaEvent_t start, stop;
+
+	CUDA_SAFE_CALL(cudaEventCreate(&start));
+	CUDA_SAFE_CALL(cudaEventCreate(&stop));
+
+	int n_body = int_bound.sink.y - int_bound.sink.x;
+
+	dim3 grid((n_body + n_tpb - 1)/n_tpb);
+	dim3 block(n_tpb);
+
+	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
+
+	kernel2::calc_gravity_accel_naive<<<grid, block>>>(int_bound, d_x, d_m, d_a);
+	CUDA_CHECK_ERROR();
+
+	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
+	CUDA_SAFE_CALL(cudaEventSynchronize(stop));
+
+	float elapsed_time = 0.0f;
+	CUDA_SAFE_CALL(cudaEventElapsedTime(&elapsed_time, start, stop));
+
+	return elapsed_time;
+}
+
+
 float gpu_calc_grav_accel_naive_sym_benchmark(int n_body, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
 {
 	cudaEvent_t start, stop;
@@ -1072,6 +1021,7 @@ float gpu_calc_grav_accel_naive_sym_benchmark(int n_body, int n_tpb, const vec_t
 	return elapsed_time;
 }
 
+// The blockDim.x is used instead of tile_size (reduce the number by 1 of kernel parameters)
 float gpu_calc_grav_accel_tile_benchmark(int n_body, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
 {
 	cudaEvent_t start, stop;
@@ -1096,7 +1046,7 @@ float gpu_calc_grav_accel_tile_benchmark(int n_body, int n_tpb, const vec_t* d_x
 	return elapsed_time;
 }
 
-// The same as above but blockDim.x is used instead of tile_size
+// The same as above
 float gpu_calc_grav_accel_tile_benchmark_2(int n_body, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
 {
 	cudaEvent_t start, stop;
@@ -1127,7 +1077,7 @@ void print(int n_body, string& method_name, int n_tpb, ttt_t Dt_CPU, ttt_t Dt_GP
 
 	cout << tools::get_time_stamp(false) << sep
 		 << setw(6) << n_body << sep
-		 << setw(20) << method_name << sep
+		 << setw(30) << method_name << sep
 		 << setw(5) << n_tpb << sep
 		 << setprecision(6) << setw(10) << Dt_CPU << sep
 		 << setprecision(6) << setw(10) << Dt_GPU  << endl;
@@ -1181,7 +1131,7 @@ void benchmark_CPU_and_kernels(int n_body, int dev_id, const vec_t* d_x, const v
 	{
 		cout << endl << "CPU Gravity acceleration: Naive calculation:" << endl;
 
-		uint64 _t0 = GetTimeMs64();
+		uint64 t0 = GetTimeMs64();
 		if (50 >= n_body)
 		{
 			for (i = 0; i < 1000; i++)
@@ -1207,7 +1157,7 @@ void benchmark_CPU_and_kernels(int n_body, int dev_id, const vec_t* d_x, const v
 		{
 			cpu_calc_grav_accel_naive(n_body, h_x, h_m, h_a);
 		}
-		Dt_CPU = ((ttt_t)(GetTimeMs64() - _t0))/(ttt_t)(i+1);
+		Dt_CPU = ((ttt_t)(GetTimeMs64() - t0))/(ttt_t)(i+1);
 
 		print(n_body, method_name[0], 1, Dt_CPU, Dt_GPU, sout);
 	}
@@ -1216,7 +1166,7 @@ void benchmark_CPU_and_kernels(int n_body, int dev_id, const vec_t* d_x, const v
 	{
 		cout << endl << "CPU Gravity acceleration: Naive symmetric calculation:" << endl;
 
-		uint64 _t0 = GetTimeMs64();
+		uint64 t0 = GetTimeMs64();
 		if (50 >= n_body)
 		{
 			for (i = 0; i < 1000; i++)
@@ -1242,7 +1192,7 @@ void benchmark_CPU_and_kernels(int n_body, int dev_id, const vec_t* d_x, const v
 		{
 			cpu_calc_grav_accel_naive_sym(n_body, h_x, h_m, h_a);
 		}
-		Dt_CPU = ((ttt_t)(GetTimeMs64() - _t0))/(ttt_t)(i+1);
+		Dt_CPU = ((ttt_t)(GetTimeMs64() - t0))/(ttt_t)(i+1);
 
 		print(n_body, method_name[1], 1, Dt_CPU, Dt_GPU, sout);
 	}
@@ -1262,7 +1212,9 @@ void benchmark_CPU_and_kernels(int n_body, int dev_id, const vec_t* d_x, const v
 			print(n_body, method_name[2], n_tpb, Dt_CPU, Dt_GPU, sout);
 		}
 		int min_idx = get_min_idx(execution_time);
-		cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx] << " [ms]" << endl;
+		int min_idx2 = min_element(execution_time.begin(), execution_time.end()) - execution_time.begin();
+		cout << "   Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", DT_GPU: " << execution_time[min_idx] << " [ms]" << endl;
+		cout << "___Minimum at n_tpb = " << ((min_idx2 + 1) * half_warp_size) << ", DT_GPU: " << execution_time[min_idx2] << " [ms]" << endl;
 	}
 	execution_time.clear();
 	printf("\n");
@@ -1280,7 +1232,7 @@ void benchmark_CPU_and_kernels(int n_body, int dev_id, const vec_t* d_x, const v
 			print(n_body, method_name[3], n_tpb, Dt_CPU, Dt_GPU, sout);
 		}
 		int min_idx = get_min_idx(execution_time);
-		cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx] << " [ms]" << endl;
+		cout << "   Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", DT_GPU: " << execution_time[min_idx] << " [ms]" << endl;
 	}
 	execution_time.clear();
 	printf("\n");
@@ -1298,7 +1250,7 @@ void benchmark_CPU_and_kernels(int n_body, int dev_id, const vec_t* d_x, const v
 			print(n_body, method_name[4], n_tpb, Dt_CPU, Dt_GPU, sout);
 		}
 		int min_idx = get_min_idx(execution_time);
-		cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx] << " [ms]" << endl;
+		cout << "   Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", DT_GPU: " << execution_time[min_idx] << " [ms]" << endl;
 	}
 	execution_time.clear();
 	printf("\n");
@@ -1316,7 +1268,7 @@ void benchmark_CPU_and_kernels(int n_body, int dev_id, const vec_t* d_x, const v
 			print(n_body, method_name[5], n_tpb, Dt_CPU, Dt_GPU, sout);
 		}
 		int min_idx = get_min_idx(execution_time);
-		cout << "Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", where execution time is: " << execution_time[min_idx] << " [ms]" << endl;
+		cout << "   Minimum at n_tpb = " << ((min_idx + 1) * half_warp_size) << ", DT_GPU: " << execution_time[min_idx] << " [ms]" << endl;
 	}
 	execution_time.clear();
 	printf("\n");
@@ -1583,8 +1535,95 @@ void parse_env(const char** env, string& proc_arch, string& proc_identifier)
 	}
 }
 
+void benchmark_kernel(int id_dev, int n0, int n1, int dn, int n_iter, string& o_dir, string& proc_arch, string& proc_identifier)
+{
+	vec_t* h_x = 0x0;
+	vec_t* h_a = 0x0;
+	var_t* h_m = 0x0;
+
+	vec_t* d_x = 0x0;
+	vec_t* d_a = 0x0;
+	var_t* d_m = 0x0;
+
+	vec_t* h_at = 0x0;
+
+	ofstream* output[OUTPUT_NAME_N];
+	memset(output, 0x0, sizeof(output));
+
+	string cpu_name = proc_arch + "_" + proc_identifier;
+	open_streams(id_dev, cpu_name, o_dir, output);
+
+	set_device(id_dev, cout);
+	device_query(cout, id_dev, false);
+	device_query(*output[OUTPUT_NAME_LOG], id_dev, false);
+
+	// The user wants a benchmark only for the specified number of bodies
+	if (0 == dn)
+	{
+		n0 = n1;
+	}
+	// The user defined dn in order to carry out a benchmark for different number of bodies
+	// so the benchmark will be carry on for different numbers from n0 to n1
+	else
+	{
+		;
+	}
+
+	int k = 1;
+	for (int nn = n0; nn <= n1; nn += dn, k++)
+	{
+		ALLOCATE_HOST_VECTOR((void**)&h_x,  nn*sizeof(vec_t)); 
+		ALLOCATE_HOST_VECTOR((void**)&h_a,  nn*sizeof(vec_t)); 
+		ALLOCATE_HOST_VECTOR((void**)&h_at, nn*sizeof(vec_t)); 
+		ALLOCATE_HOST_VECTOR((void**)&h_m,  nn*sizeof(var_t)); 
+
+		ALLOCATE_DEVICE_VECTOR((void**)&d_x, nn*sizeof(vec_t)); 
+		ALLOCATE_DEVICE_VECTOR((void**)&d_a, nn*sizeof(vec_t)); 
+		ALLOCATE_DEVICE_VECTOR((void**)&d_m, nn*sizeof(var_t)); 
+
+		populate(nn, h_x, h_m);
+
+		copy_vector_to_device(d_x, h_x, nn*sizeof(vec_t));
+		copy_vector_to_device(d_m, h_m, nn*sizeof(var_t));
+
+		// Compare results computed on the CPU with those computed on the GPU
+		if (nn == n0)
+		{
+			int n_tpb = min(nn, 256);
+			compare_results(nn, n_tpb, d_x, d_m, d_a, h_x, h_m, h_a, h_at, 1.0e-15);
+		}
+
+		benchmark_CPU_and_kernels(nn, id_dev, d_x, d_m, d_a, h_x, h_m, h_a, *output[OUTPUT_NAME_RESULT]);
+
+		if (0 < n_iter && 0 == k % n_iter)
+		{
+			k = 1;
+			dn *= 10;
+		}
+
+		FREE_HOST_VECTOR((void**)&h_x);
+		FREE_HOST_VECTOR((void**)&h_a);
+		FREE_HOST_VECTOR((void**)&h_m);
+		FREE_HOST_VECTOR((void**)&h_at);
+
+		FREE_DEVICE_VECTOR((void**)&d_x);
+		FREE_DEVICE_VECTOR((void**)&d_a);
+		FREE_DEVICE_VECTOR((void**)&d_m);
+	}
+}
+
 int main(int argc, const char** argv, const char** env)
 {
+	//vec_t* h_x = 0x0;
+	//vec_t* h_a = 0x0;
+	//var_t* h_m = 0x0;
+
+	//vec_t* d_x = 0x0;
+	//vec_t* d_a = 0x0;
+	//var_t* d_m = 0x0;
+
+	//vec_t* h_at = 0x0;
+
 	string o_dir;
 	string o_file;
 	string proc_arch;
@@ -1596,84 +1635,76 @@ int main(int argc, const char** argv, const char** env)
 	int dn = 0;
 	int n_iter = 0;
 
-	vec_t* h_x = 0x0;
-	vec_t* h_a = 0x0;
-	var_t* h_m = 0x0;
-
-	vec_t* d_x = 0x0;
-	vec_t* d_a = 0x0;
-	var_t* d_m = 0x0;
-
-	vec_t* h_at = 0x0;
-
 	try
 	{
 		parse_options(argc, argv, o_dir, o_file, id_dev, n0, n1, dn, n_iter);
 		parse_env(env, proc_arch, proc_identifier);
 
-		ofstream* output[OUTPUT_NAME_N];
-		memset(output, 0x0, sizeof(output));
+		benchmark_kernel(id_dev, n0, n1, dn, n_iter, o_dir, proc_arch, proc_identifier);
 
-		string cpu_name = proc_arch + "_" + proc_identifier;
-		open_streams(id_dev, cpu_name, o_dir, output);
+		//ofstream* output[OUTPUT_NAME_N];
+		//memset(output, 0x0, sizeof(output));
 
-		set_device(id_dev, cout);
-		device_query(cout, id_dev, false);
-		device_query(*output[OUTPUT_NAME_LOG], id_dev, false);
+		//string cpu_name = proc_arch + "_" + proc_identifier;
+		//open_streams(id_dev, cpu_name, o_dir, output);
 
-		// The user wants a benchmark only for the specified number of bodies
-		if (0 == dn)
-		{
-			n0 = n1;
-		}
-		// The user defined dn in order to carry out a benchmark for different number of bodies
-		// so the benchmark will be carry on for different numbers from n0 to n1
-		else
-		{
-			;
-		}
+		//set_device(id_dev, cout);
+		//device_query(cout, id_dev, false);
+		//device_query(*output[OUTPUT_NAME_LOG], id_dev, false);
 
-		int k = 1;
-		for (int nn = n0; nn <= n1; nn += dn, k++)
-		{
-			ALLOCATE_HOST_VECTOR((void**)&h_x,  nn*sizeof(vec_t)); 
-			ALLOCATE_HOST_VECTOR((void**)&h_a,  nn*sizeof(vec_t)); 
-			ALLOCATE_HOST_VECTOR((void**)&h_at, nn*sizeof(vec_t)); 
-			ALLOCATE_HOST_VECTOR((void**)&h_m,  nn*sizeof(var_t)); 
+		//// The user wants a benchmark only for the specified number of bodies
+		//if (0 == dn)
+		//{
+		//	n0 = n1;
+		//}
+		//// The user defined dn in order to carry out a benchmark for different number of bodies
+		//// so the benchmark will be carry on for different numbers from n0 to n1
+		//else
+		//{
+		//	;
+		//}
 
-			ALLOCATE_DEVICE_VECTOR((void**)&d_x, nn*sizeof(vec_t)); 
-			ALLOCATE_DEVICE_VECTOR((void**)&d_a, nn*sizeof(vec_t)); 
-			ALLOCATE_DEVICE_VECTOR((void**)&d_m, nn*sizeof(var_t)); 
+		//int k = 1;
+		//for (int nn = n0; nn <= n1; nn += dn, k++)
+		//{
+		//	ALLOCATE_HOST_VECTOR((void**)&h_x,  nn*sizeof(vec_t)); 
+		//	ALLOCATE_HOST_VECTOR((void**)&h_a,  nn*sizeof(vec_t)); 
+		//	ALLOCATE_HOST_VECTOR((void**)&h_at, nn*sizeof(vec_t)); 
+		//	ALLOCATE_HOST_VECTOR((void**)&h_m,  nn*sizeof(var_t)); 
 
-			populate(nn, h_x, h_m);
+		//	ALLOCATE_DEVICE_VECTOR((void**)&d_x, nn*sizeof(vec_t)); 
+		//	ALLOCATE_DEVICE_VECTOR((void**)&d_a, nn*sizeof(vec_t)); 
+		//	ALLOCATE_DEVICE_VECTOR((void**)&d_m, nn*sizeof(var_t)); 
 
-			copy_vector_to_device(d_x, h_x, nn*sizeof(vec_t));
-			copy_vector_to_device(d_m, h_m, nn*sizeof(var_t));
+		//	populate(nn, h_x, h_m);
 
-			// Compare results computed on the CPU with those computed on the GPU
-			if (nn == n0)
-			{
-				int n_tpb = min(nn, 256);
-				compare_results(nn, n_tpb, d_x, d_m, d_a, h_x, h_m, h_a, h_at, 1.0e-15);
-			}
+		//	copy_vector_to_device(d_x, h_x, nn*sizeof(vec_t));
+		//	copy_vector_to_device(d_m, h_m, nn*sizeof(var_t));
 
-			benchmark_CPU_and_kernels(nn, id_dev, d_x, d_m, d_a, h_x, h_m, h_a, *output[OUTPUT_NAME_RESULT]);
+		//	// Compare results computed on the CPU with those computed on the GPU
+		//	if (nn == n0)
+		//	{
+		//		int n_tpb = min(nn, 256);
+		//		compare_results(nn, n_tpb, d_x, d_m, d_a, h_x, h_m, h_a, h_at, 1.0e-15);
+		//	}
 
-			if (0 < n_iter && 0 == k % n_iter)
-			{
-				k = 1;
-				dn *= 10;
-			}
+		//	benchmark_CPU_and_kernels(nn, id_dev, d_x, d_m, d_a, h_x, h_m, h_a, *output[OUTPUT_NAME_RESULT]);
 
-			FREE_HOST_VECTOR((void**)&h_x);
-			FREE_HOST_VECTOR((void**)&h_a);
-			FREE_HOST_VECTOR((void**)&h_m);
-			FREE_HOST_VECTOR((void**)&h_at);
+		//	if (0 < n_iter && 0 == k % n_iter)
+		//	{
+		//		k = 1;
+		//		dn *= 10;
+		//	}
 
-			FREE_DEVICE_VECTOR((void**)&d_x);
-			FREE_DEVICE_VECTOR((void**)&d_a);
-			FREE_DEVICE_VECTOR((void**)&d_m);
-		}
+		//	FREE_HOST_VECTOR((void**)&h_x);
+		//	FREE_HOST_VECTOR((void**)&h_a);
+		//	FREE_HOST_VECTOR((void**)&h_m);
+		//	FREE_HOST_VECTOR((void**)&h_at);
+
+		//	FREE_DEVICE_VECTOR((void**)&d_x);
+		//	FREE_DEVICE_VECTOR((void**)&d_a);
+		//	FREE_DEVICE_VECTOR((void**)&d_m);
+		//}
 	}
 	catch(const string& msg)
 	{
