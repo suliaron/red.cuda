@@ -919,7 +919,7 @@ __global__
 	if (int_bound.sink.y > i)
 	{
 		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
-		for (int j = i+1; j < n_body; j++) 
+		for (int j = i+1; j < int_bound.source.y; j++) 
 		{
 			// 3 FLOP
 			dVec.x = r[j].x - r[i].x;
