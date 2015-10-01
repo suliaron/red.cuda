@@ -106,11 +106,11 @@ typedef enum computing_device
 			COMPUTING_DEVICE_GPU,
 			COMPUTING_DEVICE_N
 		} computing_device_t;
-//static const char* computing_device_name[] = 
-//{
-//			"CPU",
-//			"GPU"
-//};
+static const char* computing_device_name[] = 
+{
+			"CPU",
+			"GPU"
+};
 
 typedef enum threshold
 		{
@@ -431,6 +431,12 @@ struct interaction_bound
 {
 	int2_t	sink;
 	int2_t	source;
+
+	interaction_bound()
+	{
+		sink.x   = sink.y   = 0;
+		source.x = source.y = 0;
+	}
 
 	interaction_bound(int2_t sink, int2_t source) : 
 		sink(sink),
