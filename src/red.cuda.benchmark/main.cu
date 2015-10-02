@@ -1927,7 +1927,7 @@ void write_log(int argc, const char** argv, const char** env, int id_dev, ofstre
 #else  /* presume POSIX */
 	string path = "/proc/cpuinfo";
 
-	ifstream input(path);
+	ifstream input(path.c_str());
 	if (!input)
 	{
 		throw string("Cannot open " + path + ".");
@@ -2049,7 +2049,7 @@ void read_cpu_description(const char** env, vector<string>& result)
 #else  /* presume POSIX */
 	string path = "/proc/cpuinfo";
 
-	ifstream input(path);
+	ifstream input(path.c_str());
 	if (!input)
 	{
 		throw string("Cannot open " + path + ".");
