@@ -15,15 +15,9 @@
 #include "device_launch_parameters.h"
 
 // includes Thrust
-#ifdef __GNUC__
 #include "thrust/device_ptr.h"
 #include "thrust/fill.h"
 #include "thrust/extrema.h"
-#else
-#include "thrust\device_ptr.h"
-#include "thrust\fill.h"
-#include "thrust\extrema.h"
-#endif
 
 // includes project
 #include "red_constants.h"
@@ -2169,4 +2163,24 @@ int main()
 
 	free(event_counter);
 }
+#endif
+
+#if 1
+/*
+ * Test trim_right tools function
+ */
+
+int main()
+{
+	string key = "model name      ";
+
+
+	size_t pf = key.find_first_of(' ');
+	key[pf] = '_';
+
+	tools::trim_right(key, ' ');
+
+	cout << "key : " << key << endl;
+}
+
 #endif

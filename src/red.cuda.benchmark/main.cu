@@ -2018,6 +2018,9 @@ printf("line = %s\nkey = %s value = %s\n", line.c_str(), key.c_str(), value.c_st
 		}
 
 #else  /* presume POSIX */
+		
+		size_t pf = key.find_first_of(' ');
+		key[pf] = '_';
 
 		tools::trim_right(key, ' ');
 		std::replace(key.begin(), key.end(), ' ', '_');
