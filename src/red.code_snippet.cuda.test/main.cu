@@ -1,4 +1,5 @@
 // includes system
+#include <algorithm>
 #include <iomanip>
 #include <cstdio>
 #include <cstdlib>
@@ -15,15 +16,9 @@
 #include "device_launch_parameters.h"
 
 // includes Thrust
-#ifdef __GNUC__
 #include "thrust/device_ptr.h"
 #include "thrust/fill.h"
 #include "thrust/extrema.h"
-#else
-#include "thrust\device_ptr.h"
-#include "thrust\fill.h"
-#include "thrust\extrema.h"
-#endif
 
 // includes project
 #include "red_constants.h"
@@ -2169,4 +2164,31 @@ int main()
 
 	free(event_counter);
 }
+#endif
+
+#if 1
+/*
+ * Test trim_right tools function
+ */
+
+int main()
+{
+	string key = "model name      ";
+	string value = " Intel(R) Core(TM)2 Quad CPU    Q6600  @ 2.40GHz";
+
+	tools::trim_right(key, ' ');
+
+	size_t pf = key.find_first_of(' ');
+	key[pf] = '_';
+
+	if ("model_name" == key)
+	{
+printf("key \"model_name\" was found with value: %s\n", value.c_str());
+		tools::trim(value);
+
+		std::replace(value.begin(), value.end(), ' ', '_');
+printf("cpu_info.model_name: %s\n", value.c_str());
+	}
+}
+
 #endif

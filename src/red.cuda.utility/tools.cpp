@@ -51,11 +51,17 @@ void trim_right(string& str)
 void trim_right(string& str, char c)
 {
 	// trim trailing spaces
-	size_t endpos = str.find(c);
-	if (string::npos != endpos )
+	//size_t endpos = str.find(c);
+	//if (string::npos != endpos )
+	//{
+	//	str = str.substr(0, endpos);
+	//}
+	int idx = str.length() - 1;
+	while (str[idx] == c)
 	{
-		str = str.substr(0, endpos);
+		idx--;
 	}
+	str = str.substr(0, idx + 1);
 }
 
 /// Removes all leading white-space characters from the current std::string object.

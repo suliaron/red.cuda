@@ -2018,15 +2018,19 @@ printf("line = %s\nkey = %s value = %s\n", line.c_str(), key.c_str(), value.c_st
 		}
 
 #else  /* presume POSIX */
-
+		
 		tools::trim_right(key, ' ');
-		std::replace(key.begin(), key.end(), ' ', '_');
+		size_t pf = key.find_first_of(' ');
+		key[pf] = '_';
 		
 printf("key = %s\n", key.c_str());
 		if ("model_name" == key)
 		{
+printf("key \"model_name\" was found with value: %s\n", value.c_str());
+			tools::trim(value);
 			cpu_info.model_name = value;
 			std::replace(cpu_info.model_name.begin(), cpu_info.model_name.end(), ' ', '_');
+printf("cpu_info.model_name: %s\n", cpu_info.model_name.c_str());
 		}
 
 #endif
