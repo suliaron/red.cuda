@@ -2029,7 +2029,7 @@ printf("key = %s\n", key.c_str());
 printf("key \"model_name\" was found with value: %s\n", value.c_str());
 			tools::trim(value);
 			cpu_info.model_name = value;
-			std::replace(cpu_info.model_name.begin(), cpu_info.model_name.end(), ' ', '_');
+			//std::replace(cpu_info.model_name.begin(), cpu_info.model_name.end(), ' ', '_');
 printf("cpu_info.model_name: %s\n", cpu_info.model_name.c_str());
 		}
 
