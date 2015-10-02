@@ -57,9 +57,10 @@ void trim_right(string& str, char c)
 	//	str = str.substr(0, endpos);
 	//}
 	int idx = str.length() - 1;
+	printf("str[%2d] = '%c'\n", idx, str[idx]);
 	while (str[idx] == c)
 	{
-		printf("str[%2d] = %c\n", idx, str[idx]);
+		printf("str[%2d] = '%c'\n", idx, str[idx]);
 		idx--;
 	}
 	str = str.substr(0, idx + 1);
