@@ -2009,7 +2009,7 @@ void parse_cpu_info(vector<string>& data, cpu_info_t& cpu_info)
 		string key = line.substr(0, p0);
 		string value = line.substr(p0+1, line.length());
 
-printf("line = %s\nkey = %s value = %s\n", line, key, value);
+printf("line = %s\nkey = %s value = %s\n", line.c_str(), key.c_str(), value.c_str());
 
 #if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 		if ("PROCESSOR_IDENTIFIER" == key)
@@ -2022,7 +2022,7 @@ printf("line = %s\nkey = %s value = %s\n", line, key, value);
 		tools::trim_right(key, ' ');
 		std::replace(key.begin(), key.end(), ' ', '_');
 		
-printf("key = %s\n", key);
+printf("key = %s\n", key.c_str());
 		if ("model_name" == key)
 		{
 			cpu_info.model_name = value;
