@@ -2024,7 +2024,7 @@ printf("line = '%s'\nkey = '%s' value = '%s'\n", line.c_str(), key.c_str(), valu
 		key[pf] = '_';
 		
 printf("key = '%s'\n", key.c_str());
-		if ("model_name" == key)
+		if ("model_name       " == key)
 		{
 printf("key 'model_name' was found with value: '%s'\n", value.c_str());
 			tools::trim(value);
