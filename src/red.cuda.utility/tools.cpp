@@ -77,6 +77,23 @@ void trim_right(string& str, char c)
 	s[idx + 1] = 0;
 }
 
+// The approach for narrow character strings
+void rtrim(std::string& s, char c)
+{
+
+	if (s.empty())
+		return;
+
+	std::string::iterator p;
+	for (p = s.end(); p != s.begin() && *--p == c;);
+
+	if (*p != c)
+		p++;
+
+	s.erase(p, s.end());
+}
+
+
 /// Removes all leading white-space characters from the current std::string object.
 void trim_left(string& str)
 {

@@ -2213,7 +2213,8 @@ void parse_cpu_info(vector<string>& data)
 		string value = line.substr(p0+1, line.length());
 
 printf("line = '%s'\nkey = '%s' value = '%s'\n", line.c_str(), key.c_str(), value.c_str());
-		tools::trim_right(key, ' ');
+		//tools::trim_right(key, ' ');
+		tools::rtrim(key, ' ');
 		tools::trim(value);
 printf("key = '%s' value = '%s'\n", key.c_str(), value.c_str());
 
