@@ -37,6 +37,19 @@ bool is_number(const string& str)
    return true;
 }
 
+void reverse(char s[])
+{
+    int length = strlen(s) ;
+    int c, i, j;
+
+    for (i = 0, j = length - 1; i < j; i++, j--)
+    {
+        c = s[i];
+        s[i] = s[j];
+        s[j] = c;
+    }
+}
+
 /// Removes all trailing white-space characters from the current std::string object.
 void trim_right(string& str)
 {
@@ -67,29 +80,40 @@ void trim_right(string& str, char c)
 	//}
 	//str = str.substr(0, idx + 1);
 
+	//char *s = (char *)str.c_str();
+	//int idx = strlen(s) - 1;
+	//printf("s[%2d] = '%c'\n", idx, s[idx]);
+	//while (c == s[idx])
+	//{
+	//	printf("s[%2d] = '%c'\n", idx, s[idx]);
+	//	idx--;
+	//}
+	//s[idx + 1] = 0;
+
 	char *s = (char *)str.c_str();
-	int idx = strlen(s) - 1;
-	printf("s[%2d] = '%c'\n", idx, s[idx]);
-	while (c == s[idx])
-	{
-		printf("s[%2d] = '%c'\n", idx, s[idx]);
-		idx--;
-	}
-	s[idx + 1] = 0;
+	reverse(s);
+	string tmp = s;
+	trim_left(tmp);
+	s = (char *)tmp.c_str();
+	reverse(s);
+	str = s;
 }
 
 // The approach for narrow character strings
-void rtrim(std::string& s, char c)
+void rtrim(string& s, char c)
 {
-
 	if (s.empty())
+	{
 		return;
+	}
 
-	std::string::iterator p;
+	string::iterator p;
 	for (p = s.end(); p != s.begin() && *--p == c;);
 
 	if (*p != c)
+	{
 		p++;
+	}
 
 	s.erase(p, s.end());
 }
