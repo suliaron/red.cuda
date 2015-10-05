@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <cstdlib>
+#include <string.h>
 
 // includes project
 #include "tools.h"
