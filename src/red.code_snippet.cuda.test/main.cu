@@ -2166,7 +2166,7 @@ int main()
 }
 #endif
 
-#if 1
+#if 0
 /*
  * Test trim_right tools function
  */
@@ -2189,6 +2189,81 @@ printf("key \"model_name\" was found with value: %s\n", value.c_str());
 		std::replace(value.begin(), value.end(), ' ', '_');
 printf("cpu_info.model_name: %s\n", value.c_str());
 	}
+}
+
+#endif
+
+#if 1
+/*
+ * Test trim_right tools function
+ */
+
+void parse_cpu_info(vector<string>& data)
+{
+	char delimiter = ':';
+	string line;
+
+	size_t pos0 = 0;
+	size_t pos1 = data[0].find_first_of('\n');;
+	do
+	{
+		line = data[0].substr(pos0, pos1 - pos0);
+		size_t p0 = line.find_first_of(delimiter);
+		string key = line.substr(0, p0);
+		string value = line.substr(p0+1, line.length());
+
+printf("line = '%s'\nkey = '%s' value = '%s'\n", line.c_str(), key.c_str(), value.c_str());
+		tools::trim_right(key, ' ');
+		tools::trim(value);
+printf("key = '%s' value = '%s'\n", key.c_str(), value.c_str());
+
+		if ("model name" == key)
+		{
+printf("key 'model name' was found with value: '%s'\n", value.c_str());
+			tools::trim(value);
+			string cpu_info_model_name = value;
+			//std::replace(cpu_info.model_name.begin(), cpu_info.model_name.end(), ' ', '_');
+printf("cpu_info_model_name: '%s'\n", cpu_info_model_name.c_str());
+		}
+
+		// Increaes by 1 in order to skip the newline at the end of the previous string
+		pos0 = pos1 + 1;
+		pos1 = data[0].find_first_of('\n', pos0+1);
+	} while (pos1 != string::npos && pos1 <= data[0].length());
+}
+
+
+int main(int argc, const char** argv, const char** env)
+{
+	vector<string> result;
+	string data;
+
+	/* presume POSIX */
+	//string path = "/proc/cpuinfo";
+	string path = "C:\\Work\\Projects\\red.cuda\\TestRun\\CPU_info\\cpuinfo";
+
+	ifstream input(path.c_str());
+	if (!input)
+	{
+		throw string("Cannot open " + path + ".");
+	}
+	string line;
+	while (getline(input, line))
+	{
+		if (line.empty())
+		{
+			result.push_back(data);
+			data.clear();
+		}
+		else
+		{
+			data += line + '\n';
+		}
+	}
+	result.push_back(data);
+	data.clear();
+
+	parse_cpu_info(result);
 }
 
 #endif

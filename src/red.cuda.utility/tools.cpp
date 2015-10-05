@@ -56,14 +56,25 @@ void trim_right(string& str, char c)
 	//{
 	//	str = str.substr(0, endpos);
 	//}
-	int idx = str.length() - 1;
-	printf("str[%2d] = '%c'\n", idx, str[idx]);
-	while (str[idx] == c)
+
+	//int idx = str.length() - 1;
+	//printf("str[%2d] = '%c'\n", idx, str[idx]);
+	//while (str[idx] == c)
+	//{
+	//	printf("str[%2d] = '%c'\n", idx, str[idx]);
+	//	idx--;
+	//}
+	//str = str.substr(0, idx + 1);
+
+	char *s = (char *)str.c_str();
+	int idx = strlen(s) - 1;
+	printf("s[%2d] = '%c'\n", idx, s[idx]);
+	while (c == s[idx])
 	{
-		printf("str[%2d] = '%c'\n", idx, str[idx]);
+		printf("s[%2d] = '%c'\n", idx, s[idx]);
 		idx--;
 	}
-	str = str.substr(0, idx + 1);
+	s[idx + 1] = 0;
 }
 
 /// Removes all leading white-space characters from the current std::string object.

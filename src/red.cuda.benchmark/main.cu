@@ -1999,7 +1999,6 @@ void parse_cpu_info(vector<string>& data, cpu_info_t& cpu_info)
 #endif
 
 	string line;
-
 	size_t pos0 = 0;
 	size_t pos1 = data[0].find_first_of('\n');;
 	do
@@ -2008,7 +2007,6 @@ void parse_cpu_info(vector<string>& data, cpu_info_t& cpu_info)
 		size_t p0 = line.find_first_of(delimiter);
 		string key = line.substr(0, p0);
 		string value = line.substr(p0+1, line.length());
-
 printf("line = '%s'\nkey = '%s' value = '%s'\n", line.c_str(), key.c_str(), value.c_str());
 
 #if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
@@ -2020,13 +2018,12 @@ printf("line = '%s'\nkey = '%s' value = '%s'\n", line.c_str(), key.c_str(), valu
 #else  /* presume POSIX */
 		
 		tools::trim_right(key, ' ');
-		size_t pf = key.find_first_of(' ');
-		key[pf] = '_';
+		tools::trim(value);
+printf("key = '%s' value = '%s'\n", key.c_str(), value.c_str());
 		
-printf("key = '%s'\n", key.c_str());
-		if ("model_name       " == key)
+		if ("model name" == key)
 		{
-printf("key 'model_name' was found with value: '%s'\n", value.c_str());
+printf("key 'model name' was found with value: '%s'\n", value.c_str());
 			tools::trim(value);
 			cpu_info.model_name = value;
 			//std::replace(cpu_info.model_name.begin(), cpu_info.model_name.end(), ' ', '_');
@@ -2052,8 +2049,8 @@ void read_cpu_description(const char** env, vector<string>& result)
 		string element = *p;
 		data += element + '\n';
 	}
-
 #else  /* presume POSIX */
+
 	string path = "/proc/cpuinfo";
 
 	ifstream input(path.c_str());
@@ -2069,10 +2066,12 @@ void read_cpu_description(const char** env, vector<string>& result)
 			result.push_back(data);
 			data.clear();
 		}
-		data += line + '\n';
+		else
+		{
+			data += line + '\n';
+		}
 	}
 #endif
-
 	result.push_back(data);
 	data.clear();
 }
