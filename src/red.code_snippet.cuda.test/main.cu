@@ -2224,7 +2224,7 @@ printf("key 'model name' was found with value: '%s'\n", value.c_str());
 			tools::trim(value);
 			string cpu_info_model_name = value;
 			//std::replace(cpu_info.model_name.begin(), cpu_info.model_name.end(), ' ', '_');
-printf("cpu_info_model_name: '%s'\n", cpu_info_model_name.c_str());
+printf("cpu_info_model_name: '%s'\n", tools::trim_and_reduce_spaces( (char*)cpu_info_model_name.c_str()));
 		}
 
 		// Increaes by 1 in order to skip the newline at the end of the previous string

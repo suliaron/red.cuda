@@ -18,6 +18,7 @@ namespace redutilcu
 		void rtrim(string& s, char c);
 		void trim_left(string& str);
 		void trim(string& str);
+		char* trim_and_reduce_spaces(char* s);
 		string get_time_stamp(bool use_comma);
 		string convert_time_t(time_t t);
 

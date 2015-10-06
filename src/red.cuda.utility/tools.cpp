@@ -117,6 +117,30 @@ void trim(string& str)
 	trim_left(str);
 }
 
+char* trim_and_reduce_spaces(char* s)
+{
+	if (s)
+    {
+		char* from = s + strspn(s, " ");
+		char* to   = s;
+
+		do
+		{
+			if ((*to = *from++) == ' ')
+			{
+				from += strspn(from, " ");
+			}
+		} while (*to++);
+    
+		--to; // extra decrement
+		while (*--to == ' ')
+		{
+			*to = '\0';
+		}
+	}
+	return s;
+}
+
 string get_time_stamp(bool use_comma)
 {
 	static char time_stamp[20];

@@ -1979,7 +1979,12 @@ void create_filename(cpu_info_t& cpu_info, int id_dev, string& base_fn, string& 
 
 	string cuda_dev_name = redutilcu::get_name_cuda_device(id_dev);
 	string cpu_name = cpu_info.model_name;
-	std::remove(cpu_name.begin(), cpu_name.end(), ',');
+
+	tools::trim_and_reduce_spaces( (char*)cpu_name.c_str());
+
+	std::replace(cpu_name.begin(), cpu_name.end(), ',', '_');
+	std::replace(cpu_name.begin(), cpu_name.end(), '(', '_');
+	std::replace(cpu_name.begin(), cpu_name.end(), ')', '_');
 	std::replace(cpu_name.begin(), cpu_name.end(), ' ', '_');
 
 	result_filename  = create_prefix() + sep + (base_fn.length() > 0 ? base_fn : "benchmark");
@@ -2007,32 +2012,22 @@ void parse_cpu_info(vector<string>& data, cpu_info_t& cpu_info)
 		size_t p0 = line.find_first_of(delimiter);
 		string key = line.substr(0, p0);
 		string value = line.substr(p0+1, line.length());
-printf("line = '%s'\nkey = '%s' value = '%s'\n", line.c_str(), key.c_str(), value.c_str());
 
 #if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 		if ("PROCESSOR_IDENTIFIER" == key)
 		{
 			cpu_info.model_name = value;
 		}
-
 #else  /* presume POSIX */
-		
-		//tools::trim_right(key, ' ');
 		tools::trim_right(key);
 		tools::trim(value);
-printf("key = '%s' value = '%s'\n", key.c_str(), value.c_str());
-		
 		if ("model name" == key)
 		{
-printf("key 'model name' was found with value: '%s'\n", value.c_str());
 			tools::trim(value);
 			cpu_info.model_name = value;
-			//std::replace(cpu_info.model_name.begin(), cpu_info.model_name.end(), ' ', '_');
-printf("cpu_info.model_name: '%s'\n", cpu_info.model_name.c_str());
 		}
-
 #endif
-		// Increaes by 1 in order to skip the newline at the end of the previous string
+		// Increase by 1 in order to skip the newline at the end of the previous string
 		pos0 = pos1 + 1;
 		pos1 = data[0].find_first_of('\n', pos0+1);
 	} while (pos1 != std::string::npos && pos1 <= data[0].length());

@@ -203,7 +203,6 @@ void get_number_of_bodies(string& path, ttt_t t, data_representation_t repres)
 		{
 			throw string("Cannot open " + path + ".");
 		}
-		break;
 	}
 	input.close();
 
@@ -420,7 +419,7 @@ int main(int argc, const char **argv)
 		}
 
 		{
-			for (int i = 1; i < n_total; i++)
+			for (unsigned int i = 1; i < n_total; i++)
 			{
 				var_t mu = K2 *(sim_data->h_p[0].mass + sim_data->h_p[i].mass);
 				vec_t rVec = {sim_data->h_y[0][i].x - sim_data->h_y[0][0].x, sim_data->h_y[0][i].y - sim_data->h_y[0][0].y, sim_data->h_y[0][i].z - sim_data->h_y[0][0].z, 0.0};
@@ -435,7 +434,7 @@ int main(int argc, const char **argv)
 			ofstream output(path.c_str(), ios_base::out);
 			if (output)
 			{		
-				for (int i = 0; i < n_total; i++)
+				for (unsigned int i = 0; i < n_total; i++)
 				{
 					file::print_oe_record(output, &sim_data->h_oe[i], &sim_data->h_p[i]);
 				}
