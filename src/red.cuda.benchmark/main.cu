@@ -1973,7 +1973,7 @@ void open_streams(string& o_dir, string& result_filename, string& summray_filena
 	}
 }
 
-void create_filename(cpu_info_t& cpu_info, int id_dev, string& base_fn, string& result_filename, string& summray_filename, string& log_filename)
+void create_filename(cpu_info_t& cpu_info, int id_dev, string& base_fn, string& result_filename, string& summary_filename, string& log_filename)
 {
 	const char sep = '_';
 
@@ -1982,16 +1982,26 @@ void create_filename(cpu_info_t& cpu_info, int id_dev, string& base_fn, string& 
 
 	tools::trim_and_reduce_spaces((char*)cpu_name.c_str());
 
+printf("cpu_name:  '%s'\n", cpu_name.c_str());
+
 	std::replace(cpu_name.begin(), cpu_name.end(), ',', '_');
+printf("cpu_name:  '%s'\n", cpu_name.c_str());
 	std::replace(cpu_name.begin(), cpu_name.end(), '(', '_');
+printf("cpu_name:  '%s'\n", cpu_name.c_str());
 	std::replace(cpu_name.begin(), cpu_name.end(), ')', '_');
+printf("cpu_name:  '%s'\n", cpu_name.c_str());
 	std::replace(cpu_name.begin(), cpu_name.end(), ' ', '_');
+printf("cpu_name:  '%s'\n", cpu_name.c_str());
 
 	result_filename  = create_prefix() + sep + (base_fn.length() > 0 ? base_fn : "benchmark");
+printf("result_filename:  '%s'\n", result_filename.c_str());
 	result_filename += sep + cuda_dev_name + sep + cpu_name;
+printf("result_filename:  '%s'\n", result_filename.c_str());
 
-	summray_filename = result_filename + ".summary.csv";
+	summary_filename = result_filename + ".summary.csv";
+printf("summary_filename: '%s'\n", summary_filename.c_str());
 	log_filename     = result_filename + ".info.txt";
+printf("log_filename:     '%s'\n", log_filename.c_str());
 	result_filename += ".csv";
 }
 
