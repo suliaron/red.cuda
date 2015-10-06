@@ -1978,10 +1978,11 @@ void create_filename(cpu_info_t& cpu_info, int id_dev, string& base_fn, string& 
 	const char sep = '_';
 
 	string cuda_dev_name = redutilcu::get_name_cuda_device(id_dev);
+printf("cuda_dev_name:  '%s'\n", cuda_dev_name.c_str());
 	string cpu_name = cpu_info.model_name;
+printf("cpu_name:  '%s'\n", cpu_name.c_str());
 
 	tools::trim_and_reduce_spaces((char*)cpu_name.c_str());
-
 printf("cpu_name:  '%s'\n", cpu_name.c_str());
 
 	std::replace(cpu_name.begin(), cpu_name.end(), ',', '_');
@@ -2003,6 +2004,7 @@ printf("summary_filename: '%s'\n", summary_filename.c_str());
 	log_filename     = result_filename + ".info.txt";
 printf("log_filename:     '%s'\n", log_filename.c_str());
 	result_filename += ".csv";
+printf("result_filename:  '%s'\n", result_filename.c_str());
 }
 
 void parse_cpu_info(vector<string>& data, cpu_info_t& cpu_info)
