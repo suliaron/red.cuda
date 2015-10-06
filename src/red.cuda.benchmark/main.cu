@@ -2018,7 +2018,7 @@ printf("line = '%s'\nkey = '%s' value = '%s'\n", line.c_str(), key.c_str(), valu
 #else  /* presume POSIX */
 		
 		//tools::trim_right(key, ' ');
-		tools::rtrim(key, ' ');
+		tools::trim_right(key);
 		tools::trim(value);
 printf("key = '%s' value = '%s'\n", key.c_str(), value.c_str());
 		

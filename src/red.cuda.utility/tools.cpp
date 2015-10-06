@@ -71,14 +71,14 @@ void trim_right(string& str, char c)
 	//	str = str.substr(0, endpos);
 	//}
 
-	//int idx = str.length() - 1;
-	//printf("str[%2d] = '%c'\n", idx, str[idx]);
-	//while (str[idx] == c)
-	//{
-	//	printf("str[%2d] = '%c'\n", idx, str[idx]);
-	//	idx--;
-	//}
-	//str = str.substr(0, idx + 1);
+	int idx = str.length() - 1;
+	printf("str[%2d] = '%c'\n", idx, str[idx]);
+	while (str[idx] == c)
+	{
+		printf("str[%2d] = '%c'\n", idx, str[idx]);
+		idx--;
+	}
+	str = str.substr(0, idx + 1);
 
 	//char *s = (char *)str.c_str();
 	//int idx = strlen(s) - 1;
@@ -90,34 +90,14 @@ void trim_right(string& str, char c)
 	//}
 	//s[idx + 1] = 0;
 
-	char *s = (char *)str.c_str();
-	reverse(s);
-	string tmp = s;
-	trim_left(tmp);
-	s = (char *)tmp.c_str();
-	reverse(s);
-	str = s;
+	//char *s = (char *)str.c_str();
+	//reverse(s);
+	//string tmp = s;
+	//trim_left(tmp);
+	//s = (char *)tmp.c_str();
+	//reverse(s);
+	//str = s;
 }
-
-// The approach for narrow character strings
-void rtrim(string& s, char c)
-{
-	if (s.empty())
-	{
-		return;
-	}
-
-	string::iterator p;
-	for (p = s.end(); p != s.begin() && *--p == c;);
-
-	if (*p != c)
-	{
-		p++;
-	}
-
-	s.erase(p, s.end());
-}
-
 
 /// Removes all leading white-space characters from the current std::string object.
 void trim_left(string& str)
