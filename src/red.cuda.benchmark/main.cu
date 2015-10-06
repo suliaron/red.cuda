@@ -1980,7 +1980,7 @@ void create_filename(cpu_info_t& cpu_info, int id_dev, string& base_fn, string& 
 	string cuda_dev_name = redutilcu::get_name_cuda_device(id_dev);
 	string cpu_name = cpu_info.model_name;
 
-	tools::trim_and_reduce_spaces( (char*)cpu_name.c_str());
+	tools::trim_and_reduce_spaces((char*)cpu_name.c_str());
 
 	std::replace(cpu_name.begin(), cpu_name.end(), ',', '_');
 	std::replace(cpu_name.begin(), cpu_name.end(), '(', '_');
@@ -1990,8 +1990,8 @@ void create_filename(cpu_info_t& cpu_info, int id_dev, string& base_fn, string& 
 	result_filename  = create_prefix() + sep + (base_fn.length() > 0 ? base_fn : "benchmark");
 	result_filename += sep + cuda_dev_name + sep + cpu_name;
 
-	summray_filename = result_filename + sep + "summary.csv";
-	log_filename     = result_filename + sep + "info.txt";
+	summray_filename = result_filename + ".summary.csv";
+	log_filename     = result_filename + ".info.txt";
 	result_filename += ".csv";
 }
 
@@ -2191,12 +2191,14 @@ int main(int argc, const char** argv, const char** env)
 		}
 
 		read_cpu_description(env, cpu_data);
-
 		parse_cpu_info(cpu_data, cpu_info);
-
 		CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, id_dev));
 
 		create_filename(cpu_info, id_dev, base_fn, result_filename, summary_filename, log_filename);
+
+printf("result_filename:  '%s'\n", result_filename.c_str());
+printf("summary_filename: '%s'\n", summary_filename.c_str());
+printf("log_filename:     '%s'\n", log_filename.c_str());
 
 		open_streams(o_dir, result_filename, summary_filename, log_filename, output);
 
