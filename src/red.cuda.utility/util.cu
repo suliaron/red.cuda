@@ -88,7 +88,6 @@ string get_name_cuda_device(int id_dev)
     CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, id_dev));
 
 	string result(deviceProp.name);
-	std::replace(result.begin(), result.end(), ' ', '_');
 	return result;
 }
 
