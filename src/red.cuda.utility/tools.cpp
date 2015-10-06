@@ -61,42 +61,15 @@ void trim_right(string& str)
 	}
 }
 
-/// Removes all trailing characters after the first c character
+/// Removes all trailing characters after the last c character
 void trim_right(string& str, char c)
 {
-	// trim trailing spaces
-	//size_t endpos = str.find(c);
-	//if (string::npos != endpos )
-	//{
-	//	str = str.substr(0, endpos);
-	//}
-
 	int idx = str.length() - 1;
-	printf("str[%2d] = '%c'\n", idx, str[idx]);
 	while (str[idx] == c)
 	{
-		printf("str[%2d] = '%c'\n", idx, str[idx]);
 		idx--;
 	}
 	str = str.substr(0, idx + 1);
-
-	//char *s = (char *)str.c_str();
-	//int idx = strlen(s) - 1;
-	//printf("s[%2d] = '%c'\n", idx, s[idx]);
-	//while (c == s[idx])
-	//{
-	//	printf("s[%2d] = '%c'\n", idx, s[idx]);
-	//	idx--;
-	//}
-	//s[idx + 1] = 0;
-
-	//char *s = (char *)str.c_str();
-	//reverse(s);
-	//string tmp = s;
-	//trim_left(tmp);
-	//s = (char *)tmp.c_str();
-	//reverse(s);
-	//str = s;
 }
 
 /// Removes all leading white-space characters from the current std::string object.
@@ -115,30 +88,6 @@ void trim(string& str)
 {
 	trim_right(str);
 	trim_left(str);
-}
-
-char* trim_and_reduce_spaces(char* s)
-{
-	if (s)
-    {
-		char* from = s + strspn(s, " ");
-		char* to   = s;
-
-		do
-		{
-			if ((*to = *from++) == ' ')
-			{
-				from += strspn(from, " ");
-			}
-		} while (*to++);
-    
-		--to; // extra decrement
-		while (*--to == ' ')
-		{
-			*to = '\0';
-		}
-	}
-	return s;
 }
 
 string get_time_stamp(bool use_comma)

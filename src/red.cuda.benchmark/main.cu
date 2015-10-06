@@ -1978,31 +1978,21 @@ void create_filename(cpu_info_t& cpu_info, int id_dev, string& base_fn, string& 
 	const char sep = '_';
 
 	string cuda_dev_name = redutilcu::get_name_cuda_device(id_dev);
-	std::replace(cuda_dev_name.begin(), cuda_dev_name.end(), ' ', '_');
 	string cpu_name = cpu_info.model_name;
 
-	tools::trim_and_reduce_spaces((char*)cpu_name.c_str());
+	std::replace(cuda_dev_name.begin(), cuda_dev_name.end(), ' ', '_');
 
 	std::replace(cpu_name.begin(), cpu_name.end(), ',', '_');
 	std::replace(cpu_name.begin(), cpu_name.end(), '(', '_');
 	std::replace(cpu_name.begin(), cpu_name.end(), ')', '_');
 	std::replace(cpu_name.begin(), cpu_name.end(), ' ', '_');
 
-	string _result_filename  = create_prefix() + sep + (base_fn.length() > 0 ? base_fn : "benchmark");
-printf("_result_filename:  '%s'\n", _result_filename.c_str());
-	_result_filename += sep + cuda_dev_name + sep + cpu_name;
-printf("_result_filename:  '%s'\n", _result_filename.c_str());
+	result_filename  = create_prefix() + sep + (base_fn.length() > 0 ? base_fn : "benchmark");
+	result_filename += sep + cuda_dev_name + sep + cpu_name;
 
-	string _summary_filename = _result_filename + ".summary.csv";
-printf("_summary_filename: '%s'\n", _summary_filename.c_str());
-	string _log_filename     = _result_filename + ".info.txt";
-printf("_log_filename:     '%s'\n", _log_filename.c_str());
-	_result_filename += ".csv";
-printf("_result_filename:  '%s'\n", _result_filename.c_str());
-
-	result_filename = _result_filename;
-	summary_filename= _summary_filename;
-	log_filename = _log_filename;
+	summary_filename = result_filename + ".summary.csv";
+	log_filename     = result_filename + ".info.txt";
+	result_filename += ".csv";
 }
 
 void parse_cpu_info(vector<string>& data, cpu_info_t& cpu_info)
@@ -2205,10 +2195,6 @@ int main(int argc, const char** argv, const char** env)
 		CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, id_dev));
 
 		create_filename(cpu_info, id_dev, base_fn, result_filename, summary_filename, log_filename);
-
-printf("result_filename:  '%s'\n", result_filename.c_str());
-printf("summary_filename: '%s'\n", summary_filename.c_str());
-printf("log_filename:     '%s'\n", log_filename.c_str());
 
 		open_streams(o_dir, result_filename, summary_filename, log_filename, output);
 
