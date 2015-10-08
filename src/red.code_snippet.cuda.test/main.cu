@@ -2166,37 +2166,7 @@ int main()
 }
 #endif
 
-#if 0
-/*
- * Test trim_right tools function
- */
-
-int main()
-{
-	string key = "model name      ";
-	string value = " Intel(R) Core(TM)2 Quad CPU    Q6600  @ 2.40GHz";
-
-	tools::trim_right(key, ' ');
-
-	size_t pf = key.find_first_of(' ');
-	key[pf] = '_';
-
-	if ("model_name" == key)
-	{
-printf("key \"model_name\" was found with value: %s\n", value.c_str());
-		tools::trim(value);
-
-		std::replace(value.begin(), value.end(), ' ', '_');
-printf("cpu_info.model_name: %s\n", value.c_str());
-	}
-}
-
-#endif
-
 #if 1
-/*
- * Test trim_right tools function
- */
 
 void parse_cpu_info(vector<string>& data)
 {
@@ -2213,18 +2183,14 @@ void parse_cpu_info(vector<string>& data)
 		string value = line.substr(p0+1, line.length());
 
 printf("line = '%s'\nkey = '%s' value = '%s'\n", line.c_str(), key.c_str(), value.c_str());
-		//tools::trim_right(key, '\t');
-		tools::trim_right(key);
-		tools::trim(value);
+		key = tools::trim(key);
+		value = tools::trim(value);
 printf("key = '%s' value = '%s'\n", key.c_str(), value.c_str());
 
 		if ("model name" == key)
 		{
 printf("key 'model name' was found with value: '%s'\n", value.c_str());
-			tools::trim(value);
 			string cpu_info_model_name = value;
-			//std::replace(cpu_info.model_name.begin(), cpu_info.model_name.end(), ' ', '_');
-printf("cpu_info_model_name: '%s'\n", tools::trim_and_reduce_spaces( (char*)cpu_info_model_name.c_str()));
 		}
 
 		// Increaes by 1 in order to skip the newline at the end of the previous string

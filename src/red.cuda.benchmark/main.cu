@@ -2019,11 +2019,10 @@ void parse_cpu_info(vector<string>& data, cpu_info_t& cpu_info)
 			cpu_info.model_name = value;
 		}
 #else  /* presume POSIX */
-		tools::trim_right(key);
-		tools::trim(value);
+		key = tools::trim(key);
+		value = tools::trim(value);
 		if ("model name" == key)
 		{
-			tools::trim(value);
 			cpu_info.model_name = value;
 		}
 #endif

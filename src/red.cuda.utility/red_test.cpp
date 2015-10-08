@@ -294,9 +294,8 @@ static void test_util()
 static void test_tools()
 {
 	//bool is_number(const string& str);
-	//void trim_right(string& str);
-	//void trim_right(string& str, char c);
-	//void trim_left(string& str);
+	//void rtrim(string& str);
+	//void ltrim(string& str);
 	//void trim(string& str);
 	//string get_time_stamp();
 	//string convert_time_t(time_t t);
@@ -425,7 +424,7 @@ static void test_tools()
 
 		string result = "  This string will be trimed to the right   ";
 		string expected = "  This string will be trimed to the right";
-		tools::trim_right(result);
+		result = tools::rtrim(result);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (result != expected)
@@ -439,7 +438,7 @@ static void test_tools()
 		
 		result = "This string will be trimed to the right after the 'x' character  ";
 		expected = "This string will be trimed to the right after the '";
-		tools::trim_right(result, 'x');
+		result = tools::rtrim(result, "x");
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (result != expected)
@@ -458,7 +457,7 @@ static void test_tools()
 
 		string result = "  This string will be trimed to the left	";
 		string expected = "This string will be trimed to the left	";
-		tools::trim_left(result);
+		result = tools::ltrim(result);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (result != expected)
@@ -472,7 +471,7 @@ static void test_tools()
 
 		result = "			c  This string will be trimed to the left		";
 		expected = "c  This string will be trimed to the left		";
-		tools::trim_left(result);
+		result = tools::ltrim(result);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (result != expected)
@@ -491,7 +490,7 @@ static void test_tools()
 
 		string result = "  This string will be trimed to the right as well as to the left		";
 		string expected = "This string will be trimed to the right as well as to the left";
-		tools::trim(result);
+		result = tools::trim(result);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (result != expected)

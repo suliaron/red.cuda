@@ -102,18 +102,13 @@ void load_ascii_file(const string& path, string& result)
 		string str;
 		while (getline(file, str))
 		{
-			// ignore zero length lines
+			// delete everything after the comment '#' character and the '#'
+			str = tools::trim_comment(str);
+			str = tools::trim(str);
 			if (0 == str.length())
 			{
 				continue;
 			}
-			// ignore comment lines
-			if ('#' == str[0])
-			{
-				continue;
-			}
-			// delete comment after the value
-			tools::trim_right(str, '#');
 			result += str;
 			result.push_back('\n');
 		} 	

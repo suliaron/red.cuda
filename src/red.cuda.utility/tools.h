@@ -12,12 +12,27 @@ namespace redutilcu
 {
 	namespace tools
 	{
+		/// Default white-space characters
+		static const char* ws = " \t\n\r\f\v";
+		/// Default comment character
+		static const char* comment = "#";
+
 		bool is_number(const string& str);
-		void trim_right(string& str);
-		void trim_right(string& str, char c);
-		void rtrim(string& s, char c);
-		void trim_left(string& str);
-		void trim(string& str);
+
+		/// Removes all leading white-space characters from the current string object.
+		/// The default white spaces are: " \t\n\r\f\v"
+		string& ltrim(string& s);
+		string& ltrim(string& s, const char* t);
+
+		string& rtrim(string& s);
+		string& rtrim(string& s, const char* t);
+
+		string& trim(string& s);
+		string& trim(string& s, const char* t);
+
+		string& trim_comment(string& s);
+		string& trim_comment(string& s, const char* t);
+
 		string get_time_stamp(bool use_comma);
 		string convert_time_t(time_t t);
 

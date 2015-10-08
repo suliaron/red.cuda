@@ -474,6 +474,76 @@ void Dvorak(nebula& n, body_disk_t& disk)
 	}
 }
 
+void Hansen_2009(body_disk_t& disk)
+{
+	srand(time(NULL));
+
+	const var_t rhoBasalt = 2.7 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+
+	disk.nBody[BODY_TYPE_STAR        ] = 1;
+	disk.nBody[BODY_TYPE_GIANTPLANET ] = 1;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 400;
+
+	int_t nBodies = calculate_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at  = new var_t[nBodies];
+
+    int bodyIdx = 0;
+	int type = BODY_TYPE_STAR;
+
+	disk.names.push_back("star");
+	disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), constants::SolarRadiusToAu, constants::SolarRadiusToAu);
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+	disk.stop_at[bodyIdx] = 0.0;
+
+	type = BODY_TYPE_GIANTPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 5.2, 5.2);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.05, 0.05);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0 * constants::JupiterToSolar, 1.0 * constants::JupiterToSolar);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 1.326 * constants::GramPerCm3ToSolarPerAu3, 1.326 * constants::GramPerCm3ToSolarPerAu3);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i+1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+
+	type = BODY_TYPE_PROTOPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 0.7, 1.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.5 * constants::DegreeToRadian);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 5.0e-3 * constants::EarthToSolar, 5.0e-3 * constants::EarthToSolar);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), rhoBasalt, rhoBasalt);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i + 1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
+
 void Two_body(body_disk_t& disk)
 {
 	srand(time(NULL));
@@ -945,7 +1015,7 @@ void Chambers2001(string& dir, string& filename)
 		var_t m_solid = mmsn.solid_c.calc_mass();
 
 		var_t m_pp = (1.0 / 60.0) * constants::EarthToSolar;
-		int_t n_pp = m_solid / m_pp;
+		int_t n_pp = (int)(m_solid / m_pp);
 
 	}
 
@@ -973,7 +1043,7 @@ void Chambers2001(string& dir, string& filename)
 		var_t m_solid = mmsn.solid_c.calc_mass();
 
 		var_t m_pp = (1.0 / 60.0) * constants::EarthToSolar;
-		int_t n_pp = m_solid / m_pp;
+		int_t n_pp = (int)(m_solid / m_pp);
 
 		set_parameters::Chambers2001(mmsn, disk);
 
@@ -1253,6 +1323,69 @@ void Dvorak(string& dir, string& filename)
 
 	path = file::combine_path(dir, filename) + ".txt";
 	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
+
+void Hansen_2009(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	set_parameters::Hansen_2009(disk);
+
+	sim_data_t* sim_data = new sim_data_t;
+	int nBodies = calculate_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_disk(disk, sim_data);
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0 = sim_data->h_p[0].mass;
+		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
+		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
+		int gp_counter = 0;
+		for (int i = 1; i < nBodies; i++)
+		{
+			if (BODY_TYPE_GIANTPLANET == sim_data->h_body_md[i].body_type && gp_counter < 1)
+			{				
+				if (0 == gp_counter)
+				{
+					disk.names[i] = "Jupiter";
+					sim_data->h_p[i].mass          = 1.0 * constants::JupiterToSolar;
+					sim_data->h_p[i].radius        = 71492.0 * constants::KilometerToAu;
+					sim_data->h_p[i].density       = tools::calculate_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::jupiter_oe, sim_data->h_oe[i]);
+				}
+				gp_counter++;
+			}
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
+		}
+	}
+
+	tools::transform_to_bc(nBodies, false, sim_data);
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	//path = file::combine_path(dir, filename) + "_NONMAE.txt";
+	//print(path, disk, sim_data, INPUT_FORMAT_NONAME);
+
+	//path = file::combine_path(dir, filename) + "_HIPERION.txt";
+	//print(path, disk, sim_data, INPUT_FORMAT_HIPERION);
 
 	deallocate_host_storage(sim_data);
 
@@ -2012,13 +2145,14 @@ int main(int argc, const char **argv)
 	try
 	{
 		//create_disk::solar_system(outDir, filename);
+		create_disk::Hansen_2009(outDir, filename);
 		//create_disk::Chambers2001(outDir, filename);
 		//create_disk::n_pl_to_test_anal_gd(outDir, filename);
 		//create_disk::n_gp(outDir, filename);
 		//create_disk::n_tp(outDir, filename);
 		//create_disk::n_pl(outDir, filename);
 		//create_disk::n_spl(outDir, filename);
-		create_disk::n_pp(outDir, filename);
+		//create_disk::n_pp(outDir, filename);
 		//create_disk::two_body(outDir, filename);
 		//create_disk::Dvorak(outDir, filename);
 		//create_disk::GT_scenario(outDir, filename);

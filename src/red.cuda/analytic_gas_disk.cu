@@ -92,8 +92,8 @@ void analytic_gas_disk::set_param(string& key, string& value)
 	static char n_call = 0;
 
 	n_call++;
-	tools::trim(key);
-	tools::trim(value);
+	key = tools::trim(key);
+	value = tools::trim(value);
 	transform(key.begin(), key.end(), key.begin(), ::tolower);
 
 	if (     key == "name")

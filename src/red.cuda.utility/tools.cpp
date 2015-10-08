@@ -37,58 +37,80 @@ bool is_number(const string& str)
    return true;
 }
 
-void reverse(char s[])
+/// Removes all leading white-space characters from the current string object.
+/// The default white spaces are: " \t\n\r\f\v"
+string& ltrim(string& s)
 {
-    int length = strlen(s) ;
-    int c, i, j;
-
-    for (i = 0, j = length - 1; i < j; i++, j--)
-    {
-        c = s[i];
-        s[i] = s[j];
-        s[j] = c;
-    }
+	s.erase(0, s.find_first_not_of(ws));
+    return s;
 }
 
-/// Removes all trailing white-space characters from the current std::string object.
-void trim_right(string& str)
+/// Removes all leading white-space characters from the current string object.
+/// The white spaces are defined in the parameter t.
+string& ltrim(string& s, const char* t)
 {
-	// trim trailing spaces
-	size_t endpos = str.find_last_not_of(" \t");
-	if (string::npos != endpos )
+	s.erase(0, s.find_first_not_of(t));
+    return s;
+}
+
+/// Removes all trailing white-space characters from the current string object.
+/// The default white spaces are: " \t\n\r\f\v"
+string& rtrim(string& s)
+{
+    s.erase(s.find_last_not_of(ws) + 1);
+    return s;
+}
+
+/// Removes all trailing white-space characters from the current string object.
+/// The default white spaces are: " \t\n\r\f\v"
+string& rtrim(string& s, const char* t)
+{	
+    s.erase(s.find_last_not_of(t) + 1);
+    return s;
+}
+
+/// Removes all leading and trailing white-space characters from the current string object.
+/// The default white-space characters are: " \t\n\r\f\v"
+string& trim(string& s)
+{
+    return ltrim(rtrim(s));
+}
+
+/// Removes all leading and trailing white-space characters from the current string object.
+string& trim(string& s, const char* t)
+{
+    return ltrim(rtrim(s, t));
+}
+
+/// Removes all trailing characters after the first comment character from the current string object.
+/// The default comment character is "#"
+string& trim_comment(string& s)
+{
+	size_t p = s.find_first_of(comment);
+	// If not found
+	if (string::npos == p)
 	{
-		str = str.substr(0, endpos + 1);
+		return s;
 	}
+	s.erase(p);
+    return s;
 }
 
-/// Removes all trailing characters after the last c character
-void trim_right(string& str, char c)
+/// Removes all trailing characters after the first comment character from the current string object.
+/// The default comment character is "#"
+string& trim_comment(string& s, const char* c)
 {
-	int idx = str.length() - 1;
-	while (str[idx] == c)
+	size_t p = s.find_first_of(c);
+	// If not found
+	if (string::npos == p)
 	{
-		idx--;
+		return s;
 	}
-	str = str.substr(0, idx + 1);
+	s.erase(p);
+    return s;
 }
 
-/// Removes all leading white-space characters from the current std::string object.
-void trim_left(string& str)
-{
-	// trim leading spaces
-	size_t startpos = str.find_first_not_of(" \t");
-	if (string::npos != startpos )
-	{
-		str = str.substr( startpos );
-	}
-}
 
-/// Removes all leading and trailing white-space characters from the current std::string object.
-void trim(string& str)
-{
-	trim_right(str);
-	trim_left(str);
-}
 
 string get_time_stamp(bool use_comma)
 {
