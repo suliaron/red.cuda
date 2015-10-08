@@ -7,7 +7,6 @@
 #include "analytic_gas_disk.h"
 #include "red_constants.h"
 #include "redutilcu.h"
-#include "tokenizer.h"
 #include "red_macro.h"
 
 using namespace redutilcu;

@@ -172,12 +172,14 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="file_util.h" />
     <ClInclude Include="redutilcu.h" />
     <ClInclude Include="red_test.h" />
+    <ClInclude Include="tokenizer.h" />
     <ClInclude Include="tools.h" />
     <ClInclude Include="util.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="file_util.cpp" />
     <ClCompile Include="red_test.cpp" />
+    <ClCompile Include="tokenizer.cpp" />
     <ClCompile Include="tools.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

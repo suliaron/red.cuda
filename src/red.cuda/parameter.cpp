@@ -7,7 +7,6 @@
 #include "red_constants.h"
 #include "parameter.h"
 #include "redutilcu.h"
-#include "tokenizer.h"
 
 using namespace redutilcu;
 
@@ -76,7 +75,7 @@ void parameter::parse()
 			{
 				key = token;
 			}
-			else if (2 == tokenCounter)
+			if (2 == tokenCounter)
 			{
 				value = token;
 			}
@@ -117,19 +116,19 @@ void parameter::set_param(string& key, string& value)
 		{
 			int_type = INTEGRATOR_EULER;
 		}
-		else if (value == "rk2"  || value == "rungekutta2")
+		else if (value == "rk2"  || value == "rungekutta2" || value == "runge-kutta2")
 		{
 			int_type = INTEGRATOR_RUNGEKUTTA2;
 		}
-		else if (value == "rk4"  || value == "rungekutta4")
+		else if (value == "rk4"  || value == "rungekutta4" || value == "runge-kutta4")
 		{
 			int_type = INTEGRATOR_RUNGEKUTTA4;
 		}
-		else if (value == "rkf8" || value == "rungekuttafehlberg8")
+		else if (value == "rkf8" || value == "rungekuttafehlberg8" || value == "runge-kutta-fehlberg8")
 		{
 			int_type = INTEGRATOR_RUNGEKUTTAFEHLBERG78;
 		}			
-		else if (value == "rkn"  || value == "rungekuttanystrom")
+		else if (value == "rkn"  || value == "rungekuttanystrom" || value == "runge-kutta-nystrom")
 		{
 			int_type = INTEGRATOR_RUNGEKUTTANYSTROM;
 		}
@@ -147,7 +146,7 @@ void parameter::set_param(string& key, string& value)
 		adaptive = true;
 		tolerance = atof(value.c_str());
 	}
-	else if (key == "error_check_for_tp")
+	else if (key == "error_check_for_tp" || key == "error check for tp")
 	{
 		if      (value == "true")
 		{
@@ -162,7 +161,7 @@ void parameter::set_param(string& key, string& value)
 			throw string("Invalid value at: " + key);
 		}
 	}
-    else if (key == "start_time")
+    else if (key == "start_time" || key == "start time")
 	{
 		if (!tools::is_number(value))
 		{
@@ -178,7 +177,7 @@ void parameter::set_param(string& key, string& value)
 		}
 		simulation_length = atof(value.c_str()) * constants::YearToDay;
 	}
-    else if (key == "output_interval")
+    else if (key == "output_interval" || key == "output interval")
 	{
 		if (!tools::is_number(value))
 		{
@@ -186,14 +185,14 @@ void parameter::set_param(string& key, string& value)
 		}
 		output_interval = atof(value.c_str()) * constants::YearToDay;
 	}
-    else if (key == "cdm" || key == "collision_detection_method")
+    else if (key == "cdm" || key == "collision_detection_method" || key == "collision detection method")
 	{
 		transform(value.begin(), value.end(), value.begin(), ::tolower);
 		if (     value == "step")
 		{
 			cdm = COLLISION_DETECTION_MODEL_STEP;
 		}
-		else if (value == "sub_step")
+		else if (value == "sub_step" || value == "sub step" )
 		{
 			cdm = COLLISION_DETECTION_MODEL_SUB_STEP;
 		}
@@ -214,7 +213,7 @@ void parameter::set_param(string& key, string& value)
 		}
 		threshold[THRESHOLD_EJECTION_DISTANCE] = atof(value.c_str());
 	}
-    else if (key == "hit_centrum")
+    else if (key == "hit_centrum" || key == "hit centrum")
 	{
 		if (!tools::is_number(value))
 		{
@@ -222,7 +221,7 @@ void parameter::set_param(string& key, string& value)
 		}
 		threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] = atof(value.c_str());
 	}
-    else if (key == "radii_enhance_factor" || key == "collision_factor")
+    else if (key == "radii_enhance_factor" || key == "collision_factor" || key == "radii enhance factor" || key == "collision factor")
 	{
 		if (!tools::is_number(value))
 		{

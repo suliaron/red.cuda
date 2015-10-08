@@ -189,7 +189,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="number_of_bodies.cpp" />
     <ClCompile Include="options.cpp" />
     <ClCompile Include="parameter.cpp" />
-    <ClCompile Include="tokenizer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="analytic_gas_disk.h" />
@@ -205,7 +204,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="parameter.h" />
     <ClInclude Include="pp_disk.h" />
     <ClInclude Include="test.h" />
-    <ClInclude Include="tokenizer.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\red.cuda.utility\red.cuda.utility.vcxproj">
