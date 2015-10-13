@@ -5,11 +5,11 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-ts 361597.50 -iDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01 -oDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01\Snapshot -i result.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-id 1165 -iDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01 -oDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01\Snapshot -i result.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-ts 361597.50 -iDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01 -oDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01\Snapshot -i result.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-id 439 -iDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01 -oDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01\Snapshot -i result.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

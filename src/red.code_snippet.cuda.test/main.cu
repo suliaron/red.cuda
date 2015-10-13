@@ -2166,8 +2166,10 @@ int main()
 }
 #endif
 
-#if 1
-
+#if 0
+/*
+ * Test to parse and split the cpuinfo file on GNU/Linux systems
+ */
 void parse_cpu_info(vector<string>& data)
 {
 	char delimiter = ':';
@@ -2233,4 +2235,19 @@ int main(int argc, const char** argv, const char** env)
 	parse_cpu_info(result);
 }
 
+#endif
+
+
+#if 1
+/*
+ * Print the sizeof int and other int types
+ */
+int main(int argc, const char** argv, const char** env)
+{
+	printf("sizeof(int)     : %2d\n", sizeof(int));
+	printf("sizeof(int32_t) : %2d\n", sizeof(int32_t));
+	printf("sizeof(uint32_t): %2d\n", sizeof(uint32_t));
+	printf("sizeof(int64_t) : %2d\n", sizeof(int64_t));
+	printf("sizeof(uint64_t): %2d\n", sizeof(uint64_t));
+}
 #endif

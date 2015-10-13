@@ -18,6 +18,17 @@
 using namespace std;
 using namespace redutilcu;
 
+vector<string> body_names;
+
+vector<ttt_t> g_epoch;
+vector<body_metadata_t> g_bmd;
+vector<param_t> g_param;
+vector<vec_t> g_coor;
+vector<vec_t> g_velo;
+
+unsigned int ns, ngp, nrp, npp, nspl, npl, ntp, n_total;
+
+
 #if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 
 inline string epoch_to_string(ttt_t epoch)
@@ -43,17 +54,6 @@ inline string epoch_to_string(ttt_t epoch)
 	return ss.str();
 }
 #endif 
-
-
-vector<string> body_names;
-
-vector<ttt_t> g_epoch;
-vector<body_metadata_t> g_bmd;
-vector<param_t> g_param;
-vector<vec_t> g_coor;
-vector<vec_t> g_velo;
-
-unsigned int ns, ngp, nrp, npp, nspl, npl, ntp, n_total;
 
 void extract_body_record(string& line, int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 
@@ -86,15 +86,15 @@ void print(string &path, sim_data_t *sd)
 	}
 }
 
-void get_number_of_bodies(string& path, ttt_t t, data_representation_t repres)
+void read_snapshot(string& path, ttt_t t, data_representation_t repres)
 {
-	ns = ngp = nrp = npp = nspl = npl = ntp = 0;
-	n_total = 0;
-
 	ttt_t epoch[1];
 	body_metadata_t bmd[1];
 	param_t p[1];
 	vec_t r[1], v[1];
+
+	ns = ngp = nrp = npp = nspl = npl = ntp = 0;
+	n_total = 0;
 
 	ifstream input;
 	switch (repres)
@@ -209,6 +209,90 @@ void get_number_of_bodies(string& path, ttt_t t, data_representation_t repres)
     return;
 }
 
+void read_body(string& path, int id, int& n_id_record, data_representation_t repres)
+{
+	ttt_t epoch[1];
+	body_metadata_t bmd[1];
+	param_t p[1];
+	vec_t r[1], v[1];
+
+	int n_star_record = 0;
+	n_id_record = 0;
+
+	n_total = 0;
+	ifstream input;
+	switch (repres)
+	{
+	case DATA_REPRESENTATION_ASCII:
+		input.open(path.c_str());
+		if (input) 
+		{
+			cout << "Searching for records in the input file with id: " << number_to_string(id) << " ..." << endl;
+			string line;
+			int id_tmp = 0;
+			do
+			{
+				getline(input, line);
+				string id_str = line.substr(0, 8);
+				id_tmp = atoi(id_str.c_str());
+				if (1 == id_tmp || id == id_tmp)
+				{
+					if (id == id_tmp)
+					{
+						n_id_record++;
+					}
+
+					if (1 == id_tmp)
+					{
+						n_star_record++;
+					}
+
+					extract_body_record(line, 0, epoch, bmd, p, r, v);
+					g_epoch.push_back(epoch[0]);
+					g_bmd.push_back(bmd[0]);
+					g_param.push_back(p[0]);
+					g_coor.push_back(r[0]);
+					g_velo.push_back(v[0]);
+
+					if (n_id_record % 10 == 0)
+					{
+						printf(".");
+					}
+				}
+
+			} while (1 >= (n_star_record - n_id_record) && !input.eof());
+
+			if (0 == n_id_record)
+			{
+				input.close();
+				throw string("\nThe end of file was reached and the requested id was not found.");
+			}
+			n_total = 2 * n_id_record;
+
+			printf(" done\n");
+			printf("\t%4d record%s found\n", n_id_record, (n_id_record > 1 ? "s were" : " was"));
+		}
+		else 
+		{
+			throw string("Cannot open " + path + ".");
+		}
+		break;
+	case DATA_REPRESENTATION_BINARY:
+		input.open(path.c_str(), ios::in | ios::binary);
+		if (input) 
+		{
+			throw string("Binary format reader is not implemeted.");
+		}
+		else 
+		{
+			throw string("Cannot open " + path + ".");
+		}
+	}
+	input.close();
+
+    return;
+}
+
 void load_binary(ifstream& input, sim_data_t *sim_data)
 {
 	for (unsigned int type = 0; type < BODY_TYPE_N; type++)
@@ -285,66 +369,7 @@ void extract_body_record(string& line, int k, ttt_t* epoch, body_metadata_t* bod
 	r[k].w = v[k].w = 0.0;
 }
 
-//void load_ascii(ifstream& input, sim_data_t *sim_data)
-//{
-//	int ns, ngp, nrp, npp, nspl, npl, ntp;
-//	input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp;
-//
-//	vec_t* r = sim_data->h_y[0];
-//	vec_t* v = sim_data->h_y[1];
-//	param_t* p = sim_data->h_p;
-//	body_metadata_t* bmd = sim_data->h_body_md;
-//	ttt_t* epoch = sim_data->h_epoch;
-//
-//	int pcd = 1;
-//
-//	for (unsigned int i = 0; i < n_total; i++)
-//	{
-//		load_body_record(input, i, epoch, bmd, p, r, v);
-//		if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
-//		{
-//			printf(".");
-//			pcd++;
-//		}
-//	}
-//}
-
-//void load(string& path, sim_data_t *sim_data, data_representation_t repres)
-//{
-//	cout << "Loading " << path << " ";
-//
-//	ifstream input;
-//	switch (repres)
-//	{
-//	case DATA_REPRESENTATION_ASCII:
-//		input.open(path.c_str());
-//		if (input) 
-//		{
-//			load_ascii(input, sim_data);
-//		}
-//		else 
-//		{
-//			throw string("Cannot open " + path + ".");
-//		}
-//		break;
-//	case DATA_REPRESENTATION_BINARY:
-//		input.open(path.c_str(), ios::in | ios::binary);
-//		if (input) 
-//		{
-//			load_binary(input, sim_data);
-//		}
-//		else 
-//		{
-//			throw string("Cannot open " + path + ".");
-//		}
-//		break;
-//	}
-//	input.close();
-//
-//	cout << " done" << endl;
-//}
-
-int parse_options(int argc, const char **argv, string &iDir, string &oDir, string &input_file, ttt_t &t)
+int parse_options(int argc, const char **argv, string &iDir, string &oDir, string &input_file, ttt_t &t, int& id)
 {
 	int i = 1;
 
@@ -376,6 +401,15 @@ int parse_options(int argc, const char **argv, string &iDir, string &oDir, strin
 			}
 			t = atof(argv[i]);
 		}
+		else if (p == "-id")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			id = atoi(argv[i]);
+		}
 		else
 		{
 			throw string("Invalid switch on command-line: " + p + ".");
@@ -386,57 +420,99 @@ int parse_options(int argc, const char **argv, string &iDir, string &oDir, strin
 	return 0;
 }
 
+//Release: -ts 361597.50 -iDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01 -oDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01\Snapshot -i result.txt
 int main(int argc, const char **argv)
 {
 	string iDir;
 	string oDir;
 	string input_file;
-	ttt_t t = 0.0;
+	string output_file;
+	ttt_t t_snapshot = 0.0;
+	int id = 0;
+	int n_id_record = 0;
 
 	sim_data_t* sim_data = 0x0;
 	try
 	{
-		parse_options(argc, argv, iDir, oDir,input_file, t);
+		parse_options(argc, argv, iDir, oDir,input_file, t_snapshot, id);
 
 		string path = file::combine_path(iDir, input_file);
-		get_number_of_bodies(path, t, DATA_REPRESENTATION_ASCII);
+		if (0 < t_snapshot)
+		{
+			read_snapshot(path, t_snapshot, DATA_REPRESENTATION_ASCII);
+		}
+		if (0 < id)
+		{
+			read_body(path, id, n_id_record, DATA_REPRESENTATION_ASCII);
+		}
 
 		sim_data = new sim_data_t;
 		sim_data->h_y.resize(2);
 		ALLOCATE_HOST_VECTOR((void **)&(sim_data->h_oe), n_total*sizeof(orbelem_t));
 
-		sim_data->h_epoch = g_epoch.data();
+		sim_data->h_epoch   = g_epoch.data();
 		sim_data->h_body_md = g_bmd.data();
-		sim_data->h_p = g_param.data();
-		sim_data->h_y[0] = g_coor.data();
-		sim_data->h_y[1] = g_velo.data();
+		sim_data->h_p       = g_param.data();
+		sim_data->h_y[0]    = g_coor.data();
+		sim_data->h_y[1]    = g_velo.data();
 
+		// create output filename
+		if (0 < t_snapshot)
 		{
-			string epoch_str = epoch_to_string(sim_data->h_epoch[0]);
-			string output_file = "snapshot_t_" + epoch_str;
-			path = file::combine_path(oDir, output_file) + ".txt";
-			print(path, sim_data);
+			output_file = "snapshot_t_" + epoch_to_string(sim_data->h_epoch[0]);
+		}
+		if (0 < id)
+		{
+			output_file = "body_id_" + redutilcu::number_to_string(id);
 		}
 
+		if (0 < t_snapshot)
 		{
-			for (unsigned int i = 1; i < n_total; i++)
+			path = file::combine_path(oDir, output_file) + ".txt";
+			print(path, sim_data);
+		}		
+
+		{
+			if (0 < t_snapshot)
 			{
-				var_t mu = K2 *(sim_data->h_p[0].mass + sim_data->h_p[i].mass);
-				vec_t rVec = {sim_data->h_y[0][i].x - sim_data->h_y[0][0].x, sim_data->h_y[0][i].y - sim_data->h_y[0][0].y, sim_data->h_y[0][i].z - sim_data->h_y[0][0].z, 0.0};
-				vec_t vVec = {sim_data->h_y[1][i].x - sim_data->h_y[1][0].x, sim_data->h_y[1][i].y - sim_data->h_y[1][0].y, sim_data->h_y[1][i].z - sim_data->h_y[1][0].z, 0.0};
-				tools::calculate_oe(mu, &rVec, &vVec, (&sim_data->h_oe[i]));
+				for (unsigned int i = 1; i < n_total; i++)
+				{
+					var_t mu = K2 *(sim_data->h_p[0].mass + sim_data->h_p[i].mass);
+					vec_t rVec = {sim_data->h_y[0][i].x - sim_data->h_y[0][0].x, sim_data->h_y[0][i].y - sim_data->h_y[0][0].y, sim_data->h_y[0][i].z - sim_data->h_y[0][0].z, 0.0};
+					vec_t vVec = {sim_data->h_y[1][i].x - sim_data->h_y[1][0].x, sim_data->h_y[1][i].y - sim_data->h_y[1][0].y, sim_data->h_y[1][i].z - sim_data->h_y[1][0].z, 0.0};
+					tools::calculate_oe(mu, &rVec, &vVec, (&sim_data->h_oe[i]));
+				}
 			}
 
-			string epoch_str = epoch_to_string(sim_data->h_epoch[0]);
-			string output_file = "snapshot_t_" + epoch_str;
-			path = file::combine_path(oDir, output_file) + ".oe.txt";
+			if (0 < id)
+			{
+				int j = 0;
+				for (unsigned int i = 0; i < n_total; i += 2, j++)
+				{
+					var_t mu = K2 *(sim_data->h_p[i].mass + sim_data->h_p[i+1].mass);
+					vec_t rVec = {sim_data->h_y[0][i+1].x - sim_data->h_y[0][i].x, sim_data->h_y[0][i+1].y - sim_data->h_y[0][i].y, sim_data->h_y[0][i+1].z - sim_data->h_y[0][i].z, 0.0};
+					vec_t vVec = {sim_data->h_y[1][i+1].x - sim_data->h_y[1][i].x, sim_data->h_y[1][i+1].y - sim_data->h_y[1][i].y, sim_data->h_y[1][i+1].z - sim_data->h_y[1][i].z, 0.0};
+					tools::calculate_oe(mu, &rVec, &vVec, (&sim_data->h_oe[j]));
+				}
+			}
 
+			path = file::combine_path(oDir, output_file) + ".oe.txt";
 			ofstream output(path.c_str(), ios_base::out);
 			if (output)
-			{		
-				for (unsigned int i = 0; i < n_total; i++)
+			{
+				int n_oe_record = 0;
+				if (0 < t_snapshot)
 				{
-					file::print_oe_record(output, &sim_data->h_oe[i], &sim_data->h_p[i]);
+					n_oe_record = n_total;
+				}
+				if (0 < id)
+				{
+					n_oe_record = n_id_record;
+				}
+
+				for (unsigned int i = 0; i < n_oe_record; i++)
+				{
+					file::print_oe_record(output, sim_data->h_epoch[2*i], &sim_data->h_oe[i], &sim_data->h_p[2*i], &sim_data->h_body_md[2*i]);
 				}
 				output.close();
 			}

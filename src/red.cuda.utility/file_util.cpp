@@ -499,5 +499,56 @@ void print_oe_record(ofstream &sout, orbelem_t* oe, param_t *p)
 	sout.flush();
 }
 
+void print_oe_record(ofstream &sout, orbelem_t* oe, param_t *p, body_metadata_t *bmd)
+{
+	static int var_t_w  = 15;
+	static int int_t_w  = 7;
+
+	sout.precision(6);
+	sout.setf(ios::right);
+	sout.setf(ios::scientific);
+
+	sout << setw(int_t_w) << bmd->id        << SEP 
+		 << setw(int_t_w) << bmd->body_type << SEP 
+		 << setw(var_t_w) << oe->sma        << SEP 
+         << setw(var_t_w) << oe->ecc        << SEP 
+         << setw(var_t_w) << oe->inc        << SEP 
+         << setw(var_t_w) << oe->peri       << SEP 
+         << setw(var_t_w) << oe->node       << SEP 
+         << setw(var_t_w) << oe->mean       << SEP
+         << setw(var_t_w) << p->mass        << SEP
+         << setw(var_t_w) << p->radius      << SEP
+         << setw(var_t_w) << p->density     << SEP
+         << setw(var_t_w) << p->cd          << endl;
+
+	sout.flush();
+}
+
+void print_oe_record(ofstream &sout, ttt_t epoch, orbelem_t* oe, param_t *p, body_metadata_t *bmd)
+{
+	static int var_t_w  = 15;
+	static int int_t_w  = 7;
+
+	sout.precision(6);
+	sout.setf(ios::right);
+	sout.setf(ios::scientific);
+
+	sout << setw(var_t_w) << epoch          << SEP 
+		 << setw(int_t_w) << bmd->id        << SEP 
+		 << setw(int_t_w) << bmd->body_type << SEP 
+		 << setw(var_t_w) << oe->sma        << SEP 
+         << setw(var_t_w) << oe->ecc        << SEP 
+         << setw(var_t_w) << oe->inc        << SEP 
+         << setw(var_t_w) << oe->peri       << SEP 
+         << setw(var_t_w) << oe->node       << SEP 
+         << setw(var_t_w) << oe->mean       << SEP
+         << setw(var_t_w) << p->mass        << SEP
+         << setw(var_t_w) << p->radius      << SEP
+         << setw(var_t_w) << p->density     << SEP
+         << setw(var_t_w) << p->cd          << endl;
+
+	sout.flush();
+}
+
 } /* file */
 } /* redutilcu */

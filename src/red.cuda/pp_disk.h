@@ -101,7 +101,7 @@ public:
 		\param field Sets this field
 		\param value The value to set the field
 	*/
-	void set_event_counter(event_counter_name_t field, int value);
+	void set_event_counter(event_counter_name_t field, uint32_t value);
 
 	//! From the events it will create a vector containing one entry for each colliding pair with the earliest collision time
 	void populate_sp_events();
@@ -148,13 +148,13 @@ public:
 	analytic_gas_disk* a_gd;
 	fargo_gas_disk* f_gd;
 
-	int n_ejection[   EVENT_COUNTER_NAME_N];   //!< Number of ejection
-	int n_hit_centrum[EVENT_COUNTER_NAME_N];   //!< Number of hit centrum
-	int n_collision[  EVENT_COUNTER_NAME_N];   //!< Number of collision
-	int n_event[      EVENT_COUNTER_NAME_N];   //!< Number of total events
+	uint32_t n_ejection[   EVENT_COUNTER_NAME_N];   //!< Number of ejection
+	uint32_t n_hit_centrum[EVENT_COUNTER_NAME_N];   //!< Number of hit centrum
+	uint32_t n_collision[  EVENT_COUNTER_NAME_N];   //!< Number of collision
+	uint32_t n_event[      EVENT_COUNTER_NAME_N];   //!< Number of total events
 
 private:
-	void increment_event_counter(int *event_counter);
+	void increment_event_counter(uint32_t *event_counter);
 	//! Loads the initial position and velocity of the bodies
 	/*!
 		\param path the full path of the data file

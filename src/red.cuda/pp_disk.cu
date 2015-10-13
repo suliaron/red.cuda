@@ -1514,7 +1514,7 @@ void pp_disk::rebuild_vectors()
 	delete sim_data_temp;
 }
 
-void pp_disk::increment_event_counter(int *event_counter)
+void pp_disk::increment_event_counter(uint32_t *event_counter)
 {
 	for (int i = 0; i < EVENT_COUNTER_NAME_N; i++)
 	{
@@ -1524,7 +1524,7 @@ void pp_disk::increment_event_counter(int *event_counter)
 	}
 }
 
-void pp_disk::set_event_counter(event_counter_name_t field, int value)
+void pp_disk::set_event_counter(event_counter_name_t field, uint32_t value)
 {
 	n_hit_centrum[field] = value;
 	n_ejection[field]    = value;

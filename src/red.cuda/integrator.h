@@ -24,9 +24,9 @@ public:
 	computing_device_t get_computing_device() { return comp_dev; }
 
 	void update_counters(int iter);
-	int get_n_failed_step();
-	int get_n_passed_step();
-	int get_n_tried_step();
+	uint64_t get_n_failed_step();
+	uint64_t get_n_passed_step();
+	uint64_t get_n_tried_step();
 
 	virtual ttt_t step() = 0;
 
@@ -50,9 +50,9 @@ protected:
 	ttt_t dt_did;                       //!< The size of the previous successfull step
 	ttt_t dt_next;                      //!< The size of the next step to try (based on the previous successfull step dt_did)
 
-	int n_failed_step;
-	int n_passed_step;
-	int n_tried_step;
+	uint64_t n_failed_step;
+	uint64_t n_passed_step;
+	uint64_t n_tried_step;
 
 	int	order;                          //!< The order of the embedded RK formulae
 	int	r_max;                          //!< The maximum number of the force calculation

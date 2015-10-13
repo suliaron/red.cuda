@@ -272,17 +272,17 @@ void integrator::update_counters(int iter)
 	n_passed_step++;
 }
 
-int integrator::get_n_failed_step()
+uint64_t integrator::get_n_failed_step()
 {
 	return n_failed_step;
 }
 
-int integrator::get_n_passed_step()
+uint64_t integrator::get_n_passed_step()
 {
 	return n_passed_step;
 }
 
-int integrator::get_n_tried_step()
+uint64_t integrator::get_n_tried_step()
 {
 	return n_tried_step;
 }

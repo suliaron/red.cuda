@@ -110,6 +110,7 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 {
 	static const string header_str = "dev,date      ,time    ,t [d]      ,dt [d]     ,dt_avg [d] ,dT [s]     ,dT_avg [s] ,Nc   ,Ne   ,Nh   ,nb_p ,nb_i,nb_r ,ns_t    ,ns_f    ,ns_p    ,ns_a,ns_r  ,ngp_a,ngp_r,nrp_a,nrp_r,npp_a,npp_r,nspl_a,nspl_r,npl_a,npl_r,ntp_a,ntp_r";
 	static bool first_call = true;
+	static string cvs = ",";
 	
 	cout.setf(ios::right);
 	cout.setf(ios::scientific);
@@ -131,9 +132,9 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 	     << ", Ne: " << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL]
 		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
 		 << ", N : " << setw(6) << nb->get_n_total_playing() << "(" << setw(3) << nb->get_n_total_inactive() << ", " << setw(5) << nb->get_n_total_removed() << ")"
-	     << ", nt: " << setw(8) << intgr->get_n_tried_step()
-	     << ", nf: " << setw(8) << intgr->get_n_failed_step()
-	     << ", np: " << setw(8) << intgr->get_n_passed_step()
+	     << ", nt: " << setw(11) << intgr->get_n_tried_step()
+	     << ", nf: " << setw(11) << intgr->get_n_failed_step()
+	     << ", np: " << setw(11) << intgr->get_n_passed_step()
 		 << endl;
 
 	if (first_call)
@@ -142,26 +143,26 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 		sout << header_str << endl;
 	}
 
-	sout << dev << ","
-		 << tools::get_time_stamp(true) << ","
-		 << setprecision(4) << setw(10) << ppd->t / constants::Gauss << ","
-		 << setprecision(4) << setw(10) << dt / constants::Gauss << ","
-		 << setprecision(4) << setw(10) << (ppd->t / constants::Gauss)/intgr->get_n_passed_step() << ",";
-	sout << setprecision(4) << setw(10) << (*dT_CPU  / (double)CLOCKS_PER_SEC) << ",";
-	sout << setprecision(4) << setw(10) << (*T_CPU / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << ",";
-	sout << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL] << ","
-	     << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL] << ","
-		 << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL] << ","
-		 << setw(6) << nb->get_n_total_playing()  << ","
-		 << setw(3) << nb->get_n_total_inactive() << ","
-		 << setw(5) << nb->get_n_total_removed()  << ","
-	     << setw(8) << intgr->get_n_tried_step()  << ","
-	     << setw(8) << intgr->get_n_failed_step() << ","
-	     << setw(8) << intgr->get_n_passed_step() << ",";
+	sout << dev << cvs
+		 << tools::get_time_stamp(true) << cvs
+		 << setprecision(4) << ppd->t / constants::Gauss << cvs
+		 << setprecision(4) << dt / constants::Gauss << cvs
+		 << setprecision(4) << (ppd->t / constants::Gauss)/intgr->get_n_passed_step() << cvs;
+	sout << setprecision(4) << (*dT_CPU  / (double)CLOCKS_PER_SEC) << cvs;
+	sout << setprecision(4) << (*T_CPU / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << cvs;
+	sout << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL] << cvs
+	     << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL] << cvs
+		 << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL] << cvs
+		 << nb->get_n_total_playing()  << cvs
+		 << nb->get_n_total_inactive() << cvs
+		 << nb->get_n_total_removed()  << cvs
+	     << intgr->get_n_tried_step()  << cvs
+	     << intgr->get_n_failed_step() << cvs
+	     << intgr->get_n_passed_step() << cvs;
 	for (int i = 0; i < BODY_TYPE_N; i++)
 	{
-		sout << setw(5) << nb->playing[i] - nb->inactive[i] << ","
-			<< setw(5) << nb->removed[i] << (i < BODY_TYPE_TESTPARTICLE ? "," : "");
+		sout << nb->playing[i] - nb->inactive[i] << cvs
+			 << nb->removed[i] << (i < BODY_TYPE_TESTPARTICLE ? cvs : "");
 	}
 	sout << endl;
 }
