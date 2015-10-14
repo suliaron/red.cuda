@@ -1414,13 +1414,13 @@ void benchmark_CPU(interaction_bound int_bound, const vec_t* h_x, const var_t* h
 				cpu_calc_grav_accel_naive(int_bound, h_x, h_m, h_a);
 			}
 		}
-		else if ((SQR(300) < n_interaction && SQR(400) >= n_interaction))
-		{
-			for (i = 0; i < 10; i++)
-			{
-				cpu_calc_grav_accel_naive(int_bound, h_x, h_m, h_a);
-			}
-		}
+		//else if ((SQR(300) < n_interaction && SQR(400) >= n_interaction))
+		//{
+		//	for (i = 0; i < 10; i++)
+		//	{
+		//		cpu_calc_grav_accel_naive(int_bound, h_x, h_m, h_a);
+		//	}
+		//}
 		else
 		{
 			cpu_calc_grav_accel_naive(int_bound, h_x, h_m, h_a);
@@ -1456,13 +1456,13 @@ void benchmark_CPU(interaction_bound int_bound, const vec_t* h_x, const var_t* h
 				cpu_calc_grav_accel_naive_sym(int_bound, h_x, h_m, h_a);
 			}
 		}
-		else if ((300 < n_sink && 400 >= n_sink))
-		{
-			for (i = 0; i < 10; i++)
-			{
-				cpu_calc_grav_accel_naive_sym(int_bound, h_x, h_m, h_a);
-			}
-		}
+		//else if ((300 < n_sink && 400 >= n_sink))
+		//{
+		//	for (i = 0; i < 10; i++)
+		//	{
+		//		cpu_calc_grav_accel_naive_sym(int_bound, h_x, h_m, h_a);
+		//	}
+		//}
 		else
 		{
 			cpu_calc_grav_accel_naive_sym(int_bound, h_x, h_m, h_a);
