@@ -1304,8 +1304,6 @@ float gpu_calc_grav_accel_tile_benchmark_2(interaction_bound int_bound, int n_tp
 
 void benchmark_CPU(int n_body, const vec_t* h_x, const var_t* h_m, vec_t* h_a, ofstream& o_result, ofstream& o_summary)
 {
-	interaction_bound int_bound;
-
 	ttt_t Dt_CPU = 0.0;
 	ttt_t Dt_GPU = 0.0;
 	int i = 0;
@@ -1341,6 +1339,7 @@ void benchmark_CPU(int n_body, const vec_t* h_x, const var_t* h_m, vec_t* h_a, o
 		uint64 t1 = GetTimeMs64();
 		Dt_CPU = ((ttt_t)(t1 - t0))/(ttt_t)(i == 0 ? 1 : i)/1000.0f;
 
+		interaction_bound int_bound;
 		print(COMPUTING_DEVICE_CPU, method_name[0], param_name[0], int_bound, n_body, 1, Dt_CPU, Dt_GPU, o_result, false);
 		print(COMPUTING_DEVICE_CPU, method_name[0], param_name[0], int_bound, n_body, 1, Dt_CPU, Dt_GPU, o_summary, true);
 	}
@@ -1375,6 +1374,7 @@ void benchmark_CPU(int n_body, const vec_t* h_x, const var_t* h_m, vec_t* h_a, o
 		}
 		Dt_CPU = ((ttt_t)(GetTimeMs64() - t0))/(ttt_t)(i == 0 ? 1 : i)/1000.0f;
 
+		interaction_bound int_bound;
 		print(COMPUTING_DEVICE_CPU, method_name[1], param_name[0], int_bound, n_body, 1, Dt_CPU, Dt_GPU, o_result, false);
 		print(COMPUTING_DEVICE_CPU, method_name[1], param_name[0], int_bound, n_body, 1, Dt_CPU, Dt_GPU, o_summary, true);
 	}
@@ -1382,9 +1382,9 @@ void benchmark_CPU(int n_body, const vec_t* h_x, const var_t* h_m, vec_t* h_a, o
 
 void benchmark_CPU(interaction_bound int_bound, const vec_t* h_x, const var_t* h_m, vec_t* h_a, ofstream& o_result, ofstream& o_summary)
 {
-	const int n_sink   = int_bound.sink.y   - int_bound.sink.x;
-	const int n_source = int_bound.source.y - int_bound.source.x;
-	const int n_interaction = n_sink * n_source;
+	const uint64_t n_sink   = int_bound.sink.y   - int_bound.sink.x;
+	const uint64_t n_source = int_bound.source.y - int_bound.source.x;
+	const uint64_t n_interaction = n_sink * n_source;
 
 	ttt_t Dt_CPU = 0.0;
 	ttt_t Dt_GPU = 0.0;
@@ -1393,21 +1393,21 @@ void benchmark_CPU(interaction_bound int_bound, const vec_t* h_x, const var_t* h
 	//Naive method
 	{
 		uint64 t0 = GetTimeMs64();
-		if (SQR(100) >= n_interaction)
+		if (SQR(100ULL) >= n_interaction)
 		{
 			for (i = 0; i < 5000; i++)
 			{
 				cpu_calc_grav_accel_naive(int_bound, h_x, h_m, h_a);
 			}
 		}
-		else if ((SQR(100) < n_interaction && SQR(200) >= n_interaction))
+		else if ((SQR(100ULL) < n_interaction && SQR(200ULL) >= n_interaction))
 		{
 			for (i = 0; i < 1000; i++)
 			{
 				cpu_calc_grav_accel_naive(int_bound, h_x, h_m, h_a);
 			}
 		}
-		else if ((SQR(200) < n_interaction && SQR(300) >= n_interaction))
+		else if ((SQR(200ULL) < n_interaction && SQR(300ULL) >= n_interaction))
 		{
 			for (i = 0; i < 100; i++)
 			{
@@ -2101,7 +2101,7 @@ void benchmark(int id_dev, int n0, int n1, int dn, int n_iter, ofstream& o_resul
 			int2_t source = {0, n_src};
 			interaction_bound int_bound(sink, source);
 
-			cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << n_snk*n_src << ")---------------------------------------------------------------" << endl;
+			cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << (uint32_t)n_snk*(uint32_t)n_src << ")---------------------------------------------------------------" << endl;
 			cout << "CPU Gravity acceleration:" << endl;
 			benchmark_CPU(int_bound, h_x, h_m, h_a, o_result, o_summary);
 			printf("\n");

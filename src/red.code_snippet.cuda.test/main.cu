@@ -2249,5 +2249,40 @@ int main(int argc, const char** argv, const char** env)
 	printf("sizeof(uint32_t): %2d\n", sizeof(uint32_t));
 	printf("sizeof(int64_t) : %2d\n", sizeof(int64_t));
 	printf("sizeof(uint64_t): %2d\n", sizeof(uint64_t));
+
+	
+	// Test the uint32_t
+	{
+		uint32_t n_snk = 30000UL;
+		uint32_t n_src = 80000UL;
+		uint32_t n_interaction = n_snk * n_src;
+		cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << n_interaction << ")---------------------------------------------------------------" << endl;
+		printf("(n_sink * n_source = %6lu * %6lu = %12lu\n", n_snk, n_src, n_interaction);
+		n_snk = 100000UL;
+		n_src = 100000UL;
+		n_interaction = n_snk * n_src;
+		cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << n_interaction << ")---------------------------------------------------------------" << endl;
+		printf("(n_sink * n_source = %6lu * %6lu = %12lu\n", n_snk, n_src, n_interaction);
+
+		n_snk = -1;
+		printf("(n_sink = %12lu\n", n_snk, n_src, n_interaction);
+	}
+
+	// Test the uint64_t
+	{
+		uint64_t n_snk = 30000ULL;
+		uint64_t n_src = 80000ULL;
+		uint64_t n_interaction = n_snk * n_src;
+		cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << n_interaction << ")---------------------------------------------------------------" << endl;
+		printf("(n_sink * n_source = %6llu * %6llu = %12llu\n", n_snk, n_src, n_interaction);
+		n_snk = 100000ULL;
+		n_src = 100000ULL;
+		n_interaction = n_snk * n_src;
+		cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << n_interaction << ")---------------------------------------------------------------" << endl;
+		printf("(n_sink * n_source = %6llu * %6llu = %12llu\n", n_snk, n_src, n_interaction);
+
+		n_snk = -1;
+		printf("(n_sink = %12llu\n", n_snk, n_src, n_interaction);
+	}
 }
 #endif
