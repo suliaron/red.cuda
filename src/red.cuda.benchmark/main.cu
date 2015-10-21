@@ -144,16 +144,16 @@ void print(computing_device_t comp_dev, string& method_name, string& param_name,
 			 << setprecision(6) << setw(10) << Dt_GPU << endl;
 	}
 
-	sout << tools::get_time_stamp(true) << sep
-		 << computing_device_name[comp_dev] << sep
-		 << method_name << sep
-		 << param_name << sep
-		 << int_bound.sink.y - int_bound.sink.x << sep
-		 << int_bound.source.y - int_bound.source.x << sep
-		 << n_body << sep
-		 << n_tpb << sep
-		 << setprecision(6) << Dt_CPU << sep
-		 << setprecision(6) << Dt_GPU << endl;
+	sout << tools::get_time_stamp(false) << SEP
+     	 << setw(4) << computing_device_name[comp_dev] << SEP
+		 << setw(20) << method_name << SEP
+		 << setw(10) << param_name << SEP
+		 << setw(6) << int_bound.sink.y - int_bound.sink.x << SEP
+		 << setw(6) << int_bound.source.y - int_bound.source.x << SEP
+		 << setw(6) << n_body << SEP
+		 << setw(5) << n_tpb << SEP
+		 << setprecision(6) << setw(10) << Dt_CPU << SEP
+		 << setprecision(6) << setw(10) << Dt_GPU << endl;
 }
 
 namespace kernel
@@ -891,9 +891,13 @@ __global__
 			dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
 
 			// 20 FLOP
-			var_t d = sqrt(dVec.w);								// = r
+			//var_t d = sqrt(dVec.w);								// = r
 			// 2 FLOP
-			dVec.w = m[j] / (d*dVec.w);
+			//dVec.w = m[j] / (d*dVec.w);
+
+			dVec.w *= sqrt(dVec.w); // = r3
+			dVec.w = m[j] / dVec.w; // = mj / r3
+
 			// 6 FLOP
 			a[i].x += dVec.w * dVec.x;
 			a[i].y += dVec.w * dVec.y;
@@ -903,6 +907,8 @@ __global__
 }
 
 // NOTE: Before calling this function, the a array must be cleared!
+// TODO: The result of this kernel differs from the real one IF the number of bodies larger than the warp size
+// e.g. n_body = 50. What is the reason of this. (For n_body = 16, 32, 40, the result is correct).
 __global__
 	void calc_gravity_accel_naive_sym(interaction_bound int_bound, const vec_t* r, const var_t* m, vec_t* a)
 {
@@ -1081,6 +1087,100 @@ void cpu_calc_grav_accel_naive_sym(interaction_bound int_bound, const vec_t* r, 
 	}
 }
 
+void cpu_calc_grav_accel_naive_sym_advanced(interaction_bound int_bound, const vec_t* r, const var_t* mass, vec_t* a)
+{
+	const int n_sink   = int_bound.sink.y   - int_bound.sink.x;
+	const int n_source = int_bound.source.y - int_bound.source.x;
+	const int n_body = min(n_sink, n_source);
+
+	for (int i = int_bound.sink.x; i < int_bound.sink.x + n_body; i++)
+	{
+		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		for (int j = i + 1; j < int_bound.sink.x + n_body; j++) 
+		{
+			// r_ij 3 FLOP
+			dVec.x = r[j].x - r[i].x;
+			dVec.y = r[j].y - r[i].y;
+			dVec.z = r[j].z - r[i].z;
+			// 5 FLOP
+			dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+
+			// 20 FLOP
+			var_t d = sqrt(dVec.w);								// = r
+			// 2 FLOP
+			var_t r_3 = 1.0 / (d*dVec.w);
+			// 1 FLOP
+			dVec.w = mass[j] * r_3;
+			// 6 FLOP
+			a[i].x += dVec.w * dVec.x;
+			a[i].y += dVec.w * dVec.y;
+			a[i].z += dVec.w * dVec.z;
+
+			// 2 FLOP
+			dVec.w = mass[i] * r_3;
+			// 6 FLOP
+			a[j].x -= dVec.w * dVec.x;
+			a[j].y -= dVec.w * dVec.y;
+			a[j].z -= dVec.w * dVec.z;
+		} // 36 + 8 = 44 FLOP
+	}
+
+	if (n_sink < n_source)
+	{
+		for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
+		{
+			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+			for (int j = int_bound.source.x + n_body; j < int_bound.source.y; j++) 
+			{
+				// r_ij 3 FLOP
+				dVec.x = r[j].x - r[i].x;
+				dVec.y = r[j].y - r[i].y;
+				dVec.z = r[j].z - r[i].z;
+				// 5 FLOP
+				dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+
+				// 20 FLOP
+				var_t d = sqrt(dVec.w);								// = r
+				// 2 FLOP
+				var_t r_3 = 1.0 / (d*dVec.w);
+				// 1 FLOP
+				dVec.w = mass[j] * r_3;
+				// 6 FLOP
+				a[i].x += dVec.w * dVec.x;
+				a[i].y += dVec.w * dVec.y;
+				a[i].z += dVec.w * dVec.z;
+			} // 36 FLOP
+		}
+	}
+	else
+	{
+		for (int i = int_bound.sink.x + n_body; i < int_bound.sink.y; i++)
+		{
+			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+			{
+				// r_ij 3 FLOP
+				dVec.x = r[j].x - r[i].x;
+				dVec.y = r[j].y - r[i].y;
+				dVec.z = r[j].z - r[i].z;
+				// 5 FLOP
+				dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+
+				// 20 FLOP
+				var_t d = sqrt(dVec.w);								// = r
+				// 2 FLOP
+				var_t r_3 = 1.0 / (d*dVec.w);
+				// 1 FLOP
+				dVec.w = mass[j] * r_3;
+				// 6 FLOP
+				a[i].x += dVec.w * dVec.x;
+				a[i].y += dVec.w * dVec.y;
+				a[i].z += dVec.w * dVec.z;
+			} // 36 FLOP
+		}
+	}
+
+}
 
 //! Computes the time it takes for the GPU the calculate the gravitatinal acceleration using the naive method
 /*!
@@ -1662,42 +1762,54 @@ void populate(int n, vec_t* h_x, var_t* h_m)
 
 bool compare_vectors(int n, const vec_t* v1, const vec_t* v2, var_t tolerance, bool verbose)
 {
+	vector<var_t> list_ad;
+	vector<var_t> list_rd;
+
 	bool success = true;
 
 	for (int i = 0; i < n; i++)
 	{
 		var_t diff = fabs(v1[i].x - v2[i].x);
-		var_t rel  = diff / v1[i].x;
+		var_t rel  = diff / fabs(v1[i].x);
 		if (tolerance <= diff)
 		{
 			if (success && verbose) printf("\n");
 			if (verbose) printf("\tError: i = [%5d] v1.x = %16.8le v2.x = %16.8le D = %16.8le rel = %16.8le\n", i, v1[i].x, v2[i].x, diff, rel);
+			list_ad.push_back(diff);
+			list_rd.push_back(rel);
 			success = false;
 		}
 		diff = fabs(v1[i].y - v2[i].y);
-		rel  = diff / v1[i].y;
+		rel  = diff / fabs(v1[i].y);
 		if (tolerance <= diff)
 		{
 			if (success && verbose) printf("\n");
 			if (verbose) printf("\tError: i = [%5d] v1.y = %16.8le v2.y = %16.8le D = %16.8le rel = %16.8le\n", i, v1[i].y, v2[i].y, diff, rel);
+			list_ad.push_back(diff);
+			list_rd.push_back(rel);
 			success = false;
 		}
 		diff = fabs(v1[i].z - v2[i].z);
-		rel  = diff / v1[i].z;
+		rel  = diff / fabs(v1[i].z);
 		if (tolerance <= diff)
 		{
 			if (success && verbose) printf("\n");
 			if (verbose) printf("\tError: i = [%5d] v1.z = %16.8le v2.x = %16.8le D = %16.8le rel = %16.8le\n", i, v1[i].z, v2[i].z, diff, rel);
+			list_ad.push_back(diff);
+			list_rd.push_back(rel);
 			success = false;
 		}
 	}
 	if (success)
 	{
-		printf("The results are identical with a tolerance of %20.16le.\n", tolerance);
+		printf("Identical\n");
 	}
 	else
 	{
-		printf("The results are different with a tolerance of %20.16le.\n", tolerance);
+	    var_t max_ad = *max_element(list_ad.begin(), list_ad.end());
+		var_t max_rd = *max_element(list_rd.begin(), list_rd.end());
+
+		printf("Different (max. absolut difference: %16.8le, max. relative difference: %16.8le\n", max_ad, max_rd);
 	}
 	return success;
 }
@@ -1748,33 +1860,34 @@ void compare_results(int n_body, int n_tpb, const vec_t* d_x, const var_t* d_m, 
 	memset(h_at, 0, n_body*sizeof(vec_t));
 }
 
-void compare_CPU_results(interaction_bound int_bound, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a, const vec_t* h_x, const var_t* h_m, vec_t* h_a, vec_t* h_at, var_t tolerance)
+void compare_CPU_results(interaction_bound int_bound, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a, const vec_t* h_x, const var_t* h_m, vec_t* h_a, vec_t* h_at, var_t tolerance, bool verbose)
 {
 	const int n_sink   = int_bound.sink.y   - int_bound.sink.x;
 	const int n_source = int_bound.source.y - int_bound.source.x;
 
 	printf("Comparing the computations of the gravitational accelerations performed on the CPU:\n");
-	printf("\tNaive vs. naive symmetric          : ");
-	if (n_sink != n_source)
-	{
-		printf("The number of sink body does not equal to the number of source body\n.");
-		return;
-	}
 
-	cpu_calc_grav_accel_naive(    int_bound, h_x, h_m, h_a );
-
-	// DEBUG CODE
-	var_t* _m = (var_t *)h_m;
-	_m[0] *=10.0;
-
-	cpu_calc_grav_accel_naive_sym(int_bound, h_x, h_m, h_at);
-
-	bool result = compare_vectors(n_sink, h_a, h_at, tolerance, false);
 	memset(h_a,  0, n_sink * sizeof(vec_t));
 	memset(h_at, 0, n_sink * sizeof(vec_t));
+
+	// Computing base result
+	cpu_calc_grav_accel_naive(    int_bound, h_x, h_m, h_a );
+
+	if (n_sink == n_source)
+	{
+		printf("\tNaive vs. naive symmetric          : ");
+		cpu_calc_grav_accel_naive_sym(int_bound, h_x, h_m, h_at);
+	}
+	else
+	{
+		printf("\tNaive vs. naive symmetric advanced : ");
+		cpu_calc_grav_accel_naive_sym_advanced(int_bound, h_x, h_m, h_at);
+	}
+
+	bool result = compare_vectors(n_sink, h_a, h_at, tolerance, verbose);
 }
 
-void compare_CPU_GPU_results(interaction_bound int_bound, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a, const vec_t* h_x, const var_t* h_m, vec_t* h_a, vec_t* h_at, var_t tolerance)
+void compare_CPU_GPU_results(interaction_bound int_bound, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a, const vec_t* h_x, const var_t* h_m, vec_t* h_a, vec_t* h_at, var_t tolerance, bool verbose)
 {
 	const int n_sink = int_bound.sink.y - int_bound.sink.x;
 	const int n_source = int_bound.source.y - int_bound.source.x;
@@ -1787,14 +1900,18 @@ void compare_CPU_GPU_results(interaction_bound int_bound, int n_tpb, const vec_t
 	dim3 grid((n_sink + n_tpb - 1)/n_tpb);
 	dim3 block(n_tpb);
 
-	// Compute base result to compare GPU result against it
+	// DEBUG CODE
+	//var_t* _m = (var_t *)h_m;
+	//_m[0] *= 10.0;
+
+	// Compute base result and store it in h_a. This will be compared with the GPU result.
 	cpu_calc_grav_accel_naive(int_bound, h_x, h_m, h_a);
 
 	printf("\tCPU naive vs. GPU naive            : ");
 	kernel2::calc_gravity_accel_naive<<<grid, block>>>(int_bound, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 	copy_vector_to_host(h_at, d_a, n_sink * sizeof(vec_t));
-	bool result = compare_vectors(n_sink, h_a, h_at, tolerance, false);
+	bool result = compare_vectors(n_sink, h_a, h_at, tolerance, verbose);
 
 	memset(h_at, 0, n_sink * sizeof(vec_t));
 	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(vec_t)));
@@ -1805,7 +1922,7 @@ void compare_CPU_GPU_results(interaction_bound int_bound, int n_tpb, const vec_t
 		kernel2::calc_gravity_accel_naive_sym<<<grid, block>>>(int_bound, d_x, d_m, d_a);
 		CUDA_CHECK_ERROR();
 		copy_vector_to_host(h_at, d_a, n_sink * sizeof(vec_t));
-		result = compare_vectors(n_sink, h_a, h_at, tolerance, false);
+		result = compare_vectors(n_sink, h_a, h_at, tolerance, verbose);
 
 		memset(h_at, 0, n_sink * sizeof(vec_t));
 		CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(vec_t)));
@@ -1819,7 +1936,7 @@ void compare_CPU_GPU_results(interaction_bound int_bound, int n_tpb, const vec_t
 	kernel2::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(int_bound, n_tpb, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 	copy_vector_to_host(h_at, d_a, n_sink * sizeof(vec_t));
-	result = compare_vectors(n_sink, h_a, h_at, tolerance, false);
+	result = compare_vectors(n_sink, h_a, h_at, tolerance, verbose);
 
 	memset(h_at, 0, n_sink * sizeof(vec_t));
 	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(vec_t)));
@@ -1828,7 +1945,7 @@ void compare_CPU_GPU_results(interaction_bound int_bound, int n_tpb, const vec_t
 	kernel2::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(int_bound, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 	copy_vector_to_host(h_at, d_a, n_sink * sizeof(vec_t));
-	result = compare_vectors(n_sink, h_a, h_at, tolerance, false);
+	result = compare_vectors(n_sink, h_a, h_at, tolerance, verbose);
 
 	memset(h_at, 0, n_sink * sizeof(vec_t));
 	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(vec_t)));
@@ -1836,7 +1953,7 @@ void compare_CPU_GPU_results(interaction_bound int_bound, int n_tpb, const vec_t
 
 
 
-void compare_results(int id_dev, int n0, int n1, int dn, int n_iter, var_t tolerance, ofstream& o_result, ofstream& o_summary)
+void compare_results(int id_dev, int n0, int n1, var_t tolerance, bool verbose, ofstream& o_result, ofstream& o_summary)
 {
 	vec_t* h_x = 0x0;
 	vec_t* h_a = 0x0;
@@ -1862,61 +1979,40 @@ void compare_results(int id_dev, int n0, int n1, int dn, int n_iter, var_t toler
 		;
 	}
 
-	int dn_snk = dn;
-	int k_snk = 1;
-	for (int n_snk = n0; n_snk <= n1; n_snk += dn_snk, k_snk++)
-	{
-		int dn_src = dn;
-		int k_src = 1;
-		for (int n_src = n0; n_src <= n1; n_src += dn_src, k_src++)
-		{
-			// Total number of bodies is the larger of n_snk and n_src
-			int n_total = max(n_snk, n_src);
-			ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(vec_t)); 
-			ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(vec_t)); 
-			ALLOCATE_HOST_VECTOR((void**)&h_at, n_total*sizeof(vec_t)); 
-			ALLOCATE_HOST_VECTOR((void**)&h_m,  n_total*sizeof(var_t)); 
+	// Total number of bodies is the larger of n_snk and n_src
+	int n_total = max(n0, n1);
+	ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(vec_t)); 
+	ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(vec_t)); 
+	ALLOCATE_HOST_VECTOR((void**)&h_at, n_total*sizeof(vec_t)); 
+	ALLOCATE_HOST_VECTOR((void**)&h_m,  n_total*sizeof(var_t)); 
 
-			ALLOCATE_DEVICE_VECTOR((void**)&d_x, n_total*sizeof(vec_t)); 
-			ALLOCATE_DEVICE_VECTOR((void**)&d_a, n_total*sizeof(vec_t)); 
-			ALLOCATE_DEVICE_VECTOR((void**)&d_m, n_total*sizeof(var_t)); 
+	ALLOCATE_DEVICE_VECTOR((void**)&d_x, n_total*sizeof(vec_t)); 
+	ALLOCATE_DEVICE_VECTOR((void**)&d_a, n_total*sizeof(vec_t)); 
+	ALLOCATE_DEVICE_VECTOR((void**)&d_m, n_total*sizeof(var_t)); 
 
-			populate(n_total, h_x, h_m);
+	populate(n_total, h_x, h_m);
 
-			copy_vector_to_device(d_x, h_x, n_total*sizeof(vec_t));
-			copy_vector_to_device(d_m, h_m, n_total*sizeof(var_t));
+	copy_vector_to_device(d_x, h_x, n_total*sizeof(vec_t));
+	copy_vector_to_device(d_m, h_m, n_total*sizeof(var_t));
 
-			int2_t sink = {0, n_snk};
-			int2_t source = {0, n_src};
-			interaction_bound int_bound(sink, source);
+	int2_t sink   = {0, n0};
+	int2_t source = {0, n1};
+	interaction_bound int_bound(sink, source);
 
-			cout << "---------------------------------------------------------------------------------------------------------------------------------------------" << endl;
-			cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << n_snk*n_src << ")" << endl;
-			compare_CPU_results(int_bound, 1, d_x, d_m, d_a, h_x, h_m, h_a, h_at, tolerance);
-			printf("\n");
-			compare_CPU_GPU_results(int_bound, 256, d_x, d_m, d_a, h_x, h_m, h_a, h_at, tolerance);
+	cout << "tolerance level   = " << scientific << tolerance << endl;
+	cout << "n_sink * n_source = " << setw(6) << n0 << " * " << setw(6) << n1 << " = " << setw(12) << n0*n1 << endl << endl;
+	compare_CPU_results(int_bound, 1, d_x, d_m, d_a, h_x, h_m, h_a, h_at, tolerance, verbose);
+	printf("\n");
+	compare_CPU_GPU_results(int_bound, 256, d_x, d_m, d_a, h_x, h_m, h_a, h_at, tolerance, verbose);
 
-			if (0 < n_iter && 0 == k_src % n_iter)
-			{
-				k_src = 1;
-				dn_src *= 10;
-			}
+	FREE_HOST_VECTOR((void**)&h_x);
+	FREE_HOST_VECTOR((void**)&h_a);
+	FREE_HOST_VECTOR((void**)&h_m);
+	FREE_HOST_VECTOR((void**)&h_at);
 
-			FREE_HOST_VECTOR((void**)&h_x);
-			FREE_HOST_VECTOR((void**)&h_a);
-			FREE_HOST_VECTOR((void**)&h_m);
-			FREE_HOST_VECTOR((void**)&h_at);
-
-			FREE_DEVICE_VECTOR((void**)&d_x);
-			FREE_DEVICE_VECTOR((void**)&d_a);
-			FREE_DEVICE_VECTOR((void**)&d_m);
-		}
-		if (0 < n_iter && 0 == k_snk % n_iter)
-		{
-			k_snk = 1;
-			dn_snk *= 10;
-		}
-	}
+	FREE_DEVICE_VECTOR((void**)&d_x);
+	FREE_DEVICE_VECTOR((void**)&d_a);
+	FREE_DEVICE_VECTOR((void**)&d_m);
 }
 
 
@@ -2350,7 +2446,7 @@ void read_cpu_description(const char** env, vector<string>& result)
 	data.clear();
 }
 
-int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, int& id_dev, int& n0, int& n1, int& dn, int& n_iter)
+int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, var_t& tol, int& id_dev, int& n0, int& n1, int& dn, int& n_iter, bool& verbose)
 {
 	int i = 1;
 
@@ -2367,6 +2463,15 @@ int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, i
 		{
 			i++;
 			base_fn = argv[i];
+		}
+		else if (p == "-tol")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			tol = atof(argv[i]);
 		}
 		else if (p == "-devId")
 		{
@@ -2413,6 +2518,22 @@ int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, i
 			}
 			n_iter = atoi(argv[i]);
 		}
+		else if (p == "-v" || p == "--verbose")
+		{
+			i++;
+			if      (argv[i] == "true")
+			{
+				verbose = true;
+			}
+			else if (argv[i] == "false")
+			{
+				verbose = false;
+			}
+			else
+			{
+				throw string("Invalid value at: " + p);
+			}
+		}
 		else if (p == "-h")
 		{
 			printf("Usage:\n");
@@ -2421,6 +2542,8 @@ int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, i
 			printf("\n\t-n1 <number>       : the end number of SI bodies\n");
 			printf("\n\t-dn <number>       : at each iteration the number of bodies will be increased by dn\n");
 			printf("\n\t-n_iter <number>   : after n_iter the value of dn will be multiplyed by a factor of 10\n");
+			printf("\n\t-tol <number>      : the comparison will be done with the defined tolarance level (default value is 1.0e-16)\n");
+			printf("\n\t-v <true|false>    : the detailed result of the comparison will be printed to the screen (default value is false)\n");
 			printf("\n\t-oDir <filename>   : the output file will be stored in this directory\n");
 			printf("\n\t-bFile <filename>  : the base filename of the output (without extension), it will be extended by CPU and GPU name\n");
 			printf("\n\t-h                 : print this help\n");
@@ -2440,7 +2563,7 @@ int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, i
 // -oDir C:\Work\red.cuda.Results\Benchmark -bFile benchmark_rect -devId 0 -n0 10 -n1 1000 -dn 10 -n_iter 10
 int main(int argc, const char** argv, const char** env)
 {
-	static const string header_str  = "date, time, computing_device_name, method_name, param_name, n_sink, s_source, n_body, n_tpb, Dt_CPU [ms], Dt_GPU [ms]";
+	static const string header_str  = "date       time     dev  method_name          param_name        n_snk  n_src  n_bdy  n_tpb Dt_CPU[ms] Dt_GPU[ms]";
 
 	string o_dir;
 	string base_fn;
@@ -2448,11 +2571,13 @@ int main(int argc, const char** argv, const char** env)
 	string summary_filename;
 	string log_filename;
 
+	var_t tol = 1.0e-16;
 	int id_dev = 0;
 	int n0 = 0;
 	int n1 = 0;
 	int dn = 1;
 	int n_iter = 10;
+	bool verbose = false;
 
 	ofstream* output[BENCHMARK_OUTPUT_NAME_N];
 	memset(output, 0x0, sizeof(output));
@@ -2465,7 +2590,7 @@ int main(int argc, const char** argv, const char** env)
 		cpu_info_t cpu_info;
 		cudaDeviceProp deviceProp;
 
-		parse_options(argc, argv, o_dir, base_fn, id_dev, n0, n1, dn, n_iter);
+		parse_options(argc, argv, o_dir, base_fn, tol, id_dev, n0, n1, dn, n_iter, verbose);
 		const int n_GPU = get_n_cuda_device();
 		if (0 > id_dev && n_GPU <= id_dev)
 		{
@@ -2488,8 +2613,8 @@ int main(int argc, const char** argv, const char** env)
 		//benchmark_square(id_dev, n0, n1, dn, n_iter, *output[BENCHMARK_OUTPUT_NAME_RESULT], *output[BENCHMARK_OUTPUT_NAME_SUMMARY]);
 		benchmark(id_dev, n0, n1, dn, n_iter, *output[BENCHMARK_OUTPUT_NAME_RESULT], *output[BENCHMARK_OUTPUT_NAME_SUMMARY]);
 
-		//var_t tolerance = 1.0e-14;
-		//compare_results(id_dev, n0, n1, dn, n_iter, tolerance, *output[BENCHMARK_OUTPUT_NAME_RESULT], *output[BENCHMARK_OUTPUT_NAME_SUMMARY]);
+		//printf("\n");
+		//compare_results(id_dev, n0 , n1, tol, verbose, *output[BENCHMARK_OUTPUT_NAME_RESULT], *output[BENCHMARK_OUTPUT_NAME_SUMMARY]);
 	}
 	catch(const string& msg)
 	{
