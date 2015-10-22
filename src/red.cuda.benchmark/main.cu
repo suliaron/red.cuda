@@ -135,7 +135,7 @@ void print(computing_device_t comp_dev, string& method_name, string& param_name,
 		cout << tools::get_time_stamp(false) << sep
      		 << setw(4) << computing_device_name[comp_dev] << sep
 			 << setw(20) << method_name << sep
-			 << setw(10) << param_name << sep
+			 << setw(20) << param_name << sep
 			 << setw(6) << int_bound.sink.y - int_bound.sink.x << sep
 			 << setw(6) << int_bound.source.y - int_bound.source.x << sep
 			 << setw(6) << n_body << sep
@@ -147,7 +147,7 @@ void print(computing_device_t comp_dev, string& method_name, string& param_name,
 	sout << tools::get_time_stamp(false) << SEP
      	 << setw(4) << computing_device_name[comp_dev] << SEP
 		 << setw(20) << method_name << SEP
-		 << setw(10) << param_name << SEP
+		 << setw(20) << param_name << SEP
 		 << setw(6) << int_bound.sink.y - int_bound.sink.x << SEP
 		 << setw(6) << int_bound.source.y - int_bound.source.x << SEP
 		 << setw(6) << n_body << SEP
