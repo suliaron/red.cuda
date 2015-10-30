@@ -77,6 +77,30 @@ typedef enum benchmark_output_name
 			BENCHMARK_OUTPUT_NAME_N
 		} benchmark_output_name_t;
 
+typedef enum job_name
+		{
+			JOB_NAME_UNDEFINED,
+			JOB_NAME_COMPARE,
+			JOB_NAME_BENCMARK_CPU,
+			JOB_NAME_BENCMARK_GPU,
+			JOB_NAME_N
+		} job_name_t;
+
+typedef struct option
+		{
+			string             o_dir;
+			string             base_fn;
+			computing_device_t comp_dev;
+			bool               compare;
+			var_t              tol;
+			int                id_dev;
+			int                n0;
+			int                n1;
+			int                dn;
+			int                n_iter;
+			job_name_t         job_name;
+		} option_t;
+
 static string method_name[] = { "naive", "naive_sym", "tile", "tile_advanced" };
 static string param_name[] =  { "n_body", "interaction_bound"                 };
 
@@ -1489,43 +1513,36 @@ void benchmark_CPU(interaction_bound int_bound, const vec_t* h_x, const var_t* h
 	ttt_t Dt_CPU = 0.0;
 	ttt_t Dt_GPU = 0.0;
 
-	int i = 0;
+	int i = 1;
 	//Naive method
 	{
 		uint64 t0 = GetTimeMs64();
 		if (SQR(100ULL) >= n_interaction)
 		{
-			for (i = 0; i < 5000; i++)
+			for (i = 1; i <= 5000; i++)
 			{
 				cpu_calc_grav_accel_naive(int_bound, h_x, h_m, h_a);
 			}
 		}
 		else if ((SQR(100ULL) < n_interaction && SQR(200ULL) >= n_interaction))
 		{
-			for (i = 0; i < 1000; i++)
+			for (i = 1; i <= 1000; i++)
 			{
 				cpu_calc_grav_accel_naive(int_bound, h_x, h_m, h_a);
 			}
 		}
 		else if ((SQR(200ULL) < n_interaction && SQR(300ULL) >= n_interaction))
 		{
-			for (i = 0; i < 100; i++)
+			for (i = 1; i <= 100; i++)
 			{
 				cpu_calc_grav_accel_naive(int_bound, h_x, h_m, h_a);
 			}
 		}
-		//else if ((SQR(300) < n_interaction && SQR(400) >= n_interaction))
-		//{
-		//	for (i = 0; i < 10; i++)
-		//	{
-		//		cpu_calc_grav_accel_naive(int_bound, h_x, h_m, h_a);
-		//	}
-		//}
 		else
 		{
 			cpu_calc_grav_accel_naive(int_bound, h_x, h_m, h_a);
 		}
-		Dt_CPU = ((ttt_t)(GetTimeMs64() - t0))/(ttt_t)(i == 0 ? 1 : i)/1000.0;
+		Dt_CPU = ((ttt_t)(GetTimeMs64() - t0) / (ttt_t)i )/1000.0;
 
 		print(COMPUTING_DEVICE_CPU, method_name[0], param_name[1], int_bound, 0, 1, Dt_CPU, Dt_GPU, o_result, false);
 		print(COMPUTING_DEVICE_CPU, method_name[0], param_name[1], int_bound, 0, 1, Dt_CPU, Dt_GPU, o_summary, true);
@@ -1537,46 +1554,68 @@ void benchmark_CPU(interaction_bound int_bound, const vec_t* h_x, const var_t* h
 		uint64 t0 = GetTimeMs64();
 		if (100 >= n_sink)
 		{
-			for (i = 0; i < 5000; i++)
+			for (i = 1; i <= 5000; i++)
 			{
 				cpu_calc_grav_accel_naive_sym(int_bound, h_x, h_m, h_a);
 			}
 		}
 		else if ((100 < n_sink && 200 >= n_sink))
 		{
-			for (i = 0; i < 1000; i++)
+			for (i = 1; i <= 1000; i++)
 			{
 				cpu_calc_grav_accel_naive_sym(int_bound, h_x, h_m, h_a);
 			}
 		}
 		else if ((200 < n_sink && 300 >= n_sink))
 		{
-			for (i = 0; i < 100; i++)
+			for (i = 1; i <= 100; i++)
 			{
 				cpu_calc_grav_accel_naive_sym(int_bound, h_x, h_m, h_a);
 			}
 		}
-		//else if ((300 < n_sink && 400 >= n_sink))
-		//{
-		//	for (i = 0; i < 10; i++)
-		//	{
-		//		cpu_calc_grav_accel_naive_sym(int_bound, h_x, h_m, h_a);
-		//	}
-		//}
 		else
 		{
 			cpu_calc_grav_accel_naive_sym(int_bound, h_x, h_m, h_a);
 		}
-		Dt_CPU = ((ttt_t)(GetTimeMs64() - t0))/(ttt_t)(i == 0 ? 1 : i)/1000.0f;
+		Dt_CPU = ((ttt_t)(GetTimeMs64() - t0) / (ttt_t)i )/1000.0;
 
 		print(COMPUTING_DEVICE_CPU, method_name[1], param_name[1], int_bound, 0, 1, Dt_CPU, Dt_GPU, o_result, false);
 		print(COMPUTING_DEVICE_CPU, method_name[1], param_name[1], int_bound, 0, 1, Dt_CPU, Dt_GPU, o_summary, true);
 	}
-	// To print some data
-	else
+
+	//Naive symmetric advanced method
 	{
-		print(COMPUTING_DEVICE_CPU, method_name[1], param_name[1], int_bound, 0, 0, 0.0, 0.0, o_result, false);
-		print(COMPUTING_DEVICE_CPU, method_name[1], param_name[1], int_bound, 0, 0, 0.0, 0.0, o_summary, true);
+		uint64 t0 = GetTimeMs64();
+		if (SQR(100ULL) >= n_interaction)
+		{
+			for (i = 1; i <= 5000; i++)
+			{
+				cpu_calc_grav_accel_naive_sym_advanced(int_bound, h_x, h_m, h_a);
+			}
+		}
+		else if ((SQR(100ULL) < n_interaction && SQR(200ULL) >= n_interaction))
+		{
+			for (i = 1; i <= 1000; i++)
+			{
+				cpu_calc_grav_accel_naive_sym_advanced(int_bound, h_x, h_m, h_a);
+			}
+		}
+		else if ((SQR(200ULL) < n_interaction && SQR(300ULL) >= n_interaction))
+		{
+			for (i = 1; i <= 100; i++)
+			{
+				cpu_calc_grav_accel_naive_sym_advanced(int_bound, h_x, h_m, h_a);
+			}
+		}
+		else
+		{
+			cpu_calc_grav_accel_naive_sym_advanced(int_bound, h_x, h_m, h_a);
+		}
+		Dt_CPU = ((ttt_t)(GetTimeMs64() - t0) / (ttt_t)i )/1000.0;
+
+		string m_name = "naive_sym_advanced";
+		print(COMPUTING_DEVICE_CPU, m_name, param_name[1], int_bound, 0, 1, Dt_CPU, Dt_GPU, o_result, false);
+		print(COMPUTING_DEVICE_CPU, m_name, param_name[1], int_bound, 0, 1, Dt_CPU, Dt_GPU, o_summary, true);
 	}
 }
 
@@ -1951,9 +1990,7 @@ void compare_CPU_GPU_results(interaction_bound int_bound, int n_tpb, const vec_t
 	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(vec_t)));
 }
 
-
-
-void compare_results(int id_dev, int n0, int n1, var_t tolerance, bool verbose, ofstream& o_result, ofstream& o_summary)
+void compare_results(option_t& opt, bool verbose)
 {
 	vec_t* h_x = 0x0;
 	vec_t* h_a = 0x0;
@@ -1965,12 +2002,15 @@ void compare_results(int id_dev, int n0, int n1, var_t tolerance, bool verbose, 
 
 	vec_t* h_at = 0x0;
 
-	set_device(id_dev, cout);
+	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+	{
+		set_device(opt.id_dev, cout);
+	}
 
 	// The user wants a benchmark only for the specified number of bodies
-	if (0 == n1)
+	if (0 == opt.n1)
 	{
-		n1 = n0;
+		opt.n1 = opt.n0;
 	}
 	// The user defined dn in order to carry out a benchmark for different number of bodies
 	// so the benchmark will be carry on for different numbers from n0 to n1
@@ -1980,151 +2020,48 @@ void compare_results(int id_dev, int n0, int n1, var_t tolerance, bool verbose, 
 	}
 
 	// Total number of bodies is the larger of n_snk and n_src
-	int n_total = max(n0, n1);
+	int n_total = max(opt.n0, opt.n1);
 	ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(vec_t)); 
 	ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(vec_t)); 
 	ALLOCATE_HOST_VECTOR((void**)&h_at, n_total*sizeof(vec_t)); 
 	ALLOCATE_HOST_VECTOR((void**)&h_m,  n_total*sizeof(var_t)); 
 
-	ALLOCATE_DEVICE_VECTOR((void**)&d_x, n_total*sizeof(vec_t)); 
-	ALLOCATE_DEVICE_VECTOR((void**)&d_a, n_total*sizeof(vec_t)); 
-	ALLOCATE_DEVICE_VECTOR((void**)&d_m, n_total*sizeof(var_t)); 
+	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+	{
+		ALLOCATE_DEVICE_VECTOR((void**)&d_x, n_total*sizeof(vec_t)); 
+		ALLOCATE_DEVICE_VECTOR((void**)&d_a, n_total*sizeof(vec_t)); 
+		ALLOCATE_DEVICE_VECTOR((void**)&d_m, n_total*sizeof(var_t)); 
+	}
 
 	populate(n_total, h_x, h_m);
 
-	copy_vector_to_device(d_x, h_x, n_total*sizeof(vec_t));
-	copy_vector_to_device(d_m, h_m, n_total*sizeof(var_t));
+	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+	{
+		copy_vector_to_device(d_x, h_x, n_total*sizeof(vec_t));
+		copy_vector_to_device(d_m, h_m, n_total*sizeof(var_t));
+	}
 
-	int2_t sink   = {0, n0};
-	int2_t source = {0, n1};
+	int2_t sink   = {0, opt.n0};
+	int2_t source = {0, opt.n1};
 	interaction_bound int_bound(sink, source);
 
-	cout << "tolerance level   = " << scientific << tolerance << endl;
-	cout << "n_sink * n_source = " << setw(6) << n0 << " * " << setw(6) << n1 << " = " << setw(12) << n0*n1 << endl << endl;
-	compare_CPU_results(int_bound, 1, d_x, d_m, d_a, h_x, h_m, h_a, h_at, tolerance, verbose);
+	cout << "tolerance level   = " << scientific << opt.tol << endl;
+	cout << "n_sink * n_source = " << setw(6) << opt.n0 << " * " << setw(6) << opt.n1 << " = " << setw(12) << opt.n0*opt.n1 << endl << endl;
+	compare_CPU_results(int_bound, 1, d_x, d_m, d_a, h_x, h_m, h_a, h_at, opt.tol, verbose);
 	printf("\n");
-	compare_CPU_GPU_results(int_bound, 256, d_x, d_m, d_a, h_x, h_m, h_a, h_at, tolerance, verbose);
+
+	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+	{
+		compare_CPU_GPU_results(int_bound, 256, d_x, d_m, d_a, h_x, h_m, h_a, h_at, opt.tol, verbose);
+	}
 
 	FREE_HOST_VECTOR((void**)&h_x);
 	FREE_HOST_VECTOR((void**)&h_a);
 	FREE_HOST_VECTOR((void**)&h_m);
 	FREE_HOST_VECTOR((void**)&h_at);
 
-	FREE_DEVICE_VECTOR((void**)&d_x);
-	FREE_DEVICE_VECTOR((void**)&d_a);
-	FREE_DEVICE_VECTOR((void**)&d_m);
-}
-
-
-string create_prefix()
-{
-	string prefix;
-
-	string config;
-#ifdef _DEBUG
-	config = "D";
-#else
-	config = "R";
-#endif
-	prefix += config;
-
-	return prefix;
-}
-
-//! Benchmarking the different CPU and GPU gravitational interaction functions. 
-/*!
-  The number of interaction is always the square of the number of bodies, i.e. the layout
-  is a square of sink and source bodies.
-  \param id_dev an integer identifing the device performing the computationa
-  \param n0 the initial number of bodies (both the sink and source)
-  \param n1 the maximum number of bodies (both the sink and source)
-  \param dn in increase in the number of n0 and n1
-  \param n_iter after n_iter iteration the increase dn will be multiplied by 10
-  \param o_result output filestream to store the detailed results of the computation
-  \param o_summary output filestream to store the summary of the computation
-*/
-void benchmark_square(int id_dev, int n0, int n1, int dn, int n_iter, ofstream& o_result, ofstream& o_summary)
-{
-	vec_t* h_x = 0x0;
-	vec_t* h_a = 0x0;
-	var_t* h_m = 0x0;
-
-	vec_t* d_x = 0x0;
-	vec_t* d_a = 0x0;
-	var_t* d_m = 0x0;
-
-	vec_t* h_at = 0x0;
-
-	set_device(id_dev, cout);
-
-	// The user wants a benchmark only for the specified number of bodies
-	if (0 == dn)
+	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 	{
-		n0 = n1;
-	}
-	// The user defined dn in order to carry out a benchmark for different number of bodies
-	// so the benchmark will be carry on for different numbers from n0 to n1
-	else
-	{
-		;
-	}
-
-	int k = 1;
-	for (int nn = n0; nn <= n1; nn += dn, k++)
-	{
-		ALLOCATE_HOST_VECTOR((void**)&h_x,  nn*sizeof(vec_t)); 
-		ALLOCATE_HOST_VECTOR((void**)&h_a,  nn*sizeof(vec_t)); 
-		ALLOCATE_HOST_VECTOR((void**)&h_at, nn*sizeof(vec_t)); 
-		ALLOCATE_HOST_VECTOR((void**)&h_m,  nn*sizeof(var_t)); 
-
-		ALLOCATE_DEVICE_VECTOR((void**)&d_x, nn*sizeof(vec_t)); 
-		ALLOCATE_DEVICE_VECTOR((void**)&d_a, nn*sizeof(vec_t)); 
-		ALLOCATE_DEVICE_VECTOR((void**)&d_m, nn*sizeof(var_t)); 
-
-		populate(nn, h_x, h_m);
-
-		copy_vector_to_device(d_x, h_x, nn*sizeof(vec_t));
-		copy_vector_to_device(d_m, h_m, nn*sizeof(var_t));
-
-		// Compare results computed on the CPU with those computed on the GPU
-		if (nn == n0)
-		{
-			int n_tpb = min(nn, 256);
-			compare_results(nn, n_tpb, d_x, d_m, d_a, h_x, h_m, h_a, h_at, 1.0e-15);
-		}
-
-		cout << "--------------------------------------------------------------------------------" << endl;
-		cout << "(n_sink = " << setw(6) << nn << ") CPU Gravity acceleration using n_body as parameter:" << endl;
-		benchmark_CPU(nn, h_x, h_m, h_a, o_result, o_summary);
-		printf("\n");
-
-		interaction_bound int_bound(0, nn, 0, nn);
-		cout << "--------------------------------------------------------------------------------" << endl;
-		cout << "(n_sink = " << setw(6) << nn << ") CPU Gravity acceleration using interaction_bound as parameter:" << endl;
-		benchmark_CPU(int_bound, h_x, h_m, h_a, o_result, o_summary);
-		printf("\n");
-
-		cout << "--------------------------------------------------------------------------------" << endl;
-		cout << "(n_sink = " << setw(6) << nn << ") GPU Gravity acceleration using n_body as parameter:" << endl;
-		benchmark_GPU(nn, id_dev, d_x, d_m, d_a, o_result, o_summary);
-		printf("\n");
-
-		cout << "--------------------------------------------------------------------------------" << endl;
-		cout << "(n_sink = " << setw(6) << nn << ") GPU Gravity acceleration using interaction_bound as parameter:" << endl;
-		benchmark_GPU(int_bound, id_dev, d_x, d_m, d_a, o_result, o_summary);
-		printf("\n");
-
-		if (0 < n_iter && 0 == k % n_iter)
-		{
-			k = 1;
-			dn *= 10;
-		}
-
-		FREE_HOST_VECTOR((void**)&h_x);
-		FREE_HOST_VECTOR((void**)&h_a);
-		FREE_HOST_VECTOR((void**)&h_m);
-		FREE_HOST_VECTOR((void**)&h_at);
-
 		FREE_DEVICE_VECTOR((void**)&d_x);
 		FREE_DEVICE_VECTOR((void**)&d_a);
 		FREE_DEVICE_VECTOR((void**)&d_m);
@@ -2230,13 +2167,165 @@ void benchmark(int id_dev, int n0, int n1, int dn, int n_iter, ofstream& o_resul
 	}
 }
 
-void write_log(int argc, const char** argv, const char** env, int id_dev, ofstream& sout)
+void benchmark_GPU(option& opt, ofstream& o_result, ofstream& o_summary)
+{
+	vec_t* h_x = 0x0;
+	vec_t* h_a = 0x0;
+	var_t* h_m = 0x0;
+
+	vec_t* d_x = 0x0;
+	vec_t* d_a = 0x0;
+	var_t* d_m = 0x0;
+
+	set_device(opt.id_dev, cout);
+
+	// The user wants a benchmark only for the specified number of bodies
+	if (0 == opt.n1)
+	{
+		opt.n1 = opt.n0;
+	}
+	// The user defined dn in order to carry out a benchmark for different number of bodies
+	// so the benchmark will be carry on for different numbers from n0 to n1
+	else
+	{
+		;
+	}
+
+	cout << "GPU Gravity acceleration:" << endl;
+	int dn_snk = opt.dn;
+	int k_snk = 1;
+	for (int n_snk = opt.n0; n_snk <= opt.n1; n_snk += dn_snk, k_snk++)
+	{
+		int dn_src = opt.dn;
+		int k_src = 1;
+		for (int n_src = opt.n0; n_src <= opt.n1; n_src += dn_src, k_src++)
+		{
+			// Total number of bodies is the larger of n_snk and n_src
+			int n_total = max(n_snk, n_src);
+			ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(vec_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(vec_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_m,  n_total*sizeof(var_t)); 
+
+			ALLOCATE_DEVICE_VECTOR((void**)&d_x, n_total*sizeof(vec_t)); 
+			ALLOCATE_DEVICE_VECTOR((void**)&d_a, n_total*sizeof(vec_t)); 
+			ALLOCATE_DEVICE_VECTOR((void**)&d_m, n_total*sizeof(var_t)); 
+
+			populate(n_total, h_x, h_m);
+
+			copy_vector_to_device(d_x, h_x, n_total*sizeof(vec_t));
+			copy_vector_to_device(d_m, h_m, n_total*sizeof(var_t));
+
+			int2_t sink = {0, n_snk};
+			int2_t source = {0, n_src};
+			interaction_bound int_bound(sink, source);
+
+			cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << (uint32_t)n_snk*(uint32_t)n_src << ")---------------------------------------------------------------" << endl;
+			benchmark_GPU(int_bound, opt.id_dev, d_x, d_m, d_a, o_result, o_summary);
+
+			if (0 < opt.n_iter && 0 == k_src % opt.n_iter)
+			{
+				k_src = 1;
+				dn_src *= 10;
+			}
+
+			FREE_HOST_VECTOR((void**)&h_x);
+			FREE_HOST_VECTOR((void**)&h_a);
+			FREE_HOST_VECTOR((void**)&h_m);
+
+			FREE_DEVICE_VECTOR((void**)&d_x);
+			FREE_DEVICE_VECTOR((void**)&d_a);
+			FREE_DEVICE_VECTOR((void**)&d_m);
+		}
+		if (0 < opt.n_iter && 0 == k_snk % opt.n_iter)
+		{
+			k_snk = 1;
+			dn_snk *= 10;
+		}
+	}
+}
+
+void benchmark_CPU(option& opt, ofstream& o_result, ofstream& o_summary)
+{
+	vec_t* h_x = 0x0;
+	vec_t* h_a = 0x0;
+	var_t* h_m = 0x0;
+
+	// The user wants a benchmark only for the specified number of bodies
+	if (0 == opt.n1)
+	{
+		opt.n1 = opt.n0;
+	}
+	// The user defined dn in order to carry out a benchmark for different number of bodies
+	// so the benchmark will be carry on for different numbers from n0 to n1
+	else
+	{
+		;
+	}
+
+	cout << "CPU Gravity acceleration:" << endl;
+	int dn_snk = opt.dn;
+	int k_snk = 1;
+	for (int n_snk = opt.n0; n_snk <= opt.n1; n_snk += dn_snk, k_snk++)
+	{
+		int dn_src = opt.dn;
+		int k_src = 1;
+		for (int n_src = opt.n0; n_src <= opt.n1; n_src += dn_src, k_src++)
+		{
+			// Total number of bodies is the larger of n_snk and n_src
+			int n_total = max(n_snk, n_src);
+			ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(vec_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(vec_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_m,  n_total*sizeof(var_t)); 
+
+			populate(n_total, h_x, h_m);
+
+			int2_t sink = {0, n_snk};
+			int2_t source = {0, n_src};
+			interaction_bound int_bound(sink, source);
+
+			cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << (uint32_t)n_snk*(uint32_t)n_src << ")---------------------------------------------------------------" << endl;
+			benchmark_CPU(int_bound, h_x, h_m, h_a, o_result, o_summary);
+			printf("\n");
+
+			if (0 < opt.n_iter && 0 == k_src % opt.n_iter)
+			{
+				k_src = 1;
+				dn_src *= 10;
+			}
+
+			FREE_HOST_VECTOR((void**)&h_x);
+			FREE_HOST_VECTOR((void**)&h_a);
+			FREE_HOST_VECTOR((void**)&h_m);
+		}
+		if (0 < opt.n_iter && 0 == k_snk % opt.n_iter)
+		{
+			k_snk = 1;
+			dn_snk *= 10;
+		}
+	}
+}
+
+string create_prefix()
+{
+	string prefix;
+
+	string config;
+#ifdef _DEBUG
+	config = "D";
+#else
+	config = "R";
+#endif
+	prefix += config;
+
+	return prefix;
+}
+
+void write_log(int argc, const char** argv, const char** env, option_t& opt, ofstream& sout)
 {
 	string data;
 
-	sout << tools::get_time_stamp(false) << " starting " << argv[0] << endl;
-	sout << "Command line arguments: " << endl;
-	for (int i = 1; i < argc; i++)
+	sout << tools::get_time_stamp(false) << " starting:" << endl;
+	for (int i = 0; i < argc; i++)
 	{
 		sout << argv[i] << SEP;
 	}
@@ -2314,12 +2403,15 @@ void write_log(int argc, const char** argv, const char** env, int id_dev, ofstre
 		{
 			break;
 		}
-		sout << line;
+		sout << line << endl;
 	}
 #endif
 	sout << endl;
 
-	device_query(sout, id_dev, false);
+	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+	{
+		device_query(sout, opt.id_dev, false);
+	}
 
 	sout.flush();
 }
@@ -2348,26 +2440,40 @@ void open_streams(string& o_dir, string& result_filename, string& summray_filena
 	}
 }
 
-void create_filename(cpu_info_t& cpu_info, int id_dev, string& base_fn, string& result_filename, string& summary_filename, string& log_filename)
+void create_filename(option_t& opt, cpu_info_t& cpu_info, string& result_filename, string& summary_filename, string& log_filename)
 {
 	const char sep = '_';
 
-	string cuda_dev_name = redutilcu::get_name_cuda_device(id_dev);
-	string cpu_name = cpu_info.model_name;
+	string cuda_dev_name;
+	string cpu_name;
 
-	std::replace(cuda_dev_name.begin(), cuda_dev_name.end(), ' ', '_');
+	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+	{
+		cuda_dev_name = redutilcu::get_name_cuda_device(opt.id_dev);
+		std::replace(cuda_dev_name.begin(), cuda_dev_name.end(), ' ', '_');
+	}
+	else
+	{
+		cpu_name = cpu_info.model_name;
+		std::replace(cpu_name.begin(), cpu_name.end(), ',', '_');
+		std::replace(cpu_name.begin(), cpu_name.end(), '(', '_');
+		std::replace(cpu_name.begin(), cpu_name.end(), ')', '_');
+		std::replace(cpu_name.begin(), cpu_name.end(), ' ', '_');
+	}
 
-	std::replace(cpu_name.begin(), cpu_name.end(), ',', '_');
-	std::replace(cpu_name.begin(), cpu_name.end(), '(', '_');
-	std::replace(cpu_name.begin(), cpu_name.end(), ')', '_');
-	std::replace(cpu_name.begin(), cpu_name.end(), ' ', '_');
+	result_filename  = create_prefix() + sep + (opt.base_fn.length() > 0 ? opt.base_fn : "benchmark");
+	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+	{
+		result_filename += sep + cuda_dev_name;
+	}
+	else
+	{
+		result_filename += sep + cpu_name;
+	}
 
-	result_filename  = create_prefix() + sep + (base_fn.length() > 0 ? base_fn : "benchmark");
-	result_filename += sep + cuda_dev_name + sep + cpu_name;
-
-	summary_filename = result_filename + ".summary.csv";
+	summary_filename = result_filename + ".summary.txt";
 	log_filename     = result_filename + ".info.txt";
-	result_filename += ".csv";
+	result_filename += ".txt";
 }
 
 void parse_cpu_info(vector<string>& data, cpu_info_t& cpu_info)
@@ -2446,7 +2552,7 @@ void read_cpu_description(const char** env, vector<string>& result)
 	data.clear();
 }
 
-int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, var_t& tol, int& id_dev, int& n0, int& n1, int& dn, int& n_iter, bool& verbose)
+int parse_options(int argc, const char **argv, option_t& opt, bool& verbose)
 {
 	int i = 1;
 
@@ -2457,21 +2563,20 @@ int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, v
 		if (     p == "-oDir")
 		{
 			i++;
-			o_dir = argv[i];
+			opt.o_dir = argv[i];
 		}
 		else if (p == "-bFile")
 		{
 			i++;
-			base_fn = argv[i];
+			opt.base_fn = argv[i];
 		}
-		else if (p == "-tol")
+		else if (p == "-CPU")
 		{
-			i++;
-			if (!tools::is_number(argv[i])) 
-			{
-				throw string("Invalid number at: " + p);
-			}
-			tol = atof(argv[i]);
+			opt.comp_dev = COMPUTING_DEVICE_CPU;
+		}
+		else if (p == "-GPU")
+		{
+			opt.comp_dev = COMPUTING_DEVICE_GPU;
 		}
 		else if (p == "-devId")
 		{
@@ -2480,7 +2585,17 @@ int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, v
 			{
 				throw string("Invalid number at: " + p);
 			}
-			id_dev = atoi(argv[i]);
+			opt.id_dev = atoi(argv[i]);
+		}
+		else if (p == "-tol")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			opt.tol = atof(argv[i]);
+			opt.compare = true;
 		}
 		else if (p == "-n0")
 		{
@@ -2489,7 +2604,7 @@ int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, v
 			{
 				throw string("Invalid number at: " + p);
 			}
-			n0 = atoi(argv[i]);
+			opt.n0 = atoi(argv[i]);
 		}
 		else if (p == "-n1")
 		{
@@ -2498,7 +2613,7 @@ int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, v
 			{
 				throw string("Invalid number at: " + p);
 			}
-			n1 = atoi(argv[i]);
+			opt.n1 = atoi(argv[i]);
 		}
 		else if (p == "-dn")
 		{
@@ -2507,7 +2622,7 @@ int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, v
 			{
 				throw string("Invalid number at: " + p);
 			}
-			dn = atoi(argv[i]);
+			opt.dn = atoi(argv[i]);
 		}
 		else if (p == "-n_iter")
 		{
@@ -2516,7 +2631,7 @@ int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, v
 			{
 				throw string("Invalid number at: " + p);
 			}
-			n_iter = atoi(argv[i]);
+			opt.n_iter = atoi(argv[i]);
 		}
 		else if (p == "-v" || p == "--verbose")
 		{
@@ -2537,6 +2652,8 @@ int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, v
 		else if (p == "-h")
 		{
 			printf("Usage:\n");
+			printf("\n\t-CPU               : the benchmark will be carry on the CPU\n");
+			printf("\n\t-GPU               : the benchmark will be carry on the GPU\n");
 			printf("\n\t-devId <number>    : the id of the GPU to benchmark\n");
 			printf("\n\t-n0 <number>       : the starting number of SI bodies\n");
 			printf("\n\t-n1 <number>       : the end number of SI bodies\n");
@@ -2556,71 +2673,156 @@ int parse_options(int argc, const char **argv, string& o_dir, string& base_fn, v
 		i++;
 	}
 
+	if (opt.compare)
+	{
+		opt.job_name = JOB_NAME_COMPARE;
+	}
+	else
+	{	
+		if (COMPUTING_DEVICE_CPU == opt.comp_dev)
+		{
+			opt.job_name = JOB_NAME_BENCMARK_CPU;
+		}
+		else if (COMPUTING_DEVICE_GPU == opt.comp_dev)
+		{
+			opt.job_name = JOB_NAME_BENCMARK_GPU;
+		}
+	}
+
 	return i;
 }
 
+void create_default_option(option_t& opt)
+{
+	opt.base_fn  = "";
+	opt.compare  = false;
+	opt.comp_dev = COMPUTING_DEVICE_CPU;
+	opt.dn       = 1;
+	opt.id_dev   = 0;
+	opt.job_name = JOB_NAME_UNDEFINED;
+	opt.n0       = 0;
+	opt.n1       = 0;
+	opt.n_iter   = 10;
+	opt.o_dir    = "";
+	opt.tol      = 1.0e-16;
+}
 
 // -oDir C:\Work\red.cuda.Results\Benchmark -bFile benchmark_rect -devId 0 -n0 10 -n1 1000 -dn 10 -n_iter 10
 int main(int argc, const char** argv, const char** env)
 {
 	static const string header_str  = "date       time     dev  method_name          param_name        n_snk  n_src  n_bdy  n_tpb Dt_CPU[ms] Dt_GPU[ms]";
 
-	string o_dir;
-	string base_fn;
+	option_t opt;
+	create_default_option(opt);
+	
 	string result_filename;
 	string summary_filename;
 	string log_filename;
 
-	var_t tol = 1.0e-16;
-	int id_dev = 0;
-	int n0 = 0;
-	int n1 = 0;
-	int dn = 1;
-	int n_iter = 10;
 	bool verbose = false;
 
 	ofstream* output[BENCHMARK_OUTPUT_NAME_N];
 	memset(output, 0x0, sizeof(output));
 
 	time_t start = time(NULL);
-
 	try
 	{
-		vector<string> cpu_data;
-		cpu_info_t cpu_info;
-		cudaDeviceProp deviceProp;
+		parse_options(argc, argv, opt, verbose);
 
-		parse_options(argc, argv, o_dir, base_fn, tol, id_dev, n0, n1, dn, n_iter, verbose);
-		const int n_GPU = get_n_cuda_device();
-		if (0 > id_dev && n_GPU <= id_dev)
+		switch (opt.job_name)
 		{
-			throw string("The requested device with id " + number_to_string(id_dev) + " does not exist.");
+		case JOB_NAME_COMPARE:
+			{
+			compare_results(opt, verbose);
+			break;
+			}
+		case JOB_NAME_BENCMARK_CPU:
+			{
+			vector<string> cpu_data;
+			cpu_info_t cpu_info;
+
+			read_cpu_description(env, cpu_data);
+			parse_cpu_info(cpu_data, cpu_info);
+
+			create_filename(opt, cpu_info, result_filename, summary_filename, log_filename);
+			open_streams(opt.o_dir, result_filename, summary_filename, log_filename, output);
+
+			write_log(argc, argv, env, opt, *output[BENCHMARK_OUTPUT_NAME_LOG]);
+
+			*output[BENCHMARK_OUTPUT_NAME_RESULT ] << header_str << endl;
+			*output[BENCHMARK_OUTPUT_NAME_SUMMARY] << header_str << endl;
+
+			benchmark_CPU(opt, *output[BENCHMARK_OUTPUT_NAME_RESULT], *output[BENCHMARK_OUTPUT_NAME_SUMMARY]);
+			break;
+			}
+		case JOB_NAME_BENCMARK_GPU:
+			{
+			vector<string> cpu_data;
+			cpu_info_t cpu_info;
+
+			cudaDeviceProp deviceProp;
+			CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, opt.id_dev));
+
+			create_filename(opt, cpu_info, result_filename, summary_filename, log_filename);
+			open_streams(opt.o_dir, result_filename, summary_filename, log_filename, output);
+
+			write_log(argc, argv, env, opt, *output[BENCHMARK_OUTPUT_NAME_LOG]);
+
+			*output[BENCHMARK_OUTPUT_NAME_RESULT ] << header_str << endl;
+			*output[BENCHMARK_OUTPUT_NAME_SUMMARY] << header_str << endl;
+
+			benchmark_GPU(opt, *output[BENCHMARK_OUTPUT_NAME_RESULT], *output[BENCHMARK_OUTPUT_NAME_SUMMARY]);
+			}
+			default:
+				throw string("Invalid job type.");
 		}
-
-		read_cpu_description(env, cpu_data);
-		parse_cpu_info(cpu_data, cpu_info);
-		CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, id_dev));
-
-		create_filename(cpu_info, id_dev, base_fn, result_filename, summary_filename, log_filename);
-
-		open_streams(o_dir, result_filename, summary_filename, log_filename, output);
-
-		write_log(argc, argv, env, id_dev, *output[BENCHMARK_OUTPUT_NAME_LOG]);
-
-		*output[BENCHMARK_OUTPUT_NAME_RESULT ] << header_str << endl;
-		*output[BENCHMARK_OUTPUT_NAME_SUMMARY] << header_str << endl;
-
-		//benchmark_square(id_dev, n0, n1, dn, n_iter, *output[BENCHMARK_OUTPUT_NAME_RESULT], *output[BENCHMARK_OUTPUT_NAME_SUMMARY]);
-		benchmark(id_dev, n0, n1, dn, n_iter, *output[BENCHMARK_OUTPUT_NAME_RESULT], *output[BENCHMARK_OUTPUT_NAME_SUMMARY]);
-
-		//printf("\n");
-		//compare_results(id_dev, n0 , n1, tol, verbose, *output[BENCHMARK_OUTPUT_NAME_RESULT], *output[BENCHMARK_OUTPUT_NAME_SUMMARY]);
 	}
 	catch(const string& msg)
 	{
 		cerr << "Error: " << msg << endl;
+		exit(EXIT_FAILURE);
 	}
 	cout << "Total time: " << time(NULL) - start << " s" << endl;
 
 	return (EXIT_SUCCESS);
+
+
+	//try
+	//{
+	//	vector<string> cpu_data;
+	//	cpu_info_t cpu_info;
+	//	cudaDeviceProp deviceProp;
+
+	//	parse_options(argc, argv, opt, verbose);
+	//	const int n_GPU = get_n_cuda_device();
+	//	if (0 > id_dev && n_GPU <= id_dev)
+	//	{
+	//		throw string("The requested device with id " + number_to_string(id_dev) + " does not exist.");
+	//	}
+
+	//	read_cpu_description(env, cpu_data);
+	//	parse_cpu_info(cpu_data, cpu_info);
+	//	CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, id_dev));
+
+	//	create_filename(cpu_info, id_dev, base_fn, result_filename, summary_filename, log_filename);
+
+	//	open_streams(o_dir, result_filename, summary_filename, log_filename, output);
+
+	//	write_log(argc, argv, env, id_dev, *output[BENCHMARK_OUTPUT_NAME_LOG]);
+
+	//	*output[BENCHMARK_OUTPUT_NAME_RESULT ] << header_str << endl;
+	//	*output[BENCHMARK_OUTPUT_NAME_SUMMARY] << header_str << endl;
+
+	//	benchmark(id_dev, n0, n1, dn, n_iter, *output[BENCHMARK_OUTPUT_NAME_RESULT], *output[BENCHMARK_OUTPUT_NAME_SUMMARY]);
+
+	//	//printf("\n");
+	//	//compare_results(id_dev, n0 , n1, tol, verbose, *output[BENCHMARK_OUTPUT_NAME_RESULT], *output[BENCHMARK_OUTPUT_NAME_SUMMARY]);
+	//}
+	//catch(const string& msg)
+	//{
+	//	cerr << "Error: " << msg << endl;
+	//}
+	//cout << "Total time: " << time(NULL) - start << " s" << endl;
+
+	//return (EXIT_SUCCESS);
 }
