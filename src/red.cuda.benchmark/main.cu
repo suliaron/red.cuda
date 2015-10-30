@@ -2460,7 +2460,11 @@ void create_filename(option_t& opt, cpu_info_t& cpu_info, string& result_filenam
 		std::replace(cpu_name.begin(), cpu_name.end(), ' ', '_');
 	}
 
-	result_filename  = create_prefix() + sep + (opt.base_fn.length() > 0 ? opt.base_fn : "benchmark");
+#if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
+	result_filename = create_prefix() + sep;
+#endif
+	result_filename += (opt.base_fn.length() > 0 ? opt.base_fn : "benchmark");
+
 	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 	{
 		result_filename += sep + cuda_dev_name;
@@ -2774,7 +2778,8 @@ int main(int argc, const char** argv, const char** env)
 
 			benchmark_GPU(opt, *output[BENCHMARK_OUTPUT_NAME_RESULT], *output[BENCHMARK_OUTPUT_NAME_SUMMARY]);
 			}
-			default:
+			break;
+		default:
 				throw string("Invalid job type.");
 		}
 	}
