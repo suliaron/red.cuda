@@ -2218,7 +2218,7 @@ void benchmark_GPU(option& opt, ofstream& o_result, ofstream& o_summary)
 			int2_t source = {0, n_src};
 			interaction_bound int_bound(sink, source);
 
-			cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << (uint32_t)n_snk*(uint32_t)n_src << ")---------------------------------------------------------------" << endl;
+			cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << (uint32_t)n_snk*(uint32_t)n_src << ")-------------------------------------------------------------------" << endl;
 			benchmark_GPU(int_bound, opt.id_dev, d_x, d_m, d_a, o_result, o_summary);
 
 			if (0 < opt.n_iter && 0 == k_src % opt.n_iter)
@@ -2463,7 +2463,7 @@ void create_filename(option_t& opt, cpu_info_t& cpu_info, string& result_filenam
 #if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 	result_filename = create_prefix() + sep;
 #endif
-	result_filename += (opt.base_fn.length() > 0 ? opt.base_fn : "benchmark");
+	result_filename += opt.base_fn;
 
 	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 	{
