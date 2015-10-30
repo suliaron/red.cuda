@@ -2558,6 +2558,7 @@ int parse_options(int argc, const char **argv, option_t& opt, bool& verbose)
 	while (i < argc)
 	{
 		string p = argv[i];
+		string v;
 
 		if (     p == "-oDir")
 		{
@@ -2635,11 +2636,12 @@ int parse_options(int argc, const char **argv, option_t& opt, bool& verbose)
 		else if (p == "-v" || p == "--verbose")
 		{
 			i++;
-			if      (argv[i] == "true")
+			v = argv[i];
+			if      (v == "true")
 			{
 				verbose = true;
 			}
-			else if (argv[i] == "false")
+			else if (v == "false")
 			{
 				verbose = false;
 			}
