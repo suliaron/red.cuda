@@ -304,11 +304,11 @@ static void test_tools()
 	//var_t get_total_mass(int n, const sim_data_t *sim_data);
 	////! Computes the total mass of the bodies with type in the system
 	//var_t get_total_mass(int n, body_type_t type, const sim_data_t *sim_data);
-	//void compute_bc(int n, bool verbose, const sim_data_t *sim_data, vec_t* R0, vec_t* V0);
+	//void calc_bc(int n, bool verbose, const sim_data_t *sim_data, vec_t* R0, vec_t* V0);
 	//void transform_to_bc(int n, bool verbose, const sim_data_t *sim_data);
 
-	//var_t calculate_radius(var_t m, var_t density);
-	//var_t calculate_density(var_t m, var_t R);
+	//var_t calc_radius(var_t m, var_t density);
+	//var_t calc_density(var_t m, var_t R);
 	//var_t caclulate_mass(var_t R, var_t density);
 
 	//void calc_position_after_collision(var_t m1, var_t m2, const vec_t* r1, const vec_t* r2, vec_t& r);
@@ -614,9 +614,9 @@ static void test_tools()
 		delete sim_data;
 	}
 
-	// Test compute_bc()
+	// Test calc_bc()
 	{
-		char test_func[] = "compute_bc";
+		char test_func[] = "calc_bc";
 	
 		sim_data_t* sim_data = create_sim_data();
 
@@ -626,7 +626,7 @@ static void test_tools()
 		vec_t result_R0 = {0.0, 0.0, 0.0, 0.0};
 		vec_t result_V0 = {0.0, 0.0, 0.0, 0.0};
 
-		tools::compute_bc(4, false, sim_data, &result_R0, &result_V0);
+		tools::calc_bc(4, false, sim_data, &result_R0, &result_V0);
 
 		var_t dr = fabs(expected_R0.x - result_R0.x) + 
 			       fabs(expected_R0.y - result_R0.y) + 
@@ -722,15 +722,15 @@ static void test_tools()
 		delete sim_data;
 	}
 
-	// Test calculate_radius()
+	// Test calc_radius()
 	{
-		char test_func[] = "calculate_radius";
+		char test_func[] = "calc_radius";
 	
 		var_t mass = 1.0;
 		var_t density = 1.0;
 
 		var_t expected = 0.62035049089940001666800681204778;
-		var_t result = tools::calculate_radius(mass, density);
+		var_t result = tools::calc_radius(mass, density);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-15 < fabs(expected - result))
@@ -743,9 +743,9 @@ static void test_tools()
 		}
 	}
 
-	// Test calculate_mass()
+	// Test calc_mass()
 	{
-		char test_func[] = "calculate_mass";
+		char test_func[] = "calc_mass";
 	
 		var_t radius = 1.0;
 		var_t density = 1.0;
@@ -764,15 +764,15 @@ static void test_tools()
 		}
 	}
 
-	// Test calculate_density()
+	// Test calc_density()
 	{
-		char test_func[] = "calculate_density";
+		char test_func[] = "calc_density";
 	
 		var_t mass = 1.0;
 		var_t radius = 1.0;
 
 		var_t expected = 0.23873241463784300365332564505877;
-		var_t result = tools::calculate_density(mass, radius);
+		var_t result = tools::calc_density(mass, radius);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-15 < fabs(expected - result))
@@ -894,7 +894,7 @@ static void test_tools()
 		param_t expected = {0.0, 0.0, 0.0, 0.0};
 		expected.mass = 2.0;
 		expected.density = 0.23873241463784300365332564505877;
-		expected.radius = tools::calculate_radius(2.0, 0.23873241463784300365332564505877);
+		expected.radius = tools::calc_radius(2.0, 0.23873241463784300365332564505877);
 		expected.cd = 1.0;
 		tools::calc_physical_properties(p1, p2, result);
 		

@@ -215,6 +215,14 @@ static const char* body_type_name[] =
 			"TESTPARTICLE"
 		};
 
+typedef enum integral_name
+        {
+            INTEGRAL_NAME_POSITION_OF_BC,     /* Position vector of the system's barycenter */
+            INTEGRAL_NAME_VELOCITY_OF_BC,     /* Velocity vector of the system's barycenter */
+            INTEGRAL_NAME_ANGULAR_MOMENTUM,   /* Angular momentum vector of the system      */
+            INTEGRAL_NAME_ENERGY,             /* Total energy of the system                 */
+        } integral_name_t;
+
 typedef struct dump_aux_data
 		{
 			ttt_t dt;
@@ -289,6 +297,14 @@ typedef struct __BUILTIN_ALIGN__ body_metadata_new
 			bool	unused;        // [ 1 byte]
 			var_t   mig_stop_at;   // [ 8 byte]
 		} body_metadata_new_t;     // [16 byte]
+
+typedef struct integral
+		{			
+            vec_t R;   //!< Position vector of the system's barycenter [24 byte]
+			vec_t V;   //!< Velocity vector of the system's barycenter [24 byte]
+			vec_t C;   //!< Angular momentum vector of the system      [24 byte]
+			var_t E;   //!< Total energy of the system                 [ 8 byte]
+		} integral_t;
 
 typedef struct analytic_gas_disk_params
 		{

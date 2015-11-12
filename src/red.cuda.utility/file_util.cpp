@@ -231,7 +231,7 @@ void Emese_data_format_to_red_cuda_format(const string& input_path, const string
 			param.cd = 0.0;
 			param.mass = m;
 			param.radius = rad;
-			param.density = tools::calculate_density(m, rad);
+			param.density = tools::calc_density(m, rad);
 			body_md.mig_stop_at = 0.0;
 			body_md.mig_type = MIGRATION_TYPE_NO;
 

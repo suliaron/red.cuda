@@ -195,7 +195,7 @@ void populate_data(unsigned int* n_bodies, sim_data_t *sim_data)
 
 		p[idx].mass = generate_random(1.0, 10.0, pdf_const) * constants::JupiterToSolar;
 		p[idx].radius = generate_random(8.0e4, 1.0e5, pdf_const) * constants::KilometerToAu;
-		p[idx].density = calculate_density(p[idx].mass, p[idx].radius);
+		p[idx].density = calc_density(p[idx].mass, p[idx].radius);
 		p[idx].cd = 0.0;
 		
 		epoch[idx] = 0.0;
@@ -218,7 +218,7 @@ void populate_data(unsigned int* n_bodies, sim_data_t *sim_data)
 
 		p[idx].mass = generate_random(1.0, 10.0, pdf_const) * constants::EarthToSolar;
 		p[idx].radius = generate_random(5.0e3, 8.0e3, pdf_const) * constants::KilometerToAu;
-		p[idx].density = calculate_density(p[idx].mass, p[idx].radius);
+		p[idx].density = calc_density(p[idx].mass, p[idx].radius);
 		p[idx].cd = 0.0;
 		
 		epoch[idx] = 0.0;
@@ -241,7 +241,7 @@ void populate_data(unsigned int* n_bodies, sim_data_t *sim_data)
 
 		p[idx].mass = generate_random(1.0, 10.0, pdf_const) * constants::CeresToSolar;
 		p[idx].radius = generate_random(1.0e3, 2.0e3, pdf_const) * constants::KilometerToAu;
-		p[idx].density = calculate_density(p[idx].mass, p[idx].radius);
+		p[idx].density = calc_density(p[idx].mass, p[idx].radius);
 		p[idx].cd = 0.0;
 		
 		epoch[idx] = 0.0;
@@ -287,7 +287,7 @@ void populate_data(unsigned int* n_bodies, sim_data_t *sim_data)
 
 		p[idx].mass = generate_random(1.0e-4, 1.0e-3, pdf_const) * constants::CeresToSolar;
 		p[idx].radius = generate_random(1.0e1, 1.0e2, pdf_const) * constants::KilometerToAu;
-		p[idx].density = calculate_density(p[idx].mass, p[idx].radius);
+		p[idx].density = calc_density(p[idx].mass, p[idx].radius);
 		p[idx].cd = generate_random(0.7, 2.0, pdf_const);
 		
 		epoch[idx] = 0.0;
@@ -372,7 +372,7 @@ var_t get_total_mass(int n, const sim_data_t *sim_data)
 	return total_mass;
 }
 
-void compute_bc(int n, bool pts, const sim_data_t *sim_data, vec_t* R0, vec_t* V0)
+void calc_bc(int n, bool pts, const sim_data_t *sim_data, vec_t* R0, vec_t* V0)
 {
 	const param_t* p = sim_data->h_p;
 	const vec_t* r = sim_data->h_y[0];
@@ -413,7 +413,7 @@ void transform_to_bc(int n, bool pts, const sim_data_t *sim_data)
 	vec_t R0 = {0.0, 0.0, 0.0, 0.0};
 	vec_t V0 = {0.0, 0.0, 0.0, 0.0};
 
-	compute_bc(n, pts, sim_data, &R0, &V0);
+	calc_bc(n, pts, sim_data, &R0, &V0);
 
 	vec_t* r = sim_data->h_y[0];
 	vec_t* v = sim_data->h_y[1];
@@ -430,14 +430,14 @@ void transform_to_bc(int n, bool pts, const sim_data_t *sim_data)
 	}
 }
 
-var_t calculate_radius(var_t m, var_t density)
+var_t calc_radius(var_t m, var_t density)
 {
 	static var_t four_pi_over_three = 4.1887902047863909846168578443727;
 
 	return pow(1.0/four_pi_over_three * m/density, 1.0/3.0);
 }
 
-var_t calculate_density(var_t m, var_t R)
+var_t calc_density(var_t m, var_t R)
 {
 	static var_t four_pi_over_three = 4.1887902047863909846168578443727;
 
@@ -480,7 +480,7 @@ void calc_physical_properties(const param_t &p1, const param_t &p2, param_t &p)
 
 	p.mass	  = p1.mass + p2.mass;
 	p.density = p.mass / volume;
-	p.radius  = calculate_radius(p.mass, p.density);
+	p.radius  = calc_radius(p.mass, p.density);
 	p.cd      = p1.cd;
 }
 
@@ -502,6 +502,84 @@ inline var_t calc_pot_energy(var_t mu, const vec_t* r)
 inline var_t calc_energy(var_t mu, const vec_t* r, const vec_t* v)
 {
 	return calc_kinetic_energy(v) + calc_pot_energy(mu, r);
+}
+
+inline var_t calc_dot_product(const vec_t& v, const vec_t& u)
+{
+    return (v.x * u.x + v.y * u.y + v.z * u.z);
+}
+
+inline vec_t calc_cross_product(const vec_t& v, const vec_t& u)
+{
+    vec_t result = {0.0, 0.0, 0.0, 0.0};
+    
+    result.x = v.y * u.z - v.z * u.y;
+    result.y = v.z * u.x - v.x * u.z;
+    result.z = v.x * u.y - v.y * u.x;
+
+    return result;
+}
+
+var_t cal_total_energy(unsigned int n, const sim_data_t *sim_data)
+{
+    return (calc_kinetic_energy(n, sim_data) - calc_potential_energy(n, sim_data));
+}
+
+vec_t calc_angular_momentum(unsigned int n, const sim_data_t *sim_data)
+{
+    vec_t result = {0.0, 0.0, 0.0, 0.0};
+    
+	vec_t* r = sim_data->h_y[0];
+	vec_t* v = sim_data->h_y[1];
+    param_t* p = sim_data->h_p;
+
+    for (unsigned int i = 0; i < n; i++)
+    {
+        vec_t c = calc_cross_product(r[i], v[i]);
+        c.x *= p[i].mass; c.y *= p[i].mass; c.z *= p[i].mass;
+		result.x += c.x; result.y += c.y; result.z += c.z;
+	}
+
+	return result;
+}
+
+var_t calc_potential_energy(unsigned int n, const sim_data_t *sim_data)
+{
+	var_t result = 0.0;
+
+	vec_t* r = sim_data->h_y[0];
+	vec_t* v = sim_data->h_y[1];
+    param_t* p = sim_data->h_p;
+
+    for (unsigned int i = 0; i < n; i++)
+    {
+        for (unsigned int j = 0; j < n; j++)
+        {
+            if (i == j)
+            {
+                continue;
+            }
+            var_t r_ij = sqrt(SQR(r[j].x - r[i].x) + SQR(r[j].y - r[i].y) + SQR(r[j].z - r[i].z));
+            result += p[i].mass * p[j].mass / r_ij;
+        }
+	}
+
+    return (result / 2.0);
+}
+
+var_t calc_kinetic_energy(unsigned int n, const sim_data_t *sim_data)
+{
+	var_t result = 0.0;
+
+	vec_t* v = sim_data->h_y[1];
+    param_t* p = sim_data->h_p;
+
+    for (unsigned int i = 0; i < n; i++)
+    {
+        result += p[i].mass * (SQR(v[i].x) + SQR(v[i].y) + SQR(v[i].z));
+    }
+
+    return (result / 2.0);
 }
 
 void shift_into_range(var_t lower, var_t upper, var_t &value)

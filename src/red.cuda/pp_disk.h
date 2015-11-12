@@ -238,5 +238,7 @@ private:
 	event_data_t* d_events;			//!< Vector on the device containing data for events (one colliding pair multiple occurances)
 	vector<event_data_t> sp_events;	//!< Vector on the host containing data for events but  (one colliding pair one occurances)
 
+    integral_t integrals[2];
+
 	vector<string> body_names;
 };

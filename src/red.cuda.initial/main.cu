@@ -108,7 +108,7 @@ void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
 
 		param.mass          = 1.0;
 		param.radius        = 1.0 * constants::SolarRadiusToAu;
-		param.density       = tools::calculate_density(param.mass, param.radius);
+		param.density       = tools::calc_density(param.mass, param.radius);
 
 		sd->h_epoch[  bodyIdx] = epoch;
 		sd->h_body_md[bodyIdx] = body_md;
@@ -126,7 +126,7 @@ void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
 
 		param.mass          = 1.0 * constants::MercuryToSolar;
 		param.radius        = 2439.7 * constants::KilometerToAu;
-		param.density       = tools::calculate_density(param.mass, param.radius);
+		param.density       = tools::calc_density(param.mass, param.radius);
 
 		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::mercury_oe, oe);
 
@@ -142,7 +142,7 @@ void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
 
 		param.mass          = 1.0 * constants::VenusToSolar;
 		param.radius        = 6051.8 * constants::KilometerToAu;
-		param.density       = tools::calculate_density(param.mass, param.radius);
+		param.density       = tools::calc_density(param.mass, param.radius);
 
 		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::venus_oe, oe);
 
@@ -158,7 +158,7 @@ void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
 
 		param.mass          = 1.0 * constants::EarthToSolar;
 		param.radius        = 6371.0 * constants::KilometerToAu;
-		param.density       = tools::calculate_density(param.mass, param.radius);
+		param.density       = tools::calc_density(param.mass, param.radius);
 
 		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::earth_oe, oe);
 
@@ -174,7 +174,7 @@ void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
 
 		param.mass          = 1.0 * constants::MarsToSolar;
 		param.radius        = 3389.5 * constants::KilometerToAu;
-		param.density       = tools::calculate_density(param.mass, param.radius);
+		param.density       = tools::calc_density(param.mass, param.radius);
 
 		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::mars_oe, oe);
 
@@ -194,7 +194,7 @@ void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
 
 		param.mass          = 1.0 * constants::JupiterToSolar;
 		param.radius        = 71492.0 * constants::KilometerToAu;
-		param.density       = tools::calculate_density(param.mass, param.radius);
+		param.density       = tools::calc_density(param.mass, param.radius);
 
 		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::jupiter_oe, oe);
 
@@ -210,7 +210,7 @@ void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
 
 		param.mass          = 1.0 * constants::SaturnToSolar;
 		param.radius        = 60268.0 * constants::KilometerToAu;
-		param.density       = tools::calculate_density(param.mass, param.radius);
+		param.density       = tools::calc_density(param.mass, param.radius);
 
 		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::saturn_oe, oe);
 
@@ -226,7 +226,7 @@ void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
 
 		param.mass          = 1.0 * constants::UranusToSolar;
 		param.radius        = 25559.0 * constants::KilometerToAu;
-		param.density       = tools::calculate_density(param.mass, param.radius);
+		param.density       = tools::calc_density(param.mass, param.radius);
 
 		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::uranus_oe, oe);
 
@@ -242,7 +242,7 @@ void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
 
 		param.mass          = 1.0 * constants::NeptuneToSolar;
 		param.radius        = 24766.0 * constants::KilometerToAu;
-		param.density       = tools::calculate_density(param.mass, param.radius);
+		param.density       = tools::calc_density(param.mass, param.radius);
 
 		epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::neptune_oe, oe);
 
@@ -282,11 +282,11 @@ void populate_disk(body_disk_t& disk, sim_data_t *sd)
 				}
 				else if (0x0 == disk.pp_d[body_type].item[RADIUS] && 0x0 != disk.pp_d[body_type].item[MASS] && 0x0 != disk.pp_d[body_type].item[DENSITY])
 				{
-					param.radius = tools::calculate_radius(param.mass, param.density);
+					param.radius = tools::calc_radius(param.mass, param.density);
 				}
 				else if (0x0 == disk.pp_d[body_type].item[DENSITY] && 0x0 != disk.pp_d[body_type].item[MASS] && 0x0 != disk.pp_d[body_type].item[RADIUS])
 				{
-					param.density = tools::calculate_density(param.mass, param.radius);
+					param.density = tools::calc_density(param.mass, param.radius);
 				}
 				else
 				{
@@ -1084,11 +1084,11 @@ void Chambers2001(string& dir, string& filename)
 					{
 						if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
 						{
-							sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+							sim_data->h_p[bodyIdx].density = tools::calc_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
 						}
 						if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
 						{
-							sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+							sim_data->h_p[bodyIdx].radius = tools::calc_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
 						}
 					}
 				}
@@ -1177,11 +1177,11 @@ void Chambers2001(string& dir, string& filename)
 				{
 					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
 					{
-						sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+						sim_data->h_p[bodyIdx].density = tools::calc_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
 					}
 					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
 					{
-						sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+						sim_data->h_p[bodyIdx].radius = tools::calc_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
 					}
 				}
 			}
@@ -1286,11 +1286,11 @@ void Dvorak(string& dir, string& filename)
 				{
 					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
 					{
-						sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+						sim_data->h_p[bodyIdx].density = tools::calc_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
 					}
 					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
 					{
-						sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+						sim_data->h_p[bodyIdx].radius = tools::calc_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
 					}
 				}
 			}
@@ -1361,7 +1361,7 @@ void Hansen_2009(string& dir, string& filename)
 					disk.names[i] = "Jupiter";
 					sim_data->h_p[i].mass          = 1.0 * constants::JupiterToSolar;
 					sim_data->h_p[i].radius        = 71492.0 * constants::KilometerToAu;
-					sim_data->h_p[i].density       = tools::calculate_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					sim_data->h_p[i].density       = tools::calc_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
 					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::jupiter_oe, sim_data->h_oe[i]);
 				}
 				gp_counter++;
@@ -1436,11 +1436,11 @@ void GT_scenario(string& dir, string& filename)
 				{
 					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
 					{
-						sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+						sim_data->h_p[bodyIdx].density = tools::calc_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
 					}
 					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
 					{
-						sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+						sim_data->h_p[bodyIdx].radius = tools::calc_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
 					}
 				}
 			}
@@ -1467,7 +1467,7 @@ void GT_scenario(string& dir, string& filename)
 					disk.names[i] = "Jupiter";
 					sim_data->h_p[i].mass          = 1.0 * constants::JupiterToSolar;
 					sim_data->h_p[i].radius        = 71492.0 * constants::KilometerToAu;
-					sim_data->h_p[i].density       = tools::calculate_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					sim_data->h_p[i].density       = tools::calc_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
 					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::jupiter_oe, sim_data->h_oe[i]);
 				}
 				if (1 == gp_counter)
@@ -1475,7 +1475,7 @@ void GT_scenario(string& dir, string& filename)
 					disk.names[i] = "Saturn";
 					sim_data->h_p[i].mass          = 1.0 * constants::SaturnToSolar;
 					sim_data->h_p[i].radius        = 60268.0 * constants::KilometerToAu;
-					sim_data->h_p[i].density       = tools::calculate_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					sim_data->h_p[i].density       = tools::calc_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
 					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::saturn_oe, sim_data->h_oe[i]);
 				}
 				gp_counter++;
@@ -1549,11 +1549,11 @@ void GT_scenario_mod(string& dir, string& filename)
 				{
 					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
 					{
-						sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+						sim_data->h_p[bodyIdx].density = tools::calc_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
 					}
 					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
 					{
-						sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+						sim_data->h_p[bodyIdx].radius = tools::calc_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
 					}
 				}
 			}
@@ -1580,7 +1580,7 @@ void GT_scenario_mod(string& dir, string& filename)
 					disk.names[i] = "Jupiter";
 					sim_data->h_p[i].mass          = 1.0 * constants::JupiterToSolar;
 					sim_data->h_p[i].radius        = 71492.0 * constants::KilometerToAu;
-					sim_data->h_p[i].density       = tools::calculate_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					sim_data->h_p[i].density       = tools::calc_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
 					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::jupiter_oe, sim_data->h_oe[i]);
 				}
 				if (1 == gp_counter)
@@ -1588,7 +1588,7 @@ void GT_scenario_mod(string& dir, string& filename)
 					disk.names[i] = "Saturn";
 					sim_data->h_p[i].mass          = 1.0 * constants::SaturnToSolar;
 					sim_data->h_p[i].radius        = 60268.0 * constants::KilometerToAu;
-					sim_data->h_p[i].density       = tools::calculate_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					sim_data->h_p[i].density       = tools::calc_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
 					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::saturn_oe, sim_data->h_oe[i]);
 				}
 				if (2 == gp_counter)
@@ -1596,7 +1596,7 @@ void GT_scenario_mod(string& dir, string& filename)
 					disk.names[i] = "Uranus";
 					sim_data->h_p[i].mass          = 1.0 * constants::UranusToSolar;
 					sim_data->h_p[i].radius        = 25362.0 * constants::KilometerToAu;
-					sim_data->h_p[i].density       = tools::calculate_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					sim_data->h_p[i].density       = tools::calc_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
 					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::uranus_oe, sim_data->h_oe[i]);
 				}
 				gp_counter++;
@@ -1697,11 +1697,11 @@ void n_gp(string& dir, string& filename)
 				{
 					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
 					{
-						sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+						sim_data->h_p[bodyIdx].density = tools::calc_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
 					}
 					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
 					{
-						sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+						sim_data->h_p[bodyIdx].radius = tools::calc_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
 					}
 				}
 			}
@@ -1772,11 +1772,11 @@ void n_pp(string& dir, string& filename)
 	//			{
 	//				if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
 	//				{
-	//					sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+	//					sim_data->h_p[bodyIdx].density = tools::calc_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
 	//				}
 	//				if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
 	//				{
-	//					sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+	//					sim_data->h_p[bodyIdx].radius = tools::calc_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
 	//				}
 	//			}
 	//		}
@@ -1892,11 +1892,11 @@ void n_pl(string& dir, string& filename)
 				{
 					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
 					{
-						sim_data->h_p[bodyIdx].density = tools::calculate_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+						sim_data->h_p[bodyIdx].density = tools::calc_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
 					}
 					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
 					{
-						sim_data->h_p[bodyIdx].radius = tools::calculate_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+						sim_data->h_p[bodyIdx].radius = tools::calc_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
 					}
 				}
 			}
