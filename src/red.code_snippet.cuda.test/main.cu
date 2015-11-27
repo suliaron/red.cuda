@@ -34,7 +34,7 @@ using namespace redutilcu;
 __constant__ var_t dc_threshold[THRESHOLD_N];
 __constant__ analytic_gas_disk_params_t dc_anal_gd_params;
 
-#define N    17
+#define N    256
 
 namespace kernel
 {
@@ -689,6 +689,47 @@ __global__
 		} // 36 + 8 = 44 FLOP
 	}
 }
+
+static __global__
+	void calc_bc
+	(
+		unsigned int n,
+		var_t M0,
+		const body_metadata_t* bmd, 
+		const param_t* p, 
+		const vec_t* r,
+		const vec_t* v,
+		vec_t* R,
+		vec_t* V
+	)
+{
+	const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+	extern __shared__ vec_t _V[];
+
+	_V[i].x = _V[i].y = _V[i].z = _V[i].w = 0.0;
+	__syncthreads();
+
+if (0 == threadIdx.x)
+	printf("[   ] %24.16le %24.16le %24.16le\n", V[i].x, V[i].y, V[i].z);
+
+	if (n > i && 0 < bmd[i].id)
+	{
+		R->x += p[i].mass * r[i].x;	R->y += p[i].mass * r[i].y;	R->z += p[i].mass * r[i].z;
+printf("[%3u] %24.16le %24.16le %24.16le\n", i, R->x, R->y, R->z);
+
+		V->x += p[i].mass * v[i].x;	V->y += p[i].mass * v[i].y;	V->z += p[i].mass * v[i].z;
+	}
+
+	__syncthreads();
+	if (0 == threadIdx.x)
+	{
+		R->x /= M0;	R->y /= M0;	R->z /= M0;
+		V->x /= M0;	V->y /= M0;	V->z /= M0;
+	}
+}
+
+
 } /* namespace kernel */
 
 static void test_print_position(int n, const vec_t* r)
@@ -2237,8 +2278,7 @@ int main(int argc, const char** argv, const char** env)
 
 #endif
 
-
-#if 1
+#if 0
 /*
  * Print the sizeof int and other int types
  */
@@ -2285,4 +2325,162 @@ int main(int argc, const char** argv, const char** env)
 		printf("(n_sink = %12llu\n", n_snk, n_src, n_interaction);
 	}
 }
+#endif
+
+#if 0
+/*
+ * 
+ */
+int main(int argc, char* argv[], char* env[])
+{
+	red_test::run(argc, argv);
+}
+#endif
+
+#if 0
+
+dim3 grid;
+dim3 block;
+const unsigned int n_tpb = 16;
+
+void set_kernel_launch_param(unsigned int n_data)
+{
+	unsigned int n_thread = min(n_tpb, n_data);
+	unsigned int n_block = (n_data + n_thread - 1)/n_thread;
+
+	grid.x	= n_block;
+	block.x = n_thread;
+}
+
+void copy_to_device(unsigned int n, sim_data_t* sim_data)
+{
+	for (unsigned int i = 0; i < 2; i++)
+	{
+		copy_vector_to_device((void *)sim_data->d_y[i],	    (void *)sim_data->h_y[i], n*sizeof(vec_t));
+	}
+
+	copy_vector_to_device((void *)sim_data->d_p,		(void *)sim_data->h_p,		  n*sizeof(param_t));
+	copy_vector_to_device((void *)sim_data->d_body_md,	(void *)sim_data->h_body_md,  n*sizeof(body_metadata_t));
+	copy_vector_to_device((void *)sim_data->d_epoch,	(void *)sim_data->h_epoch,	  n*sizeof(ttt_t));
+}
+
+int main(int argc, char** argv)
+{
+	sim_data_t* sim_data = new sim_data_t;
+
+	try
+	{
+		device_query(cout, 0, false);
+
+		unsigned int n_bodies[] = {1, 99, 0, 0, 0, 0 ,0};
+		unsigned int n_body = 0;
+		for (int i = 0; i < 7; i++)
+		{
+			n_body += n_bodies[i];
+		}
+		allocate_host_storage(sim_data, n_body);
+		allocate_device_storage(sim_data, n_body);
+		tools::populate_data(n_bodies, sim_data);
+		copy_to_device(n_body, sim_data);
+
+		// Position and velocity of the system's barycenter
+		vec_t h_R0 = {0.0, 0.0, 0.0, 0.0};
+		vec_t h_V0 = {0.0, 0.0, 0.0, 0.0};
+		var_t M = tools::get_total_mass(n_body, sim_data);
+		tools::calc_bc(N, false, sim_data, M, &h_R0, &h_V0);
+		if (1)
+		{
+			cout << "   Position and velocity of the barycenter on the host:" << endl;
+			cout << "     R0: ";  tools::print_vector(&h_R0);
+			cout << "     V0: ";  tools::print_vector(&h_V0);
+		}
+
+		// Position and velocity of the system's barycenter
+		vec_t *d_R0 = 0x0;
+		vec_t *d_V0 = 0x0;
+		ALLOCATE_DEVICE_VECTOR((void**)&d_R0, 1*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void**)&d_V0, 1*sizeof(vec_t));
+		
+		set_kernel_launch_param(n_body);
+		kernel::calc_bc<<<grid, block>>>(n_body, M, sim_data->d_body_md, sim_data->d_p, sim_data->d_y[0], sim_data->d_y[1], d_R0, d_V0);
+		CUDA_CHECK_ERROR();
+
+		vec_t h_R   = {0.0, 0.0, 0.0, 0.0};
+		vec_t h_V   = {0.0, 0.0, 0.0, 0.0};
+		copy_vector_to_host(&h_R, d_R0, 1*sizeof(vec_t));
+		copy_vector_to_host(&h_V, d_V0, 1*sizeof(vec_t));
+		if (1)
+		{
+			cout << "   Position and velocity of the barycenter on the device:" << endl;
+			cout << "     R0: ";  tools::print_vector(&h_R);
+			cout << "     V0: ";  tools::print_vector(&h_V);
+		}
+
+		deallocate_host_storage(sim_data);
+		deallocate_device_storage(sim_data);
+
+		FREE_DEVICE_VECTOR((void**)&d_R0);
+		FREE_DEVICE_VECTOR((void**)&d_V0);
+
+		delete sim_data;
+	}
+	catch(const string& msg)
+	{
+		cerr << "Error: " << msg << endl;
+	}
+
+	return (EXIT_SUCCESS);
+}
+#endif
+
+
+#if 1
+/*
+ * Test the number_to_string() template function
+ */
+template <typename T>
+std::string _number_to_string( T number, unsigned int width, bool fill)
+{
+	std::ostringstream ss;
+
+	if (fill)
+	{
+		if (0 < width)
+		{
+			ss << setw(width) << setfill('0') << number;
+		}
+		else
+		{
+			ss << setfill('0') << number;
+		}
+	}
+	else
+	{
+		if (0 < width)
+		{
+			ss << setw(width) << number;
+		}
+		else
+		{
+			ss << number;
+		}
+	}
+
+	return ss.str();
+}
+
+template std::string _number_to_string<int>(int, unsigned int width, bool fill);
+template std::string _number_to_string<unsigned int>(unsigned int, unsigned int width, bool fill);
+
+int main(int argc, char** argv)
+{
+	int id = 10;
+
+	cout << "id: " << _number_to_string(id, 0, false) << endl;
+	cout << "id: " << _number_to_string(id, 10, false) << endl;
+	cout << "id: " << _number_to_string(id, 0, true) << endl;
+	cout << "id: " << _number_to_string(id, 7, true) << endl;
+	
+}
+
 #endif

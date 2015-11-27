@@ -8,6 +8,9 @@ namespace redutilcu
 
 	template <typename T>
 	std::string number_to_string(T number);
+	template <typename T>
+	std::string number_to_string( T number, unsigned int width, bool fill);
+
 	void device_query(ostream& sout, int id_dev, bool print_to_screen);
 
 	int get_id_fastest_cuda_device();

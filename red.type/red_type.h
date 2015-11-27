@@ -28,6 +28,8 @@ typedef enum output_name
 			OUTPUT_NAME_INFO,
 			OUTPUT_NAME_LOG,
 			OUTPUT_NAME_RESULT,
+			OUTPUT_NAME_INTEGRAL,
+			OUTPUT_NAME_INTEGRAL_EVENT,
 			OUTPUT_NAME_N
 		} output_name_t;
 
@@ -366,9 +368,6 @@ typedef struct fargo_gas_disk_params
 
 typedef struct sim_data
 		{
-			//vec_t*			r;				//!< Vector of actual positions
-			//vec_t*			v;				//!< Vector of actual velocities
-
 			vector<vec_t*>	 y;				//!< Vectors of initial position and velocity of the bodies on the host (either in the DEVICE or HOST memory)
 			vector<vec_t*>	 yout;			//!< Vectors of ODE variables at the end of the step (at time tout) (either in the DEVICE or HOST memory)
 			param_t*		 p;   			//!< Vector of body parameters (either in the DEVICE or HOST memory)
@@ -392,8 +391,6 @@ typedef struct sim_data
 
 			sim_data()
 			{
-				//r       = 0x0;
-				//v       = 0x0;
 				p       = d_p       = h_p       = 0x0;
 				body_md = d_body_md = h_body_md = 0x0;
 				epoch   = d_epoch   = h_epoch   = 0x0;
@@ -408,14 +405,14 @@ typedef struct event_data
 			ttt_t	t;			//!< Time of the event
 			var_t	d;			//!< distance of the bodies
 
-			int		id1;		//!< Id of the survivor
-			int		idx1;		//!< Index of the survivor
+			int id1;            //!< Id of the survivor
+			unsigned int idx1;	//!< Index of the survivor
 			param_t p1;			//!< Parameters of the survivor before the event
 			vec_t	r1;			//!< Position of survisor
 			vec_t	v1;			//!< Velocity of survisor
 
 			int		id2;		//!< Id of the merger
-			int		idx2;		//!< Index of the merger
+			unsigned int idx2; //!< Index of the merger
 			param_t p2;			//!< Parameters of the merger before the event
 			vec_t	r2;			//!< Position of merger
 			vec_t	v2;			//!< Velocity of merger
@@ -459,7 +456,7 @@ struct interaction_bound
 		source(source) 
 	{ }
 
-	interaction_bound(int x0, int y0, int x1, int y1)
+	interaction_bound(unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1)
 	{
 		sink.x = x0;
 		sink.y = y0;

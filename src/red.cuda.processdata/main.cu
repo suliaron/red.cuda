@@ -259,7 +259,6 @@ void read_body(string& path, int id, int& n_id_record, data_representation_t rep
 						printf(".");
 					}
 				}
-
 			} while (1 >= (n_star_record - n_id_record) && !input.eof());
 
 			if (0 == n_id_record)
@@ -463,7 +462,7 @@ int main(int argc, const char **argv)
 		}
 		if (0 < id)
 		{
-			output_file = "body_id_" + redutilcu::number_to_string(id);
+			output_file = "body_id_" + redutilcu::number_to_string(id, 6, true);
 		}
 
 		if (0 < t_snapshot)
@@ -480,7 +479,7 @@ int main(int argc, const char **argv)
 					var_t mu = K2 *(sim_data->h_p[0].mass + sim_data->h_p[i].mass);
 					vec_t rVec = {sim_data->h_y[0][i].x - sim_data->h_y[0][0].x, sim_data->h_y[0][i].y - sim_data->h_y[0][0].y, sim_data->h_y[0][i].z - sim_data->h_y[0][0].z, 0.0};
 					vec_t vVec = {sim_data->h_y[1][i].x - sim_data->h_y[1][0].x, sim_data->h_y[1][i].y - sim_data->h_y[1][0].y, sim_data->h_y[1][i].z - sim_data->h_y[1][0].z, 0.0};
-					tools::calculate_oe(mu, &rVec, &vVec, (&sim_data->h_oe[i]));
+					tools::calc_oe(mu, &rVec, &vVec, (&sim_data->h_oe[i]));
 				}
 			}
 
@@ -492,7 +491,7 @@ int main(int argc, const char **argv)
 					var_t mu = K2 *(sim_data->h_p[i].mass + sim_data->h_p[i+1].mass);
 					vec_t rVec = {sim_data->h_y[0][i+1].x - sim_data->h_y[0][i].x, sim_data->h_y[0][i+1].y - sim_data->h_y[0][i].y, sim_data->h_y[0][i+1].z - sim_data->h_y[0][i].z, 0.0};
 					vec_t vVec = {sim_data->h_y[1][i+1].x - sim_data->h_y[1][i].x, sim_data->h_y[1][i+1].y - sim_data->h_y[1][i].y, sim_data->h_y[1][i+1].z - sim_data->h_y[1][i].z, 0.0};
-					tools::calculate_oe(mu, &rVec, &vVec, (&sim_data->h_oe[j]));
+					tools::calc_oe(mu, &rVec, &vVec, (&sim_data->h_oe[j]));
 				}
 			}
 
@@ -500,7 +499,7 @@ int main(int argc, const char **argv)
 			ofstream output(path.c_str(), ios_base::out);
 			if (output)
 			{
-				int n_oe_record = 0;
+				unsigned int n_oe_record = 0;
 				if (0 < t_snapshot)
 				{
 					n_oe_record = n_total;
@@ -512,7 +511,7 @@ int main(int argc, const char **argv)
 
 				for (unsigned int i = 0; i < n_oe_record; i++)
 				{
-					file::print_oe_record(output, sim_data->h_epoch[2*i], &sim_data->h_oe[i], &sim_data->h_p[2*i], &sim_data->h_body_md[2*i]);
+					file::print_oe_record(output, sim_data->h_epoch[2*i], &sim_data->h_oe[i], &sim_data->h_p[2*i+1], &sim_data->h_body_md[2*i+1]);
 				}
 				output.close();
 			}

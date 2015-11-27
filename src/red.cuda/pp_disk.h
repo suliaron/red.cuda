@@ -16,8 +16,8 @@ class pp_disk
 {
 public:
 
-	pp_disk(number_of_bodies *n_bodies,             gas_disk_model_t g_disk_model, collision_detection_model_t cdm, int id_dev, computing_device_t comp_dev);
-	pp_disk(string& path, bool continue_simulation, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, int id_dev, computing_device_t comp_dev, const var_t* thrshld, bool pts);
+	pp_disk(number_of_bodies *n_bodies,             gas_disk_model_t g_disk_model, collision_detection_model_t cdm, unsigned int id_dev, computing_device_t comp_dev);
+	pp_disk(string& path, bool continue_simulation, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, unsigned int id_dev, computing_device_t comp_dev, const var_t* thrshld, bool pts);
 	~pp_disk();
 
 	//! Initialize the members to default values
@@ -41,11 +41,11 @@ public:
 	void set_cdm(collision_detection_model_t c) { cdm = c;    }
 	collision_detection_model_t get_cdm(void)   { return cdm; }
 
-	void set_n_tpb(int n)   { n_tpb = n;     }
-	int  get_n_tpb(void)    { return n_tpb;  }
+	void set_n_tpb(unsigned int n)   { n_tpb = n;     }
+	unsigned int  get_n_tpb(void)    { return n_tpb;  }
 
-	void set_id_dev(int id) { id_dev = id;   }
-	int  get_id_dev(void)   { return id_dev; }
+	void set_id_dev(unsigned int id) { id_dev = id;   }
+	unsigned int  get_id_dev(void)   { return id_dev; }
 
 	//! Determines the mass of the central star
 	/*!
@@ -90,9 +90,14 @@ public:
 		\param log_f print the data to this stream
 	*/
 	void print_event_data(ofstream& sout, ofstream& log_f);
+	//! Print the classical integrals
+	/*!
+		\param sout print the data to this stream
+	*/
+	void print_integral_data(integral_t& I, ofstream& sout);
 
 	//! Returns the number of events during the simulation
-	int get_n_total_event();
+	unsigned int get_n_total_event();
 
 	//! Clears the event_counter (sets to 0)
 	void clear_event_counter();
@@ -108,7 +113,7 @@ public:
 
 	void handle_collision();
 	void handle_ejection_hit_centrum();
-	void handle_collision_pair(int i, event_data_t *collision);
+	void handle_collision_pair(unsigned int i, event_data_t *collision);
 
 	void rebuild_vectors();
 
@@ -135,7 +140,10 @@ public:
 		\param v Device vector with velocity variables
 		\param dy Device vector that will hold the differentials
 	*/
-	void calc_dydx(int i, int rr, ttt_t curr_t, const vec_t *r, const vec_t *v, vec_t* dy);
+	void calc_dydx(unsigned int i, unsigned int rr, ttt_t curr_t, const vec_t *r, const vec_t *v, vec_t* dy);
+
+	void calc_integral(integral_t& integrals);
+	void calc_integral_CMU(integral_t& integrals);
 
 	//! Swaps the yout with the y variable, i.e. at the end of an integration step the output will be the input of the next step
 	void swap();
@@ -172,7 +180,7 @@ private:
 	*/
 	void load_binary(ifstream& input);
 	void load_dump(string& path, data_representation_t repres);
-	void load_body_record(ifstream& input, int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
+	void load_body_record(ifstream& input, unsigned int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
 
 	//! Loads the number of bodies from the file
 	/*!
@@ -184,10 +192,10 @@ private:
 	//! Allocates storage for data on the host and device memory
 	void allocate_storage();
 
-	void store_event_data(event_name_t name, ttt_t t, var_t d, int idx1, int idx2, event_data_t *e);
+	void store_event_data(event_name_t name, ttt_t t, var_t d, unsigned int idx1, unsigned int idx2, event_data_t *e);
 
 	//! Sets the grid and block for the kernel launch
-	void set_kernel_launch_param(int n_data);
+	void set_kernel_launch_param(unsigned int n_data);
 
 public:
 	//! Run a gravitational benchmark on the GPU and determines the number of threads at which the computation is the fastest.
@@ -195,18 +203,18 @@ public:
 		\return The optimal number of threads per block
 	*/
 	unsigned int benchmark();
-	float benchmark_calc_grav_accel(ttt_t curr_t, int n_sink, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
+	float benchmark_calc_grav_accel(ttt_t curr_t, unsigned int n_sink, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
 
 	void gpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void gpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 
 	void cpu_calc_grav_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
-	void cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
+	void cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, unsigned int *event_counter);
 	void cpu_calc_grav_accel_NI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
-	void cpu_calc_grav_accel_NI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
+	void cpu_calc_grav_accel_NI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, unsigned int *event_counter);
 	void cpu_calc_grav_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
-	void cpu_calc_grav_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter);
+	void cpu_calc_grav_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, unsigned int *event_counter);
 
 	void cpu_calc_drag_accel(ttt_t curr_t, const vec_t* r, const vec_t* v, vec_t* dy);
 	void cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* body_md, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a);
@@ -219,11 +227,11 @@ public:
 
 private:
 	
-	int id_dev;						//!< The id of the GPU
+	unsigned int id_dev;            //!< The id of the GPU
 	computing_device_t comp_dev;    //!< The computing device to carry out the calculations (cpu or gpu)
 	collision_detection_model_t cdm;//! Collision detection model
 
-	int		n_tpb;					//!< The number of thread per block to use for kernel launches
+	unsigned int n_tpb;             //!< The number of thread per block to use for kernel launches
 	bool    continue_simulation;    //!< Continues a simulation from its last saved output
 
 	dim3	grid;
@@ -231,14 +239,12 @@ private:
 
 	var_t threshold[THRESHOLD_N];   //! Contains the threshold values: hit_centrum_dst, ejection_dst, collision_factor
 
-	int	event_counter;				//! Number of events occured during the last check
-	int* d_event_counter;			//! Number of events occured during the last check (stored on the devive)
+	unsigned int	event_counter;	//! Number of events occured during the last check
+	unsigned int* d_event_counter;	//! Number of events occured during the last check (stored on the devive)
 
 	event_data_t* events;			//!< Vector on the host containing data for events (one colliding pair multiple occurances)
 	event_data_t* d_events;			//!< Vector on the device containing data for events (one colliding pair multiple occurances)
 	vector<event_data_t> sp_events;	//!< Vector on the host containing data for events but  (one colliding pair one occurances)
-
-    integral_t integrals[2];
 
 	vector<string> body_names;
 };

@@ -535,7 +535,7 @@ void print_oe_record(ofstream &sout, ttt_t epoch, orbelem_t* oe, param_t *p, bod
 
 	sout << setw(var_t_w) << epoch          << SEP 
 		 << setw(int_t_w) << bmd->id        << SEP 
-		 << setw(int_t_w) << bmd->body_type << SEP 
+		 << setw(      2) << bmd->body_type << SEP 
 		 << setw(var_t_w) << oe->sma        << SEP 
          << setw(var_t_w) << oe->ecc        << SEP 
          << setw(var_t_w) << oe->inc        << SEP 

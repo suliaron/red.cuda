@@ -65,7 +65,7 @@ string create_prefix(const options& opt)
 		}
 
 		string int_name(integrator_type_short_name[opt.param->int_type]);
-		prefix += config + sep + dev + sep + cdm + sep + sep + adapt + sep + int_name + sep;
+		prefix += config + sep + dev + sep + cdm + sep + adapt + sep + int_name + sep;
 	}
 
 	return prefix;
@@ -101,6 +101,20 @@ void open_streams(const options& opt, ofstream** output)
 	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_LOG]) + "." + ext;
 	output[OUTPUT_NAME_LOG] = new ofstream(path.c_str(), ios::out);
 	if (!*output[OUTPUT_NAME_LOG]) 
+	{
+		throw string("Cannot open " + path + ".");
+	}
+
+	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INTEGRAL]) + "." + ext;
+	output[OUTPUT_NAME_INTEGRAL] = new ofstream(path.c_str(), ios::out);
+	if (!*output[OUTPUT_NAME_INTEGRAL]) 
+	{
+		throw string("Cannot open " + path + ".");
+	}
+
+	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INTEGRAL_EVENT]) + "." + ext;
+	output[OUTPUT_NAME_INTEGRAL_EVENT] = new ofstream(path.c_str(), ios::out);
+	if (!*output[OUTPUT_NAME_INTEGRAL_EVENT]) 
 	{
 		throw string("Cannot open " + path + ".");
 	}
@@ -367,13 +381,15 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	ttt_t dt = 0.0;
 
 	clock_t T_CPU = 0;
-	clock_t dT_CPU  = 0;
+	clock_t dT_CPU = 0;
 
 	time_t time_last_info = clock();
 	time_t time_last_dump = clock();
 
+	integral_t integrals[2];
+
 	unsigned int n_removed = 0;
-	unsigned int n_dump = 0;
+	unsigned int n_dump = 1;
 
 	if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 	{
@@ -386,7 +402,12 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		}
 	}
 
+	ppd->calc_integral(integrals[0]);
+	ppd->print_integral_data(integrals[0], *output[OUTPUT_NAME_INTEGRAL]);
 	ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
+
+/* main cycle */
+#if 1
 	while (ppd->t <= opt.param->stop_time && 1 < ppd->n_bodies->get_n_total_active())
 	{
 		if (COMPUTING_DEVICE_GPU == intgr->get_computing_device() && opt.n_change_to_cpu >= ppd->n_bodies->get_n_SI())
@@ -404,7 +425,14 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			bool eje_hc = ppd->check_for_ejection_hit_centrum();
 			if (eje_hc)
 			{
+				integral_t I;
+
+				ppd->calc_integral(I);
+				ppd->print_integral_data(I, *output[OUTPUT_NAME_INTEGRAL_EVENT]);
 				ppd->handle_ejection_hit_centrum();
+				ppd->calc_integral(I);		
+				ppd->print_integral_data(I, *output[OUTPUT_NAME_INTEGRAL_EVENT]);
+
 				ppd->print_event_data(*output[OUTPUT_NAME_EVENT], *output[OUTPUT_NAME_LOG]);
 				ppd->clear_event_counter();
 			}
@@ -427,7 +455,14 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 				collision = ppd->check_for_collision();
 				if (collision)
 				{
+					integral_t I;
+
+					ppd->calc_integral(I);
+					ppd->print_integral_data(I, *output[OUTPUT_NAME_INTEGRAL_EVENT]);
 					ppd->handle_collision();
+					ppd->calc_integral(I);
+					ppd->print_integral_data(I, *output[OUTPUT_NAME_INTEGRAL_EVENT]);
+
 					ppd->print_event_data(*output[OUTPUT_NAME_EVENT], *output[OUTPUT_NAME_LOG]);
 					ppd->clear_event_counter();
 				}
@@ -445,7 +480,13 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
 		}
 
-		if (4 <= ppd->n_event[EVENT_COUNTER_NAME_LAST_CLEAR])
+		if (0 == intgr->get_n_passed_step() % 1000)
+		{
+			ppd->calc_integral(integrals[1]);
+			ppd->print_integral_data(integrals[1], *output[OUTPUT_NAME_INTEGRAL]);
+		}
+
+		if (16 <= ppd->n_event[EVENT_COUNTER_NAME_LAST_CLEAR])
 		{
 			ppd->set_event_counter(EVENT_COUNTER_NAME_LAST_CLEAR, 0);
 			ppd->rebuild_vectors();
@@ -487,7 +528,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &T_CPU, &dT_CPU);
 		}
 	} /* while */
-
+#endif
 
 	print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &T_CPU, &dT_CPU);
 	// To avoid duplicate save at the end of the simulation

@@ -49,7 +49,7 @@ void initialize(body_disk &disk)
 	disk.stop_at  = 0x0;
 }
 
-int	calculate_number_of_bodies(body_disk &bd)
+int	calc_number_of_bodies(body_disk &bd)
 {
 	int_t result = 0;
 	for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)
@@ -162,7 +162,7 @@ void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t 
 	ofstream output(path.c_str(), ios_base::out);
 	if (output)
 	{
-		int_t nBodies = calculate_number_of_bodies(disk);
+		int_t nBodies = calc_number_of_bodies(disk);
 
 		if (INPUT_FORMAT_RED == format)
 		{

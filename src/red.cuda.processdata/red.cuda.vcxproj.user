@@ -5,11 +5,11 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-id 1165 -iDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01 -oDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01\Snapshot -i result.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-id 229 -iDir C:\Work\red.cuda.Results\Dvorak\3D\Hansen_2009\Run_01\tol_-14 -oDir C:\Work\red.cuda.Results\Dvorak\3D\Hansen_2009\Run_01\tol_-14\Snapshot -i result.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-id 439 -iDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01 -oDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_1\Run_01\Snapshot -i result.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-id 139 -iDir C:\Work\red.cuda.Results\Dvorak\3D\Hansen_2009\Run_01\tol_-14 -oDir C:\Work\red.cuda.Results\Dvorak\3D\Hansen_2009\Run_01\tol_-14\Snapshot -i result.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

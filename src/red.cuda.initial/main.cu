@@ -278,7 +278,7 @@ void populate_disk(body_disk_t& disk, sim_data_t *sd)
 			{
 				if (0x0 == disk.pp_d[body_type].item[MASS] && 0x0 != disk.pp_d[body_type].item[RADIUS] && 0x0 != disk.pp_d[body_type].item[DENSITY])
 				{
-					param.mass = tools::caclulate_mass(param.radius, param.density);
+					param.mass = tools::calc_mass(param.radius, param.density);
 				}
 				else if (0x0 == disk.pp_d[body_type].item[RADIUS] && 0x0 != disk.pp_d[body_type].item[MASS] && 0x0 != disk.pp_d[body_type].item[DENSITY])
 				{
@@ -315,14 +315,14 @@ namespace set_parameters
 {
 void Chambers2001(nebula& n, body_disk_t& disk)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	const var_t rho_solid = 3.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_PROTOPLANET ] = 153;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at  = new var_t[nBodies];
 
@@ -366,13 +366,13 @@ void Chambers2001(nebula& n, body_disk_t& disk)
 
 void solar_system(body_disk_t& disk)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_ROCKYPLANET] = 4;
 	disk.nBody[BODY_TYPE_GIANTPLANET] = 4;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at = new var_t[nBodies];
 }
@@ -384,7 +384,7 @@ void pl_to_test_anal_gd(body_disk_t& disk)
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_PLANETESIMAL] = 10;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at = new var_t[nBodies];
 
@@ -425,14 +425,14 @@ void pl_to_test_anal_gd(body_disk_t& disk)
 
 void Dvorak(nebula& n, body_disk_t& disk)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	const var_t rhoBasalt = 2.7 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_PROTOPLANET ] = 2000;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at  = new var_t[nBodies];
 
@@ -476,7 +476,7 @@ void Dvorak(nebula& n, body_disk_t& disk)
 
 void Hansen_2009(body_disk_t& disk)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	const var_t rhoBasalt = 2.7 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
@@ -484,7 +484,7 @@ void Hansen_2009(body_disk_t& disk)
 	disk.nBody[BODY_TYPE_GIANTPLANET ] = 1;
 	disk.nBody[BODY_TYPE_PROTOPLANET ] = 400;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at  = new var_t[nBodies];
 
@@ -546,12 +546,12 @@ void Hansen_2009(body_disk_t& disk)
 
 void Two_body(body_disk_t& disk)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
-	disk.nBody[BODY_TYPE_STAR        ] = 1;
-	disk.nBody[BODY_TYPE_PLANETESIMAL] = 1;
+	disk.nBody[BODY_TYPE_STAR       ] = 1;
+	disk.nBody[BODY_TYPE_ROCKYPLANET] = 1;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at = new var_t[nBodies];
 
@@ -566,7 +566,7 @@ void Two_body(body_disk_t& disk)
 	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
 	disk.stop_at[bodyIdx] = 0.0;
 
-	type = BODY_TYPE_PLANETESIMAL;
+	type = BODY_TYPE_ROCKYPLANET;
 	{
 		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 1.0);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.0);
@@ -575,8 +575,8 @@ void Two_body(body_disk_t& disk)
 		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		//disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 0.0, 0.0);
-		disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 1.0*constants::MeterToAu, 1.0*constants::MeterToAu);
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(),	1.0*constants::EarthToSolar, 1.0*constants::EarthToSolar);
+		//disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 1.0*constants::MeterToAu, 1.0*constants::MeterToAu);
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7*constants::GramPerCm3ToSolarPerAu3, 2.7*constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 1.0, 1.0);
 
@@ -592,12 +592,12 @@ void Two_body(body_disk_t& disk)
 
 void n_gp(body_disk_t& disk)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_GIANTPLANET] = 10;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at = new var_t[nBodies];
 
@@ -640,14 +640,14 @@ void n_gp(body_disk_t& disk)
 
 void n_pp(body_disk_t& disk)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_PROTOPLANET] = 500;
 	//disk.nBody[BODY_TYPE_PROTOPLANET] = 2000;
 	//disk.nBody[BODY_TYPE_PROTOPLANET] = 10000;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at = new var_t[nBodies];
 
@@ -688,12 +688,12 @@ void n_pp(body_disk_t& disk)
 
 void n_spl(body_disk_t& disk)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR             ] = 1;
 	disk.nBody[BODY_TYPE_SUPERPLANETESIMAL] = 10;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at = new var_t[nBodies];
 
@@ -739,12 +739,12 @@ void n_spl(body_disk_t& disk)
 
 void n_pl(body_disk_t& disk)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_PLANETESIMAL] = 10;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at = new var_t[nBodies];
 
@@ -789,12 +789,12 @@ void n_pl(body_disk_t& disk)
 
 void n_tp(body_disk_t& disk)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_TESTPARTICLE] = 10;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at = new var_t[nBodies];
 
@@ -840,13 +840,13 @@ void n_tp(body_disk_t& disk)
 
 void GT_scenario(body_disk_t& disk)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_GIANTPLANET ] = 2;
 	disk.nBody[BODY_TYPE_PROTOPLANET ] = 2000;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at = new var_t[nBodies];
 
@@ -912,13 +912,13 @@ void GT_scenario(body_disk_t& disk)
 
 void GT_scenario_mod(body_disk_t& disk)
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_GIANTPLANET ] = 3;
 	disk.nBody[BODY_TYPE_PROTOPLANET ] = 2000;
 
-	int_t nBodies = calculate_number_of_bodies(disk);
+	int_t nBodies = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[nBodies];
 	disk.stop_at = new var_t[nBodies];
 
@@ -1048,7 +1048,7 @@ void Chambers2001(string& dir, string& filename)
 		set_parameters::Chambers2001(mmsn, disk);
 
 		sim_data_t* sim_data = new sim_data_t;
-		int nBodies = calculate_number_of_bodies(disk);
+		int nBodies = calc_number_of_bodies(disk);
 		allocate_host_storage(sim_data, nBodies);
 
 		populate_disk(disk, sim_data);
@@ -1108,7 +1108,7 @@ void Chambers2001(string& dir, string& filename)
 			for (int i = 1; i < nBodies; i++)
 			{
 				var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-				tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+				tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 				sim_data->h_y[0][i] = rVec;
 				sim_data->h_y[1][i] = vVec;
 			}
@@ -1141,7 +1141,7 @@ void Chambers2001(string& dir, string& filename)
 	set_parameters::Dvorak(mmsn, disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_disk(disk, sim_data);
@@ -1201,7 +1201,7 @@ void Chambers2001(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1250,7 +1250,7 @@ void Dvorak(string& dir, string& filename)
 	set_parameters::Dvorak(mmsn, disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_disk(disk, sim_data);
@@ -1310,7 +1310,7 @@ void Dvorak(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1336,7 +1336,7 @@ void Hansen_2009(string& dir, string& filename)
 	set_parameters::Hansen_2009(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_disk(disk, sim_data);
@@ -1367,7 +1367,7 @@ void Hansen_2009(string& dir, string& filename)
 				gp_counter++;
 			}
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1400,7 +1400,7 @@ void GT_scenario(string& dir, string& filename)
 	set_parameters::GT_scenario(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_disk(disk, sim_data);
@@ -1486,7 +1486,7 @@ void GT_scenario(string& dir, string& filename)
 			}
 
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1513,7 +1513,7 @@ void GT_scenario_mod(string& dir, string& filename)
 	set_parameters::GT_scenario_mod(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_disk(disk, sim_data);
@@ -1607,7 +1607,7 @@ void GT_scenario_mod(string& dir, string& filename)
 			}
 
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1635,7 +1635,7 @@ void two_body(string& dir, string& filename)
 	set_parameters::Two_body(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_disk(disk, sim_data);
@@ -1653,7 +1653,7 @@ void two_body(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1681,7 +1681,7 @@ void n_gp(string& dir, string& filename)
 	set_parameters::n_gp(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_disk(disk, sim_data);
@@ -1724,7 +1724,7 @@ void n_gp(string& dir, string& filename)
 
 			sim_data->h_oe[i].sma = i * 3.0;
 
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1756,7 +1756,7 @@ void n_pp(string& dir, string& filename)
 	set_parameters::n_pp(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_disk(disk, sim_data);
@@ -1796,7 +1796,7 @@ void n_pp(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1830,7 +1830,7 @@ void n_spl(string& dir, string& filename)
 	set_parameters::n_spl(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_disk(disk, sim_data);
@@ -1848,7 +1848,7 @@ void n_spl(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1876,7 +1876,7 @@ void n_pl(string& dir, string& filename)
 	set_parameters::n_pl(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_disk(disk, sim_data);
@@ -1916,7 +1916,7 @@ void n_pl(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1944,7 +1944,7 @@ void n_tp(string& dir, string& filename)
 	set_parameters::n_tp(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_disk(disk, sim_data);
@@ -1962,7 +1962,7 @@ void n_tp(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -1988,7 +1988,7 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 	set_parameters::pl_to_test_anal_gd(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_disk(disk, sim_data);
@@ -2007,7 +2007,7 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			sim_data->h_oe[i].sma = (var_t)i;
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -2035,7 +2035,7 @@ void solar_system(string& dir, string& filename)
 	set_parameters::solar_system(disk);
 
 	sim_data_t* sim_data = new sim_data_t;
-	int nBodies = calculate_number_of_bodies(disk);
+	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
 	populate_solar_system(disk, sim_data);
@@ -2053,7 +2053,7 @@ void solar_system(string& dir, string& filename)
 		for (int i = 1; i < nBodies; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calculate_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
 		}
@@ -2145,7 +2145,7 @@ int main(int argc, const char **argv)
 	try
 	{
 		//create_disk::solar_system(outDir, filename);
-		create_disk::Hansen_2009(outDir, filename);
+		//create_disk::Hansen_2009(outDir, filename);
 		//create_disk::Chambers2001(outDir, filename);
 		//create_disk::n_pl_to_test_anal_gd(outDir, filename);
 		//create_disk::n_gp(outDir, filename);
@@ -2153,7 +2153,7 @@ int main(int argc, const char **argv)
 		//create_disk::n_pl(outDir, filename);
 		//create_disk::n_spl(outDir, filename);
 		//create_disk::n_pp(outDir, filename);
-		//create_disk::two_body(outDir, filename);
+		create_disk::two_body(outDir, filename);
 		//create_disk::Dvorak(outDir, filename);
 		//create_disk::GT_scenario(outDir, filename);
 		//create_disk::GT_scenario_mod(outDir, filename);

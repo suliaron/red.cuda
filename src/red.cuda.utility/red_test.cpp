@@ -309,14 +309,20 @@ static void test_tools()
 
 	//var_t calc_radius(var_t m, var_t density);
 	//var_t calc_density(var_t m, var_t R);
-	//var_t caclulate_mass(var_t R, var_t density);
+	//var_t calc_mass(var_t R, var_t density);
 
 	//void calc_position_after_collision(var_t m1, var_t m2, const vec_t* r1, const vec_t* r2, vec_t& r);
 	//void calc_velocity_after_collision(var_t m1, var_t m2, const vec_t* v1, const vec_t* v2, vec_t& v);
 	//void calc_physical_properties(var_t m1, var_t m2, var_t r1, var_t r2, var_t cd, param_t &p);
 
+	//var_t norm(const vec_t* r);
+	//var_t calc_dot_product(const vec_t& v, const vec_t& u);
+	//vec_t calc_cross_product(const vec_t& v, const vec_t& u);
+	//var_t calc_kinetic_energy(const vec_t* v);
+	//var_t calc_pot_energy(var_t mu, const vec_t* r);
+
 	//int kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E);
-	//int calculate_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec);
+	//int calc_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec);
 
 	//void print_vector(vec_t *v);
 
@@ -626,7 +632,8 @@ static void test_tools()
 		vec_t result_R0 = {0.0, 0.0, 0.0, 0.0};
 		vec_t result_V0 = {0.0, 0.0, 0.0, 0.0};
 
-		tools::calc_bc(4, false, sim_data, &result_R0, &result_V0);
+		var_t M0 = tools::get_total_mass(4, sim_data);
+		tools::calc_bc(4, false, sim_data, M0, &result_R0, &result_V0);
 
 		var_t dr = fabs(expected_R0.x - result_R0.x) + 
 			       fabs(expected_R0.y - result_R0.y) + 
@@ -751,7 +758,7 @@ static void test_tools()
 		var_t density = 1.0;
 
 		var_t expected = 4.1887902047863909846168578443727;
-		var_t result = tools::caclulate_mass(radius, density);
+		var_t result = tools::calc_mass(radius, density);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-15 < fabs(expected - result))
@@ -934,6 +941,196 @@ static void test_tools()
 		{
 			fprintf(stderr, "PASSED\n");
 		}
+	}
+
+	// Test var_t norm(const vec_t* r)
+	{
+		char test_func[] = "norm";
+
+		vec_t v = {0.0, 0.0, 0.0, 0.0};
+
+		var_t expected = 0.0;
+		var_t result = tools::norm(&v);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(expected - result))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		v.x = 1.0;
+		v.y = -1.0;
+
+		expected = sqrt(2.0);
+		result = tools::norm(&v);
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(expected - result))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		v.x = -2.0;
+		v.y = -1.0;
+
+		expected = sqrt(5.0);
+		result = tools::norm(&v);
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(expected - result))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	//Test var_t calc_dot_product(const vec_t& u, const vec_t& v)
+	{
+		char test_func[] = "calc_dot_product";
+
+		vec_t u = {0.0, 0.0, 0.0, 0.0};
+		vec_t v = {0.0, 0.0, 0.0, 0.0};
+
+		var_t expected = 0.0;
+		var_t result = tools::calc_dot_product(v, u);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(expected - result))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		u.x = 1.0;
+		v.x = 1.0;
+
+		expected = 1.0;
+		result = tools::calc_dot_product(v, u);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(expected - result))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		u.x = 2.0;
+		v.x = 0.0; v.y = 1.0;
+
+		expected = 0.0;
+		result = tools::calc_dot_product(v, u);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(expected - result))
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: %25.16lf\n\t\t But was: %25.16lf\n", expected, result);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	//Test calc_cross_product(const vec_t& u, const vec_t& v)
+	{
+		char test_func[] = "calc_cross_product";
+
+		vec_t u = {0.0, 0.0, 0.0, 0.0};
+		vec_t v = {0.0, 0.0, 0.0, 0.0};
+
+		vec_t expected = {0.0, 0.0, 0.0, 0.0};
+		vec_t result = tools::calc_cross_product(u, v);
+
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(expected.x - result.x) ||
+			1.0e-16 < fabs(expected.y - result.y) ||
+			1.0e-16 < fabs(expected.z - result.z)    )
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: (%25.16lf, %25.16lf, %25.16lf)\n\t\t But was: (%25.16lf, %25.16lf, %25.16lf)\n", expected.x, expected.y, expected.z, result.x, result.y, result.z);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		u.x = 1.0;   v.x = 1.0;
+		u.y = 0.0;   v.y = 0.0;
+		u.z = 0.0;   v.z = 0.0;
+
+		result = tools::calc_cross_product(u, v);
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(expected.x - result.x) ||
+			1.0e-16 < fabs(expected.y - result.y) ||
+			1.0e-16 < fabs(expected.z - result.z)    )
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: (%25.16lf, %25.16lf, %25.16lf)\n\t\t But was: (%25.16lf, %25.16lf, %25.16lf)\n", expected.x, expected.y, expected.z, result.x, result.y, result.z);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		u.x = 1.0; v.x = 0.0; 
+		u.y = 0.0; v.y = 1.0;
+		u.z = 0.0; v.z = 0.0;
+
+		expected.x = 0.0;
+		expected.y = 0.0;
+		expected.z = 1.0;
+
+		result = tools::calc_cross_product(u, v);
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(expected.x - result.x) ||
+			1.0e-16 < fabs(expected.y - result.y) ||
+			1.0e-16 < fabs(expected.z - result.z)    )
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: (%25.16lf, %25.16lf, %25.16lf)\n\t\t But was: (%25.16lf, %25.16lf, %25.16lf)\n", expected.x, expected.y, expected.z, result.x, result.y, result.z);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+
+		u.x = 1.0; v.x = 0.0; 
+		u.y = 0.0; v.y = 1.0;
+		u.z = 1.0; v.z = 0.0;
+
+		expected.x = -1.0;
+		expected.y = 0.0;
+		expected.z = 1.0;
+
+		result = tools::calc_cross_product(u, v);
+		fprintf(stderr, "\t%s(): ", test_func);
+		if (1.0e-16 < fabs(expected.x - result.x) ||
+			1.0e-16 < fabs(expected.y - result.y) ||
+			1.0e-16 < fabs(expected.z - result.z)    )
+		{
+			fprintf(stderr, "FAILED\n\t\tExpected: (%25.16lf, %25.16lf, %25.16lf)\n\t\t But was: (%25.16lf, %25.16lf, %25.16lf)\n", expected.x, expected.y, expected.z, result.x, result.y, result.z);
+		}
+		else
+		{
+			fprintf(stderr, "PASSED\n");
+		}
+	}
+
+	//Test calc_total_energy()
+	{
+
 	}
 
 	// Test kepler_equation_solver()

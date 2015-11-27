@@ -51,12 +51,14 @@ void options::create_default()
 	comp_dev            = COMPUTING_DEVICE_GPU;
 	g_disk_model        = GAS_DISK_MODEL_NONE;
 
-	out_fn[OUTPUT_NAME_DUMP]     = "dump";
-	out_fn[OUTPUT_NAME_DUMP_AUX] = "dump.aux";
-	out_fn[OUTPUT_NAME_EVENT]    = "event";
-	out_fn[OUTPUT_NAME_INFO]     = "info";
-	out_fn[OUTPUT_NAME_LOG]      = "log";
-	out_fn[OUTPUT_NAME_RESULT]   = "result";
+	out_fn[OUTPUT_NAME_DUMP]           = "dump";
+	out_fn[OUTPUT_NAME_DUMP_AUX]       = "dump.aux";
+	out_fn[OUTPUT_NAME_EVENT]          = "event";
+	out_fn[OUTPUT_NAME_INFO]           = "info";
+	out_fn[OUTPUT_NAME_LOG]            = "log";
+	out_fn[OUTPUT_NAME_RESULT]         = "result";
+	out_fn[OUTPUT_NAME_INTEGRAL]       = "integral";
+	out_fn[OUTPUT_NAME_INTEGRAL_EVENT] = "integral_event";
 }
 
 void options::parse(int argc, const char** argv)

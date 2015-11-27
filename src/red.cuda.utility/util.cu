@@ -15,6 +15,43 @@
 
 namespace redutilcu
 {
+template <typename T>
+std::string number_to_string( T number, unsigned int width, bool fill)
+{
+	std::ostringstream ss;
+
+	if (fill)
+	{
+		if (0 < width)
+		{
+			ss << setw(width) << setfill('0') << number;
+		}
+		else
+		{
+			ss << setfill('0') << number;
+		}
+	}
+	else
+	{
+		if (0 < width)
+		{
+			ss << setw(width) << number;
+		}
+		else
+		{
+			ss << number;
+		}
+	}
+
+	return ss.str();
+}
+
+template std::string number_to_string<char>(                  char, unsigned int width, bool fill);
+template std::string number_to_string<unsigned char>(unsigned char, unsigned int width, bool fill);
+template std::string number_to_string<int>(                    int, unsigned int width, bool fill);
+template std::string number_to_string<unsigned int>(  unsigned int, unsigned int width, bool fill);
+template std::string number_to_string<long>(                  long, unsigned int width, bool fill);
+template std::string number_to_string<unsigned long>(unsigned long, unsigned int width, bool fill);
 
 template <typename T>
 std::string number_to_string( T number )
