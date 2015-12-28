@@ -2040,8 +2040,8 @@ void compare_results(option_t& opt, bool verbose)
 		copy_vector_to_device(d_m, h_m, n_total*sizeof(var_t));
 	}
 
-	int2_t sink   = {0, opt.n0};
-	int2_t source = {0, opt.n1};
+	uint2_t sink   = {0, opt.n0};
+	uint2_t source = {0, opt.n1};
 	interaction_bound int_bound(sink, source);
 
 	cout << "tolerance level   = " << scientific << opt.tol << endl;
@@ -2129,8 +2129,8 @@ void benchmark(int id_dev, int n0, int n1, int dn, int n_iter, ofstream& o_resul
 			copy_vector_to_device(d_x, h_x, n_total*sizeof(vec_t));
 			copy_vector_to_device(d_m, h_m, n_total*sizeof(var_t));
 
-			int2_t sink = {0, n_snk};
-			int2_t source = {0, n_src};
+			uint2_t sink = {0, n_snk};
+			uint2_t source = {0, n_src};
 			interaction_bound int_bound(sink, source);
 
 			cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << (uint32_t)n_snk*(uint32_t)n_src << ")---------------------------------------------------------------" << endl;
@@ -2214,8 +2214,8 @@ void benchmark_GPU(option& opt, ofstream& o_result, ofstream& o_summary)
 			copy_vector_to_device(d_x, h_x, n_total*sizeof(vec_t));
 			copy_vector_to_device(d_m, h_m, n_total*sizeof(var_t));
 
-			int2_t sink = {0, n_snk};
-			int2_t source = {0, n_src};
+			uint2_t sink = {0, n_snk};
+			uint2_t source = {0, n_src};
 			interaction_bound int_bound(sink, source);
 
 			cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << (uint32_t)n_snk*(uint32_t)n_src << ")-------------------------------------------------------------------" << endl;
@@ -2278,8 +2278,8 @@ void benchmark_CPU(option& opt, ofstream& o_result, ofstream& o_summary)
 
 			populate(n_total, h_x, h_m);
 
-			int2_t sink = {0, n_snk};
-			int2_t source = {0, n_src};
+			uint2_t sink = {0, n_snk};
+			uint2_t source = {0, n_src};
 			interaction_bound int_bound(sink, source);
 
 			cout << "(n_sink * n_source = " << setw(6) << n_snk << " * " << setw(6) << n_src << " = " << setw(12) << (uint32_t)n_snk*(uint32_t)n_src << ")-------------------------------------------------------------------" << endl;

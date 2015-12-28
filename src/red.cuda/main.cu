@@ -402,7 +402,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		}
 	}
 
-	ppd->calc_integral(integrals[0]);
+	ppd->calc_integral(false, integrals[0]);
 	ppd->print_integral_data(integrals[0], *output[OUTPUT_NAME_INTEGRAL]);
 	ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
 
@@ -427,10 +427,10 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			{
 				integral_t I;
 
-				ppd->calc_integral(I);
+				ppd->calc_integral(true, I);
 				ppd->print_integral_data(I, *output[OUTPUT_NAME_INTEGRAL_EVENT]);
 				ppd->handle_ejection_hit_centrum();
-				ppd->calc_integral(I);		
+				ppd->calc_integral(false, I);		
 				ppd->print_integral_data(I, *output[OUTPUT_NAME_INTEGRAL_EVENT]);
 
 				ppd->print_event_data(*output[OUTPUT_NAME_EVENT], *output[OUTPUT_NAME_LOG]);
@@ -457,10 +457,10 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 				{
 					integral_t I;
 
-					ppd->calc_integral(I);
+					ppd->calc_integral(true, I);
 					ppd->print_integral_data(I, *output[OUTPUT_NAME_INTEGRAL_EVENT]);
 					ppd->handle_collision();
-					ppd->calc_integral(I);
+					ppd->calc_integral(false, I);
 					ppd->print_integral_data(I, *output[OUTPUT_NAME_INTEGRAL_EVENT]);
 
 					ppd->print_event_data(*output[OUTPUT_NAME_EVENT], *output[OUTPUT_NAME_LOG]);
@@ -478,11 +478,8 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		{
 			ps = 0.0;
 			ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
-		}
 
-		if (0 == intgr->get_n_passed_step() % 1000)
-		{
-			ppd->calc_integral(integrals[1]);
+			ppd->calc_integral(false, integrals[1]);
 			ppd->print_integral_data(integrals[1], *output[OUTPUT_NAME_INTEGRAL]);
 		}
 
@@ -513,7 +510,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		{
 			n_removed = 0;
 			time_last_dump = clock();
-			//print_dump(output, opt, ppd, dt, n_dump, DATA_REPRESENTATION_BINARY);
+			print_dump(output, opt, ppd, dt, n_dump, DATA_REPRESENTATION_BINARY);
 			if (opt.verbose)
 			{
 				string msg = "Dump file was created with ordinal number: " + redutilcu::number_to_string(n_dump);

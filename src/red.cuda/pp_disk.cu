@@ -1573,11 +1573,11 @@ void pp_disk::calc_dydx(unsigned int i, unsigned int rr, ttt_t curr_t, const vec
 	}
 }
 
-void pp_disk::calc_integral(integral_t& integrals)
+void pp_disk::calc_integral(bool cpy_to_HOST, integral_t& integrals)
 {
 	const unsigned int n = n_bodies->get_n_total_playing();
 
-	if (COMPUTING_DEVICE_GPU == this->comp_dev)
+	if (cpy_to_HOST && COMPUTING_DEVICE_GPU == this->comp_dev)
 	{
 		copy_to_host();
 	}
@@ -1585,20 +1585,6 @@ void pp_disk::calc_integral(integral_t& integrals)
 	tools::calc_bc(n, false, sim_data, M0, &(integrals.R), &(integrals.V));
 	integrals.C = tools::calc_angular_momentum(n, sim_data);
 	integrals.E = tools::calc_total_energy(n, sim_data);
-}
-
-void pp_disk::calc_integral_CMU(integral_t& integrals)
-{
-	const unsigned int n = n_bodies->get_n_total_playing();
-
-	if (COMPUTING_DEVICE_GPU == this->comp_dev)
-	{
-		copy_to_host();
-	}
-	var_t M0 = tools::get_total_mass(n, sim_data);
-	tools::calc_bc(n, false, sim_data, M0, &(integrals.R), &(integrals.V));
-	integrals.C = tools::calc_angular_momentum_CMU(n, sim_data);
-	integrals.E = tools::calc_total_energy_CMU(n, sim_data);
 }
 
 void pp_disk::swap()

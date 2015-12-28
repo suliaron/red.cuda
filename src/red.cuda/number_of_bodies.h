@@ -53,6 +53,6 @@ public:
 	unsigned int n_removed;              //!< Number of bodies which were removed during the last update() function call
 
 private:
-	int2_t sink;
-	int2_t source;
+	uint2_t sink;
+	uint2_t source;
 };

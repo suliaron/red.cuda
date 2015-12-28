@@ -142,8 +142,13 @@ public:
 	*/
 	void calc_dydx(unsigned int i, unsigned int rr, ttt_t curr_t, const vec_t *r, const vec_t *v, vec_t* dy);
 
-	void calc_integral(integral_t& integrals);
-	void calc_integral_CMU(integral_t& integrals);
+	//! Calculates the classical integrals of the N-body system
+	/*!
+		This function is called by the main while cycle in order to determine the integrals in 
+		\param cpy_to_HOST if true than the data is copied first from the DEVICE to the HOST
+		\param integrals array that will hold the integrals
+	*/
+	void calc_integral(bool cpy_to_HOST, integral_t& integrals);
 
 	//! Swaps the yout with the y variable, i.e. at the end of an integration step the output will be the input of the next step
 	void swap();

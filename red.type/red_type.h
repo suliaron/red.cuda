@@ -19,6 +19,8 @@ typedef bool   bool_t;
 typedef int    int_t;
 //! Type of integer tuples variables
 typedef int2   int2_t;
+//! Type of unsigned integer tuples variables
+typedef uint2  uint2_t;
 
 typedef enum output_name
 		{
@@ -442,8 +444,8 @@ typedef struct event_data
 
 struct interaction_bound
 {
-	int2_t	sink;
-	int2_t	source;
+	uint2_t	sink;
+	uint2_t	source;
 
 	interaction_bound()
 	{
@@ -451,16 +453,14 @@ struct interaction_bound
 		source.x = source.y = 0;
 	}
 
-	interaction_bound(int2_t sink, int2_t source) : 
+	interaction_bound(uint2_t sink, uint2_t source) : 
 		sink(sink),
 		source(source) 
 	{ }
 
 	interaction_bound(unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1)
 	{
-		sink.x = x0;
-		sink.y = y0;
-		source.x = x1;
-		source.y = y1;
+		sink.x = x0;		sink.y = y0;
+		source.x = x1;		source.y = y1;
 	}
 };
