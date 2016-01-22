@@ -12,6 +12,9 @@
 #include "red_constants.h"
 #include "red_macro.h"
 
+#ifdef __GNUC__
+#include <stdlib.h>
+#endif
 using namespace redutilcu;
 
 options::options(int argc, const char** argv) :

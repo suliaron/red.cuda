@@ -581,8 +581,8 @@ int main(int argc, const char** argv, const char** env)
 		}
 		
 		open_streams(opt, output);
-
-		file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, opt.param->get_data(), opt.print_to_screen);
+		string dummy=opt.param->get_data();
+		file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, dummy, opt.print_to_screen);
 
 		if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 		{
