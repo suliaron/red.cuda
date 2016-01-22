@@ -1974,8 +1974,9 @@ void pp_disk::load_ascii(ifstream& input)
 		load_body_record(input, i, epoch, bmd, p, r, v);
 		if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
 		{
-			printf(".");
+			cout << ".";
 			pcd++;
+			flush(cout);
 		}
 	}
 }

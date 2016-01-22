@@ -89,12 +89,12 @@ void open_streams(const options& opt, ofstream** output)
 	string prefix = create_prefix(opt);
 	string ext = "txt";
 
-	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_RESULT]) + "." + ext;
-	output[OUTPUT_NAME_RESULT] = new ofstream(path.c_str(), ios::out);
-	if (!*output[OUTPUT_NAME_RESULT]) 
-	{
-		throw string("Cannot open " + path + ".");
-	}
+	//path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_RESULT]) + "." + ext;
+	//output[OUTPUT_NAME_RESULT] = new ofstream(path.c_str(), ios::out);
+	//if (!*output[OUTPUT_NAME_RESULT]) 
+	//{
+	//	throw string("Cannot open " + path + ".");
+	//}
 
 	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INFO]) + "." + ext;
 	output[OUTPUT_NAME_INFO] = new ofstream(path.c_str(), ios::out);
@@ -400,8 +400,9 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 	pp_disk_t::integral_t integrals[2];
 
+	uint32_t n_save    = 0;
 	uint32_t n_removed = 0;
-	uint32_t n_dump = 1;
+	uint32_t n_dump    = 1;
 
 	if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 	{
@@ -416,7 +417,20 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 	ppd->calc_integral(false, integrals[0]);
 	ppd->print_integral_data(integrals[0], *output[OUTPUT_NAME_INTEGRAL]);
-	ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
+
+	{
+		string prefix = create_prefix(opt);
+		string result_ordinal = redutilcu::number_to_string(n_save, 6, true);
+		string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_RESULT]) + "_" + result_ordinal + ".txt";
+		output[OUTPUT_NAME_RESULT] = new ofstream(path.c_str(), ios::out);
+		if (!*output[OUTPUT_NAME_RESULT]) 
+		{
+			throw string("Cannot open " + path + ".");
+		}
+		ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
+		output[OUTPUT_NAME_RESULT]->close();
+		n_save++;
+	}
 
 /* main cycle */
 #if 1
@@ -432,6 +446,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			}
 		}
 
+		// TODO: If ejection distanene = 0.0 de hit centrum doistance != 0.0 akkor trouble!!
 		if ((0.0 < opt.param->threshold[THRESHOLD_EJECTION_DISTANCE] || 0.0 < opt.param->threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]))
 		{
 			bool eje_hc = ppd->check_for_ejection_hit_centrum();
@@ -489,10 +504,23 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		if (opt.param->output_interval <= fabs(ps))
 		{
 			ps = 0.0;
-			ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
 
+			string prefix = create_prefix(opt);
+			string result_ordinal = redutilcu::number_to_string(n_save, 6, true);
+			string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_RESULT]) + "_" + result_ordinal + ".txt";
+			output[OUTPUT_NAME_RESULT] = new ofstream(path.c_str(), ios::out);
+			if (!*output[OUTPUT_NAME_RESULT]) 
+			{
+				throw string("Cannot open " + path + ".");
+			}
+			ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
+			output[OUTPUT_NAME_RESULT]->close();
+			n_save++;
+
+			//ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
 			ppd->calc_integral(false, integrals[1]);
 			ppd->print_integral_data(integrals[1], *output[OUTPUT_NAME_INTEGRAL]);
+			n_save++;
 		}
 
 		if (16 <= ppd->n_event[EVENT_COUNTER_NAME_LAST_CLEAR])
@@ -518,7 +546,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			}
 		}
 
-		if (10 <= n_removed || opt.dump_dt < (clock() - time_last_dump) / (double)CLOCKS_PER_SEC)
+		if (100 <= n_removed || opt.dump_dt < (clock() - time_last_dump) / (double)CLOCKS_PER_SEC)
 		{
 			n_removed = 0;
 			time_last_dump = clock();
@@ -579,10 +607,9 @@ int main(int argc, const char** argv, const char** env)
 			run_test();
 			return (EXIT_SUCCESS);
 		}
-		
 		open_streams(opt, output);
-		string dummy=opt.param->get_data();
-		file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, dummy, opt.print_to_screen);
+		// TODO: GNU C does not compile with commented line		string dummy = opt.param->get_data();		file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, dummy, opt.print_to_screen);
+		//file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, opt.param->get_data(), opt.print_to_screen);
 
 		if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 		{

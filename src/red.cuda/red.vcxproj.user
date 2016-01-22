@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-gpu -v -pts -n_chg 100 -iDir C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_5\Run_01_replica -p C:\Work\red.cuda.Results\CollisionStatistics\2D\CDM_Step\Aref_5\parameters.txt -ic input_01.txt </LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-cpu -v -pts  -iDir C:\Users\suli\Dropbox\SuliA\CollStatRezso\2D -p parameters.txt -ic input_01.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-cpu -v -pts  -iDir C:\Work\red.cuda.Results\Dvorak\3D\Hansen_2009\Debug_Coll_Move_St\tol_-12\CDM_Step -p parameters.txt -ic input.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-cpu -v -pts  -iDir C:\Users\suli\Dropbox\SuliA\CollStatRezso\2D -p parameters.txt -ic input_01.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
