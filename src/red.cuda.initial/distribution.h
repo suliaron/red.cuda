@@ -9,10 +9,10 @@
 class red_random
 {
 public:
-	red_random(unsigned int seed);
+	red_random(uint32_t seed);
 	~red_random();
 
-	unsigned int rand();
+	uint32_t rand();
 
 	var_t uniform();
 	var_t uniform(var_t x_min, var_t x_max);
@@ -25,15 +25,15 @@ public:
 	//var_t power_law(var_t lower, var_t upper, var_t p);
 
 private:
-	unsigned int idx;
-	unsigned int I[624];
+	uint32_t idx;
+	uint32_t I[624];
 };
 
 
 class distribution_base
 {
 public:
-	distribution_base(unsigned int seed, var_t x_min, var_t x_max);
+	distribution_base(uint32_t seed, var_t x_min, var_t x_max);
 	~distribution_base();
 
 	var_t get_x_min() { return x_min; }
@@ -50,8 +50,8 @@ protected:
 class uniform_distribution : public distribution_base
 {
 public:
-	uniform_distribution(unsigned int seed);
-	uniform_distribution(unsigned int seed, var_t x_min, var_t x_max);
+	uniform_distribution(uint32_t seed);
+	uniform_distribution(uint32_t seed, var_t x_min, var_t x_max);
 	~uniform_distribution();
 
 	var_t get_next();
@@ -62,7 +62,7 @@ private:
 class exponential_distribution : public distribution_base
 {
 public:
-	exponential_distribution(unsigned int seed, var_t lambda);
+	exponential_distribution(uint32_t seed, var_t lambda);
 	~exponential_distribution();
 
 	var_t get_next();
@@ -73,7 +73,7 @@ private:
 class rayleigh_distribution : public distribution_base
 {
 public:
-	rayleigh_distribution(unsigned int seed, var_t sigma);
+	rayleigh_distribution(uint32_t seed, var_t sigma);
 	~rayleigh_distribution();
 
 	var_t get_next();
@@ -84,7 +84,7 @@ private:
 class normal_distribution : public distribution_base
 {
 public:
-	normal_distribution(unsigned int seed, var_t mean, var_t variance);
+	normal_distribution(uint32_t seed, var_t mean, var_t variance);
 	~normal_distribution();
 
 	var_t get_next();
@@ -96,7 +96,7 @@ private:
 class power_law_distribution : public distribution_base
 {
 public:
-	power_law_distribution(unsigned int seed, var_t x_min, var_t x_max, var_t power);
+	power_law_distribution(uint32_t seed, var_t x_min, var_t x_max, var_t power);
 	~power_law_distribution();
 
 	var_t get_next();
@@ -107,7 +107,7 @@ private:
 class lognormal_distribution : public distribution_base
 {
 public:
-	lognormal_distribution(unsigned int seed, var_t x_min, var_t x_max, var_t mu, var_t sigma);
+	lognormal_distribution(uint32_t seed, var_t x_min, var_t x_max, var_t mu, var_t sigma);
 	~lognormal_distribution();
 
 	var_t get_next();

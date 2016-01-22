@@ -1,14 +1,11 @@
 #pragma once
-// includes system
-#include <string>
+
 #include <vector>
 
-// includes project
 #include "integrator.h"
 #include "pp_disk.h"
-#include "red_type.h"
 
-using namespace std;
+#include "red_type.h"
 
 class rungekutta8 : public integrator
 {
@@ -68,6 +65,6 @@ private:
 	void call_kernel_calc_y_np1(int n_var);
 	void call_kernel_calc_error(int n_var);
 
-	vector<vector <vec_t*> >	dydx;	//!< Holds the derivatives for the differential equations
-	vec_t**                     d_dydt; //!< Vector of vectors on the device: contains a copy of the dydx vector
+	vector<vector <var4_t*> >	dydx;	//!< Holds the derivatives for the differential equations
+	var4_t**                     d_dydt; //!< Vector of vectors on the device: contains a copy of the dydx vector
 };

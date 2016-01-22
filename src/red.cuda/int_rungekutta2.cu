@@ -42,15 +42,12 @@ void rungekutta2::cpu_sum_vector(int n, const var_t* a, const var_t* b, var_t b_
 rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt, computing_device_t comp_dev) :
 	integrator(ppd, dt, false, 0.0, 2, comp_dev)
 {
-	name = "Runge-Kutta2";
-	short_name = "RK2";
-
+	name  = "Runge-Kutta2";
 	order = 2;
 }
 
 rungekutta2::~rungekutta2()
-{
-}
+{}
 
 void rungekutta2::calc_ytemp_for_fr(int n_var, int r)
 {
@@ -94,8 +91,8 @@ void rungekutta2::calc_y_np1(int n_var)
 
 ttt_t rungekutta2::step()
 {
-	const int n_body_total = ppd->n_bodies->get_n_total_playing();
-	const int n_var_total = NDIM * n_body_total;
+	const uint32_t n_body_total = ppd->n_bodies->get_n_total_playing();
+	const uint32_t n_var_total = NDIM * n_body_total;
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
@@ -103,23 +100,23 @@ ttt_t rungekutta2::step()
 		calc_grid(n_var_total, THREADS_PER_BLOCK);
 	}
 
-	int r = 0;
-	ttt_t ttemp = ppd->t + c[r] * dt_try;
+	int stage = 0;
+	ttt_t ttemp = ppd->t + c[stage] * dt_try;
 	// Calculate initial differentials f1 = f(tn, yn) and store them into dydx[][0]
-	const vec_t *coor = ppd->sim_data->y[0];
-	const vec_t *velo = ppd->sim_data->y[1];
+	const var4_t *coor = ppd->sim_data->y[0];
+	const var4_t *velo = ppd->sim_data->y[1];
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calc_dydx(i, r, ttemp, coor, velo, dydx[i][r]);
+		ppd->calc_dydx(i, stage, ttemp, coor, velo, dydx[i][stage]);
 	}
 
-	r = 1;
-	ttemp = ppd->t + c[r] * dt_try;
-	calc_ytemp_for_fr(n_var_total, r);
+	stage = 1;
+	ttemp = ppd->t + c[stage] * dt_try;
+	calc_ytemp_for_fr(n_var_total, stage);
 	// Calculate f2 = f(tn + 1/2*h, yn + 1/2*h*f1) = d_f[][1]
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calc_dydx(i, r, ttemp, ytemp[0], ytemp[1], dydx[i][r]);
+		ppd->calc_dydx(i, stage, ttemp, ytemp[0], ytemp[1], dydx[i][stage]);
 	}
 	calc_y_np1(n_var_total);
 

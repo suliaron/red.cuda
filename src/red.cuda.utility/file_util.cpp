@@ -8,8 +8,10 @@
 #include "file_util.h"
 #include "tools.h"
 #include "util.h"
-#include "red_macro.h"
+
 #include "red_constants.h"
+#include "red_macro.h"
+#include "red_type.h"
 
 namespace redutilcu
 {
@@ -204,11 +206,11 @@ void Emese_data_format_to_red_cuda_format(const string& input_path, const string
 			input.read(reinterpret_cast<char *>(&m),  sizeof( m));
 			input.read(reinterpret_cast<char *>(&rad),sizeof(rad));
 
-			vec_t	rVec = {x, y, z, 0.0};
-			vec_t	vVec = {vx, vy, vz, 0.0};
+			var4_t	rVec = {x, y, z, 0.0};
+			var4_t	vVec = {vx, vy, vz, 0.0};
 
-			param_t	        param;
-            body_metadata_t body_md;
+			pp_disk_t::param_t	        param;
+            pp_disk_t::body_metadata_t body_md;
 
 			// red.cuda: id starts from 1
 			body_md.id = (int)++id;
@@ -246,7 +248,7 @@ void Emese_data_format_to_red_cuda_format(const string& input_path, const string
 	}
 }
 
-void log_start(ostream& sout, int argc, const char** argv, const char** env, collision_detection_model_t cdm)
+void log_start(ostream& sout, int argc, const char** argv, const char** env, std::string& params)
 {
 	sout << tools::get_time_stamp(false) << " starting " << argv[0] << endl;
 	sout << "Command line arguments: " << endl;
@@ -291,29 +293,31 @@ void log_start(ostream& sout, int argc, const char** argv, const char** env, col
 	}
 	sout << endl;
 
-	sout << "Collision detection model: ";
-	switch (cdm)
-	{
-	case COLLISION_DETECTION_MODEL_STEP:
-		sout << "check at the beginning of each step" << endl;
-		break;
-	case COLLISION_DETECTION_MODEL_SUB_STEP:
-		sout << "check during the integration step" << endl;
-		break;
-	case COLLISION_DETECTION_MODEL_INTERPOLATION:
-		throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-	default:
-		throw string("Parameter 'cdm' is out of range.");
-	}
-	sout << endl;
+	sout << "Parameters:" << endl << params << endl;
+
+	//sout << "Collision detection model: ";
+	//switch (cdm)
+	//{
+	//case COLLISION_DETECTION_MODEL_STEP:
+	//	sout << "check at the beginning of each step" << endl;
+	//	break;
+	//case COLLISION_DETECTION_MODEL_SUB_STEP:
+	//	sout << "check during the integration step" << endl;
+	//	break;
+	//case COLLISION_DETECTION_MODEL_INTERPOLATION:
+	//	throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
+	//default:
+	//	throw string("Parameter 'cdm' is out of range.");
+	//}
+	//sout << endl;
 }
 
-void log_start(ostream& sout, int argc, const char** argv, const char** env, collision_detection_model_t cdm, bool print_to_screen)
+void log_start(ostream& sout, int argc, const char** argv, const char** env, std::string& params, bool print_to_screen)
 {
-	log_start(sout, argc, argv, env, cdm);
+	log_start(sout, argc, argv, env, params);
 	if (print_to_screen)
 	{
-		log_start(std::cout, argc, argv, env, cdm);
+		log_start(std::cout, argc, argv, env, params);
 	}
 }
 
@@ -326,7 +330,7 @@ void log_message(ostream& sout, string msg, bool print_to_screen)
 	}
 }
 
-void print_body_record(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v)
+void print_body_record(ofstream &sout, string name, var_t epoch, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd, var4_t *r, var4_t *v)
 {
 	static int int_t_w  =  8;
 	static int var_t_w  = 25;
@@ -335,16 +339,16 @@ void print_body_record(ofstream &sout, string name, var_t epoch, param_t *p, bod
 	sout.setf(ios::right);
 	sout.setf(ios::scientific);
 
-	sout << setw(int_t_w) << body_md->id << SEP
+	sout << setw(int_t_w) << bmd->id << SEP
 		 << setw(     30) << name << SEP
-		 << setw(      2) << body_md->body_type << SEP 
+		 << setw(      2) << bmd->body_type << SEP 
 		 << setw(var_t_w) << epoch << SEP
 		 << setw(var_t_w) << p->mass << SEP
 		 << setw(var_t_w) << p->radius << SEP
 		 << setw(var_t_w) << p->density << SEP
 		 << setw(var_t_w) << p->cd << SEP
-		 << setw(      2) << body_md->mig_type << SEP
-		 << setw(var_t_w) << body_md->mig_stop_at << SEP
+		 << setw(      2) << bmd->mig_type << SEP
+		 << setw(var_t_w) << bmd->mig_stop_at << SEP
 		 << setw(var_t_w) << r->x << SEP
 		 << setw(var_t_w) << r->y << SEP
 		 << setw(var_t_w) << r->z << SEP
@@ -355,7 +359,7 @@ void print_body_record(ofstream &sout, string name, var_t epoch, param_t *p, bod
     sout.flush();
 }
 
-void print_body_record_HIPERION(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v)
+void print_body_record_HIPERION(ofstream &sout, string name, var_t epoch, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *body_md, var4_t *r, var4_t *v)
 {
 	static int ids[4] = {0, 10, 20, 10000000};
 
@@ -423,7 +427,7 @@ void print_body_record_HIPERION(ofstream &sout, string name, var_t epoch, param_
     sout.flush();
 }
 
-void print_body_record_Emese(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v)
+void print_body_record_Emese(ofstream &sout, string name, var_t epoch, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *body_md, var4_t *r, var4_t *v)
 {
 	const char* body_type_name[] = 
 	{
@@ -477,7 +481,7 @@ void print_oe_record(ofstream &sout, orbelem_t* oe)
 	sout.flush();
 }
 
-void print_oe_record(ofstream &sout, orbelem_t* oe, param_t *p)
+void print_oe_record(ofstream &sout, orbelem_t* oe, pp_disk_t::param_t *p)
 {
 	static int var_t_w  = 15;
 
@@ -499,7 +503,7 @@ void print_oe_record(ofstream &sout, orbelem_t* oe, param_t *p)
 	sout.flush();
 }
 
-void print_oe_record(ofstream &sout, orbelem_t* oe, param_t *p, body_metadata_t *bmd)
+void print_oe_record(ofstream &sout, orbelem_t* oe, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd)
 {
 	static int var_t_w  = 15;
 	static int int_t_w  = 7;
@@ -524,7 +528,7 @@ void print_oe_record(ofstream &sout, orbelem_t* oe, param_t *p, body_metadata_t 
 	sout.flush();
 }
 
-void print_oe_record(ofstream &sout, ttt_t epoch, orbelem_t* oe, param_t *p, body_metadata_t *bmd)
+void print_oe_record(ofstream &sout, ttt_t epoch, orbelem_t* oe, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd)
 {
 	static int var_t_w  = 15;
 	static int int_t_w  = 7;

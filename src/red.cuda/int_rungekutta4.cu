@@ -26,10 +26,10 @@
 
 #define	LAMBDA	1.0/10.0
 
-ttt_t rungekutta4::c[] =  {0.0, 1.0/2.0, 1.0/2.0, 1.0, 1.0};
 var_t rungekutta4::a[] =  {0.0, 1.0/2.0, 1.0/2.0, 1.0, 1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0};
-var_t rungekutta4::bh[] = {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0, 0.0};
 var_t rungekutta4::b[] =  {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0 -LAMBDA, LAMBDA};
+var_t rungekutta4::bh[] = {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0, 0.0};
+ttt_t rungekutta4::c[] =  {0.0, 1.0/2.0, 1.0/2.0, 1.0, 1.0};
 
 namespace rk4_kernel
 {
@@ -68,7 +68,7 @@ static __global__
 
 	while (n > tid)
 	{
-		err[tid] = f4[tid] - f5[tid];
+		err[tid] = fabs(f4[tid] - f5[tid]);
 		tid += stride;
 	}
 }
@@ -94,7 +94,7 @@ void rungekutta4::cpu_calc_error(int n, const var_t *f4, const var_t* f5, var_t 
 {
 	for (int i = 0; i < n; i++)
 	{
-		err[i] = f4[i] - f5[i];
+		err[i] = fabs(f4[i] - f5[i]);
 	}
 }
 
@@ -102,15 +102,12 @@ void rungekutta4::cpu_calc_error(int n, const var_t *f4, const var_t* f5, var_t 
 rungekutta4::rungekutta4(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, computing_device_t comp_dev) :
 	integrator(ppd, dt, adaptive, tolerance, (adaptive ? 5 : 4), comp_dev)
 {
-	name = "Runge-Kutta4";
-	short_name = "RK4";
-
+	name  = "Runge-Kutta4";
 	order = 4;
 }
 
 rungekutta4::~rungekutta4()
-{
-}
+{}
 
 void rungekutta4::calc_ytemp_for_fr(int n_var, int r)
 {
@@ -176,8 +173,8 @@ void rungekutta4::calc_error(int n_var)
 
 ttt_t rungekutta4::step()
 {
-	const int n_body_total = ppd->n_bodies->get_n_total_playing();
-	const int n_var_total = NDIM * n_body_total;
+	const uint32_t n_body_total = ppd->n_bodies->get_n_total_playing();
+	const uint32_t n_var_total = NDIM * n_body_total;
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
@@ -186,14 +183,14 @@ ttt_t rungekutta4::step()
 	}
 
 	// Calculate initial differentials and store them into d_f[][0]
-	int r = 0;
-	ttt_t ttemp = ppd->t + c[r] * dt_try;
+	int stage = 0;
+	ttt_t ttemp = ppd->t + c[stage] * dt_try;
 	// Calculate f1 = f(tn, yn) = d_f[][0]
-	const vec_t *coor = ppd->sim_data->y[0];
-	const vec_t *velo = ppd->sim_data->y[1];
+	const var4_t *coor = ppd->sim_data->y[0];
+	const var4_t *velo = ppd->sim_data->y[1];
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calc_dydx(i, r, ttemp, coor, velo, dydx[i][r]);
+		ppd->calc_dydx(i, stage, ttemp, coor, velo, dydx[i][stage]);
 	}
 
 	var_t max_err = 0.0;
@@ -204,13 +201,13 @@ ttt_t rungekutta4::step()
 		// Calculate f2 = f(tn + c2 * dt, yn + a21 * dt * f1) = dydx[][1]
 		// Calculate f3 = f(tn + c3 * dt, yn + a31 * dt * f2) = dydx[][2]
 		// Calculate f4 = f(tn + c4 * dt, yn + a41 * dt * f3) = dydx[][3]
-		for (r = 1; r < order; r++)
+		for (stage = 1; stage < order; stage++)
 		{
-			ttemp = ppd->t + c[r] * dt_try;
-			calc_ytemp_for_fr(n_var_total, r);
+			ttemp = ppd->t + c[stage] * dt_try;
+			calc_ytemp_for_fr(n_var_total, stage);
 			for (int i = 0; i < 2; i++)
 			{
-				ppd->calc_dydx(i, r, ttemp, ytemp[0], ytemp[1], dydx[i][r]);
+				ppd->calc_dydx(i, stage, ttemp, ytemp[0], ytemp[1], dydx[i][stage]);
 			}
 		}
 		// y_(n+1) = yn + dt*(1/6*f1 + 1/3*f2 + 1/3*f3 + 1/6*f4) + O(dt^5)
@@ -218,19 +215,19 @@ ttt_t rungekutta4::step()
 
 		if (adaptive)
 		{
-			r = 4;
-			ttemp = ppd->t + c[r] * dt_try;
+			stage = 4;
+			ttemp = ppd->t + c[stage] * dt_try;
 			// Calculate f5 = f(tn + c5 * dt,  yn + dt*(1/6*f1 + 1/3*f2 + 1/3*f3 + 1/6*f4)) = dydx[][4]
 			for (int i = 0; i < 2; i++)
 			{
-				ppd->calc_dydx(i, r, ttemp, ppd->sim_data->yout[0], ppd->sim_data->yout[1], dydx[i][r]);
+				ppd->calc_dydx(i, stage, ttemp, ppd->sim_data->yout[0], ppd->sim_data->yout[1], dydx[i][stage]);
 			}
 
 			int n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_massive());
-			// calculate: err = (f4 - f5)
+			// calculate: err = abs(f4 - f5)
 			calc_error(n_var);
-			max_err = get_max_error(n_var, LAMBDA);
-			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/order);
+			max_err = dt_try * LAMBDA * get_max_error(n_var);
+			dt_next = dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
 		}
 		iter++;
 	} while (adaptive && max_err > tolerance);

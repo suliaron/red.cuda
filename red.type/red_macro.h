@@ -1,5 +1,5 @@
 #pragma once
-#define _CRT_SECURE_NO_WARNINGS
+
 // includes system
 #include <stdio.h>
 #include <string>

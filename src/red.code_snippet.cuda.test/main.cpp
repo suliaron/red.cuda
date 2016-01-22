@@ -40,7 +40,7 @@ int main(int argc, const char** argv)
 	sim_data_t sim_data;
 
 	{
-		vec_t r;
+		var4_t r;
 		printf("address of r: %p\n", &r);
 		printf("address of r.x: %p\n", &r.x);
 		printf("address of r.y: %p\n", &r.y);
@@ -145,9 +145,9 @@ int main(int argc, const char** argv)
  */
 typedef struct survivor
 	{
-		vec_t			r;
-		vec_t			v;
-		param_t			p;
+		var4_t			r;
+		var4_t			v;
+		pp_disk_t::param_t			p;
 		body_metadata_t body_md;
 	} survivor_t;
 

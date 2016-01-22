@@ -9,9 +9,11 @@
 #include "tools.h"
 #include "util.h"
 
+#include "red_type.h"
 #include "red_macro.h"
 #include "red_constants.h"
 
+using namespace pp_disk_t;
 
 namespace redutilcu
 {
@@ -123,7 +125,7 @@ static sim_data* create_sim_data()
 
 static void test_util()
 {
-	//__host__ __device__ vec_t rotate_2D_vector(var_t theta, var_t v_r, var_t v_theta);
+	//__host__ __device__ var4_t rotate_2D_vector(var_t theta, var_t v_r, var_t v_theta);
 
 	//template <typename T>
 	//std::string number_to_string(T number);
@@ -169,10 +171,10 @@ static void test_util()
 		char test_func[] = "rotate_2D_vector";
 
 		var_t theta = 0.0;
-		vec_t v = {0, 1, 0, 0};
+		var4_t v = {0, 1, 0, 0};
 
-		vec_t expected = {0, 1, 0, 0};
-		vec_t result = rotate_2D_vector(theta, v);
+		var4_t expected = {0, 1, 0, 0};
+		var4_t result = rotate_2D_vector(theta, v);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-16 < fabs(result.x - expected.x) && 1.0e-16 < fabs(result.y - expected.y))
@@ -304,27 +306,27 @@ static void test_tools()
 	//var_t get_total_mass(int n, const sim_data_t *sim_data);
 	////! Computes the total mass of the bodies with type in the system
 	//var_t get_total_mass(int n, body_type_t type, const sim_data_t *sim_data);
-	//void calc_bc(int n, bool verbose, const sim_data_t *sim_data, vec_t* R0, vec_t* V0);
+	//void calc_bc(int n, bool verbose, const sim_data_t *sim_data, var4_t* R0, var4_t* V0);
 	//void transform_to_bc(int n, bool verbose, const sim_data_t *sim_data);
 
 	//var_t calc_radius(var_t m, var_t density);
 	//var_t calc_density(var_t m, var_t R);
 	//var_t calc_mass(var_t R, var_t density);
 
-	//void calc_position_after_collision(var_t m1, var_t m2, const vec_t* r1, const vec_t* r2, vec_t& r);
-	//void calc_velocity_after_collision(var_t m1, var_t m2, const vec_t* v1, const vec_t* v2, vec_t& v);
+	//void calc_position_after_collision(var_t m1, var_t m2, const var4_t* r1, const var4_t* r2, var4_t& r);
+	//void calc_velocity_after_collision(var_t m1, var_t m2, const var4_t* v1, const var4_t* v2, var4_t& v);
 	//void calc_physical_properties(var_t m1, var_t m2, var_t r1, var_t r2, var_t cd, param_t &p);
 
-	//var_t norm(const vec_t* r);
-	//var_t calc_dot_product(const vec_t& v, const vec_t& u);
-	//vec_t calc_cross_product(const vec_t& v, const vec_t& u);
-	//var_t calc_kinetic_energy(const vec_t* v);
-	//var_t calc_pot_energy(var_t mu, const vec_t* r);
+	//var_t norm(const var4_t* r);
+	//var_t calc_dot_product(const var4_t& v, const var4_t& u);
+	//var4_t calc_cross_product(const var4_t& v, const var4_t& u);
+	//var_t calc_kinetic_energy(const var4_t* v);
+	//var_t calc_pot_energy(var_t mu, const var4_t* r);
 
 	//int kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E);
-	//int calc_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec);
+	//int calc_phase(var_t mu, const orbelem_t* oe, var4_t* rVec, var4_t* vVec);
 
-	//void print_vector(vec_t *v);
+	//void print_vector(var4_t *v);
 
 	const char test_set[] = "test_tools";
 
@@ -626,11 +628,11 @@ static void test_tools()
 	
 		sim_data_t* sim_data = create_sim_data();
 
-		vec_t expected_R0 = {0.5, 0.5, 0.0, 0.0};
-		vec_t expected_V0 = {1.5, 0.0, 0.0, 0.0};
+		var4_t expected_R0 = {0.5, 0.5, 0.0, 0.0};
+		var4_t expected_V0 = {1.5, 0.0, 0.0, 0.0};
 
-		vec_t result_R0 = {0.0, 0.0, 0.0, 0.0};
-		vec_t result_V0 = {0.0, 0.0, 0.0, 0.0};
+		var4_t result_R0 = {0.0, 0.0, 0.0, 0.0};
+		var4_t result_V0 = {0.0, 0.0, 0.0, 0.0};
 
 		var_t M0 = tools::get_total_mass(4, sim_data);
 		tools::calc_bc(4, false, sim_data, M0, &result_R0, &result_V0);
@@ -676,7 +678,7 @@ static void test_tools()
 
 		tools::transform_to_bc(4, false, sim_data);
 
-		vec_t r0[] = { 
+		var4_t r0[] = { 
 			            {-0.5, -0.5, 0.0, 0.0},
 			            { 0.5, -0.5, 0.0, 0.0},
 			            { 0.5,  0.5, 0.0, 0.0},
@@ -701,7 +703,7 @@ static void test_tools()
 			}
 		}
 
-		vec_t v0[] = { 
+		var4_t v0[] = { 
 			            {-0.5,  0.0, 0.0, 0.0},
 			            { 0.5,  0.0, 0.0, 0.0},
 			            { 0.5,  0.0, 0.0, 0.0},
@@ -799,11 +801,11 @@ static void test_tools()
 		var_t m1 = 1.0;
 		var_t m2 = 1.0;
 
-		vec_t r1 = {1.0, 1.0, 1.0, 0.0};
-		vec_t r2 = {4.0, 3.0, 1.0, 0.0};
+		var4_t r1 = {1.0, 1.0, 1.0, 0.0};
+		var4_t r2 = {4.0, 3.0, 1.0, 0.0};
 
-		vec_t expected = {2.5, 2.0, 1.0, 0.0};
-		vec_t result = {0.0, 0.0, 0.0, 0.0};
+		var4_t expected = {2.5, 2.0, 1.0, 0.0};
+		var4_t result = {0.0, 0.0, 0.0, 0.0};
 		tools::calc_position_after_collision(m1, m2, &r1, &r2, result);
 
 		var_t dr = fabs(expected.x - result.x) + 
@@ -829,11 +831,11 @@ static void test_tools()
 		var_t m1 = 1.0;
 		var_t m2 = 1.0;
 
-		vec_t v1 = { 1.0, 0.0, 0.0, 0.0};
-		vec_t v2 = {-1.0, 0.0, 0.0, 0.0};
+		var4_t v1 = { 1.0, 0.0, 0.0, 0.0};
+		var4_t v2 = {-1.0, 0.0, 0.0, 0.0};
 
-		vec_t expected = {0.0, 0.0, 0.0, 0.0};
-		vec_t result = {0.0, 0.0, 0.0, 0.0};
+		var4_t expected = {0.0, 0.0, 0.0, 0.0};
+		var4_t result = {0.0, 0.0, 0.0, 0.0};
 		tools::calc_velocity_after_collision(m1, m2, &v1, &v2, result);
 
 		var_t dr = fabs(expected.x - result.x) + 
@@ -943,11 +945,11 @@ static void test_tools()
 		}
 	}
 
-	// Test var_t norm(const vec_t* r)
+	// Test var_t norm(const var4_t* r)
 	{
 		char test_func[] = "norm";
 
-		vec_t v = {0.0, 0.0, 0.0, 0.0};
+		var4_t v = {0.0, 0.0, 0.0, 0.0};
 
 		var_t expected = 0.0;
 		var_t result = tools::norm(&v);
@@ -993,12 +995,12 @@ static void test_tools()
 		}
 	}
 
-	//Test var_t calc_dot_product(const vec_t& u, const vec_t& v)
+	//Test var_t calc_dot_product(const var4_t& u, const var4_t& v)
 	{
 		char test_func[] = "calc_dot_product";
 
-		vec_t u = {0.0, 0.0, 0.0, 0.0};
-		vec_t v = {0.0, 0.0, 0.0, 0.0};
+		var4_t u = {0.0, 0.0, 0.0, 0.0};
+		var4_t v = {0.0, 0.0, 0.0, 0.0};
 
 		var_t expected = 0.0;
 		var_t result = tools::calc_dot_product(v, u);
@@ -1046,15 +1048,15 @@ static void test_tools()
 		}
 	}
 
-	//Test calc_cross_product(const vec_t& u, const vec_t& v)
+	//Test calc_cross_product(const var4_t& u, const var4_t& v)
 	{
 		char test_func[] = "calc_cross_product";
 
-		vec_t u = {0.0, 0.0, 0.0, 0.0};
-		vec_t v = {0.0, 0.0, 0.0, 0.0};
+		var4_t u = {0.0, 0.0, 0.0, 0.0};
+		var4_t v = {0.0, 0.0, 0.0, 0.0};
 
-		vec_t expected = {0.0, 0.0, 0.0, 0.0};
-		vec_t result = tools::calc_cross_product(u, v);
+		var4_t expected = {0.0, 0.0, 0.0, 0.0};
+		var4_t result = tools::calc_cross_product(u, v);
 
 		fprintf(stderr, "\t%s(): ", test_func);
 		if (1.0e-16 < fabs(expected.x - result.x) ||
@@ -1174,7 +1176,7 @@ static void test_tools()
 	{
 		char test_func[] = "print_vector";
 
-		vec_t v = {-1.0, 1.0, 2.0, 0.0};
+		var4_t v = {-1.0, 1.0, 2.0, 0.0};
 
 		fprintf(stderr, "\t%s(): [the two lines below must be identical]\n", test_func);
 		fprintf(stderr, " -1.0000000000000000e+000  1.0000000000000000e+000  2.0000000000000000e+000  0.0000000000000000e+000\n");

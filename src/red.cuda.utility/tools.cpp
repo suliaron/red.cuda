@@ -157,17 +157,17 @@ var_t pdf_const(var_t x)
 	return 1;
 }
 
-void populate_data(unsigned int* n_bodies, sim_data_t *sim_data)
+void populate_data(uint32_t* n_bodies, pp_disk_t::sim_data_t *sim_data)
 {
 	int idx = 0;
 	int id = 1;
 
 	// Create aliases
-	vec_t* r             = sim_data->h_y[0];
-	vec_t* v             = sim_data->h_y[1];
-	param_t* p           = sim_data->h_p;
+	var4_t* r             = sim_data->h_y[0];
+	var4_t* v             = sim_data->h_y[1];
+	pp_disk_t::param_t* p           = sim_data->h_p;
 	orbelem_t* oe        = sim_data->h_oe;
-	body_metadata_t* bmd = sim_data->h_body_md;
+	pp_disk_t::body_metadata_t* bmd = sim_data->h_body_md;
 	ttt_t* epoch         = sim_data->h_epoch;
 
 	int upper = n_bodies[BODY_TYPE_STAR];
@@ -327,8 +327,8 @@ void populate_data(unsigned int* n_bodies, sim_data_t *sim_data)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -343,11 +343,11 @@ void populate_data(unsigned int* n_bodies, sim_data_t *sim_data)
 	}
 }
 
-var_t get_total_mass(unsigned int n, body_type_t type, const sim_data_t *sim_data)
+var_t get_total_mass(uint32_t n, body_type_t type, const pp_disk_t::sim_data_t *sim_data)
 {
 	var_t total_mass = 0.0;
 
-	param_t* p = sim_data->h_p;
+	pp_disk_t::param_t* p = sim_data->h_p;
 	for (int j = n - 1; j >= 0; j--)
 	{
 		if (type == sim_data->h_body_md[j].body_type && 0 < sim_data->h_body_md[j].id)
@@ -359,11 +359,11 @@ var_t get_total_mass(unsigned int n, body_type_t type, const sim_data_t *sim_dat
 	return total_mass;
 }
 
-var_t get_total_mass(unsigned int n, const sim_data_t *sim_data)
+var_t get_total_mass(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 {
 	var_t M0 = 0.0;
 
-	param_t* p = sim_data->h_p;
+	pp_disk_t::param_t* p = sim_data->h_p;
 	for (int j = n - 1; j >= 0; j--)
 	{
 		if (0 > sim_data->h_body_md[j].id)
@@ -376,11 +376,11 @@ var_t get_total_mass(unsigned int n, const sim_data_t *sim_data)
 	return M0 ;
 }
 
-void calc_bc(unsigned int n, bool pts, const sim_data_t *sim_data, var_t M0, vec_t* R0, vec_t* V0)
+void calc_bc(uint32_t n, bool pts, const pp_disk_t::sim_data_t *sim_data, var_t M0, var4_t* R0, var4_t* V0)
 {
-	const param_t* p = sim_data->h_p;
-	const vec_t* r = sim_data->h_y[0];
-	const vec_t* v = sim_data->h_y[1];
+	const var4_t* r = sim_data->h_y[0];
+	const var4_t* v = sim_data->h_y[1];
+	const pp_disk_t::param_t* p = sim_data->h_p;
 
 	R0->x = R0->y = R0->z = R0->w = 0.0;
 	V0->x = V0->y = V0->z = V0->w = 0.0;
@@ -413,7 +413,7 @@ void calc_bc(unsigned int n, bool pts, const sim_data_t *sim_data, var_t M0, vec
 	}
 }
 
-void transform_to_bc(unsigned int n, bool pts, const sim_data_t *sim_data)
+void transform_to_bc(uint32_t n, bool pts, const pp_disk_t::sim_data_t *sim_data)
 {
 	if (pts)
 	{
@@ -421,14 +421,14 @@ void transform_to_bc(unsigned int n, bool pts, const sim_data_t *sim_data)
 	}
 
 	// Position and velocity of the system's barycenter
-	vec_t R0 = {0.0, 0.0, 0.0, 0.0};
-	vec_t V0 = {0.0, 0.0, 0.0, 0.0};
+	var4_t R0 = {0.0, 0.0, 0.0, 0.0};
+	var4_t V0 = {0.0, 0.0, 0.0, 0.0};
 
 	var_t M0 = get_total_mass(n, sim_data);
 	calc_bc(n, pts, sim_data, M0, &R0, &V0);
 
-	vec_t* r = sim_data->h_y[0];
-	vec_t* v = sim_data->h_y[1];
+	var4_t* r = sim_data->h_y[0];
+	var4_t* v = sim_data->h_y[1];
 	// Transform the bodies coordinates and velocities
 	for (int j = n - 1; j >= 0; j-- )
 	{
@@ -471,7 +471,7 @@ var_t calc_mass(var_t R, var_t density)
 	return four_pi_over_three * CUBE(R) * density;
 }
 
-void calc_position_after_collision(var_t m1, var_t m2, const vec_t* r1, const vec_t* r2, vec_t& r)
+void calc_position_after_collision(var_t m1, var_t m2, const var4_t* r1, const var4_t* r2, var4_t& r)
 {
 	const var_t M = m1 + m2;
 
@@ -480,7 +480,7 @@ void calc_position_after_collision(var_t m1, var_t m2, const vec_t* r1, const ve
 	r.z = (m1 * r1->z + m2 * r2->z) / M;
 }
 
-void calc_velocity_after_collision(var_t m1, var_t m2, const vec_t* v1, const vec_t* v2, vec_t& v)
+void calc_velocity_after_collision(var_t m1, var_t m2, const var4_t* v1, const var4_t* v2, var4_t& v)
 {
 	const var_t M = m1 + m2;
 
@@ -489,7 +489,7 @@ void calc_velocity_after_collision(var_t m1, var_t m2, const vec_t* v1, const ve
 	v.z = (m1 * v1->z + m2 * v2->z) / M;
 }
 
-void calc_physical_properties(const param_t &p1, const param_t &p2, param_t &p)
+void calc_physical_properties(const pp_disk_t::param_t &p1, const pp_disk_t::param_t &p2, pp_disk_t::param_t &p)
 {
 	// Calculate V = V1 + V2
 	var_t volume = 4.188790204786391 * (CUBE(p1.radius) + CUBE(p2.radius));
@@ -500,19 +500,19 @@ void calc_physical_properties(const param_t &p1, const param_t &p2, param_t &p)
 	p.cd      = p1.cd;
 }
 
-var_t norm(const vec_t* r)
+var_t norm(const var4_t* r)
 {
 	return sqrt(SQR(r->x) + SQR(r->y) + SQR(r->z));
 }
 
-var_t calc_dot_product(const vec_t& u, const vec_t& v)
+var_t calc_dot_product(const var4_t& u, const var4_t& v)
 {
     return (u.x * v.x + u.y * v.y + u.z * v.z);
 }
 
-vec_t calc_cross_product(const vec_t& u, const vec_t& v)
+var4_t calc_cross_product(const var4_t& u, const var4_t& v)
 {
-    vec_t result = {0.0, 0.0, 0.0, 0.0};
+    var4_t result = {0.0, 0.0, 0.0, 0.0};
     
     result.x = u.y * v.z - u.z * v.y;
     result.y = u.z * v.x - u.x * v.z;
@@ -521,36 +521,36 @@ vec_t calc_cross_product(const vec_t& u, const vec_t& v)
     return result;
 }
 
-var_t calc_kinetic_energy(const vec_t* v)
+var_t calc_kinetic_energy(const var4_t* v)
 {
 	return (SQR(v->x) + SQR(v->y) + SQR(v->z)) / 2.0;
 }
 
-var_t calc_pot_energy(var_t mu, const vec_t* r)
+var_t calc_pot_energy(var_t mu, const var4_t* r)
 {
     return -mu / norm(r);
 }
 
-var_t calc_energy(var_t mu, const vec_t* r, const vec_t* v)
+var_t calc_energy(var_t mu, const var4_t* r, const var4_t* v)
 {
 	return calc_kinetic_energy(v) + calc_pot_energy(mu, r);
 }
 
-vec_t calc_angular_momentum(unsigned int n, const sim_data_t *sim_data)
+var4_t calc_angular_momentum(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 {
-    vec_t result = {0.0, 0.0, 0.0, 0.0};
+    var4_t result = {0.0, 0.0, 0.0, 0.0};
     
-	vec_t* r = sim_data->h_y[0];
-	vec_t* v = sim_data->h_y[1];
-    param_t* p = sim_data->h_p;
+	var4_t* r = sim_data->h_y[0];
+	var4_t* v = sim_data->h_y[1];
+    pp_disk_t::param_t* p = sim_data->h_p;
 
-    for (unsigned int i = 0; i < n; i++)
+    for (uint32_t i = 0; i < n; i++)
     {
 		if (0 > sim_data->h_body_md[i].id)
 		{
 			continue;
 		}
-        vec_t c = calc_cross_product(r[i], v[i]);
+        var4_t c = calc_cross_product(r[i], v[i]);
         c.x *= p[i].mass; c.y *= p[i].mass; c.z *= p[i].mass;
 		result.x += c.x; result.y += c.y; result.z += c.z;
 	}
@@ -558,22 +558,22 @@ vec_t calc_angular_momentum(unsigned int n, const sim_data_t *sim_data)
 	return result;
 }
 
-vec_t calc_angular_momentum_CMU(unsigned int n, const sim_data_t *sim_data)
+var4_t calc_angular_momentum_CMU(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 {
-    vec_t result = {0.0, 0.0, 0.0, 0.0};
+    var4_t result = {0.0, 0.0, 0.0, 0.0};
     
-	vec_t* r = sim_data->h_y[0];
-	vec_t* v = sim_data->h_y[1];
-    param_t* p = sim_data->h_p;
+	var4_t* r = sim_data->h_y[0];
+	var4_t* v = sim_data->h_y[1];
+    pp_disk_t::param_t* p = sim_data->h_p;
 
-    for (unsigned int i = 0; i < n; i++)
+    for (uint32_t i = 0; i < n; i++)
     {
 		if (0 > sim_data->h_body_md[i].id)
 		{
 			continue;
 		}
-		vec_t vv = {v[i].x * constants::Gauss, v[i].y * constants::Gauss, v[i].z * constants::Gauss, 0.0};
-        vec_t c = calc_cross_product(r[i], vv);
+		var4_t vv = {v[i].x * constants::Gauss, v[i].y * constants::Gauss, v[i].z * constants::Gauss, 0.0};
+        var4_t c = calc_cross_product(r[i], vv);
 
 		c.x *= p[i].mass; c.y *= p[i].mass; c.z *= p[i].mass;
 		result.x += c.x; result.y += c.y; result.z += c.z;
@@ -582,21 +582,21 @@ vec_t calc_angular_momentum_CMU(unsigned int n, const sim_data_t *sim_data)
 	return result;
 }
 
-var_t calc_potential_energy(unsigned int n, const sim_data_t *sim_data)
+var_t calc_potential_energy(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 {
 	var_t result = 0.0;
 
-	vec_t* r = sim_data->h_y[0];
-	vec_t* v = sim_data->h_y[1];
-    param_t* p = sim_data->h_p;
+	var4_t* r = sim_data->h_y[0];
+	var4_t* v = sim_data->h_y[1];
+    pp_disk_t::param_t* p = sim_data->h_p;
 
-    for (unsigned int i = 0; i < n; i++)
+    for (uint32_t i = 0; i < n; i++)
     {
 		if (0 > sim_data->h_body_md[i].id)
 		{
 			continue;
 		}
-        for (unsigned int j = 0; j < n; j++)
+        for (uint32_t j = 0; j < n; j++)
         {
             if (i == j)
             {
@@ -614,21 +614,21 @@ var_t calc_potential_energy(unsigned int n, const sim_data_t *sim_data)
     return (result / 2.0);
 }
 
-var_t calc_potential_energy_CMU(unsigned int n, const sim_data_t *sim_data)
+var_t calc_potential_energy_CMU(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 {
 	var_t result = 0.0;
 
-	vec_t* r = sim_data->h_y[0];
-	vec_t* v = sim_data->h_y[1];
-    param_t* p = sim_data->h_p;
+	var4_t* r = sim_data->h_y[0];
+	var4_t* v = sim_data->h_y[1];
+    pp_disk_t::param_t* p = sim_data->h_p;
 
-    for (unsigned int i = 0; i < n; i++)
+    for (uint32_t i = 0; i < n; i++)
     {
 		if (0 > sim_data->h_body_md[i].id)
 		{
 			continue;
 		}
-        for (unsigned int j = 0; j < n; j++)
+        for (uint32_t j = 0; j < n; j++)
         {
             if (i == j)
             {
@@ -646,14 +646,14 @@ var_t calc_potential_energy_CMU(unsigned int n, const sim_data_t *sim_data)
 	return (constants::Gauss2 * result / 2.0);
 }
 
-var_t calc_kinetic_energy(unsigned int n, const sim_data_t *sim_data)
+var_t calc_kinetic_energy(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 {
 	var_t result = 0.0;
 
-	vec_t* v = sim_data->h_y[1];
-    param_t* p = sim_data->h_p;
+	var4_t* v = sim_data->h_y[1];
+    pp_disk_t::param_t* p = sim_data->h_p;
 
-    for (unsigned int i = 0; i < n; i++)
+    for (uint32_t i = 0; i < n; i++)
     {
 		if (0 > sim_data->h_body_md[i].id)
 		{
@@ -665,32 +665,32 @@ var_t calc_kinetic_energy(unsigned int n, const sim_data_t *sim_data)
     return (result / 2.0);
 }
 
-var_t calc_kinetic_energy_CMU(unsigned int n, const sim_data_t *sim_data)
+var_t calc_kinetic_energy_CMU(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 {
 	var_t result = 0.0;
 
-	vec_t* v = sim_data->h_y[1];
-    param_t* p = sim_data->h_p;
+	var4_t* v = sim_data->h_y[1];
+    pp_disk_t::param_t* p = sim_data->h_p;
 
-    for (unsigned int i = 0; i < n; i++)
+    for (uint32_t i = 0; i < n; i++)
     {
 		if (0 > sim_data->h_body_md[i].id)
 		{
 			continue;
 		}
-		vec_t vv = {v[i].x * constants::Gauss, v[i].y * constants::Gauss, v[i].z * constants::Gauss, 0.0};
+		var4_t vv = {v[i].x * constants::Gauss, v[i].y * constants::Gauss, v[i].z * constants::Gauss, 0.0};
         result += p[i].mass * (SQR(vv.x) + SQR(vv.y) + SQR(vv.z));
     }
 
     return (result / 2.0);
 }
 
-var_t calc_total_energy(unsigned int n, const sim_data_t *sim_data)
+var_t calc_total_energy(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 {
     return (calc_kinetic_energy(n, sim_data) - calc_potential_energy(n, sim_data));
 }
 
-var_t calc_total_energy_CMU(unsigned int n, const sim_data_t *sim_data)
+var_t calc_total_energy_CMU(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 {
 	return (calc_kinetic_energy_CMU(n, sim_data) - calc_potential_energy_CMU(n, sim_data));
 }
@@ -731,7 +731,7 @@ void kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E)
 	}
 }
 
-void calc_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec)
+void calc_phase(var_t mu, const orbelem_t* oe, var4_t* rVec, var4_t* vVec)
 {
     var_t ecc = oe->ecc;
 	var_t E = 0.0;
@@ -752,11 +752,11 @@ void calc_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec)
     var_t ci = cos(oe->inc);
     var_t si = sin(oe->inc);
 
-    vec_t P;
+    var4_t P;
 	P.x = cw * cO - sw * sO * ci;
 	P.y = cw * sO + sw * cO * ci;
 	P.z = sw * si;
-    vec_t Q;
+    var4_t Q;
 	Q.x = -sw * cO - cw * sO * ci;
 	Q.y = -sw * sO + cw * cO * ci;
 	Q.z = cw * si;
@@ -770,7 +770,7 @@ void calc_phase(var_t mu, const orbelem_t* oe, vec_t* rVec, vec_t* vVec)
 	vVec->z = vKszi * P.z + vEta * Q.z;
 }
 
-void calc_oe(var_t mu, const vec_t* rVec, const vec_t* vVec, orbelem_t* oe)
+void calc_oe(var_t mu, const var4_t* rVec, const var4_t* vVec, orbelem_t* oe)
 {
     const var_t sq2 = 1.0e-14;
     const var_t sq3 = 1.0e-14;
@@ -785,14 +785,14 @@ void calc_oe(var_t mu, const vec_t* rVec, const vec_t* vVec, orbelem_t* oe)
 		throw string("The Kepler-energy is positive. calc_oe() failed.");
     }
 
-	vec_t cVec;
+	var4_t cVec;
     cVec.x = rVec->y * vVec->z - rVec->z * vVec->y;
     cVec.y = rVec->z * vVec->x - rVec->x * vVec->z;
     cVec.z = rVec->x * vVec->y - rVec->y * vVec->x;
 	cVec.w = 0.0;
 	var_t c_norm = norm(&cVec);
 
-	vec_t lVec;
+	var4_t lVec;
 	lVec.x = -mu / r_norm * rVec->x + vVec->y * cVec.z - vVec->z * cVec.y;
 	lVec.y = -mu / r_norm * rVec->y + vVec->z * cVec.x - vVec->x * cVec.z;
 	lVec.z = -mu / r_norm * rVec->z + vVec->x * cVec.y - vVec->y * cVec.x;
@@ -869,7 +869,7 @@ void calc_oe(var_t mu, const vec_t* rVec, const vec_t* vVec, orbelem_t* oe)
 	oe->mean = M;
 }
 
-void print_vector(const vec_t *v)
+void print_vector(const var4_t *v)
 {
 	static int var_t_w  = 25;
 
@@ -883,7 +883,7 @@ void print_vector(const vec_t *v)
 		 << setw(var_t_w) << v->w << endl;
 }
 
-void print_parameter(const param_t *p)
+void print_parameter(const pp_disk_t::param_t *p)
 {
 	static int var_t_w  = 25;
 
@@ -897,8 +897,24 @@ void print_parameter(const param_t *p)
 		 << setw(var_t_w) << p->cd << endl;
 }
 
-void print_body_metadata(const body_metadata_t *b)
+void print_body_metadata(const pp_disk_t::body_metadata_t *b)
 {
+	static const char* body_type_name[] = 
+	{
+		"STAR",
+		"GIANTPLANET",
+		"ROCKYPLANET",
+		"PROTOPLANET",
+		"SUPERPLANETESIMAL",
+		"PLANETESIMAL",
+		"TESTPARTICLE"
+	};
+	static const char* migration_type_name[] = 
+	{
+		"NO",
+		"TYPE_I",
+		"TYPE_II"
+	};
 	static int var_t_w  = 5;
 
 	cout << setw(var_t_w) << b->id << endl;
@@ -910,8 +926,24 @@ void print_body_metadata(const body_metadata_t *b)
 	cout << setw(var_t_w) << b->mig_stop_at << endl;
 }
 
-void print_body_metadata(const body_metadata_new_t *b)
+void print_body_metadata(const pp_disk_t::body_metadata_new_t *b)
 {
+	static const char* body_type_name[] = 
+	{
+		"STAR",
+		"GIANTPLANET",
+		"ROCKYPLANET",
+		"PROTOPLANET",
+		"SUPERPLANETESIMAL",
+		"PLANETESIMAL",
+		"TESTPARTICLE"
+	};
+	static const char* migration_type_name[] = 
+	{
+		"NO",
+		"TYPE_I",
+		"TYPE_II"
+	};
 	static int var_t_w  = 5;
 
 	cout << setw(var_t_w) << b->id << endl;

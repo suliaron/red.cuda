@@ -88,11 +88,11 @@ namespace ephemeris_major_planets
 	} /* date_ */
 } /* ephemeris */
 
-void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
+void populate_solar_system(body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 {
     ttt_t           epoch   = 2457153.5;
-	param_t	        param   = {0.0, 0.0, 0.0, 0.0};
-	body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
+	pp_disk_t::param_t	        param   = {0.0, 0.0, 0.0, 0.0};
+	pp_disk_t::body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
 	orbelem_t       oe      = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // The id of each body must be larger than 0 in order to indicate inactive body with negative id (ie. zero is not good)
@@ -254,12 +254,12 @@ void populate_solar_system(body_disk_t& disk, sim_data_t *sd)
 	}
 }
 
-void populate_disk(body_disk_t& disk, sim_data_t *sd)
+void populate_disk(body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 {
-    ttt_t epoch             = 0.0;
-	param_t param           = {0.0, 0.0, 0.0, 0.0};
-	body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
-	orbelem_t oe            = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    ttt_t epoch = 0.0;
+	pp_disk_t::param_t param = {0.0, 0.0, 0.0, 0.0};
+	pp_disk_t::body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
+	orbelem_t oe  = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // The id of each body must be larger than 0 in order to indicate inactive body with negative id (ie. zero is not good)
     int bodyIdx = 0;
@@ -315,7 +315,7 @@ namespace set_parameters
 {
 void Chambers2001(nebula& n, body_disk_t& disk)
 {
-	srand((unsigned int)time(NULL));
+	srand((uint32_t)time(NULL));
 
 	const var_t rho_solid = 3.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
@@ -366,7 +366,7 @@ void Chambers2001(nebula& n, body_disk_t& disk)
 
 void solar_system(body_disk_t& disk)
 {
-	srand((unsigned int)time(NULL));
+	srand((uint32_t)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_ROCKYPLANET] = 4;
@@ -423,9 +423,63 @@ void pl_to_test_anal_gd(body_disk_t& disk)
 	}
 }
 
+void coll_stat_run(nebula& n, body_disk_t& disk)
+{
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
+
+	const var_t rhoSilicate = 2.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+
+	disk.nBody[BODY_TYPE_STAR        ] = 1;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 10000;
+
+	int_t nBodies = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[nBodies];
+	disk.stop_at  = new var_t[nBodies];
+
+    int bodyIdx = 0;
+	int type = BODY_TYPE_STAR;
+
+	disk.names.push_back("star");
+	disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), constants::SolarRadiusToAu, constants::SolarRadiusToAu);
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+	disk.stop_at[bodyIdx]  = 0.0;
+
+	type = BODY_TYPE_PROTOPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new power_law_distribution(rand(), n.solid_c.get_r_1(), n.solid_c.get_r_2(), n.solid_c.get_p());
+
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new rayleigh_distribution(rand(), 0.02);
+		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC].x = 0.0;
+		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC].y = 0.2;
+
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0, 1.0);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), rhoSilicate, rhoSilicate);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i + 1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+}
+
 void Dvorak(nebula& n, body_disk_t& disk)
 {
-	srand((unsigned int)time(NULL));
+	srand((uint32_t)time(NULL));
 
 	const var_t rhoBasalt = 2.7 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
@@ -476,7 +530,7 @@ void Dvorak(nebula& n, body_disk_t& disk)
 
 void Hansen_2009(body_disk_t& disk)
 {
-	srand((unsigned int)time(NULL));
+	srand((uint32_t)time(NULL));
 
 	const var_t rhoBasalt = 2.7 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
@@ -546,7 +600,7 @@ void Hansen_2009(body_disk_t& disk)
 
 void Two_body(body_disk_t& disk)
 {
-	srand((unsigned int)time(NULL));
+	srand((uint32_t)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_ROCKYPLANET] = 1;
@@ -592,7 +646,7 @@ void Two_body(body_disk_t& disk)
 
 void n_gp(body_disk_t& disk)
 {
-	srand((unsigned int)time(NULL));
+	srand((uint32_t)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_GIANTPLANET] = 10;
@@ -640,7 +694,7 @@ void n_gp(body_disk_t& disk)
 
 void n_pp(body_disk_t& disk)
 {
-	srand((unsigned int)time(NULL));
+	srand((uint32_t)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_PROTOPLANET] = 500;
@@ -688,7 +742,7 @@ void n_pp(body_disk_t& disk)
 
 void n_spl(body_disk_t& disk)
 {
-	srand((unsigned int)time(NULL));
+	srand((uint32_t)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR             ] = 1;
 	disk.nBody[BODY_TYPE_SUPERPLANETESIMAL] = 10;
@@ -739,7 +793,7 @@ void n_spl(body_disk_t& disk)
 
 void n_pl(body_disk_t& disk)
 {
-	srand((unsigned int)time(NULL));
+	srand((uint32_t)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_PLANETESIMAL] = 10;
@@ -789,7 +843,7 @@ void n_pl(body_disk_t& disk)
 
 void n_tp(body_disk_t& disk)
 {
-	srand((unsigned int)time(NULL));
+	srand((uint32_t)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_TESTPARTICLE] = 10;
@@ -840,7 +894,7 @@ void n_tp(body_disk_t& disk)
 
 void GT_scenario(body_disk_t& disk)
 {
-	srand((unsigned int)time(NULL));
+	srand((uint32_t)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_GIANTPLANET ] = 2;
@@ -912,7 +966,7 @@ void GT_scenario(body_disk_t& disk)
 
 void GT_scenario_mod(body_disk_t& disk)
 {
-	srand((unsigned int)time(NULL));
+	srand((uint32_t)time(NULL));
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_GIANTPLANET ] = 3;
@@ -1047,7 +1101,7 @@ void Chambers2001(string& dir, string& filename)
 
 		set_parameters::Chambers2001(mmsn, disk);
 
-		sim_data_t* sim_data = new sim_data_t;
+		pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 		int nBodies = calc_number_of_bodies(disk);
 		allocate_host_storage(sim_data, nBodies);
 
@@ -1099,8 +1153,8 @@ void Chambers2001(string& dir, string& filename)
 		{
 			// The mass of the central star
 			var_t m0 = sim_data->h_p[0].mass;
-			vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-			vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+			var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+			var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 			// The coordinates of the central star
 			sim_data->h_y[0][0] = rVec;
@@ -1140,7 +1194,7 @@ void Chambers2001(string& dir, string& filename)
 
 	set_parameters::Dvorak(mmsn, disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -1192,8 +1246,117 @@ void Chambers2001(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the central star
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
+		for (int i = 1; i < nBodies; i++)
+		{
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
+		}
+	}
+
+	tools::transform_to_bc(nBodies, false, sim_data);
+
+	string path = file::combine_path(dir, filename) + ".oe.txt";
+	print(path, nBodies, sim_data);
+
+	path = file::combine_path(dir, filename) + ".txt";
+	print(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
+
+void coll_stat_run(string& dir, string& filename)
+{
+	body_disk_t disk;
+
+	initialize(disk);
+
+	// Create a MMSN with gas component and solids component
+	var_t r_1     =   0.5;      /* inner rim of the disk [AU]    */
+	var_t r_2     =   1.5;      /* outer rim of the disk [AU]    */
+	var_t r_SL    =   2.7;      /* distance of the snowline [AU] */
+	var_t f_neb   =   1.0;
+	var_t f_ice   =   4.2;      /* ice condensation coefficient beyond the snowline */
+	var_t Sigma_1 =   7.0;      /* Surface density of solids at r = 1 AU            */
+	var_t f_gas   = 240.0;      /* gas to dust ratio                                */
+	var_t p       =  -3.0/2.0;  /* profile index of the power-law function          */
+
+	Sigma_1 *= constants::GramPerCm2ToSolarPerAu2;
+	gas_component gas_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_gas, p);
+
+	r_1 = 0.5;
+	r_2 = 1.5;
+	solid_component solid_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_ice, p);
+	nebula mmsn(gas_c, solid_c);
+
+	var_t m_gas   = mmsn.gas_c.calc_mass();
+	var_t m_solid = mmsn.solid_c.calc_mass();
+
+	set_parameters::coll_stat_run(mmsn, disk);
+
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
+	uint32_t nBodies = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, nBodies);
+
+	populate_disk(disk, sim_data);
+
+	// Scale the masses in order to get the required mass transform_mass()
+	{
+		uint32_t n_pp = calc_number_of_bodies(disk, BODY_TYPE_PROTOPLANET);
+		var_t m_pp = m_solid / n_pp;
+		for (int i = 0; i < nBodies; i++)
+		{
+			// Only the masses of the protoplanets will be scaled
+			if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
+			{
+				sim_data->h_p[i].mass = m_pp;
+			}
+		}
+		var_t m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+		if (fabs(m_total_pp - m_solid) > 1.0e-15)
+		{
+			cerr << "The required mass was not reached." << endl;
+			exit(0);
+		}
+	}
+
+	// Computes the physical quantities with the new mass
+	{
+		int bodyIdx = 0;
+		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
+		{
+			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			{
+				if (0.0 < sim_data->h_p[bodyIdx].mass)
+				{
+					if (disk.pp_d[type].item[DENSITY] == 0x0 && disk.pp_d[type].item[RADIUS] != 0x0)
+					{
+						sim_data->h_p[bodyIdx].density = tools::calc_density(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].radius);
+					}
+					if (disk.pp_d[type].item[RADIUS] == 0x0 && disk.pp_d[type].item[DENSITY] != 0x0)
+					{
+						sim_data->h_p[bodyIdx].radius = tools::calc_radius(sim_data->h_p[bodyIdx].mass, sim_data->h_p[bodyIdx].density);
+					}
+				}
+			}
+		}
+	}
+
+	// Calculate coordinates and velocities
+	{
+		// The mass of the central star
+		var_t m0    = sim_data->h_p[0].mass;
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -1249,7 +1412,7 @@ void Dvorak(string& dir, string& filename)
 
 	set_parameters::Dvorak(mmsn, disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -1301,8 +1464,8 @@ void Dvorak(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -1335,7 +1498,7 @@ void Hansen_2009(string& dir, string& filename)
 
 	set_parameters::Hansen_2009(disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -1345,8 +1508,8 @@ void Hansen_2009(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -1399,7 +1562,7 @@ void GT_scenario(string& dir, string& filename)
 	initialize(disk);
 	set_parameters::GT_scenario(disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -1451,8 +1614,8 @@ void GT_scenario(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -1512,7 +1675,7 @@ void GT_scenario_mod(string& dir, string& filename)
 	initialize(disk);
 	set_parameters::GT_scenario_mod(disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -1564,8 +1727,8 @@ void GT_scenario_mod(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -1634,7 +1797,7 @@ void two_body(string& dir, string& filename)
 
 	set_parameters::Two_body(disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -1644,8 +1807,8 @@ void two_body(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -1680,7 +1843,7 @@ void n_gp(string& dir, string& filename)
 
 	set_parameters::n_gp(disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -1712,8 +1875,8 @@ void n_gp(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -1755,7 +1918,7 @@ void n_pp(string& dir, string& filename)
 
 	set_parameters::n_pp(disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -1787,8 +1950,8 @@ void n_pp(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -1829,7 +1992,7 @@ void n_spl(string& dir, string& filename)
 
 	set_parameters::n_spl(disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -1839,8 +2002,8 @@ void n_spl(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -1875,7 +2038,7 @@ void n_pl(string& dir, string& filename)
 
 	set_parameters::n_pl(disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -1907,8 +2070,8 @@ void n_pl(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -1943,7 +2106,7 @@ void n_tp(string& dir, string& filename)
 
 	set_parameters::n_tp(disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -1953,8 +2116,8 @@ void n_tp(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -1987,7 +2150,7 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 
 	set_parameters::pl_to_test_anal_gd(disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -1997,8 +2160,8 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -2034,7 +2197,7 @@ void solar_system(string& dir, string& filename)
 
 	set_parameters::solar_system(disk);
 
-	sim_data_t* sim_data = new sim_data_t;
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	int nBodies = calc_number_of_bodies(disk);
 	allocate_host_storage(sim_data, nBodies);
 
@@ -2044,8 +2207,8 @@ void solar_system(string& dir, string& filename)
 	{
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
-		vec_t rVec = {0.0, 0.0, 0.0, 0.0};
-		vec_t vVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
@@ -2080,7 +2243,7 @@ void create_init_cond(string& out_dir)
 {
 	char buffer[4];
 	// Iterates over the different initial seed
-	for (unsigned int j = 0; j < 10; j++)
+	for (uint32_t j = 0; j < 10; j++)
 	{
 		sprintf(buffer, "%02d", j+1);
 		string postfix(buffer);
@@ -2092,6 +2255,25 @@ void create_init_cond(string& out_dir)
 	}
 }
 } /* project_collision_2D */
+
+namespace project_collision_Rezso_2D
+{
+void create_init_cond(string& out_dir)
+{
+	char buffer[4];
+	// Iterates over the different initial seed
+	for (uint32_t j = 0; j < 1; j++)
+	{
+		sprintf(buffer, "%02d", j+1);
+		string postfix(buffer);
+		string filename = "input_" + postfix;
+		
+		create_disk::coll_stat_run(out_dir, filename);
+		// This is needed to initialize the built-in random number generator with a new seed
+		delay(1600);
+	}
+}
+} /* project_collision_Rezso_2D */
 
 int parse_options(int argc, const char **argv, string &outDir, string &filename)
 {
@@ -2136,6 +2318,14 @@ int main(int argc, const char **argv)
 	{
 		string out_dir = "C:\\Work\\red.cuda.Results\\CollisionStatistics\\2D";
 		project_collision_2D::create_init_cond(out_dir);
+		return (EXIT_SUCCESS);
+	}
+#endif	
+
+#if 1
+	{
+		string out_dir = "C:\\Work\\red.cuda.Results\\CollStatRezso\\2D";
+		project_collision_Rezso_2D::create_init_cond(out_dir);
 		return (EXIT_SUCCESS);
 	}
 #endif	

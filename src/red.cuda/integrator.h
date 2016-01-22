@@ -1,19 +1,16 @@
 #pragma once
 
-// includes system
 #include <string>
 #include <vector>
 
-// includes project
 #include "pp_disk.h"
-#include "red_type.h"
 
-using namespace std;
+#include "red_type.h"
 
 class integrator
 {
 public:
-	integrator(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, int r_max, computing_device_t comp_dev);
+	integrator(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, int n_stage, computing_device_t comp_dev);
 	~integrator();
 
 	//! Set the computing device to calculate the integration step
@@ -31,12 +28,11 @@ public:
 	virtual ttt_t step() = 0;
 
 	bool error_check_for_tp;	//!< Check the error also for the test particles
-	string name;
-	string short_name;
+	std::string name;
 
 protected:
 	void calc_grid(int nData, int threads_per_block);
-	var_t get_max_error(int n_var, var_t lambda);
+	var_t get_max_error(uint32_t n_var);
 
 	pp_disk* ppd;
 
@@ -50,22 +46,22 @@ protected:
 	ttt_t dt_did;                       //!< The size of the previous successfull step
 	ttt_t dt_next;                      //!< The size of the next step to try (based on the previous successfull step dt_did)
 
-	uint64_t n_failed_step;
-	uint64_t n_passed_step;
 	uint64_t n_tried_step;
+	uint64_t n_passed_step;
+	uint64_t n_failed_step;
 
 	int	order;                          //!< The order of the embedded RK formulae
-	int	r_max;                          //!< The maximum number of the force calculation
+	int	n_stage;                          //!< The maximum number of the force calculation
 	bool adaptive;                      //!< True if the method estimates the error and accordingly adjusts the step-size	
 	var_t tolerance;                    //!< The maximum of the allowed local truncation error
 
-	vector<vector <vec_t*> > h_dydx;    //!< Differentials in the HOST memory
-	vector<vector <vec_t*> > d_dydx;    //!< Differentials in the DEVICE memory
-	vector<vector <vec_t*> > dydx;      //!< Alias to the differentials (either in the HOST or the DEVICE memory)
+	vector<vector <var4_t*> > h_dydx;    //!< Differentials in the HOST memory
+	vector<vector <var4_t*> > d_dydx;    //!< Differentials in the DEVICE memory
+	vector<vector <var4_t*> > dydx;      //!< Alias to the differentials (either in the HOST or the DEVICE memory)
 
-	vector<vec_t*> h_ytemp;	            //!< Holds the temporary solution approximation along the step in the HOST memory
-	vector<vec_t*> d_ytemp;	            //!< Holds the temporary solution approximation along the step in the DEVICE memory
-	vector<vec_t*> ytemp;	            //!< Alias either to h_ytemp or d_ytemp depending on the executing processing unit
+	vector<var4_t*> h_ytemp;	            //!< Holds the temporary solution approximation along the step in the HOST memory
+	vector<var4_t*> d_ytemp;	            //!< Holds the temporary solution approximation along the step in the DEVICE memory
+	vector<var4_t*> ytemp;	            //!< Alias either to h_ytemp or d_ytemp depending on the executing processing unit
 
 	vector<var_t*> h_err;	            //!< Holds the leading local truncation error for each variable in HOST memory
 	vector<var_t*> d_err;	            //!< Holds the leading local truncation error for each variable in DEVICE memory

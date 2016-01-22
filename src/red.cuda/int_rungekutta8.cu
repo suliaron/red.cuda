@@ -253,7 +253,7 @@ static __global__
 
 	while (n > tid)
 	{
-		err[tid] = (f0[tid] + f10[tid] - f11[tid] - f12[tid]);
+		err[tid] = fabs(f0[tid] + f10[tid] - f11[tid] - f12[tid]);
 		tid += stride;
 	}
 }
@@ -386,7 +386,7 @@ void rungekutta8::cpu_calc_error(int_t n, var_t *err, const var_t *f0, const var
 {
 	for (int tid = 0; tid < n; tid++)
 	{
-		err[tid] = (f0[tid] + f10[tid] - f11[tid] - f12[tid]);
+		err[tid] = fabs(f0[tid] + f10[tid] - f11[tid] - f12[tid]);
 	}
 }
 
@@ -403,15 +403,12 @@ void rungekutta8::cpu_calc_y_np1(int_t n, var_t *y_np1, ttt_t dt, const var_t *y
 rungekutta8::rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, computing_device_t comp_dev) :
 	integrator(ppd, dt, adaptive, tolerance, (adaptive ? 13 : 11), comp_dev)
 {
-	name = "Runge-Kutta-Fehlberg8";
-	short_name = "RKF8";
-
+	name  = "Runge-Kutta-Fehlberg8";
 	order = 7;
 }
 
 rungekutta8::~rungekutta8()
-{
-}
+{}
 
 void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 {
@@ -636,8 +633,8 @@ void rungekutta8::calc_y_np1(int n_var)
 
 ttt_t rungekutta8::step()
 {
-	const int n_body_total = ppd->n_bodies->get_n_total_playing();
-	const int n_var_total = NDIM * n_body_total;
+	const uint32_t n_body_total = ppd->n_bodies->get_n_total_playing();
+	const uint32_t n_var_total = NDIM * n_body_total;
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
@@ -649,8 +646,8 @@ ttt_t rungekutta8::step()
 	int r = 0;
 	ttt_t ttemp = ppd->t + c[r] * dt_try;
 	// Calculate f1 = f(tn, yn) = dydx[][0]
-	const vec_t *coor = ppd->sim_data->y[0];
-	const vec_t *velo = ppd->sim_data->y[1];
+	const var4_t *coor = ppd->sim_data->y[0];
+	const var4_t *velo = ppd->sim_data->y[1];
 	for (int i = 0; i < 2; i++)
 	{
 		ppd->calc_dydx(i, r, ttemp, coor, velo, dydx[i][r]);
@@ -681,7 +678,7 @@ ttt_t rungekutta8::step()
 		{
 			// Calculate f11 = f(tn + c11 * dt, yn + ...) = dydx[][11]
 			// Calculate f12 = f(tn + c11 * dt, yn + ...) = dydx[][12]
-			for (r = 11; r < r_max; r++)
+			for (r = 11; r < n_stage; r++)
 			{
 				ttemp = ppd->t + c[r] * dt_try;
 				calc_ytemp_for_fr(n_var_total, r);
@@ -692,8 +689,9 @@ ttt_t rungekutta8::step()
 			}
 
 			int n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_massive());
+			// Calculate the absolute values of the errors
 			calc_error(n_var);
-			max_err = get_max_error(n_var, LAMBDA);
+			max_err = dt_try * LAMBDA * get_max_error(n_var);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
 		}
 		iter++;
@@ -758,7 +756,7 @@ static __global__
 
 	if (tid < n)
 	{
-		err[tid] = (f0[tid] + f10[tid] - f11[tid] - f12[tid]);
+		err[tid] = fabs(f0[tid] + f10[tid] - f11[tid] - f12[tid]);
 	}
 }
 } /* c_rk8_kernel */
@@ -767,9 +765,7 @@ static __global__
 c_rungekutta8::c_rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, computing_device_t comp_dev) :
 	integrator(ppd, dt, adaptive, tolerance, (adaptive ? 13 : 11), comp_dev)
 {
-	name = "c_Runge-Kutta-Fehlberg8";
-	short_name = "cRKF8";
-
+	name  = "c_Runge-Kutta-Fehlberg8";
 	order = 7;
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
@@ -782,8 +778,7 @@ c_rungekutta8::c_rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolera
 }
 
 c_rungekutta8::~c_rungekutta8()
-{
-}
+{}
 
 void c_rungekutta8::call_kernel_calc_ytemp(int n_var, int r)
 {
@@ -795,7 +790,7 @@ void c_rungekutta8::call_kernel_calc_ytemp(int n_var, int r)
 		var_t** dydt = (var_t**)d_dydt;
 		var_t* ytmp = (var_t*)ytemp[i];
 
-		c_rk8_kernel::calc_ytemp<<<grid, block>>>(n_var, r, idx_array[r], i*r_max, dt_try, y_n, dydt, ytmp);
+		c_rk8_kernel::calc_ytemp<<<grid, block>>>(n_var, r, idx_array[r], i*n_stage, dt_try, y_n, dydt, ytmp);
 		CUDA_CHECK_ERROR();
 	}
 }
@@ -822,15 +817,15 @@ void c_rungekutta8::call_kernel_calc_y_np1(int n_var)
 		var_t** dydt = (var_t**)d_dydt;
 		var_t* y_np1 = (var_t*)ppd->sim_data->yout[i];
 
-		c_rk8_kernel::calc_y_np1<<<grid, block>>>(n_var, i*r_max, dt_try, y_n, dydt, y_np1);
+		c_rk8_kernel::calc_y_np1<<<grid, block>>>(n_var, i*n_stage, dt_try, y_n, dydt, y_np1);
 		CUDA_CHECK_ERROR();
 	}
 }
 
 ttt_t c_rungekutta8::step()
 {
-	const int n_body_total = ppd->n_bodies->get_n_total_playing();
-	const int n_var_total = NDIM * n_body_total;
+	const uint32_t n_body_total = ppd->n_bodies->get_n_total_playing();
+	const uint32_t n_var_total = NDIM * n_body_total;
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
@@ -839,14 +834,14 @@ ttt_t c_rungekutta8::step()
 	}
 
 	// Calculate initial differentials and store them into dydx[][0]
-	int r = 0;
-	ttt_t ttemp = ppd->t + c[r] * dt_try;
+	int stage = 0;
+	ttt_t ttemp = ppd->t + c[stage] * dt_try;
 	// Calculate f1 = f(tn, yn) = dydx[][0]
-	const vec_t *coor = ppd->sim_data->y[0];
-	const vec_t *velo = ppd->sim_data->y[1];
+	const var4_t *coor = ppd->sim_data->y[0];
+	const var4_t *velo = ppd->sim_data->y[1];
 	for (int i = 0; i < 2; i++)
 	{
-		ppd->calc_dydx(i, r, ttemp, coor, velo, dydx[i][r]);
+		ppd->calc_dydx(i, stage, ttemp, coor, velo, dydx[i][stage]);
 	}
 
 	var_t max_err = 0.0;
@@ -857,14 +852,14 @@ ttt_t c_rungekutta8::step()
 		// Calculate f2 = f(tn + c1 * dt, yn + a10 * dt * f0) = dydx[][1]
 		// ...
 		// Calculate f11 = f(tn + c10 * dt, yn + a10,0 * dt * f0 + ...) = dydx[][10]
-		for (r = 1; r <= 10; r++)
+		for (stage = 1; stage <= 10; stage++)
 		{
-			ttemp = ppd->t + c[r] * dt_try;
-			call_kernel_calc_ytemp(n_var_total, r);
+			ttemp = ppd->t + c[stage] * dt_try;
+			call_kernel_calc_ytemp(n_var_total, stage);
 
 			for (int i = 0; i < 2; i++)
 			{
-				ppd->calc_dydx(i, r, ttemp, ytemp[0], ytemp[1], dydx[i][r]);
+				ppd->calc_dydx(i, stage, ttemp, ytemp[0], ytemp[1], dydx[i][stage]);
 			}
 		}
 	
@@ -875,19 +870,20 @@ ttt_t c_rungekutta8::step()
 		{
 			// Calculate f11 = f(tn + c11 * dt, yn + ...) = dydx[][11]
 			// Calculate f12 = f(tn + c11 * dt, yn + ...) = dydx[][12]
-			for (r = 11; r < r_max; r++)
+			for (stage = 11; stage < n_stage; stage++)
 			{
-				ttemp = ppd->t + c[r] * dt_try;
-				call_kernel_calc_ytemp(n_var_total, r);
+				ttemp = ppd->t + c[stage] * dt_try;
+				call_kernel_calc_ytemp(n_var_total, stage);
 				for (int i = 0; i < 2; i++)
 				{
-					ppd->calc_dydx(i, r, ttemp, ytemp[0], ytemp[1], dydx[i][r]);
+					ppd->calc_dydx(i, stage, ttemp, ytemp[0], ytemp[1], dydx[i][stage]);
 				}
 			}
 
 			int n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_total_playing() : ppd->n_bodies->get_n_massive());
+			// Calculate the absolute values of the errors
 			call_kernel_calc_error(n_var);
-			max_err = get_max_error(n_var, LAMBDA);
+			max_err = dt_try * LAMBDA * get_max_error(n_var);
 			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
 		}
 		iter++;

@@ -15,6 +15,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red.cuda.benchmark", "src\r
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "regnb", "src\regnb\regnb.vcxproj", "{1AEA53D3-E9B8-4183-B769-4E81CA858ED4}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "red_v2", "src\red_v2\red_v2.vcxproj", "{8923234E-297E-414A-B54D-BDF537F9105F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -78,6 +80,14 @@ Global
 		{1AEA53D3-E9B8-4183-B769-4E81CA858ED4}.Release|Win32.Build.0 = Release|Win32
 		{1AEA53D3-E9B8-4183-B769-4E81CA858ED4}.Release|x64.ActiveCfg = Release|x64
 		{1AEA53D3-E9B8-4183-B769-4E81CA858ED4}.Release|x64.Build.0 = Release|x64
+		{8923234E-297E-414A-B54D-BDF537F9105F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8923234E-297E-414A-B54D-BDF537F9105F}.Debug|Win32.Build.0 = Debug|Win32
+		{8923234E-297E-414A-B54D-BDF537F9105F}.Debug|x64.ActiveCfg = Debug|x64
+		{8923234E-297E-414A-B54D-BDF537F9105F}.Debug|x64.Build.0 = Debug|x64
+		{8923234E-297E-414A-B54D-BDF537F9105F}.Release|Win32.ActiveCfg = Release|Win32
+		{8923234E-297E-414A-B54D-BDF537F9105F}.Release|Win32.Build.0 = Release|Win32
+		{8923234E-297E-414A-B54D-BDF537F9105F}.Release|x64.ActiveCfg = Release|x64
+		{8923234E-297E-414A-B54D-BDF537F9105F}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

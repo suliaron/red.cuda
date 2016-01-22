@@ -2,8 +2,13 @@
 #include <iostream>
 
 // includes project
+#include "int_rungekutta8.h"
 #include "options.h"
 #include "parameter.h"
+
+#include "redutilcu.h"
+
+using namespace redutilcu;
 
 options::options(int argc, const char** argv) :
 	param(0x0)
@@ -20,8 +25,28 @@ options::~options()
 
 void options::create_default()
 {
+	continue_simulation = false;
 	verbose             = false;
 	print_to_screen     = false;
+	ef                  = false;
+
+	info_dt             = 5.0;     // [sec]
+	dump_dt             = 3600.0;  // [sec]
+
+	id_dev              = 0;
+	n_change_to_cpu     = 100;
+
+	comp_dev            = COMPUTING_DEVICE_CPU;
+	g_disk_model        = GAS_DISK_MODEL_NONE;
+
+	out_fn[OUTPUT_NAME_DUMP]           = "dump";
+	out_fn[OUTPUT_NAME_DUMP_AUX]       = "dump.aux";
+	out_fn[OUTPUT_NAME_EVENT]          = "event";
+	out_fn[OUTPUT_NAME_INFO]           = "info";
+	out_fn[OUTPUT_NAME_LOG]            = "log";
+	out_fn[OUTPUT_NAME_RESULT]         = "result";
+	out_fn[OUTPUT_NAME_INTEGRAL]       = "integral";
+	out_fn[OUTPUT_NAME_INTEGRAL_EVENT] = "integral_event";
 }
 
 void options::parse(int argc, const char** argv)
@@ -34,12 +59,157 @@ void options::parse(int argc, const char** argv)
 
 		if (     p == "--continue" || p == "-c")
 		{
+			continue_simulation = true;
 		}
-		else if (p == "--benchmark" || p == "-b")
+		//else if (p == "--benchmark" || p == "-b")
+		//{
+		//	benchmark = true;
+		//}
+		//else if (p == "--test" || p == "-t")
+		//{
+		//	test = true;
+		//}
+		else if (p == "--verbose" || p == "-v")
 		{
+			verbose = true;
 		}
-		else if (p == "--test" || p == "-t")
+		else if (p == "--print_to_screen" || p == "-pts")
 		{
+			verbose = true;
+			print_to_screen = true;
+		}
+		else if (p == "-ef")
+		{
+			ef = true;
+		}
+
+		else if (p == "--info-dt" || p == "-i_dt")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			info_dt = atof(argv[i]);
+		}
+		else if (p == "--dump-dt" || p == "-d_dt")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			dump_dt = atof(argv[i]);
+		}
+
+		else if (p == "--id_active_device" || p == "-id_dev")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			id_dev = atoi(argv[i]);
+		}
+		else if (p == "--n_change_to_cpu" || p == "-n_chg")
+		{
+			i++;
+			if (!tools::is_number(argv[i])) 
+			{
+				throw string("Invalid number at: " + p);
+			}
+			n_change_to_cpu = atoi(argv[i]);
+		}
+
+		else if (p == "--cpu" || p == "-cpu")
+		{
+			comp_dev = COMPUTING_DEVICE_CPU;
+		}
+		else if (p == "--gpu" || p == "-gpu")
+		{
+			comp_dev = COMPUTING_DEVICE_GPU;
+		}
+		//else if (p == "--analytic_gas_disk" || p == "-ga")
+		//{
+		//	i++;
+		//	in_fn[INPUT_NAME_GAS_DISK_MODEL] = argv[i];
+		//	g_disk_model = GAS_DISK_MODEL_ANALYTIC;
+		//}
+		//else if (p == "--fargo_gas_disk" || p == "-gf")
+		//{
+		//	i++;
+		//	in_fn[INPUT_NAME_GAS_DISK_MODEL] = argv[i];
+		//	g_disk_model = GAS_DISK_MODEL_FARGO;
+		//}
+
+		else if (p == "--info-filename" || p == "-info")
+		{
+			i++;
+			out_fn[OUTPUT_NAME_INFO] = argv[i];
+		}
+		else if (p == "--event-filename" || p == "-event")
+		{
+			i++;
+			out_fn[OUTPUT_NAME_EVENT] = argv[i];
+		}
+		else if (p == "--log-filename" || p == "-log")
+		{
+			i++;
+			out_fn[OUTPUT_NAME_LOG] = argv[i];
+		}
+		else if (p == "--result-filename" || p == "-result")
+		{
+			i++;
+			out_fn[OUTPUT_NAME_RESULT] = argv[i];
+		}
+
+
+
+		else if (p == "--initial_conditions" || p == "-ic")
+		{
+			i++;
+			in_fn[INPUT_NAME_BODYLIST] = argv[i];
+		}
+
+		else if (p =="--parameters" || p == "-p")
+		{
+			i++;
+			in_fn[INPUT_NAME_PARAMETER] = argv[i];
+		}
+
+		else if (p == "--inputDir" || p == "-iDir")
+		{
+			i++;
+			dir[DIRECTORY_NAME_IN] = argv[i];
+		}
+		else if (p == "--outputDir" || p == "-oDir")
+		{
+			i++;
+			dir[DIRECTORY_NAME_OUT] = argv[i];
+		}
+
+		//else if (p == "--number-of-bodies"   || p == "-nb")
+		//{
+		//	int n_st  = 0;
+		//	int n_gp  = 0;
+		//	int n_rp  = 0;
+		//	int n_pp  = 0;
+		//	int n_spl = 0;
+		//	int n_pl  = 0;
+		//	int n_tp  = 0;
+		//	i++;    n_st  = atoi(argv[i]);
+		//	i++;    n_gp  = atoi(argv[i]);
+		//	i++;    n_rp  = atoi(argv[i]);
+		//	i++;    n_pp  = atoi(argv[i]);
+		//	i++;    n_spl = atoi(argv[i]);
+		//	i++;    n_pl  = atoi(argv[i]);
+		//	i++;    n_tp  = atoi(argv[i]);
+		//	n_bodies = new number_of_bodies(n_st, n_gp, n_rp, n_pp, n_spl, n_pl, n_tp);
+		//}
+		else if (p == "--help" || p == "-h")
+		{
+			print_usage();
+			exit(EXIT_SUCCESS);
 		}
 		else
 		{
@@ -52,6 +222,52 @@ void options::parse(int argc, const char** argv)
 	{
 		dir[DIRECTORY_NAME_OUT] = dir[DIRECTORY_NAME_IN];
 	}
+}
+
+nbody* options::create_nbody()
+{
+	nbody* nbd = 0x0;
+
+	string path = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_BODYLIST]);
+	nbd = new nbody(path, continue_simulation, g_disk_model, param->cdm, id_dev, comp_dev, param->threshold, print_to_screen);
+	nbd->t = (continue_simulation ? nbd->sim_data->h_epoch[0] : param->start_time);
+
+	return nbd;
+}
+
+integrator* options::create_integrator(nbody* nbd, ttt_t dt)
+{
+	integrator* intgr = 0x0;
+
+	switch (param->int_type)
+	{
+	case INTEGRATOR_EULER:
+		throw string("Requested integrator is not implemented.");
+		break;
+	case INTEGRATOR_RUNGEKUTTA2:
+		throw string("Requested integrator is not implemented.");
+		break;
+	case INTEGRATOR_RUNGEKUTTA4:
+		throw string("Requested integrator is not implemented.");
+		break;
+	case INTEGRATOR_RUNGEKUTTAFEHLBERG78:
+		intgr = new rungekutta8(nbd, dt, param->adaptive, param->tolerance, comp_dev);
+		//intgr = new c_rungekutta8(ppd, dt, param->adaptive, param->tolerance);
+		break;
+	case INTEGRATOR_RUNGEKUTTANYSTROM:
+		throw string("Requested integrator is not implemented.");
+		//intgr = new rungekuttanystrom<9>(*f, dt, adaptive, tolerance, comp_dev);
+		break;
+	default:
+		throw string("Requested integrator is not implemented.");
+	}
+
+	if (param->error_check_for_tp)
+	{
+		intgr->error_check_for_tp = true;
+	}
+
+	return intgr;
 }
 
 void options::print_usage()
@@ -81,7 +297,7 @@ void options::print_usage()
 	cout << "     -result | --result-filename <filename>   : the name of the file where the simlation data for a time instance will be stored (default value is result.txt)" << endl;
 
 	cout << "     -iDir   | --inputDir <directory>         : the directory containing the input files"  << endl;
-	cout << "     -pDir   | --printDir <directory>         : the directory where the output files will be stored (if omitted the input directory will be used)" << endl;
+	cout << "     -oDir   | --outputDir <directory>         : the directory where the output files will be stored (if omitted the input directory will be used)" << endl;
 	cout << "     -p      | --parameter <filename>         : the file containing the parameters of the simulation"  << endl;
 	cout << "     -ga     | --analytic_gas_disk <filename> : the file containing the parameters of an analyticaly prescribed gas disk"  << endl;
 	cout << "     -gf     | --fargo_gas_disk <filename>    : the file containing the details of the gas disk resulted from FARGO simulations"  << endl;

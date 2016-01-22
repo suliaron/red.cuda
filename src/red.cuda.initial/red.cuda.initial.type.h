@@ -46,7 +46,7 @@ typedef struct phys_prop_dist
 typedef struct body_disk
 		{
 			vector<string>		names;
-			int_t				nBody[BODY_TYPE_N];
+			uint32_t			nBody[BODY_TYPE_N];
 			oe_dist_t			oe_d[BODY_TYPE_N];
 			phys_prop_dist_t	pp_d[BODY_TYPE_N];
 			migration_type_t	*mig_type;
@@ -54,15 +54,15 @@ typedef struct body_disk
 
 			body_disk()
 			{
-				for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
+				for (uint16_t type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 				{
 					nBody[type] = 0;
-					for (int i = 0; i < ORBITAL_ELEMENT_N; i++) 
+					for (uint16_t i = 0; i < ORBITAL_ELEMENT_N; i++) 
 					{
 						oe_d[type].range[i].x = oe_d[type].range[i].y = 0.0;
 						oe_d[type].item[i] = 0x0;
 					}
-					for (int i = 0; i < 4; i++) 
+					for (uint16_t i = 0; i < 4; i++) 
 					{
 						pp_d[type].range[i].x = pp_d[type].range[i].y = 0.0;
 						pp_d[type].item[i] = 0x0;

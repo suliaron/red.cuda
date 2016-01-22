@@ -1,18 +1,15 @@
 #pragma once
-// includes system
+
 #include <string>
 #include <vector>
 
-// includes project
 #include "red_type.h"
-
-using namespace std;
 
 class analytic_gas_disk
 {
 public:
 
-	analytic_gas_disk(string& dir, string& filename, bool verbose);
+	analytic_gas_disk(std::string& dir, std::string& filename, bool verbose);
 	~analytic_gas_disk();
 
 	//! Calculate the mean free path length and temperature profile
@@ -21,8 +18,8 @@ public:
 	*/
 	void calc(var_t	m_star);
 
-	string name;
-	string desc;
+	std::string name;
+	std::string desc;
 	analytic_gas_disk_params_t params;
 	
 	// Input/Output streams
@@ -31,13 +28,13 @@ public:
 private:
 	void initialize();
 	void parse();
-	void set_param(string& key, string& value);
+	void set_param(std::string& key, std::string& value);
 	void transform_data();
 	void transform_time();
 	void transform_velocity();
 
 	bool verbose;
-	string dir;
-	string filename;
-	string data;  //!< holds a copy of the file containing the parameters of the simulation
+	std::string dir;
+	std::string filename;
+	std::string data;  //!< holds a copy of the file containing the parameters of the simulation
 };

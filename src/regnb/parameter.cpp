@@ -47,7 +47,7 @@ void parameter::create_default()
 	simulation_length  = 0.0;		// [day]
 	output_interval    = 0.0;		// [day]
 
-	cdm                = COLLISION_DETECTION_MODEL_SUB_STEP;
+	cdm                = COLLISION_DETECTION_MODEL_STEP;
 
 	memset(threshold, 0, THRESHOLD_N * sizeof(var_t));
 }

@@ -5,16 +5,14 @@
 #include <exception>
 #include <string>
 
-using namespace std;
-
-class nbody_exception : public exception
+class nbody_exception : public std::exception
 {
 private:
-	string message;
+	std::string message;
 	cudaError_t cuda_error;
 public:
-	nbody_exception(string message);
-	nbody_exception(string message, cudaError_t cuda_error);
+	nbody_exception(std::string message);
+	nbody_exception(std::string message, cudaError_t cuda_error);
 	~nbody_exception() throw();
 
 	const char* what() const throw();

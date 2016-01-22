@@ -49,15 +49,29 @@ void initialize(body_disk &disk)
 	disk.stop_at  = 0x0;
 }
 
-int	calc_number_of_bodies(body_disk &bd)
+uint32_t calc_number_of_bodies(body_disk &bd)
 {
-	int_t result = 0;
-	for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)
+	uint32_t result = 0;
+	for (uint16_t body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)
 	{
 		result += bd.nBody[body_type];
 	}
 	return result;
 }
+
+uint32_t calc_number_of_bodies(body_disk &bd, body_type_t bt)
+{
+	uint32_t result = 0;
+	for (uint16_t body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)
+	{
+		if (bt == body_type)
+		{
+			result += bd.nBody[body_type];
+		}
+	}
+	return result;
+}
+
 
 void generate_oe(orbelem_name_t name, oe_dist_t *oe_d, var_t* oe)
 {
@@ -133,7 +147,7 @@ void generate_pp(phys_prop_name_t name, phys_prop_dist_t* pp_d, var_t* value)
 	} while (dx > 0.0 && x_min > *value && x_max < *value);
 }
 
-void generate_pp(phys_prop_dist_t *pp_d, param_t& param)
+void generate_pp(phys_prop_dist_t *pp_d, pp_disk_t::param_t& param)
 {
 	param.mass = param.radius = param.density = param.cd = 0.0;
 
@@ -155,7 +169,7 @@ void generate_pp(phys_prop_dist_t *pp_d, param_t& param)
 	}
 }
 
-void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t format)
+void print(string &path, body_disk_t& disk, pp_disk_t::sim_data_t* sd, input_format_name_t format)
 {
 	printf("Writing %s to disk .", path.c_str());
 
@@ -241,7 +255,7 @@ void print(string &path, body_disk_t& disk, sim_data_t* sd, input_format_name_t 
 	}
 }
 
-void print(string &path, int n, sim_data_t *sd)
+void print(string &path, int n, pp_disk_t::sim_data_t *sd)
 {
 	ofstream	output(path.c_str(), ios_base::out);
 	if (output)

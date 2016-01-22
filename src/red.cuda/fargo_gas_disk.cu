@@ -227,7 +227,7 @@ void fargo_gas_disk::load_used_rad(string& path, size_t)
 	file::load_ascii_file(path, result);
 
 	int m = 0;
-	for (unsigned int i = 0; i < result.length(); i++)
+	for (uint32_t i = 0; i < result.length(); i++)
 	{
 		string num;
 		num.resize(30);
@@ -272,14 +272,14 @@ void fargo_gas_disk::transform_density()
 	throw string("fargo_gas_disk::transform_density() is not yet implemented.");
 }
 
-vec_t fargo_gas_disk::get_velocity(vec_t rVec)
+var4_t fargo_gas_disk::get_velocity(var4_t rVec)
 {
-	vec_t v_gas = {0.0, 0.0, 0.0, 0.0};
+	var4_t v_gas = {0.0, 0.0, 0.0, 0.0};
 
 	return v_gas;
 }
 
-var_t fargo_gas_disk::get_density(vec_t r)
+var_t fargo_gas_disk::get_density(var4_t r)
 {
 	var_t result = 0.0;
 

@@ -44,15 +44,12 @@ void euler::cpu_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor
 euler::euler(pp_disk *ppd, ttt_t dt, computing_device_t comp_dev) :
 	integrator(ppd, dt, false, 0.0, 1, comp_dev)
 {
-	name = "Euler";
-	short_name = "E";
-
+	name  = "Euler";
 	order = 1;
 }
 
 euler::~euler()
-{
-}
+{}
 
 void euler::calc_y_np1(int n_var)
 {
@@ -76,8 +73,8 @@ void euler::calc_y_np1(int n_var)
 
 ttt_t euler::step()
 {
-	const int n_body_total = ppd->n_bodies->get_n_total_playing();
-	const int n_var_total = NDIM * n_body_total;
+	const uint32_t n_body_total = ppd->n_bodies->get_n_total_playing();
+	const uint32_t n_var_total = NDIM * n_body_total;
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
@@ -87,8 +84,8 @@ ttt_t euler::step()
 
 	t = ppd->t;
 	// Calculate initial differentials and store them into dydx
-	const vec_t *coor = ppd->sim_data->y[0];
-	const vec_t *velo = ppd->sim_data->y[1];
+	const var4_t *coor = ppd->sim_data->y[0];
+	const var4_t *velo = ppd->sim_data->y[1];
 
 	for (int i = 0; i < 2; i++)
 	{

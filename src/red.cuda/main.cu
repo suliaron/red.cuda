@@ -17,6 +17,7 @@
 #include "integrator.h"
 #include "options.h"
 #include "parameter.h"
+#include "pp_disk.h"
 #include "test.h"
 
 #include "red_type.h"
@@ -28,6 +29,16 @@ using namespace redutilcu;
 
 string create_prefix(const options& opt)
 {
+	static const char* integrator_type_short_name[] = 
+	{
+				"E",
+				"RK2",
+				"RK4",
+				"RK5",
+				"RKF8",
+				"RKN"
+	};
+
 	string prefix;
 	if (opt.benchmark)
 	{
@@ -64,6 +75,7 @@ string create_prefix(const options& opt)
 			throw string("Parameter 'cdm' is out of range.");
 		}
 
+		
 		string int_name(integrator_type_short_name[opt.param->int_type]);
 		prefix += config + sep + dev + sep + cdm + sep + adapt + sep + int_name + sep;
 	}
@@ -122,7 +134,7 @@ void open_streams(const options& opt, ofstream** output)
 
 void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* T_CPU, clock_t* dT_CPU)
 {
-	static const string header_str = "dev,date      ,time    ,t [d]      ,dt [d]     ,dt_avg [d] ,dT [s]     ,dT_avg [s] ,Nc   ,Ne   ,Nh   ,nb_p ,nb_i,nb_r ,ns_t    ,ns_f    ,ns_p    ,ns_a,ns_r  ,ngp_a,ngp_r,nrp_a,nrp_r,npp_a,npp_r,nspl_a,nspl_r,npl_a,npl_r,ntp_a,ntp_r";
+	static const string header_str = "dev,date      ,time    ,t [d]      ,dt [d]     ,dt_avg [d] ,dT [s]     ,dT_avg [s] ,Nc   ,Ne   ,Nh   ,nb_p ,nb_i,nb_r ,ns_t    ,ns_p    ,ns_f    ,ns_a,ns_r  ,ngp_a,ngp_r,nrp_a,nrp_r,npp_a,npp_r,nspl_a,nspl_r,npl_a,npl_r,ntp_a,ntp_r";
 	static bool first_call = true;
 	static string cvs = ",";
 	
@@ -147,8 +159,8 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
 		 << ", N : " << setw(6) << nb->get_n_total_playing() << "(" << setw(3) << nb->get_n_total_inactive() << ", " << setw(5) << nb->get_n_total_removed() << ")"
 	     << ", nt: " << setw(11) << intgr->get_n_tried_step()
-	     << ", nf: " << setw(11) << intgr->get_n_failed_step()
 	     << ", np: " << setw(11) << intgr->get_n_passed_step()
+	     << ", nf: " << setw(11) << intgr->get_n_failed_step()
 		 << endl;
 
 	if (first_call)
@@ -171,8 +183,8 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 		 << nb->get_n_total_inactive() << cvs
 		 << nb->get_n_total_removed()  << cvs
 	     << intgr->get_n_tried_step()  << cvs
-	     << intgr->get_n_failed_step() << cvs
-	     << intgr->get_n_passed_step() << cvs;
+	     << intgr->get_n_passed_step() << cvs
+	     << intgr->get_n_failed_step() << cvs;
 	for (int i = 0; i < BODY_TYPE_N; i++)
 	{
 		sout << nb->playing[i] - nb->inactive[i] << cvs
@@ -247,13 +259,13 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 	sout.setf(ios::right);
 	sout.setf(ios::scientific);
 
-	size_t size = ppd->n_bodies->get_n_total_playing() * sizeof(vec_t);
+	size_t size = ppd->n_bodies->get_n_total_playing() * sizeof(var4_t);
 
 	// Create aliases
-	vec_t* r   = ppd->sim_data->y[0];
-	vec_t* v   = ppd->sim_data->y[1];
-	param_t* p = ppd->sim_data->p;
-	body_metadata_t* bmd = ppd->sim_data->body_md;
+	var4_t* r   = ppd->sim_data->y[0];
+	var4_t* v   = ppd->sim_data->y[1];
+	pp_disk_t::param_t* p = ppd->sim_data->p;
+	pp_disk_t::body_metadata_t* bmd = ppd->sim_data->body_md;
 
 	sout << endl;
 	ttt_t curr_t = 0.0;
@@ -269,11 +281,11 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 		int half_warp_size = deviceProp.warpSize/2;
 		vector<float2> execution_time;
 
-		vec_t* d_dy = 0x0;
+		var4_t* d_dy = 0x0;
 		ALLOCATE_DEVICE_VECTOR((void**)&d_dy, size);
 
-		unsigned int n_sink = ppd->n_bodies->get_n_SI();
-		unsigned int n_pass = 0;
+		uint32_t n_sink = ppd->n_bodies->get_n_SI();
+		uint32_t n_pass = 0;
 		if (0 < n_sink)
 		{
 			sout << "SI:" << endl;
@@ -304,7 +316,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 
 			float min_y = 1.0e10;
 			int min_idx = 0;
-			for (unsigned int i = 0; i < n_pass; i++)
+			for (uint32_t i = 0; i < n_pass; i++)
 			{
 				if (min_y > execution_time[i].y)
 				{
@@ -328,7 +340,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 		clock_t t_start;
 		ttt_t elapsed_time;
 
-		vec_t* h_dy = 0x0;
+		var4_t* h_dy = 0x0;
 		ALLOCATE_HOST_VECTOR((void**)&h_dy, size);
 
 		int n_sink = ppd->n_bodies->get_n_SI();
@@ -386,14 +398,14 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	time_t time_last_info = clock();
 	time_t time_last_dump = clock();
 
-	integral_t integrals[2];
+	pp_disk_t::integral_t integrals[2];
 
-	unsigned int n_removed = 0;
-	unsigned int n_dump = 1;
+	uint32_t n_removed = 0;
+	uint32_t n_dump = 1;
 
 	if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 	{
-		unsigned int n_tpb = ppd->benchmark();
+		uint32_t n_tpb = ppd->benchmark();
 		ppd->set_n_tpb(n_tpb);
 		if (opt.verbose)
 		{
@@ -425,7 +437,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			bool eje_hc = ppd->check_for_ejection_hit_centrum();
 			if (eje_hc)
 			{
-				integral_t I;
+				pp_disk_t::integral_t I;
 
 				ppd->calc_integral(true, I);
 				ppd->print_integral_data(I, *output[OUTPUT_NAME_INTEGRAL_EVENT]);
@@ -455,7 +467,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 				collision = ppd->check_for_collision();
 				if (collision)
 				{
-					integral_t I;
+					pp_disk_t::integral_t I;
 
 					ppd->calc_integral(true, I);
 					ppd->print_integral_data(I, *output[OUTPUT_NAME_INTEGRAL_EVENT]);
@@ -496,7 +508,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 			{
-				unsigned int n_tpb = ppd->benchmark();
+				uint32_t n_tpb = ppd->benchmark();
 				ppd->set_n_tpb(n_tpb);
 				if (opt.verbose)
 				{
@@ -570,7 +582,7 @@ int main(int argc, const char** argv, const char** env)
 		
 		open_streams(opt, output);
 
-		file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, opt.param->cdm, opt.print_to_screen);
+		file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, opt.param->get_data(), opt.print_to_screen);
 
 		if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 		{

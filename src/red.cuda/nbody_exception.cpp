@@ -1,6 +1,8 @@
 #include "nbody_exception.h"
 #include "cuda_runtime.h"
 
+using namespace std;
+
 nbody_exception::nbody_exception(string message) :
 	message(message),
 	cuda_error(cudaSuccess)

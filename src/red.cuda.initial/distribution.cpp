@@ -8,7 +8,7 @@
 
 using namespace std;
 
-red_random::red_random(unsigned int seed) :
+red_random::red_random(uint32_t seed) :
 	idx(0)
 {
 	I[  0] = seed & 0xffffffff;
@@ -21,10 +21,10 @@ red_random::red_random(unsigned int seed) :
 red_random::~red_random()
 { } 
 
-unsigned int red_random::rand()
+uint32_t red_random::rand()
 {
-	unsigned int j = idx < 623 ? idx + 1 : 0;
-	unsigned int y = I[idx]&0x80000000 | I[j]&0x7fffffff;
+	uint32_t j = idx < 623 ? idx + 1 : 0;
+	uint32_t y = I[idx]&0x80000000 | I[j]&0x7fffffff;
 	y = I[idx] = I[idx < 227 ? idx + 397 : idx-227]^y>>1^(y&1)*0x9908b0df;
 	idx = j;
 	return y^(y^=(y^=(y^=y>>11)<<7&0x9d2c5680)<<15&0xefc60000)>>18;
@@ -42,7 +42,7 @@ var_t red_random::uniform(var_t x_min, var_t x_max)
 
 int red_random::uniform(int x_min, int x_max)
 {
-    return (x_min + (unsigned int)(rand()/4294967296.*(x_max - x_min + 1)));
+    return (x_min + (uint32_t)(rand()/4294967296.*(x_max - x_min + 1)));
 }
 
 //var_t red_random::normal(var_t m, var_t s)
@@ -91,7 +91,7 @@ int red_random::uniform(int x_min, int x_max)
 
 
 
-distribution_base::distribution_base(unsigned int seed, var_t x_min, var_t x_max) :
+distribution_base::distribution_base(uint32_t seed, var_t x_min, var_t x_max) :
 	rr(seed),
 	x_min(x_min),
 	x_max(x_max)
@@ -103,11 +103,11 @@ distribution_base::~distribution_base()
 { }
 
 
-uniform_distribution::uniform_distribution(unsigned int seed) :
+uniform_distribution::uniform_distribution(uint32_t seed) :
 	distribution_base(seed, 0.0, 1.0)
 { }
 
-uniform_distribution::uniform_distribution(unsigned int seed, var_t x_min, var_t x_max) :
+uniform_distribution::uniform_distribution(uint32_t seed, var_t x_min, var_t x_max) :
 	distribution_base(seed, x_min, x_max)
 { }
 
@@ -121,7 +121,7 @@ var_t uniform_distribution::get_next()
 }
 
 
-exponential_distribution::exponential_distribution(unsigned int seed, var_t lambda) :
+exponential_distribution::exponential_distribution(uint32_t seed, var_t lambda) :
 	distribution_base(seed, 0.0, 1.0),
 	lambda(lambda)
 { 
@@ -138,7 +138,7 @@ var_t exponential_distribution::get_next()
 }
 
 
-rayleigh_distribution::rayleigh_distribution(unsigned int seed, var_t sigma) :
+rayleigh_distribution::rayleigh_distribution(uint32_t seed, var_t sigma) :
 	distribution_base(seed, 0.0, 1.0),
 	sigma(sigma)
 {
@@ -155,7 +155,7 @@ var_t rayleigh_distribution::get_next()
 }
 
 
-normal_distribution::normal_distribution(unsigned int seed, var_t mean, var_t variance) :
+normal_distribution::normal_distribution(uint32_t seed, var_t mean, var_t variance) :
 	distribution_base(seed, 0.0, 1.0),
 	mean(mean),
 	variance(variance)
@@ -173,7 +173,7 @@ var_t normal_distribution::get_next()
 }
 
 
-power_law_distribution::power_law_distribution(unsigned int seed, var_t x_min, var_t x_max, var_t power):
+power_law_distribution::power_law_distribution(uint32_t seed, var_t x_min, var_t x_max, var_t power):
 	distribution_base(seed, x_min, x_max),
 	power(power)
 {
@@ -208,7 +208,7 @@ var_t power_law_distribution::get_next()
 }
 
 
-lognormal_distribution::lognormal_distribution(unsigned int seed, var_t x_min, var_t x_max, var_t mu, var_t sigma) :
+lognormal_distribution::lognormal_distribution(uint32_t seed, var_t x_min, var_t x_max, var_t mu, var_t sigma) :
 	distribution_base(seed, x_min, x_max),
 	mu(mu),
 	sigma(sigma)

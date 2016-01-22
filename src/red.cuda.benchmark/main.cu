@@ -152,6 +152,11 @@ uint64 GetTimeMs64()
 
 void print(computing_device_t comp_dev, string& method_name, string& param_name, interaction_bound int_bound, int n_body, int n_tpb, ttt_t Dt_CPU, ttt_t Dt_GPU, ofstream& sout, bool prn_to_scr)
 {
+	static const char* computing_device_name[] = 
+	{
+				"CPU",
+				"GPU"
+	};
 	static char sep = ',';
 
 	if (prn_to_scr)
@@ -183,9 +188,9 @@ void print(computing_device_t comp_dev, string& method_name, string& param_name,
 namespace kernel
 {
 inline __host__ __device__
-	vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
+	var4_t body_body_interaction(var4_t riVec, var4_t rjVec, var_t mj, var4_t aiVec)
 {
-	vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+	var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 
 	// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
 	dVec.x = rjVec.x - riVec.x;
@@ -211,9 +216,9 @@ inline __host__ __device__
  * rjVec.xyzw = {x, y, z, m}
  */
 inline __host__ __device__
-	vec_t body_body_interaction(vec_t riVec, vec_t rjVec, vec_t aiVec)
+	var4_t body_body_interaction(var4_t riVec, var4_t rjVec, var4_t aiVec)
 {
-	vec_t dVec;
+	var4_t dVec;
 
 	// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
 	dVec.x = rjVec.x - riVec.x;
@@ -235,12 +240,12 @@ inline __host__ __device__
 }
 
 __global__
-	void calc_gravity_accel_tile_verbose(int n_body, int tile_size, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+	void calc_gravity_accel_tile_verbose(int n_body, int tile_size, const var4_t* global_x, const var_t* mass, var4_t* global_a)
 {
-	extern __shared__ vec_t sh_pos[];
+	extern __shared__ var4_t sh_pos[];
 
-	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
-	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
+	var4_t my_pos = {0.0, 0.0, 0.0, 0.0};
+	var4_t acc    = {0.0, 0.0, 0.0, 0.0};
 
 	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -334,12 +339,12 @@ __global__
 }
 
 __global__
-	void calc_gravity_accel_tile(int n_body, int tile_size, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+	void calc_gravity_accel_tile(int n_body, int tile_size, const var4_t* global_x, const var_t* mass, var4_t* global_a)
 {
-	extern __shared__ vec_t sh_pos[];
+	extern __shared__ var4_t sh_pos[];
 
-	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
-	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
+	var4_t my_pos = {0.0, 0.0, 0.0, 0.0};
+	var4_t acc    = {0.0, 0.0, 0.0, 0.0};
 
 	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -385,9 +390,9 @@ __global__
  * The same as above but the blockDim.x is used instead of tile_size (both variable have the same value)
  */
 __global__
-	void calc_gravity_accel_tile_verbose(int n_body, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+	void calc_gravity_accel_tile_verbose(int n_body, const var4_t* global_x, const var_t* mass, var4_t* global_a)
 {
-	extern __shared__ vec_t sh_pos[];
+	extern __shared__ var4_t sh_pos[];
 	// extern __shared__ var_t sh_mass[512]; // This ruins the code !!!
 	//__shared__ var_t sh_mass[512];         // This is OK but it is a static allocation, NOT NICE
 
@@ -401,8 +406,8 @@ __global__
 		//printf("[0 == gtid]: sizeof(sh_pos) = %5d [byte]\n", sizeof(sh_pos));
 	}
 
-	vec_t acc = {0.0, 0.0, 0.0, 0.0};
-	vec_t my_pos;
+	var4_t acc = {0.0, 0.0, 0.0, 0.0};
+	var4_t my_pos;
 
 	// To avoid overruning the global_x buffer
 	if (n_body > gtid)
@@ -454,7 +459,7 @@ __global__
 				//acc = body_body_interaction(my_pos, sh_pos[j], mass[j], acc);
 				// WARNING: not mass[j] BUT mass[idx] !! Check the other functions!!
 				//acc = body_body_interaction(my_pos, sh_pos[j], mass[idx], acc);
-				vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+				var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 
 				// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
 				dVec.x = sh_pos[j].x - my_pos.x;
@@ -496,14 +501,14 @@ __global__
  * The same as above but the blockDim.x is used instead of tile_size (both variable have the same value)
  */
 __global__
-	void calc_gravity_accel_tile(int n_body, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+	void calc_gravity_accel_tile(int n_body, const var4_t* global_x, const var_t* mass, var4_t* global_a)
 {
-	extern __shared__ vec_t sh_pos[];
+	extern __shared__ var4_t sh_pos[];
 
 	const int gtid = blockIdx.x * blockDim.x + threadIdx.x;
 
-	vec_t acc = {0.0, 0.0, 0.0, 0.0};
-	vec_t my_pos;
+	var4_t acc = {0.0, 0.0, 0.0, 0.0};
+	var4_t my_pos;
 
 	// To avoid overruning the global_x buffer
 	if (n_body > gtid)
@@ -544,7 +549,7 @@ __global__
 }
 
 __global__
-	void calc_gravity_accel_naive(int n_body, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+	void calc_gravity_accel_naive(int n_body, const var4_t* global_x, const var_t* mass, var4_t* global_a)
 {
 	// i is the index of the SINK body
 	const int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -552,7 +557,7 @@ __global__
 	if (n_body > i)
 	{
 		global_a[i].x = global_a[i].y = global_a[i].z = global_a[i].w = 0.0;
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 		// j is the index of the SOURCE body
 		for (int j = 0; j < n_body; j++) 
 		{
@@ -583,14 +588,14 @@ __global__
 
 // NOTE: Before calling this function, the global_a array must be cleared!
 __global__
-	void calc_gravity_accel_naive_sym(int n_body, const vec_t* global_x, const var_t* mass, vec_t* global_a)
+	void calc_gravity_accel_naive_sym(int n_body, const var4_t* global_x, const var_t* mass, var4_t* global_a)
 {
 	// i is the index of the SINK body
 	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (n_body > i)
 	{
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 		// j is the index of the SOURCE body
 		for (int j = i+1; j < n_body; j++) 
 		{
@@ -626,12 +631,12 @@ __global__
 namespace kernel2
 {
 static __global__
-	void calc_grav_accel_int_mul_of_thread_per_block(interaction_bound int_bound, const param_t* p, const vec_t* r, vec_t* a)
+	void calc_grav_accel_int_mul_of_thread_per_block(interaction_bound int_bound, const pp_disk_t::param_t* p, const var4_t* r, var4_t* a)
 {
 	// i is the index of the SINK body
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
-	vec_t dVec;
+	var4_t dVec;
 	// This line (beyond my depth) speeds up the kernel
 	a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
 	// j is the index of the SOURCE body
@@ -660,7 +665,7 @@ static __global__
 }
 
 static __global__
-	void calc_grav_accel(ttt_t t, interaction_bound int_bound, const body_metadata_t* bmd, const param_t* p, const vec_t* r, const vec_t* v, vec_t* a, event_data_t* events, int *event_counter)
+	void calc_grav_accel(ttt_t t, interaction_bound int_bound, const pp_disk_t::body_metadata_t* bmd, const pp_disk_t::param_t* p, const var4_t* r, const var4_t* v, var4_t* a, pp_disk_t::event_data_t* events, int *event_counter)
 {
 	// i is the index of the SINK body
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
@@ -671,7 +676,7 @@ static __global__
 		a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
 		if (bmd[i].id > 0)
 		{
-			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+			var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 			// j is the index of the SOURCE body
 			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 			{
@@ -700,7 +705,7 @@ static __global__
 				// If i < j is the condition than test particles can not collide with massive bodies
 				if (i > 0 && i > j && d < /* dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR] */ 5.0 * (p[i].radius + p[j].radius))
 				{
-					unsigned int k = atomicAdd(event_counter, 1);
+					uint32_t k = atomicAdd(event_counter, 1);
 
 					int survivIdx = i;
 					int mergerIdx = j;
@@ -731,9 +736,9 @@ static __global__
 }
 
 inline __host__ __device__
-	vec_t body_body_interaction(vec_t riVec, vec_t rjVec, var_t mj, vec_t aiVec)
+	var4_t body_body_interaction(var4_t riVec, var4_t rjVec, var_t mj, var4_t aiVec)
 {
-	vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+	var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 
 	// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
 	dVec.x = rjVec.x - riVec.x;
@@ -759,9 +764,9 @@ inline __host__ __device__
  * rjVec.xyzw = {x, y, z, m}
  */
 inline __host__ __device__
-	vec_t body_body_interaction(vec_t riVec, vec_t rjVec, vec_t aiVec)
+	var4_t body_body_interaction(var4_t riVec, var4_t rjVec, var4_t aiVec)
 {
-	vec_t dVec;
+	var4_t dVec;
 
 	// compute d = r_i - r_j [3 FLOPS] [6 read, 3 write]
 	dVec.x = rjVec.x - riVec.x;
@@ -783,12 +788,12 @@ inline __host__ __device__
 }
 
 __global__
-	void calc_gravity_accel_tile(interaction_bound int_bound, int tile_size, const vec_t* r, const var_t* m, vec_t* a)
+	void calc_gravity_accel_tile(interaction_bound int_bound, int tile_size, const var4_t* r, const var_t* m, var4_t* a)
 {
-	extern __shared__ vec_t sh_pos[];
+	extern __shared__ var4_t sh_pos[];
 
-	vec_t my_pos = {0.0, 0.0, 0.0, 0.0};
-	vec_t acc    = {0.0, 0.0, 0.0, 0.0};
+	var4_t my_pos = {0.0, 0.0, 0.0, 0.0};
+	var4_t acc    = {0.0, 0.0, 0.0, 0.0};
 
 	// i is the index of the SINK body
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
@@ -836,15 +841,15 @@ __global__
  * The same as above but the blockDim.x is used instead of tile_size (both variable have the same value)
  */
 __global__
-	void calc_gravity_accel_tile(interaction_bound int_bound, const vec_t* r, const var_t* m, vec_t* a)
+	void calc_gravity_accel_tile(interaction_bound int_bound, const var4_t* r, const var_t* m, var4_t* a)
 {
-	extern __shared__ vec_t sh_pos[];
+	extern __shared__ var4_t sh_pos[];
 
 	// i is the index of the SINK body
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
-	vec_t acc = {0.0, 0.0, 0.0, 0.0};
-	vec_t my_pos;
+	var4_t acc = {0.0, 0.0, 0.0, 0.0};
+	var4_t my_pos;
 
 	// To avoid overruning the r buffer
 	if (int_bound.sink.y > i)
@@ -889,7 +894,7 @@ __global__
 }
 
 __global__
-	void calc_gravity_accel_naive(interaction_bound int_bound, const vec_t* r, const var_t* m, vec_t* a)
+	void calc_gravity_accel_naive(interaction_bound int_bound, const var4_t* r, const var_t* m, var4_t* a)
 {
 	// i is the index of the SINK body
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
@@ -897,7 +902,7 @@ __global__
 	if (int_bound.sink.y > i)
 	{
 		a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 		// j is the index of the SOURCE body
 		for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 		{
@@ -934,14 +939,14 @@ __global__
 // TODO: The result of this kernel differs from the real one IF the number of bodies larger than the warp size
 // e.g. n_body = 50. What is the reason of this. (For n_body = 16, 32, 40, the result is correct).
 __global__
-	void calc_gravity_accel_naive_sym(interaction_bound int_bound, const vec_t* r, const var_t* m, vec_t* a)
+	void calc_gravity_accel_naive_sym(interaction_bound int_bound, const var4_t* r, const var_t* m, var4_t* a)
 {
 	// i is the index of the SINK body
 	const int i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (int_bound.sink.y > i)
 	{
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 		// j is the index of the SOURCE body
 		for (int j = i+1; j < int_bound.source.y; j++) 
 		{
@@ -975,11 +980,11 @@ __global__
 } /* namespace kernel_2 */
 
 
-void cpu_calc_grav_accel_naive(int n_body, const vec_t* r, const var_t* mass, vec_t* a)
+void cpu_calc_grav_accel_naive(int n_body, const var4_t* r, const var_t* mass, var4_t* a)
 {
 	for (int i = 0; i < n_body; i++)
 	{
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 		for (int j = 0; j < n_body; j++) 
 		{
 			if (i == j)
@@ -1008,11 +1013,11 @@ void cpu_calc_grav_accel_naive(int n_body, const vec_t* r, const var_t* mass, ve
 	}
 }
 
-void cpu_calc_grav_accel_naive(interaction_bound int_bound, const vec_t* r, const var_t* mass, vec_t* a)
+void cpu_calc_grav_accel_naive(interaction_bound int_bound, const var4_t* r, const var_t* mass, var4_t* a)
 {
 	for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
 	{
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 		for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 		{
 			if (i == j)
@@ -1041,11 +1046,11 @@ void cpu_calc_grav_accel_naive(interaction_bound int_bound, const vec_t* r, cons
 	}
 }
 
-void cpu_calc_grav_accel_naive_sym(int n_body, const vec_t* r, const var_t* mass, vec_t* a)
+void cpu_calc_grav_accel_naive_sym(int n_body, const var4_t* r, const var_t* mass, var4_t* a)
 {
 	for (int i = 0; i < n_body; i++)
 	{
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 		for (int j = i+1; j < n_body; j++) 
 		{
 			// r_ij 3 FLOP
@@ -1076,11 +1081,11 @@ void cpu_calc_grav_accel_naive_sym(int n_body, const vec_t* r, const var_t* mass
 	}
 }
 
-void cpu_calc_grav_accel_naive_sym(interaction_bound int_bound, const vec_t* r, const var_t* mass, vec_t* a)
+void cpu_calc_grav_accel_naive_sym(interaction_bound int_bound, const var4_t* r, const var_t* mass, var4_t* a)
 {
 	for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
 	{
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 		for (int j = i + 1; j < int_bound.source.y; j++) 
 		{
 			// r_ij 3 FLOP
@@ -1111,7 +1116,7 @@ void cpu_calc_grav_accel_naive_sym(interaction_bound int_bound, const vec_t* r, 
 	}
 }
 
-void cpu_calc_grav_accel_naive_sym_advanced(interaction_bound int_bound, const vec_t* r, const var_t* mass, vec_t* a)
+void cpu_calc_grav_accel_naive_sym_advanced(interaction_bound int_bound, const var4_t* r, const var_t* mass, var4_t* a)
 {
 	const int n_sink   = int_bound.sink.y   - int_bound.sink.x;
 	const int n_source = int_bound.source.y - int_bound.source.x;
@@ -1119,7 +1124,7 @@ void cpu_calc_grav_accel_naive_sym_advanced(interaction_bound int_bound, const v
 
 	for (int i = int_bound.sink.x; i < int_bound.sink.x + n_body; i++)
 	{
-		vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 		for (int j = i + 1; j < int_bound.sink.x + n_body; j++) 
 		{
 			// r_ij 3 FLOP
@@ -1153,7 +1158,7 @@ void cpu_calc_grav_accel_naive_sym_advanced(interaction_bound int_bound, const v
 	{
 		for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
 		{
-			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+			var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 			for (int j = int_bound.source.x + n_body; j < int_bound.source.y; j++) 
 			{
 				// r_ij 3 FLOP
@@ -1180,7 +1185,7 @@ void cpu_calc_grav_accel_naive_sym_advanced(interaction_bound int_bound, const v
 	{
 		for (int i = int_bound.sink.x + n_body; i < int_bound.sink.y; i++)
 		{
-			vec_t dVec = {0.0, 0.0, 0.0, 0.0};
+			var4_t dVec = {0.0, 0.0, 0.0, 0.0};
 			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
 			{
 				// r_ij 3 FLOP
@@ -1215,7 +1220,7 @@ void cpu_calc_grav_accel_naive_sym_advanced(interaction_bound int_bound, const v
 	\param d_a array that will hold the computed acceleration of the bodies
 	\return The elapsed time in ms took for the device to perform the computation
 */
-float gpu_calc_grav_accel_naive_benchmark(int n_body, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
+float gpu_calc_grav_accel_naive_benchmark(int n_body, int n_tpb, const var4_t* d_x, const var_t* d_m, var4_t* d_a)
 {
 	cudaEvent_t start, stop;
 
@@ -1240,7 +1245,7 @@ float gpu_calc_grav_accel_naive_benchmark(int n_body, int n_tpb, const vec_t* d_
 	return elapsed_time;
 }
 
-float gpu_calc_grav_accel_naive_benchmark(interaction_bound int_bound, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
+float gpu_calc_grav_accel_naive_benchmark(interaction_bound int_bound, int n_tpb, const var4_t* d_x, const var_t* d_m, var4_t* d_a)
 {
 	cudaEvent_t start, stop;
 
@@ -1266,7 +1271,7 @@ float gpu_calc_grav_accel_naive_benchmark(interaction_bound int_bound, int n_tpb
 	return elapsed_time;
 }
 
-float gpu_calc_grav_accel_naive_sym_benchmark(int n_body, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
+float gpu_calc_grav_accel_naive_sym_benchmark(int n_body, int n_tpb, const var4_t* d_x, const var_t* d_m, var4_t* d_a)
 {
 	cudaEvent_t start, stop;
 
@@ -1278,7 +1283,7 @@ float gpu_calc_grav_accel_naive_sym_benchmark(int n_body, int n_tpb, const vec_t
 
 	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 
-	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_body*sizeof(vec_t)));
+	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_body*sizeof(var4_t)));
 	kernel::calc_gravity_accel_naive_sym<<<grid, block>>>(n_body, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 
@@ -1291,7 +1296,7 @@ float gpu_calc_grav_accel_naive_sym_benchmark(int n_body, int n_tpb, const vec_t
 	return elapsed_time;
 }
 
-float gpu_calc_grav_accel_naive_sym_benchmark(interaction_bound int_bound, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
+float gpu_calc_grav_accel_naive_sym_benchmark(interaction_bound int_bound, int n_tpb, const var4_t* d_x, const var_t* d_m, var4_t* d_a)
 {
 	cudaEvent_t start, stop;
 
@@ -1305,7 +1310,7 @@ float gpu_calc_grav_accel_naive_sym_benchmark(interaction_bound int_bound, int n
 
 	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 
-	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_body*sizeof(vec_t)));
+	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_body*sizeof(var4_t)));
 	kernel2::calc_gravity_accel_naive_sym<<<grid, block>>>(int_bound, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 
@@ -1319,7 +1324,7 @@ float gpu_calc_grav_accel_naive_sym_benchmark(interaction_bound int_bound, int n
 }
 
 // The blockDim.x is used instead of tile_size (reduce the number by 1 of kernel parameters)
-float gpu_calc_grav_accel_tile_benchmark(int n_body, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
+float gpu_calc_grav_accel_tile_benchmark(int n_body, int n_tpb, const var4_t* d_x, const var_t* d_m, var4_t* d_a)
 {
 	cudaEvent_t start, stop;
 
@@ -1331,7 +1336,7 @@ float gpu_calc_grav_accel_tile_benchmark(int n_body, int n_tpb, const vec_t* d_x
 
 	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 
-	kernel::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(n_body, n_tpb, d_x, d_m, d_a);
+	kernel::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(var4_t)>>>(n_body, n_tpb, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 
 	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
@@ -1344,7 +1349,7 @@ float gpu_calc_grav_accel_tile_benchmark(int n_body, int n_tpb, const vec_t* d_x
 }
 
 // The blockDim.x is used instead of tile_size (reduce the number by 1 of kernel parameters)
-float gpu_calc_grav_accel_tile_benchmark(interaction_bound int_bound, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
+float gpu_calc_grav_accel_tile_benchmark(interaction_bound int_bound, int n_tpb, const var4_t* d_x, const var_t* d_m, var4_t* d_a)
 {
 	cudaEvent_t start, stop;
 
@@ -1358,7 +1363,7 @@ float gpu_calc_grav_accel_tile_benchmark(interaction_bound int_bound, int n_tpb,
 
 	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 
-	kernel2::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(int_bound, n_tpb, d_x, d_m, d_a);
+	kernel2::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(var4_t)>>>(int_bound, n_tpb, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 
 	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
@@ -1371,7 +1376,7 @@ float gpu_calc_grav_accel_tile_benchmark(interaction_bound int_bound, int n_tpb,
 }
 
 // The same as above
-float gpu_calc_grav_accel_tile_benchmark_2(int n_body, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
+float gpu_calc_grav_accel_tile_benchmark_2(int n_body, int n_tpb, const var4_t* d_x, const var_t* d_m, var4_t* d_a)
 {
 	cudaEvent_t start, stop;
 
@@ -1383,7 +1388,7 @@ float gpu_calc_grav_accel_tile_benchmark_2(int n_body, int n_tpb, const vec_t* d
 
 	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 
-	kernel::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(n_body, d_x, d_m, d_a);
+	kernel::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(var4_t)>>>(n_body, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 
 	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
@@ -1396,7 +1401,7 @@ float gpu_calc_grav_accel_tile_benchmark_2(int n_body, int n_tpb, const vec_t* d
 }
 
 // The same as above
-float gpu_calc_grav_accel_tile_benchmark_2(interaction_bound int_bound, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a)
+float gpu_calc_grav_accel_tile_benchmark_2(interaction_bound int_bound, int n_tpb, const var4_t* d_x, const var_t* d_m, var4_t* d_a)
 {
 	cudaEvent_t start, stop;
 
@@ -1410,7 +1415,7 @@ float gpu_calc_grav_accel_tile_benchmark_2(interaction_bound int_bound, int n_tp
 
 	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 
-	kernel2::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(int_bound, d_x, d_m, d_a);
+	kernel2::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(var4_t)>>>(int_bound, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
 
 	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
@@ -1426,7 +1431,7 @@ float gpu_calc_grav_accel_tile_benchmark_2(interaction_bound int_bound, int n_tp
 
 
 
-void benchmark_CPU(int n_body, const vec_t* h_x, const var_t* h_m, vec_t* h_a, ofstream& o_result, ofstream& o_summary)
+void benchmark_CPU(int n_body, const var4_t* h_x, const var_t* h_m, var4_t* h_a, ofstream& o_result, ofstream& o_summary)
 {
 	ttt_t Dt_CPU = 0.0;
 	ttt_t Dt_GPU = 0.0;
@@ -1504,7 +1509,7 @@ void benchmark_CPU(int n_body, const vec_t* h_x, const var_t* h_m, vec_t* h_a, o
 	}
 }
 
-void benchmark_CPU(interaction_bound int_bound, const vec_t* h_x, const var_t* h_m, vec_t* h_a, ofstream& o_result, ofstream& o_summary)
+void benchmark_CPU(interaction_bound int_bound, const var4_t* h_x, const var_t* h_m, var4_t* h_a, ofstream& o_result, ofstream& o_summary)
 {
 	const uint64_t n_sink   = int_bound.sink.y   - int_bound.sink.x;
 	const uint64_t n_source = int_bound.source.y - int_bound.source.x;
@@ -1619,7 +1624,7 @@ void benchmark_CPU(interaction_bound int_bound, const vec_t* h_x, const var_t* h
 	}
 }
 
-void benchmark_GPU(int n_body, int dev_id, const vec_t* d_x, const var_t* d_m, vec_t* d_a, ofstream& o_result, ofstream& o_summary)
+void benchmark_GPU(int n_body, int dev_id, const var4_t* d_x, const var_t* d_m, var4_t* d_a, ofstream& o_result, ofstream& o_summary)
 {
 	interaction_bound int_bound;
 
@@ -1636,7 +1641,7 @@ void benchmark_GPU(int n_body, int dev_id, const vec_t* d_x, const var_t* d_m, v
 
 	//Naive method
 	{
-		unsigned int n_pass = 0;
+		uint32_t n_pass = 0;
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
 			Dt_GPU = gpu_calc_grav_accel_naive_benchmark(n_body, n_tpb, d_x, d_m, d_a);
@@ -1652,7 +1657,7 @@ void benchmark_GPU(int n_body, int dev_id, const vec_t* d_x, const var_t* d_m, v
 
 	//Naive symmetric method
 	{
-		unsigned int n_pass = 0;
+		uint32_t n_pass = 0;
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
 			float Dt_GPU = gpu_calc_grav_accel_naive_sym_benchmark(n_body, n_tpb, d_x, d_m, d_a);
@@ -1668,7 +1673,7 @@ void benchmark_GPU(int n_body, int dev_id, const vec_t* d_x, const var_t* d_m, v
 
 	//Tile method
 	{
-		unsigned int n_pass = 0;
+		uint32_t n_pass = 0;
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
 			float Dt_GPU = gpu_calc_grav_accel_tile_benchmark(n_body, n_tpb, d_x, d_m, d_a);
@@ -1684,7 +1689,7 @@ void benchmark_GPU(int n_body, int dev_id, const vec_t* d_x, const var_t* d_m, v
 
 	//Tile method (advanced)
 	{
-		unsigned int n_pass = 0;
+		uint32_t n_pass = 0;
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
 			float Dt_GPU = gpu_calc_grav_accel_tile_benchmark_2(n_body, n_tpb, d_x, d_m, d_a);
@@ -1699,7 +1704,7 @@ void benchmark_GPU(int n_body, int dev_id, const vec_t* d_x, const var_t* d_m, v
 	execution_time.clear();
 }
 
-void benchmark_GPU(interaction_bound int_bound, int dev_id, const vec_t* d_x, const var_t* d_m, vec_t* d_a, ofstream& o_result, ofstream& o_summary)
+void benchmark_GPU(interaction_bound int_bound, int dev_id, const var4_t* d_x, const var_t* d_m, var4_t* d_a, ofstream& o_result, ofstream& o_summary)
 {
 	const int n_sink   = int_bound.sink.y   - int_bound.sink.x;
 	const int n_source = int_bound.source.y - int_bound.source.x;
@@ -1717,7 +1722,7 @@ void benchmark_GPU(interaction_bound int_bound, int dev_id, const vec_t* d_x, co
 
 	//Naive method
 	{
-		unsigned int n_pass = 0;
+		uint32_t n_pass = 0;
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
 			Dt_GPU = gpu_calc_grav_accel_naive_benchmark(int_bound, n_tpb, d_x, d_m, d_a);
@@ -1734,7 +1739,7 @@ void benchmark_GPU(interaction_bound int_bound, int dev_id, const vec_t* d_x, co
 	//Naive symmetric method
 	if (n_sink == n_source)
 	{
-		unsigned int n_pass = 0;
+		uint32_t n_pass = 0;
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
 			float Dt_GPU = gpu_calc_grav_accel_naive_sym_benchmark(int_bound, n_tpb, d_x, d_m, d_a);
@@ -1754,7 +1759,7 @@ void benchmark_GPU(interaction_bound int_bound, int dev_id, const vec_t* d_x, co
 
 	//Tile method
 	{
-		unsigned int n_pass = 0;
+		uint32_t n_pass = 0;
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
 			float Dt_GPU = gpu_calc_grav_accel_tile_benchmark(int_bound, n_tpb, d_x, d_m, d_a);
@@ -1770,7 +1775,7 @@ void benchmark_GPU(interaction_bound int_bound, int dev_id, const vec_t* d_x, co
 
 	//Tile method (advanced)
 	{
-		unsigned int n_pass = 0;
+		uint32_t n_pass = 0;
 		for (int n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
 			float Dt_GPU = gpu_calc_grav_accel_tile_benchmark_2(int_bound, n_tpb, d_x, d_m, d_a);
@@ -1785,7 +1790,7 @@ void benchmark_GPU(interaction_bound int_bound, int dev_id, const vec_t* d_x, co
 	execution_time.clear();
 }
 
-void populate(int n, vec_t* h_x, var_t* h_m)
+void populate(int n, var4_t* h_x, var_t* h_m)
 {
 	for (int i = 0; i < n; i++)
 	{
@@ -1798,7 +1803,7 @@ void populate(int n, vec_t* h_x, var_t* h_m)
 	}
 }
 
-bool compare_vectors(int n, const vec_t* v1, const vec_t* v2, var_t tolerance, bool verbose)
+bool compare_vectors(int n, const var4_t* v1, const var4_t* v2, var_t tolerance, bool verbose)
 {
 	vector<var_t> list_ad;
 	vector<var_t> list_rd;
@@ -1852,7 +1857,7 @@ bool compare_vectors(int n, const vec_t* v1, const vec_t* v2, var_t tolerance, b
 	return success;
 }
 
-void compare_results(int n_body, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a, const vec_t* h_x, const var_t* h_m, vec_t* h_a, vec_t* h_at, var_t tolerance)
+void compare_results(int n_body, int n_tpb, const var4_t* d_x, const var_t* d_m, var4_t* d_a, const var4_t* h_x, const var_t* h_m, var4_t* h_a, var4_t* h_at, var_t tolerance)
 {
 	printf("\nComparing the computations of the gravitational accelerations performed\non the CPU with two different functions naive() and naive_sym(): ");
 	cpu_calc_grav_accel_naive(    n_body, h_x, h_m, h_a );
@@ -1860,8 +1865,8 @@ void compare_results(int n_body, int n_tpb, const vec_t* d_x, const var_t* d_m, 
 
 	bool result = compare_vectors(n_body, h_a, h_at, tolerance, false);
 
-	memset(h_a,  0, n_body*sizeof(vec_t));
-	memset(h_at, 0, n_body*sizeof(vec_t));
+	memset(h_a,  0, n_body*sizeof(var4_t));
+	memset(h_at, 0, n_body*sizeof(var4_t));
 
 	dim3 grid((n_body + n_tpb - 1)/n_tpb);
 	dim3 block(n_tpb);
@@ -1871,42 +1876,42 @@ void compare_results(int n_body, int n_tpb, const vec_t* d_x, const var_t* d_m, 
 	cpu_calc_grav_accel_naive(n_body, h_x, h_m, h_a);
 	kernel::calc_gravity_accel_naive<<<grid, block>>>(n_body, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
-	copy_vector_to_host(h_at, d_a, n_body*sizeof(vec_t));
+	copy_vector_to_host(h_at, d_a, n_body*sizeof(var4_t));
 	result = compare_vectors(n_body, h_a, h_at, tolerance, false);
-	memset(h_at, 0, n_body*sizeof(vec_t));
+	memset(h_at, 0, n_body*sizeof(var4_t));
 
 	printf("2. CPU naive vs GPU naive_sym: ");
-	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_body*sizeof(vec_t)));
+	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_body*sizeof(var4_t)));
 	kernel::calc_gravity_accel_naive_sym<<<grid, block>>>(n_body, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
-	copy_vector_to_host(h_at, d_a, n_body*sizeof(vec_t));
+	copy_vector_to_host(h_at, d_a, n_body*sizeof(var4_t));
 	result = compare_vectors(n_body, h_a, h_at, tolerance, false);
-	memset(h_at, 0, n_body*sizeof(vec_t));
+	memset(h_at, 0, n_body*sizeof(var4_t));
 
 	printf("3. CPU naive vs GPU tile     : ");
-	kernel::calc_gravity_accel_tile<<<grid, block, n_tpb*sizeof(vec_t)>>>(n_tpb, d_x, d_m, d_a);
+	kernel::calc_gravity_accel_tile<<<grid, block, n_tpb*sizeof(var4_t)>>>(n_tpb, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
-	copy_vector_to_host(h_at, d_a, n_body*sizeof(vec_t));
+	copy_vector_to_host(h_at, d_a, n_body*sizeof(var4_t));
 	result = compare_vectors(n_body, h_a, h_at, tolerance, false);
-	memset(h_at, 0, n_body*sizeof(vec_t));
+	memset(h_at, 0, n_body*sizeof(var4_t));
 
 	printf("4. CPU naive vs GPU tile (without the explicit use of tile_size): ");
-	kernel::calc_gravity_accel_tile<<<grid, block, n_tpb*sizeof(vec_t)>>>(n_body, d_x, d_m, d_a);
+	kernel::calc_gravity_accel_tile<<<grid, block, n_tpb*sizeof(var4_t)>>>(n_body, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
-	copy_vector_to_host(h_at, d_a, n_body*sizeof(vec_t));
+	copy_vector_to_host(h_at, d_a, n_body*sizeof(var4_t));
 	result = compare_vectors(n_body, h_a, h_at, tolerance, false);
-	memset(h_at, 0, n_body*sizeof(vec_t));
+	memset(h_at, 0, n_body*sizeof(var4_t));
 }
 
-void compare_CPU_results(interaction_bound int_bound, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a, const vec_t* h_x, const var_t* h_m, vec_t* h_a, vec_t* h_at, var_t tolerance, bool verbose)
+void compare_CPU_results(interaction_bound int_bound, int n_tpb, const var4_t* d_x, const var_t* d_m, var4_t* d_a, const var4_t* h_x, const var_t* h_m, var4_t* h_a, var4_t* h_at, var_t tolerance, bool verbose)
 {
 	const int n_sink   = int_bound.sink.y   - int_bound.sink.x;
 	const int n_source = int_bound.source.y - int_bound.source.x;
 
 	printf("Comparing the computations of the gravitational accelerations performed on the CPU:\n");
 
-	memset(h_a,  0, n_sink * sizeof(vec_t));
-	memset(h_at, 0, n_sink * sizeof(vec_t));
+	memset(h_a,  0, n_sink * sizeof(var4_t));
+	memset(h_at, 0, n_sink * sizeof(var4_t));
 
 	// Computing base result
 	cpu_calc_grav_accel_naive(    int_bound, h_x, h_m, h_a );
@@ -1925,15 +1930,15 @@ void compare_CPU_results(interaction_bound int_bound, int n_tpb, const vec_t* d_
 	bool result = compare_vectors(n_sink, h_a, h_at, tolerance, verbose);
 }
 
-void compare_CPU_GPU_results(interaction_bound int_bound, int n_tpb, const vec_t* d_x, const var_t* d_m, vec_t* d_a, const vec_t* h_x, const var_t* h_m, vec_t* h_a, vec_t* h_at, var_t tolerance, bool verbose)
+void compare_CPU_GPU_results(interaction_bound int_bound, int n_tpb, const var4_t* d_x, const var_t* d_m, var4_t* d_a, const var4_t* h_x, const var_t* h_m, var4_t* h_a, var4_t* h_at, var_t tolerance, bool verbose)
 {
 	const int n_sink = int_bound.sink.y - int_bound.sink.x;
 	const int n_source = int_bound.source.y - int_bound.source.x;
 
 	printf("Comparing the computations of the gravitational accelerations performed on the CPU and GPU:\n");
 
-	memset(h_a,  0, n_sink * sizeof(vec_t));
-	memset(h_at, 0, n_sink * sizeof(vec_t));
+	memset(h_a,  0, n_sink * sizeof(var4_t));
+	memset(h_at, 0, n_sink * sizeof(var4_t));
 
 	dim3 grid((n_sink + n_tpb - 1)/n_tpb);
 	dim3 block(n_tpb);
@@ -1948,22 +1953,22 @@ void compare_CPU_GPU_results(interaction_bound int_bound, int n_tpb, const vec_t
 	printf("\tCPU naive vs. GPU naive            : ");
 	kernel2::calc_gravity_accel_naive<<<grid, block>>>(int_bound, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
-	copy_vector_to_host(h_at, d_a, n_sink * sizeof(vec_t));
+	copy_vector_to_host(h_at, d_a, n_sink * sizeof(var4_t));
 	bool result = compare_vectors(n_sink, h_a, h_at, tolerance, verbose);
 
-	memset(h_at, 0, n_sink * sizeof(vec_t));
-	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(vec_t)));
+	memset(h_at, 0, n_sink * sizeof(var4_t));
+	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(var4_t)));
 
 	printf("\tCPU naive vs. GPU naive symmetric  : ");
 	if (n_sink == n_source)
 	{
 		kernel2::calc_gravity_accel_naive_sym<<<grid, block>>>(int_bound, d_x, d_m, d_a);
 		CUDA_CHECK_ERROR();
-		copy_vector_to_host(h_at, d_a, n_sink * sizeof(vec_t));
+		copy_vector_to_host(h_at, d_a, n_sink * sizeof(var4_t));
 		result = compare_vectors(n_sink, h_a, h_at, tolerance, verbose);
 
-		memset(h_at, 0, n_sink * sizeof(vec_t));
-		CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(vec_t)));
+		memset(h_at, 0, n_sink * sizeof(var4_t));
+		CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(var4_t)));
 	}
 	else
 	{
@@ -1971,35 +1976,35 @@ void compare_CPU_GPU_results(interaction_bound int_bound, int n_tpb, const vec_t
 	}
 
 	printf("\tCPU naive vs. GPU tile             : ");
-	kernel2::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(int_bound, n_tpb, d_x, d_m, d_a);
+	kernel2::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(var4_t)>>>(int_bound, n_tpb, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
-	copy_vector_to_host(h_at, d_a, n_sink * sizeof(vec_t));
+	copy_vector_to_host(h_at, d_a, n_sink * sizeof(var4_t));
 	result = compare_vectors(n_sink, h_a, h_at, tolerance, verbose);
 
-	memset(h_at, 0, n_sink * sizeof(vec_t));
-	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(vec_t)));
+	memset(h_at, 0, n_sink * sizeof(var4_t));
+	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(var4_t)));
 
 	printf("\tCPU naive vs. GPU advanced tile    : ");
-	kernel2::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(vec_t)>>>(int_bound, d_x, d_m, d_a);
+	kernel2::calc_gravity_accel_tile<<<grid, block, n_tpb * sizeof(var4_t)>>>(int_bound, d_x, d_m, d_a);
 	CUDA_CHECK_ERROR();
-	copy_vector_to_host(h_at, d_a, n_sink * sizeof(vec_t));
+	copy_vector_to_host(h_at, d_a, n_sink * sizeof(var4_t));
 	result = compare_vectors(n_sink, h_a, h_at, tolerance, verbose);
 
-	memset(h_at, 0, n_sink * sizeof(vec_t));
-	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(vec_t)));
+	memset(h_at, 0, n_sink * sizeof(var4_t));
+	CUDA_SAFE_CALL(cudaMemset(d_a, 0, n_sink * sizeof(var4_t)));
 }
 
 void compare_results(option_t& opt, bool verbose)
 {
-	vec_t* h_x = 0x0;
-	vec_t* h_a = 0x0;
+	var4_t* h_x = 0x0;
+	var4_t* h_a = 0x0;
 	var_t* h_m = 0x0;
 
-	vec_t* d_x = 0x0;
-	vec_t* d_a = 0x0;
+	var4_t* d_x = 0x0;
+	var4_t* d_a = 0x0;
 	var_t* d_m = 0x0;
 
-	vec_t* h_at = 0x0;
+	var4_t* h_at = 0x0;
 
 	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 	{
@@ -2020,15 +2025,15 @@ void compare_results(option_t& opt, bool verbose)
 
 	// Total number of bodies is the larger of n_snk and n_src
 	int n_total = max(opt.n0, opt.n1);
-	ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(vec_t)); 
-	ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(vec_t)); 
-	ALLOCATE_HOST_VECTOR((void**)&h_at, n_total*sizeof(vec_t)); 
+	ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(var4_t)); 
+	ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(var4_t)); 
+	ALLOCATE_HOST_VECTOR((void**)&h_at, n_total*sizeof(var4_t)); 
 	ALLOCATE_HOST_VECTOR((void**)&h_m,  n_total*sizeof(var_t)); 
 
 	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 	{
-		ALLOCATE_DEVICE_VECTOR((void**)&d_x, n_total*sizeof(vec_t)); 
-		ALLOCATE_DEVICE_VECTOR((void**)&d_a, n_total*sizeof(vec_t)); 
+		ALLOCATE_DEVICE_VECTOR((void**)&d_x, n_total*sizeof(var4_t)); 
+		ALLOCATE_DEVICE_VECTOR((void**)&d_a, n_total*sizeof(var4_t)); 
 		ALLOCATE_DEVICE_VECTOR((void**)&d_m, n_total*sizeof(var_t)); 
 	}
 
@@ -2036,7 +2041,7 @@ void compare_results(option_t& opt, bool verbose)
 
 	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 	{
-		copy_vector_to_device(d_x, h_x, n_total*sizeof(vec_t));
+		copy_vector_to_device(d_x, h_x, n_total*sizeof(var4_t));
 		copy_vector_to_device(d_m, h_m, n_total*sizeof(var_t));
 	}
 
@@ -2081,15 +2086,15 @@ void compare_results(option_t& opt, bool verbose)
 */
 void benchmark(int id_dev, int n0, int n1, int dn, int n_iter, ofstream& o_result, ofstream& o_summary)
 {
-	vec_t* h_x = 0x0;
-	vec_t* h_a = 0x0;
+	var4_t* h_x = 0x0;
+	var4_t* h_a = 0x0;
 	var_t* h_m = 0x0;
 
-	vec_t* d_x = 0x0;
-	vec_t* d_a = 0x0;
+	var4_t* d_x = 0x0;
+	var4_t* d_a = 0x0;
 	var_t* d_m = 0x0;
 
-	vec_t* h_at = 0x0;
+	var4_t* h_at = 0x0;
 
 	set_device(id_dev, cout);
 
@@ -2115,18 +2120,18 @@ void benchmark(int id_dev, int n0, int n1, int dn, int n_iter, ofstream& o_resul
 		{
 			// Total number of bodies is the larger of n_snk and n_src
 			int n_total = max(n_snk, n_src);
-			ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(vec_t)); 
-			ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(vec_t)); 
-			ALLOCATE_HOST_VECTOR((void**)&h_at, n_total*sizeof(vec_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(var4_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(var4_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_at, n_total*sizeof(var4_t)); 
 			ALLOCATE_HOST_VECTOR((void**)&h_m,  n_total*sizeof(var_t)); 
 
-			ALLOCATE_DEVICE_VECTOR((void**)&d_x, n_total*sizeof(vec_t)); 
-			ALLOCATE_DEVICE_VECTOR((void**)&d_a, n_total*sizeof(vec_t)); 
+			ALLOCATE_DEVICE_VECTOR((void**)&d_x, n_total*sizeof(var4_t)); 
+			ALLOCATE_DEVICE_VECTOR((void**)&d_a, n_total*sizeof(var4_t)); 
 			ALLOCATE_DEVICE_VECTOR((void**)&d_m, n_total*sizeof(var_t)); 
 
 			populate(n_total, h_x, h_m);
 
-			copy_vector_to_device(d_x, h_x, n_total*sizeof(vec_t));
+			copy_vector_to_device(d_x, h_x, n_total*sizeof(var4_t));
 			copy_vector_to_device(d_m, h_m, n_total*sizeof(var_t));
 
 			uint2_t sink = {0, n_snk};
@@ -2168,12 +2173,12 @@ void benchmark(int id_dev, int n0, int n1, int dn, int n_iter, ofstream& o_resul
 
 void benchmark_GPU(option& opt, ofstream& o_result, ofstream& o_summary)
 {
-	vec_t* h_x = 0x0;
-	vec_t* h_a = 0x0;
+	var4_t* h_x = 0x0;
+	var4_t* h_a = 0x0;
 	var_t* h_m = 0x0;
 
-	vec_t* d_x = 0x0;
-	vec_t* d_a = 0x0;
+	var4_t* d_x = 0x0;
+	var4_t* d_a = 0x0;
 	var_t* d_m = 0x0;
 
 	set_device(opt.id_dev, cout);
@@ -2201,17 +2206,17 @@ void benchmark_GPU(option& opt, ofstream& o_result, ofstream& o_summary)
 		{
 			// Total number of bodies is the larger of n_snk and n_src
 			int n_total = max(n_snk, n_src);
-			ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(vec_t)); 
-			ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(vec_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(var4_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(var4_t)); 
 			ALLOCATE_HOST_VECTOR((void**)&h_m,  n_total*sizeof(var_t)); 
 
-			ALLOCATE_DEVICE_VECTOR((void**)&d_x, n_total*sizeof(vec_t)); 
-			ALLOCATE_DEVICE_VECTOR((void**)&d_a, n_total*sizeof(vec_t)); 
+			ALLOCATE_DEVICE_VECTOR((void**)&d_x, n_total*sizeof(var4_t)); 
+			ALLOCATE_DEVICE_VECTOR((void**)&d_a, n_total*sizeof(var4_t)); 
 			ALLOCATE_DEVICE_VECTOR((void**)&d_m, n_total*sizeof(var_t)); 
 
 			populate(n_total, h_x, h_m);
 
-			copy_vector_to_device(d_x, h_x, n_total*sizeof(vec_t));
+			copy_vector_to_device(d_x, h_x, n_total*sizeof(var4_t));
 			copy_vector_to_device(d_m, h_m, n_total*sizeof(var_t));
 
 			uint2_t sink = {0, n_snk};
@@ -2245,8 +2250,8 @@ void benchmark_GPU(option& opt, ofstream& o_result, ofstream& o_summary)
 
 void benchmark_CPU(option& opt, ofstream& o_result, ofstream& o_summary)
 {
-	vec_t* h_x = 0x0;
-	vec_t* h_a = 0x0;
+	var4_t* h_x = 0x0;
+	var4_t* h_a = 0x0;
 	var_t* h_m = 0x0;
 
 	// The user wants a benchmark only for the specified number of bodies
@@ -2272,8 +2277,8 @@ void benchmark_CPU(option& opt, ofstream& o_result, ofstream& o_summary)
 		{
 			// Total number of bodies is the larger of n_snk and n_src
 			int n_total = max(n_snk, n_src);
-			ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(vec_t)); 
-			ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(vec_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_x,  n_total*sizeof(var4_t)); 
+			ALLOCATE_HOST_VECTOR((void**)&h_a,  n_total*sizeof(var4_t)); 
 			ALLOCATE_HOST_VECTOR((void**)&h_m,  n_total*sizeof(var_t)); 
 
 			populate(n_total, h_x, h_m);

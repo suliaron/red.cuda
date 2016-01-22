@@ -128,10 +128,10 @@ void parameter::set_param(string& key, string& value)
 		{
 			int_type = INTEGRATOR_RUNGEKUTTAFEHLBERG78;
 		}			
-		else if (value == "rkn"  || value == "rungekuttanystrom" || value == "runge-kutta-nystrom")
-		{
-			int_type = INTEGRATOR_RUNGEKUTTANYSTROM;
-		}
+		//else if (value == "rkn"  || value == "rungekuttanystrom" || value == "runge-kutta-nystrom")
+		//{
+		//	int_type = INTEGRATOR_RUNGEKUTTANYSTROM;
+		//}
 		else
 		{
 			throw string("Invalid integrator type: " + value);

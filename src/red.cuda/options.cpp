@@ -1,7 +1,5 @@
-// includes system
 #include <iostream>
 
-// includes project
 #include "options.h"
 #include "analytic_gas_disk.h"
 #include "fargo_gas_disk.h"
@@ -9,7 +7,7 @@
 #include "int_rungekutta2.h"
 #include "int_rungekutta4.h"
 #include "int_rungekutta8.h"
-#include "util.h"
+
 #include "redutilcu.h"
 #include "red_constants.h"
 #include "red_macro.h"
@@ -194,7 +192,7 @@ void options::parse(int argc, const char** argv)
 			i++;
 			dir[DIRECTORY_NAME_IN] = argv[i];
 		}
-		else if (p == "--printDir" || p == "-pDir")
+		else if (p == "--outputDir" || p == "-oDir")
 		{
 			i++;
 			dir[DIRECTORY_NAME_OUT] = argv[i];
@@ -293,10 +291,10 @@ integrator* options::create_integrator(pp_disk* ppd, ttt_t dt)
 		intgr = new rungekutta8(ppd, dt, param->adaptive, param->tolerance, comp_dev);
 		//intgr = new c_rungekutta8(ppd, dt, param->adaptive, param->tolerance);
 		break;
-	case INTEGRATOR_RUNGEKUTTANYSTROM:
-		throw string("Requested integrator is not implemented.");
-		//intgr = new rungekuttanystrom<9>(*f, dt, adaptive, tolerance, comp_dev);
-		break;
+	//case INTEGRATOR_RUNGEKUTTANYSTROM:
+	//	throw string("Requested integrator is not implemented.");
+	//	//intgr = new rungekuttanystrom<9>(*f, dt, adaptive, tolerance, comp_dev);
+	//	break;
 	default:
 		throw string("Requested integrator is not implemented.");
 	}
@@ -336,7 +334,7 @@ void options::print_usage()
 	cout << "     -result | --result-filename <filename>   : the name of the file where the simlation data for a time instance will be stored (default value is result.txt)" << endl;
 
 	cout << "     -iDir   | --inputDir <directory>         : the directory containing the input files"  << endl;
-	cout << "     -pDir   | --printDir <directory>         : the directory where the output files will be stored (if omitted the input directory will be used)" << endl;
+	cout << "     -oDir   | --outputDir <directory>        : the directory where the output files will be stored (if omitted the input directory will be used)" << endl;
 	cout << "     -p      | --parameter <filename>         : the file containing the parameters of the simulation"  << endl;
 	cout << "     -ga     | --analytic_gas_disk <filename> : the file containing the parameters of an analyticaly prescribed gas disk"  << endl;
 	cout << "     -gf     | --fargo_gas_disk <filename>    : the file containing the details of the gas disk resulted from FARGO simulations"  << endl;

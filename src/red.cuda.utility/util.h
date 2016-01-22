@@ -4,18 +4,20 @@
 
 namespace redutilcu
 {
-	__host__ __device__ vec_t rotate_2D_vector(var_t theta, const vec_t& r);
+	__host__ __device__ var4_t rotate_2D_vector(var_t theta, const var4_t& r);
 
 	template <typename T>
 	std::string number_to_string(T number);
 	template <typename T>
-	std::string number_to_string( T number, unsigned int width, bool fill);
+	std::string number_to_string( T number, uint32_t width, bool fill);
 
 	void device_query(ostream& sout, int id_dev, bool print_to_screen);
 
 	int get_id_fastest_cuda_device();
 	int get_n_cuda_device();
 	string get_name_cuda_device(int id_dev);
+
+	void set_kernel_launch_param(uint32_t n_data, uint16_t n_tpb, dim3& grid, dim3& block);
 
 	void allocate_host_vector(  void **ptr, size_t size,           const char *file, int line);
 	void allocate_device_vector(void **ptr, size_t size,           const char *file, int line);
@@ -33,11 +35,11 @@ namespace redutilcu
 	#define FREE_DEVICE_VECTOR(ptr)      (free_device_vector(ptr,      __FILE__, __LINE__))
 	#define FREE_VECTOR(       ptr, cpu) (free_vector(       ptr, cpu, __FILE__, __LINE__))
 
-	void allocate_host_storage(sim_data_t *sd, int n);
-	void allocate_device_storage(sim_data_t *sd, int n);
+	void allocate_host_storage(pp_disk_t::sim_data_t *sd, int n);
+	void allocate_device_storage(pp_disk_t::sim_data_t *sd, int n);
 
-	void deallocate_host_storage(sim_data_t *sd);
-	void deallocate_device_storage(sim_data_t *sd);
+	void deallocate_host_storage(pp_disk_t::sim_data_t *sd);
+	void deallocate_device_storage(pp_disk_t::sim_data_t *sd);
 
 	void copy_vector_to_device(void* dst, const void *src, size_t count);
 	void copy_vector_to_host(  void* dst, const void *src, size_t count);
@@ -49,5 +51,5 @@ namespace redutilcu
 	void set_device(int id_of_target_dev, ostream& sout);
 	void print_array(string path, int n, var_t *data, computing_device_t comp_dev);
 
-	void create_aliases(computing_device_t comp_dev, sim_data_t *sd);
+	void create_aliases(computing_device_t comp_dev, pp_disk_t::sim_data_t *sd);
 } /* redutilcu */

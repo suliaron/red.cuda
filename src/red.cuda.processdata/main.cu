@@ -21,12 +21,12 @@ using namespace redutilcu;
 vector<string> body_names;
 
 vector<ttt_t> g_epoch;
-vector<body_metadata_t> g_bmd;
-vector<param_t> g_param;
-vector<vec_t> g_coor;
-vector<vec_t> g_velo;
+vector<pp_disk_t::body_metadata_t> g_bmd;
+vector<pp_disk_t::param_t> g_param;
+vector<var4_t> g_coor;
+vector<var4_t> g_velo;
 
-unsigned int ns, ngp, nrp, npp, nspl, npl, ntp, n_total;
+uint32_t ns, ngp, nrp, npp, nspl, npl, ntp, n_total;
 
 
 #if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
@@ -55,9 +55,9 @@ inline string epoch_to_string(ttt_t epoch)
 }
 #endif 
 
-void extract_body_record(string& line, int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v);
+void extract_body_record(string& line, int k, ttt_t* epoch, pp_disk_t::body_metadata_t* body_md, pp_disk_t::param_t* p, var4_t* r, var4_t* v);
 
-void print(string &path, sim_data_t *sd)
+void print(string &path, pp_disk_t::sim_data_t *sd)
 {
 	printf("Writing %s to disk .", path.c_str());
 
@@ -89,9 +89,9 @@ void print(string &path, sim_data_t *sd)
 void read_snapshot(string& path, ttt_t t, data_representation_t repres)
 {
 	ttt_t epoch[1];
-	body_metadata_t bmd[1];
-	param_t p[1];
-	vec_t r[1], v[1];
+	pp_disk_t::body_metadata_t bmd[1];
+	pp_disk_t::param_t p[1];
+	var4_t r[1], v[1];
 
 	ns = ngp = nrp = npp = nspl = npl = ntp = 0;
 	n_total = 0;
@@ -212,9 +212,9 @@ void read_snapshot(string& path, ttt_t t, data_representation_t repres)
 void read_body(string& path, int id, int& n_id_record, data_representation_t repres)
 {
 	ttt_t epoch[1];
-	body_metadata_t bmd[1];
-	param_t p[1];
-	vec_t r[1], v[1];
+	pp_disk_t::body_metadata_t bmd[1];
+	pp_disk_t::param_t p[1];
+	var4_t r[1], v[1];
 
 	int n_star_record = 0;
 	n_id_record = 0;
@@ -292,37 +292,37 @@ void read_body(string& path, int id, int& n_id_record, data_representation_t rep
     return;
 }
 
-void load_binary(ifstream& input, sim_data_t *sim_data)
+void load_binary(ifstream& input, pp_disk_t::sim_data_t *sim_data)
 {
-	for (unsigned int type = 0; type < BODY_TYPE_N; type++)
+	for (uint32_t type = 0; type < BODY_TYPE_N; type++)
 	{
-		unsigned int tmp = 0;
+		uint32_t tmp = 0;
 		input.read((char*)&tmp, sizeof(tmp));
 	}
 
 	char name_buffer[30];
-	vec_t* r = sim_data->h_y[0];
-	vec_t* v = sim_data->h_y[1];
-	param_t* p = sim_data->h_p;
-	body_metadata_t* bmd = sim_data->h_body_md;
+	var4_t* r = sim_data->h_y[0];
+	var4_t* v = sim_data->h_y[1];
+	pp_disk_t::param_t* p = sim_data->h_p;
+	pp_disk_t::body_metadata_t* bmd = sim_data->h_body_md;
 	ttt_t* epoch = sim_data->h_epoch;
 
-	for (unsigned int i = 0; i < n_total; i++)
+	for (uint32_t i = 0; i < n_total; i++)
 	{
 		memset(name_buffer, 0, sizeof(name_buffer));
 
 		input.read((char*)&epoch[i],  1*sizeof(ttt_t));
 		input.read(name_buffer,      30*sizeof(char));
-		input.read((char*)&bmd[i],    1*sizeof(body_metadata_t));
-		input.read((char*)&p[i],      1*sizeof(param_t));
-		input.read((char*)&r[i],      1*sizeof(vec_t));
-		input.read((char*)&v[i],      1*sizeof(vec_t));
+		input.read((char*)&bmd[i],    1*sizeof(pp_disk_t::body_metadata_t));
+		input.read((char*)&p[i],      1*sizeof(pp_disk_t::param_t));
+		input.read((char*)&r[i],      1*sizeof(var4_t));
+		input.read((char*)&v[i],      1*sizeof(var4_t));
 
 		body_names.push_back(name_buffer);
 	}
 }
 
-void extract_body_record(string& line, int k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, vec_t* r, vec_t* v)
+void extract_body_record(string& line, int k, ttt_t* epoch, pp_disk_t::body_metadata_t* body_md, pp_disk_t::param_t* p, var4_t* r, var4_t* v)
 {
 	int_t	type = 0;
 	string	dummy;
@@ -430,7 +430,7 @@ int main(int argc, const char **argv)
 	int id = 0;
 	int n_id_record = 0;
 
-	sim_data_t* sim_data = 0x0;
+	pp_disk_t::sim_data_t* sim_data = 0x0;
 	try
 	{
 		parse_options(argc, argv, iDir, oDir,input_file, t_snapshot, id);
@@ -445,7 +445,7 @@ int main(int argc, const char **argv)
 			read_body(path, id, n_id_record, DATA_REPRESENTATION_ASCII);
 		}
 
-		sim_data = new sim_data_t;
+		sim_data = new pp_disk_t::sim_data_t;
 		sim_data->h_y.resize(2);
 		ALLOCATE_HOST_VECTOR((void **)&(sim_data->h_oe), n_total*sizeof(orbelem_t));
 
@@ -474,11 +474,11 @@ int main(int argc, const char **argv)
 		{
 			if (0 < t_snapshot)
 			{
-				for (unsigned int i = 1; i < n_total; i++)
+				for (uint32_t i = 1; i < n_total; i++)
 				{
 					var_t mu = K2 *(sim_data->h_p[0].mass + sim_data->h_p[i].mass);
-					vec_t rVec = {sim_data->h_y[0][i].x - sim_data->h_y[0][0].x, sim_data->h_y[0][i].y - sim_data->h_y[0][0].y, sim_data->h_y[0][i].z - sim_data->h_y[0][0].z, 0.0};
-					vec_t vVec = {sim_data->h_y[1][i].x - sim_data->h_y[1][0].x, sim_data->h_y[1][i].y - sim_data->h_y[1][0].y, sim_data->h_y[1][i].z - sim_data->h_y[1][0].z, 0.0};
+					var4_t rVec = {sim_data->h_y[0][i].x - sim_data->h_y[0][0].x, sim_data->h_y[0][i].y - sim_data->h_y[0][0].y, sim_data->h_y[0][i].z - sim_data->h_y[0][0].z, 0.0};
+					var4_t vVec = {sim_data->h_y[1][i].x - sim_data->h_y[1][0].x, sim_data->h_y[1][i].y - sim_data->h_y[1][0].y, sim_data->h_y[1][i].z - sim_data->h_y[1][0].z, 0.0};
 					tools::calc_oe(mu, &rVec, &vVec, (&sim_data->h_oe[i]));
 				}
 			}
@@ -486,11 +486,11 @@ int main(int argc, const char **argv)
 			if (0 < id)
 			{
 				int j = 0;
-				for (unsigned int i = 0; i < n_total; i += 2, j++)
+				for (uint32_t i = 0; i < n_total; i += 2, j++)
 				{
 					var_t mu = K2 *(sim_data->h_p[i].mass + sim_data->h_p[i+1].mass);
-					vec_t rVec = {sim_data->h_y[0][i+1].x - sim_data->h_y[0][i].x, sim_data->h_y[0][i+1].y - sim_data->h_y[0][i].y, sim_data->h_y[0][i+1].z - sim_data->h_y[0][i].z, 0.0};
-					vec_t vVec = {sim_data->h_y[1][i+1].x - sim_data->h_y[1][i].x, sim_data->h_y[1][i+1].y - sim_data->h_y[1][i].y, sim_data->h_y[1][i+1].z - sim_data->h_y[1][i].z, 0.0};
+					var4_t rVec = {sim_data->h_y[0][i+1].x - sim_data->h_y[0][i].x, sim_data->h_y[0][i+1].y - sim_data->h_y[0][i].y, sim_data->h_y[0][i+1].z - sim_data->h_y[0][i].z, 0.0};
+					var4_t vVec = {sim_data->h_y[1][i+1].x - sim_data->h_y[1][i].x, sim_data->h_y[1][i+1].y - sim_data->h_y[1][i].y, sim_data->h_y[1][i+1].z - sim_data->h_y[1][i].z, 0.0};
 					tools::calc_oe(mu, &rVec, &vVec, (&sim_data->h_oe[j]));
 				}
 			}
@@ -499,7 +499,7 @@ int main(int argc, const char **argv)
 			ofstream output(path.c_str(), ios_base::out);
 			if (output)
 			{
-				unsigned int n_oe_record = 0;
+				uint32_t n_oe_record = 0;
 				if (0 < t_snapshot)
 				{
 					n_oe_record = n_total;
@@ -509,7 +509,7 @@ int main(int argc, const char **argv)
 					n_oe_record = n_id_record;
 				}
 
-				for (unsigned int i = 0; i < n_oe_record; i++)
+				for (uint32_t i = 0; i < n_oe_record; i++)
 				{
 					file::print_oe_record(output, sim_data->h_epoch[2*i], &sim_data->h_oe[i], &sim_data->h_p[2*i+1], &sim_data->h_body_md[2*i+1]);
 				}

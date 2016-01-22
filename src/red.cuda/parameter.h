@@ -1,24 +1,21 @@
 #pragma once
 
-// includes system
 #include <string>
 
-// includes project
 #include "red_type.h"
-
-using namespace std;
 
 class parameter
 {
 public:
-	parameter(string& dir, string& filename, bool verbose);
+	parameter(std::string& dir, std::string& filename, bool verbose);
 	~parameter();
 
-	string filename;                   //!< holds the path of the file containing the parameters of the simulation
-								       
-	string simulation_name;            //! name of the simulation
-	string simulation_desc;            //! description of the simulation
-								       
+	std::string get_data()  { return data; }
+
+	std::string filename;              //!< holds the path of the file containing the parameters of the simulation
+	std::string simulation_name;       //! name of the simulation
+	std::string simulation_desc;       //! description of the simulation
+								      
 	integrator_type_t int_type;	       //! type of the integrator
 	var_t tolerance;                   //! tolerance/eps/accuracy of the simulation
 	bool_t error_check_for_tp;         //! Check the error also for the test particle
@@ -43,9 +40,9 @@ public:
 private:
 	void create_default();
 	void parse();
-	void set_param(string& key, string& value);
+	void set_param(std::string& key, std::string& value);
 	void transform_time();
 
-	string	data;   //!< holds a copy of the file containing the parameters of the simulation
-	bool verbose;   //!< print the key - value information to the screen
+	std::string	data;   //!< holds a copy of the file containing the parameters of the simulation
+	bool verbose;       //!< print the key - value information to the screen
 };

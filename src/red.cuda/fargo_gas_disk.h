@@ -1,17 +1,14 @@
 #pragma once
-// includes system
+
 #include <string>
 #include <vector>
 
-// includes project
 #include "red_type.h"
-
-using namespace std;
 
 class fargo_gas_disk
 {
 public:
-	fargo_gas_disk(string& dir, string& filename, computing_device_t comp_dev, bool verbose);
+	fargo_gas_disk(std::string& dir, std::string& filename, computing_device_t comp_dev, bool verbose);
 	~fargo_gas_disk();
 
 	void allocate_storage();
@@ -25,13 +22,13 @@ public:
 	void copy_to_device();
 
 	void load(ttt_t);
-	void load_gas_density(string& path, size_t n);
-	void load_gas_vrad(string& path, size_t n);
-	void load_gas_vtheta(string& path, size_t n);
-	void load_used_rad(string& path, size_t);
+	void load_gas_density(std::string& path, size_t n);
+	void load_gas_vrad(std::string& path, size_t n);
+	void load_gas_vtheta(std::string& path, size_t n);
+	void load_used_rad(std::string& path, size_t);
 
-	vec_t get_velocity(vec_t r);
-	var_t get_density(vec_t r);
+	var4_t get_velocity(var4_t r);
+	var_t get_density(var4_t r);
 
 	fargo_gas_disk_params_t params;
 
@@ -54,7 +51,7 @@ public:
 private:
 	void initialize();
 	void parse();
-	void set_param(string& key, string& value);
+	void set_param(std::string& key, std::string& value);
 	int create_index_for_filename(ttt_t t);
 
 	void transform_data();
@@ -63,20 +60,20 @@ private:
 	void transform_density();
 
 	bool verbose;
-	string dir;
-	string filename;
-	string data;                 //!< holds a copy of the file containing the parameters of the simulation
+	std::string dir;
+	std::string filename;
+	std::string data;                 //!< holds a copy of the file containing the parameters of the simulation
 
-	string exclude_hill;
-	string planet_config;
-	string transport;
-	string inner_boundary;		 // choose : OPEN or RIGID or NONREFLECTING
-	string outer_boundary;
-	string disk;
-	string frame;
-	string indirect_term;
-	string radial_spacing;       // Zone interfaces evenly spaced
-	string output_dir;
+	std::string exclude_hill;
+	std::string planet_config;
+	std::string transport;
+	std::string inner_boundary;		 // choose : OPEN or RIGID or NONREFLECTING
+	std::string outer_boundary;
+	std::string disk;
+	std::string frame;
+	std::string indirect_term;
+	std::string radial_spacing;       // Zone interfaces evenly spaced
+	std::string output_dir;
 
 	computing_device_t comp_dev;
 };

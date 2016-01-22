@@ -16,7 +16,7 @@
 namespace redutilcu
 {
 template <typename T>
-std::string number_to_string( T number, unsigned int width, bool fill)
+std::string number_to_string( T number, uint32_t width, bool fill)
 {
 	std::ostringstream ss;
 
@@ -46,12 +46,12 @@ std::string number_to_string( T number, unsigned int width, bool fill)
 	return ss.str();
 }
 
-template std::string number_to_string<char>(                  char, unsigned int width, bool fill);
-template std::string number_to_string<unsigned char>(unsigned char, unsigned int width, bool fill);
-template std::string number_to_string<int>(                    int, unsigned int width, bool fill);
-template std::string number_to_string<unsigned int>(  unsigned int, unsigned int width, bool fill);
-template std::string number_to_string<long>(                  long, unsigned int width, bool fill);
-template std::string number_to_string<unsigned long>(unsigned long, unsigned int width, bool fill);
+template std::string number_to_string<char>(                  char, uint32_t width, bool fill);
+template std::string number_to_string<unsigned char>(unsigned char, uint32_t width, bool fill);
+template std::string number_to_string<int>(                    int, uint32_t width, bool fill);
+template std::string number_to_string<uint32_t>(  uint32_t, uint32_t width, bool fill);
+template std::string number_to_string<long>(                  long, uint32_t width, bool fill);
+template std::string number_to_string<unsigned long>(unsigned long, uint32_t width, bool fill);
 
 template <typename T>
 std::string number_to_string( T number )
@@ -64,19 +64,19 @@ std::string number_to_string( T number )
 template std::string number_to_string<char>(char);
 template std::string number_to_string<unsigned char>(unsigned char);
 template std::string number_to_string<int>(int);
-template std::string number_to_string<unsigned int>(unsigned int);
+template std::string number_to_string<uint32_t>(uint32_t);
 template std::string number_to_string<long>(long);
 template std::string number_to_string<unsigned long>(unsigned long);
 template std::string number_to_string<float>(float);
 template std::string number_to_string<double>(double);
 
 __host__ __device__
-	vec_t rotate_2D_vector(var_t theta, const vec_t& r)
+	var4_t rotate_2D_vector(var_t theta, const var4_t& r)
 {
 	var_t ct = cos(theta);
 	var_t st = sin(theta);
 
-	vec_t result = {ct * r.x - st * r.y, st * r.x + ct * r.y, 0.0, 0.0};
+	var4_t result = {ct * r.x - st * r.y, st * r.x + ct * r.y, 0.0, 0.0};
 	return result;
 }
 
@@ -235,6 +235,15 @@ string get_device_name(int id_dev)
 	return name;
 }
 
+void set_kernel_launch_param(uint32_t n_data, uint16_t n_tpb, dim3& grid, dim3& block)
+{
+	uint32_t n_thread = min(n_tpb, n_data);
+	uint32_t n_block = (n_data + n_thread - 1)/n_thread;
+
+	grid.x	= n_block;
+	block.x = n_thread;
+}
+
 void device_query(ostream& sout, int id_dev, bool print_to_screen)
 {
 	device_query(sout, id_dev);
@@ -306,41 +315,41 @@ void free_vector(void **ptr, bool cpu, const char *file, int line)
 	}
 }
 
-void allocate_host_storage(sim_data_t *sd, int n)
+void allocate_host_storage(pp_disk_t::sim_data_t *sd, int n)
 {
 	sd->h_y.resize(2);
 	sd->h_yout.resize(2);
 
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_HOST_VECTOR((void **)&(sd->h_y[i]),    n*sizeof(vec_t));
-		ALLOCATE_HOST_VECTOR((void **)&(sd->h_yout[i]), n*sizeof(vec_t));
+		ALLOCATE_HOST_VECTOR((void **)&(sd->h_y[i]),    n*sizeof(var4_t));
+		ALLOCATE_HOST_VECTOR((void **)&(sd->h_yout[i]), n*sizeof(var4_t));
 	}
-	ALLOCATE_HOST_VECTOR((void **)&(sd->h_p),           n*sizeof(param_t));
-	ALLOCATE_HOST_VECTOR((void **)&(sd->h_body_md),     n*sizeof(body_metadata_t));
+	ALLOCATE_HOST_VECTOR((void **)&(sd->h_p),           n*sizeof(pp_disk_t::param_t));
+	ALLOCATE_HOST_VECTOR((void **)&(sd->h_body_md),     n*sizeof(pp_disk_t::body_metadata_t));
 	ALLOCATE_HOST_VECTOR((void **)&(sd->h_epoch),       n*sizeof(ttt_t));
 
 	ALLOCATE_HOST_VECTOR((void **)&(sd->h_oe),          n*sizeof(orbelem_t));
 }
 
-void allocate_device_storage(sim_data_t *sd, int n)
+void allocate_device_storage(pp_disk_t::sim_data_t *sd, int n)
 {
 	sd->d_y.resize(2);
 	sd->d_yout.resize(2);
 
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_y[i]),	  n*sizeof(vec_t));
-		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_yout[i]), n*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_y[i]),	  n*sizeof(var4_t));
+		ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_yout[i]), n*sizeof(var4_t));
 	}
-	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_p),			  n*sizeof(param_t));
-	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_body_md),	  n*sizeof(body_metadata_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_p),			  n*sizeof(pp_disk_t::param_t));
+	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_body_md),	  n*sizeof(pp_disk_t::body_metadata_t));
 	ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_epoch),		  n*sizeof(ttt_t));
 
     ALLOCATE_DEVICE_VECTOR((void **)&(sd->d_oe),          n*sizeof(orbelem_t));
 }
 
-void deallocate_host_storage(sim_data_t *sd)
+void deallocate_host_storage(pp_disk_t::sim_data_t *sd)
 {
 	for (int i = 0; i < 2; i++)
 	{
@@ -354,7 +363,7 @@ void deallocate_host_storage(sim_data_t *sd)
 	FREE_HOST_VECTOR((void **)&(sd->h_oe));
 }
 
-void deallocate_device_storage(sim_data_t *sd)
+void deallocate_device_storage(pp_disk_t::sim_data_t *sd)
 {
 	for (int i = 0; i < 2; i++)
 	{
@@ -451,7 +460,7 @@ void print_array(string path, int n, var_t *data, computing_device_t comp_dev)
 	}
 }
 
-void create_aliases(computing_device_t comp_dev, sim_data_t *sd)
+void create_aliases(computing_device_t comp_dev, pp_disk_t::sim_data_t *sd)
 {
 	switch (comp_dev)
 	{

@@ -5,15 +5,9 @@
 // includes CUDA
 
 // includes Thrust
-#ifdef __GNUC__
-#include "thrust/device_ptr.h"
-#include "thrust/fill.h"
-#include "thrust/extrema.h"
-#else
 #include "thrust\device_ptr.h"
 #include "thrust\fill.h"
 #include "thrust\extrema.h"
-#endif
 
 // includes project
 #include "integrator.h"
@@ -24,12 +18,12 @@
 using namespace std;
 using namespace redutilcu;
 
-integrator::integrator(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, int r_max, computing_device_t comp_dev) : 
+integrator::integrator(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, int n_stage, computing_device_t comp_dev) : 
 	ppd(ppd),
 	dt_try(dt * constants::Gauss), // Transform time unit
 	adaptive(adaptive),
 	tolerance(tolerance),
-	r_max(r_max),
+	n_stage(n_stage),
 	comp_dev(comp_dev)
 {
 	initialize();
@@ -80,7 +74,7 @@ void integrator::allocate_storage()
 	// Resize the alias vector
 	for (int i = 0; i < 2; i++)
 	{
-		dydx[i].resize(r_max);
+		dydx[i].resize(n_stage);
 	}
 }
 
@@ -88,12 +82,12 @@ void integrator::allocate_host_storage(int n_body)
 {
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_HOST_VECTOR((void**)&(h_ytemp[i]), n_body*sizeof(vec_t));
+		ALLOCATE_HOST_VECTOR((void**)&(h_ytemp[i]), n_body*sizeof(var4_t));
 
-		h_dydx[i].resize(r_max);
-		for (int r = 0; r < r_max; r++) 
+		h_dydx[i].resize(n_stage);
+		for (int r = 0; r < n_stage; r++) 
 		{
-			ALLOCATE_HOST_VECTOR((void**)&(h_dydx[i][r]), n_body*sizeof(vec_t));
+			ALLOCATE_HOST_VECTOR((void**)&(h_dydx[i][r]), n_body*sizeof(var4_t));
 		}
 		if (adaptive)
 		{
@@ -107,12 +101,12 @@ void integrator::allocate_device_storage(int n_body)
 {
 	for (int i = 0; i < 2; i++)
 	{
-		ALLOCATE_DEVICE_VECTOR((void**)&(d_ytemp[i]), n_body*sizeof(vec_t));
+		ALLOCATE_DEVICE_VECTOR((void**)&(d_ytemp[i]), n_body*sizeof(var4_t));
 
-		d_dydx[i].resize(r_max);
-		for (int r = 0; r < r_max; r++) 
+		d_dydx[i].resize(n_stage);
+		for (int r = 0; r < n_stage; r++) 
 		{
-			ALLOCATE_DEVICE_VECTOR((void**)&(d_dydx[i][r]), n_body*sizeof(vec_t));
+			ALLOCATE_DEVICE_VECTOR((void**)&(d_dydx[i][r]), n_body*sizeof(var4_t));
 		}
 		if (adaptive)
 		{
@@ -127,7 +121,7 @@ void integrator::deallocate_host_storage()
 	for (int i = 0; i < 2; i++)
 	{
 		FREE_HOST_VECTOR(  (void **)&(h_ytemp[i]));
-		for (int r = 0; r < r_max; r++) 
+		for (int r = 0; r < n_stage; r++) 
 		{
 			FREE_HOST_VECTOR(  (void**)&(h_dydx[i][r]));
 		}
@@ -143,7 +137,7 @@ void integrator::deallocate_device_storage()
 	for (int i = 0; i < 2; i++)
 	{
 		FREE_DEVICE_VECTOR((void **)&(d_ytemp[i]));
-		for (int r = 0; r < r_max; r++) 
+		for (int r = 0; r < n_stage; r++) 
 		{
 			FREE_DEVICE_VECTOR((void**)&(d_dydx[i][r]));
 		}
@@ -162,7 +156,7 @@ void integrator::create_aliases()
 		for (int i = 0; i < 2; i++)
 		{
 			ytemp[i] = h_ytemp[i];
-			for (int r = 0; r < r_max; r++) 
+			for (int r = 0; r < n_stage; r++) 
 			{
 				dydx[i][r] = h_dydx[i][r];
 			}
@@ -176,7 +170,7 @@ void integrator::create_aliases()
 		for (int i = 0; i < 2; i++)
 		{
 			ytemp[i] = d_ytemp[i];
-			for (int r = 0; r < r_max; r++) 
+			for (int r = 0; r < n_stage; r++) 
 			{
 				dydx[i][r] = d_dydx[i][r];
 			}
@@ -218,7 +212,7 @@ void integrator::set_computing_device(computing_device_t device)
 	ppd->set_computing_device(device);
 }
 
-var_t integrator::get_max_error(int n_var, var_t lambda)
+var_t integrator::get_max_error(uint32_t n_var)
 {
 	var_t max_err_r = 0.0;
 	var_t max_err_v = 0.0;
@@ -262,7 +256,8 @@ var_t integrator::get_max_error(int n_var, var_t lambda)
 		}		
 	}
 
-	return fabs(dt_try * lambda * std::max(max_err_r, max_err_v));
+	//return fabs(dt_try * lambda * std::max(max_err_r, max_err_v));
+	return (std::max(max_err_r, max_err_v));
 }
 
 void integrator::update_counters(int iter)

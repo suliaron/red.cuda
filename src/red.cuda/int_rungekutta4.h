@@ -1,14 +1,8 @@
 #pragma once
-// includes system
-#include <string>
-#include <vector>
 
-// includes project
 #include "integrator.h"
 #include "pp_disk.h"
 #include "red_type.h"
-
-using namespace std;
 
 class rungekutta4 : public integrator
 {

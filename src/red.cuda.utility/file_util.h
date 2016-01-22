@@ -20,16 +20,16 @@ namespace redutilcu
 
 		void Emese_data_format_to_red_cuda_format(const string& input_path, const string& output_path);
 
-		void log_start(ostream& sout, int argc, const char** argv, const char** env, collision_detection_model_t cdm, bool print_to_screen);
+		void log_start(ostream& sout, int argc, const char** argv, const char** env, std::string& params, bool print_to_screen);
 		void log_message(ostream& sout, string msg, bool print_to_screen);
 
-		void print_body_record(         ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v);
-		void print_body_record_Emese(   ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v);
-		void print_body_record_HIPERION(ofstream &sout, string name, var_t epoch, param_t *p, body_metadata_t *body_md, vec_t *r, vec_t *v);
+		void print_body_record(         ofstream &sout, string name, var_t epoch, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd, var4_t *r, var4_t *v);
+		void print_body_record_Emese(   ofstream &sout, string name, var_t epoch, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd, var4_t *r, var4_t *v);
+		void print_body_record_HIPERION(ofstream &sout, string name, var_t epoch, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd, var4_t *r, var4_t *v);
 		void print_oe_record(ofstream &sout, orbelem_t* oe);
-		void print_oe_record(ofstream &sout, orbelem_t* oe, param_t *p);
-		void print_oe_record(ofstream &sout, orbelem_t* oe, param_t *p, body_metadata_t *bmd);
-		void print_oe_record(ofstream &sout, ttt_t epoch, orbelem_t* oe, param_t *p, body_metadata_t *bmd);
+		void print_oe_record(ofstream &sout, orbelem_t* oe, pp_disk_t::param_t *p);
+		void print_oe_record(ofstream &sout, orbelem_t* oe, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd);
+		void print_oe_record(ofstream &sout, ttt_t epoch, orbelem_t* oe, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd);
 	} /* file */
 } /* redutilcu */
 
