@@ -258,8 +258,7 @@ ostream& operator<<(ostream& stream, const parameter* p)
 			"INTEGRATOR_EULER"
 			"INTEGRATOR_RUNGEKUTTA2",
 			"INTEGRATOR_RUNGEKUTTA4",
-			"INTEGRATOR_RUNGEKUTTAFEHLBERG78",
-			"INTEGRATOR_RUNGEKUTTANYSTROM"
+			"INTEGRATOR_RUNGEKUTTAFEHLBERG78"
 		};
 
 	const char* threshold_name[] = 

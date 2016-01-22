@@ -13,6 +13,8 @@
 #include "red_macro.h"
 #include "red_type.h"
 
+using namespace std;
+
 namespace redutilcu
 {
 namespace file
@@ -248,7 +250,7 @@ void Emese_data_format_to_red_cuda_format(const string& input_path, const string
 	}
 }
 
-void log_start(ostream& sout, int argc, const char** argv, const char** env, std::string& params)
+void log_start(ostream& sout, int argc, const char** argv, const char** env, string& params)
 {
 	sout << tools::get_time_stamp(false) << " starting " << argv[0] << endl;
 	sout << "Command line arguments: " << endl;
@@ -312,7 +314,7 @@ void log_start(ostream& sout, int argc, const char** argv, const char** env, std
 	//sout << endl;
 }
 
-void log_start(ostream& sout, int argc, const char** argv, const char** env, std::string& params, bool print_to_screen)
+void log_start(ostream& sout, int argc, const char** argv, const char** env, string& params, bool print_to_screen)
 {
 	log_start(sout, argc, argv, env, params);
 	if (print_to_screen)

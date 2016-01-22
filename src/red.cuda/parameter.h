@@ -10,7 +10,7 @@ public:
 	parameter(std::string& dir, std::string& filename, bool verbose);
 	~parameter();
 
-	std::string get_data()  { return data; }
+	std::string get_data()  { return data.c_str(); }
 
 	std::string filename;              //!< holds the path of the file containing the parameters of the simulation
 	std::string simulation_name;       //! name of the simulation

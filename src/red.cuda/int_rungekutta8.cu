@@ -381,7 +381,7 @@ void rungekutta8::cpu_calc_ytemp_for_f12(int_t n, var_t *ytemp, ttt_t dt, const 
 	}
 }
 
-// err = f0 + f10 - f11 - f12
+// err = abs(f0 + f10 - f11 - f12)
 void rungekutta8::cpu_calc_error(int_t n, var_t *err, const var_t *f0, const var_t *f10, const var_t *f11, const var_t *f12)
 {
 	for (int tid = 0; tid < n; tid++)

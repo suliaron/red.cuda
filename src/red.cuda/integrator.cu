@@ -5,9 +5,15 @@
 // includes CUDA
 
 // includes Thrust
+#ifdef __GNUC__
+#include "thrust/device_ptr.h"
+#include "thrust/fill.h"
+#include "thrust/extrema.h"
+#else
 #include "thrust\device_ptr.h"
 #include "thrust\fill.h"
 #include "thrust\extrema.h"
+#endif
 
 // includes project
 #include "integrator.h"
@@ -241,7 +247,7 @@ var_t integrator::get_max_error(uint32_t n_var)
 	else
 	{
 		// TODO: The cpu based integrator::get_max_error() function is not yet tested
-		for (int i = 0; i < n_var; i++)
+		for (uint32_t i = 0; i < n_var; i++)
 		{
 			if (max_err_r < err[0][i])
 			{
