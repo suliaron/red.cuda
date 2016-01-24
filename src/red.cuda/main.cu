@@ -520,7 +520,6 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			//ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
 			ppd->calc_integral(false, integrals[1]);
 			ppd->print_integral_data(integrals[1], *output[OUTPUT_NAME_INTEGRAL]);
-			n_save++;
 		}
 
 		if (16 <= ppd->n_event[EVENT_COUNTER_NAME_LAST_CLEAR])
