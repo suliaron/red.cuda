@@ -1870,7 +1870,6 @@ void pp_disk::transform_velocity()
 	}
 }
 
-
 void pp_disk::load_data_info(std::string& path, var_t& t0, n_objects_t* n_bodies, data_rep_t repres)
 {
 	ifstream input;
@@ -1963,7 +1962,6 @@ void pp_disk::load_data(std::string& path_data, pp_disk_t::sim_data_t* sim_data,
 	input.close();
 }
 
-
 void pp_disk::print_data(string& path, data_rep_t repres)
 {
 	ofstream sout;
@@ -2029,7 +2027,7 @@ void pp_disk::print_data_info(string& path, data_rep_t repres)
 	{
 	case DATA_REPRESENTATION_ASCII:
 		sout.open(path.c_str(), ios::out);
-		if (input) 
+		if (sout) 
 		{
 			file::print_data_info_record_ascii_RED(sout, this->t / constants::Gauss, this->n_bodies);
 		}
@@ -2040,7 +2038,7 @@ void pp_disk::print_data_info(string& path, data_rep_t repres)
 		break;
 	case DATA_REPRESENTATION_BINARY:
 		sout.open(path.c_str(), ios::out | ios::binary);
-		if (input) 
+		if (sout) 
 		{
 			file::print_data_info_record_binary_RED(sout, this->t / constants::Gauss, this->n_bodies);
 		}
