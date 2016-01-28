@@ -22,5 +22,10 @@ void generate_pp(phys_prop_dist_t *pp_d, pp_disk_t::param_t& param);
 */
 ttt_t extract_from_horizon_output(string &data, orbelem_t& oe);
 
-void print(string &path, body_disk_t& disk, pp_disk_t::sim_data_t* sd, input_format_name_t format);
-void print(string &path, int n, pp_disk_t::sim_data_t *sd);
+void print_uint32_t(string &path, uint32_t n);
+template <typename T>
+void print_number(string& path, T number);
+
+void print_data(string &path, body_disk_t& disk, pp_disk_t::sim_data_t* sd, input_format_name_t format);
+void print_data_info(string &path, ttt_t t0, body_disk_t& disk, pp_disk_t::sim_data_t* sd, input_format_name_t format);
+void print_oe(string &path, uint32_t n, pp_disk_t::sim_data_t *sd);

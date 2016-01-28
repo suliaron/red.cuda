@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <string>
 
 // includes CUDA
 #include "cuda.h"
@@ -13,7 +14,6 @@
 
 // includes project
 #include "nbody_exception.h"
-#include "number_of_bodies.h"
 #include "integrator.h"
 #include "options.h"
 #include "parameter.h"
@@ -27,6 +27,162 @@
 using namespace std;
 using namespace redutilcu;
 
+void print_dump_aux_data(ofstream& sout, dump_aux_data_t* dump_aux);
+string create_prefix(const options& opt);
+
+namespace print
+{
+void info(const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* T_CPU, clock_t* dT_CPU)
+{
+	cout.setf(ios::right);
+	cout.setf(ios::scientific);
+
+	n_objects_t* nb = ppd->n_bodies; 
+	string dev = (intgr->get_computing_device() == COMPUTING_DEVICE_CPU ? "CPU" : "GPU");
+
+	cout << "[" << dev << "] " 
+		 << tools::get_time_stamp(false) 
+		 << " t: " << setprecision(4) << setw(10) << ppd->t / constants::Gauss 
+		 << ", dt: " << setprecision(4) << setw(10) << dt / constants::Gauss
+		 << " (" << setprecision(4) << setw(10) << (ppd->t / constants::Gauss)/intgr->get_n_passed_step() << ") [d]";
+	cout << ", dT: " << setprecision(4) << setw(10) << *dT_CPU / (double)CLOCKS_PER_SEC;
+	cout << " (" << setprecision(4) << setw(10) << (*T_CPU / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << ") [s]";
+	cout << ", Nc: " << setw(5) << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL]
+	     << ", Ne: " << setw(5) << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL]
+		 << ", Nh: " << setw(5) << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL]
+		 << ", N : " << setw(6) << nb->get_n_total_playing() << "(" << setw(3) << nb->get_n_total_inactive() << ", " << setw(5) << nb->get_n_total_removed() << ")"
+	     << ", nt: " << setw(11) << intgr->get_n_tried_step()
+	     << ", np: " << setw(11) << intgr->get_n_passed_step()
+	     << ", nf: " << setw(11) << intgr->get_n_failed_step()
+		 << endl;
+}
+
+void info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* T_CPU, clock_t* dT_CPU)
+{
+	static const string header_str = "dev,date      ,time    ,t [d]      ,dt [d]     ,dt_avg [d] ,dT [s]     ,dT_avg [s] ,Nc   ,Ne   ,Nh   ,nb_p ,nb_i,nb_r ,ns_t    ,ns_p    ,ns_f    ,ns_a,ns_r  ,ngp_a,ngp_r,nrp_a,nrp_r,npp_a,npp_r,nspl_a,nspl_r,npl_a,npl_r,ntp_a,ntp_r";
+	static bool first_call = true;
+	
+	sout.setf(ios::right);
+	sout.setf(ios::scientific);
+
+	n_objects_t* nb = ppd->n_bodies; 
+	string dev = (intgr->get_computing_device() == COMPUTING_DEVICE_CPU ? "CPU" : "GPU");
+
+	if (first_call)
+	{
+		first_call = false;
+		sout << header_str << endl;
+	}
+
+	sout << dev << SEP
+		 << tools::get_time_stamp(true) << SEP
+		 << setprecision(4) << ppd->t / constants::Gauss << SEP
+		 << setprecision(4) << dt / constants::Gauss << SEP
+		 << setprecision(4) << (ppd->t / constants::Gauss)/intgr->get_n_passed_step() << SEP;
+	sout << setprecision(4) << (*dT_CPU  / (double)CLOCKS_PER_SEC) << SEP;
+	sout << setprecision(4) << (*T_CPU / (double)CLOCKS_PER_SEC) / intgr->get_n_passed_step() << SEP;
+	sout << ppd->n_collision[  EVENT_COUNTER_NAME_TOTAL] << SEP
+	     << ppd->n_ejection[   EVENT_COUNTER_NAME_TOTAL] << SEP
+		 << ppd->n_hit_centrum[EVENT_COUNTER_NAME_TOTAL] << SEP
+		 << nb->get_n_total_playing()  << SEP
+		 << nb->get_n_total_inactive() << SEP
+		 << nb->get_n_total_removed()  << SEP
+	     << intgr->get_n_tried_step()  << SEP
+	     << intgr->get_n_passed_step() << SEP
+	     << intgr->get_n_failed_step() << SEP;
+	for (int i = 0; i < BODY_TYPE_N; i++)
+	{
+		sout << nb->playing[i] - nb->inactive[i] << SEP
+			 << nb->removed[i] << (i < BODY_TYPE_TESTPARTICLE ? " " : "");
+	}
+	sout << endl;
+}
+
+uint32_t result(const options& opt, ofstream** output, pp_disk* ppd)
+{
+	static uint32_t n_save = 0;
+	static const string prefix = create_prefix(opt);
+	static const string ext = (DATA_REPRESENTATION_ASCII == opt.param->output_data_rep ? "txt" : "dat");
+
+	string result_ordinal = redutilcu::number_to_string(n_save, 6, true);
+
+	string filename = prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + result_ordinal + "." + ext;
+	string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], filename);
+	if (DATA_REPRESENTATION_ASCII == opt.param->output_data_rep)
+	{
+		output[OUTPUT_NAME_DATA] = new ofstream(path.c_str(), ios::out);
+	}
+	else
+	{
+		output[OUTPUT_NAME_DATA] = new ofstream(path.c_str(), ios::out | ios::binary);
+	}
+	if (!*output[OUTPUT_NAME_DATA]) 
+	{
+		throw string("Cannot open " + path + ".");
+	}
+	ppd->print_data(*output[OUTPUT_NAME_DATA], opt.param->output_data_rep);
+	output[OUTPUT_NAME_DATA]->close();
+
+	filename = prefix + opt.out_fn[OUTPUT_NAME_DATA_INFO] + "_" + result_ordinal + ".info." + ext;
+	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], filename);
+	if (DATA_REPRESENTATION_ASCII == opt.param->output_data_rep)
+	{
+		output[OUTPUT_NAME_DATA_INFO] = new ofstream(path.c_str(), ios::out);
+	}
+	else
+	{
+		output[OUTPUT_NAME_DATA_INFO] = new ofstream(path.c_str(), ios::out | ios::binary);
+	}
+	if (!*output[OUTPUT_NAME_DATA_INFO]) 
+	{
+		throw string("Cannot open " + path + ".");
+	}
+	ppd->print_data(*output[OUTPUT_NAME_DATA_INFO], opt.param->output_data_rep);
+	output[OUTPUT_NAME_DATA_INFO]->close();
+
+	n_save++;
+	return (n_save-1);
+}
+
+//uint32_t print_dump(ofstream **output, const options& opt, pp_disk* ppd, ttt_t dt, data_rep_t repres)
+//{
+//	static uint32_t n_dump = 1;
+//
+//	string prefix = create_prefix(opt);
+//	string ext = (repres == DATA_REPRESENTATION_ASCII ? "txt" : "bin");
+//	string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DUMP] + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + "." + ext);
+//
+//	output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str(), ios::out | ios::binary);
+//	if(!output[OUTPUT_NAME_DUMP])
+//	{
+//		throw string("Cannot open " + path + ".");
+//	}
+//	ppd->print_dump(*output[OUTPUT_NAME_DUMP], repres);
+//	delete output[OUTPUT_NAME_DUMP];
+//
+//	dump_aux_data_t dump_aux;
+//	dump_aux.dt = dt;
+//
+//	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DUMP_AUX] + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + ".dat");
+//	output[OUTPUT_NAME_DUMP_AUX] = new ofstream(path.c_str(), ios::out | ios::binary);
+//	if(!output[OUTPUT_NAME_DUMP_AUX])
+//	{
+//		throw string("Cannot open " + path + ".");
+//	}
+//	print_dump_aux_data(*output[OUTPUT_NAME_DUMP_AUX], &dump_aux);
+//	delete output[OUTPUT_NAME_DUMP_AUX];
+//
+//	n_dump++;
+//	return (n_dump-1);
+//}
+//
+//void print_dump_aux_data(ofstream& sout, dump_aux_data_t* dump_aux)
+//{
+//	sout.write((char*)(dump_aux), sizeof(dump_aux_data_t));
+//}
+
+} /* print */
+
 string create_prefix(const options& opt)
 {
 	static const char* integrator_type_short_name[] = 
@@ -34,9 +190,7 @@ string create_prefix(const options& opt)
 				"E",
 				"RK2",
 				"RK4",
-				"RK5",
-				"RKF8",
-				"RKN"
+				"RKF8"
 	};
 
 	string prefix;
@@ -144,7 +298,7 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 	sout.setf(ios::right);
 	sout.setf(ios::scientific);
 
-	number_of_bodies* nb = ppd->n_bodies; 
+	n_objects_t* nb = ppd->n_bodies; 
 	string dev = (intgr->get_computing_device() == COMPUTING_DEVICE_CPU ? "CPU" : "GPU");
 
 	cout << "[" << dev << "] " 
@@ -193,61 +347,86 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 	sout << endl;
 }
 
-void print_dump_aux_data(ofstream& sout, dump_aux_data_t* dump_aux)
-{
-	sout.write((char*)(dump_aux), sizeof(dump_aux_data_t));
-}
+//uint32_t print_result(const options& opt, ofstream** output, pp_disk* ppd)
+//{
+//	static uint32_t n_save = 0;
+//
+//	string prefix = create_prefix(opt);
+//	string result_ordinal = redutilcu::number_to_string(n_save, 6, true);
+//	string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_RESULT]) + "_" + result_ordinal + ".txt";
+//
+//	output[OUTPUT_NAME_RESULT] = new ofstream(path.c_str(), ios::out);
+//	if (!*output[OUTPUT_NAME_RESULT]) 
+//	{
+//		throw string("Cannot open " + path + ".");
+//	}
+//	ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
+//	output[OUTPUT_NAME_RESULT]->close();
+//
+//	n_save++;
+//	return (n_save-1);
+//}
 
-void print_dump(ofstream **output, const options& opt, pp_disk* ppd, ttt_t dt, int n_dump, data_representation_t repres)
-{
-	string prefix = create_prefix(opt);
-	string ext = (repres == DATA_REPRESENTATION_ASCII ? "txt" : "bin");
-	string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DUMP] + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + "." + ext);
-	output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str(), ios::out | ios::binary);
-	if(!output[OUTPUT_NAME_DUMP])
-	{
-		throw string("Cannot open " + path + ".");
-	}
-	ppd->print_dump(*output[OUTPUT_NAME_DUMP], repres);
-	//output[OUTPUT_NAME_DUMP]->~ofstream();
-	delete output[OUTPUT_NAME_DUMP];
-
-	dump_aux_data_t dump_aux;
-	dump_aux.dt = dt;
-
-	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DUMP_AUX] + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + ".dat");
-	output[OUTPUT_NAME_DUMP_AUX] = new ofstream(path.c_str(), ios::out | ios::binary);
-	if(!output[OUTPUT_NAME_DUMP_AUX])
-	{
-		throw string("Cannot open " + path + ".");
-	}
-	print_dump_aux_data(*output[OUTPUT_NAME_DUMP_AUX], &dump_aux);
-	delete output[OUTPUT_NAME_DUMP_AUX];
-}
-
-void read_dump_aux_data(ifstream& input, dump_aux_data_t* dump_aux)
-{
-	input.read((char*)(dump_aux), sizeof(dump_aux_data_t));
-}
-
-dump_aux_data_t load_dump_aux_data(const options& opt)
-{
-	dump_aux_data_t dump_aux;
-
-	string path = file::combine_path(opt.dir[DIRECTORY_NAME_IN], file::get_filename_without_ext(opt.in_fn[INPUT_NAME_BODYLIST]) + ".aux.dat");
-	ifstream input(path.c_str(), ios::in | ios::binary);
-	if (input) 
-	{
-		read_dump_aux_data(input, &dump_aux);
-	}
-	else
-	{
-		throw string("Cannot open " + path + ".");
-	}
-	input.close();
-
-	return dump_aux;
-}
+//uint32_t print_dump(ofstream **output, const options& opt, pp_disk* ppd, ttt_t dt, data_rep_t repres)
+//{
+//	static uint32_t n_dump = 1;
+//
+//	string prefix = create_prefix(opt);
+//	string ext = (repres == DATA_REPRESENTATION_ASCII ? "txt" : "bin");
+//	string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DUMP] + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + "." + ext);
+//
+//	output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str(), ios::out | ios::binary);
+//	if(!output[OUTPUT_NAME_DUMP])
+//	{
+//		throw string("Cannot open " + path + ".");
+//	}
+//	ppd->print_dump(*output[OUTPUT_NAME_DUMP], repres);
+//	delete output[OUTPUT_NAME_DUMP];
+//
+//	dump_aux_data_t dump_aux;
+//	dump_aux.dt = dt;
+//
+//	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DUMP_AUX] + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + ".dat");
+//	output[OUTPUT_NAME_DUMP_AUX] = new ofstream(path.c_str(), ios::out | ios::binary);
+//	if(!output[OUTPUT_NAME_DUMP_AUX])
+//	{
+//		throw string("Cannot open " + path + ".");
+//	}
+//	print_dump_aux_data(*output[OUTPUT_NAME_DUMP_AUX], &dump_aux);
+//	delete output[OUTPUT_NAME_DUMP_AUX];
+//
+//	n_dump++;
+//	return (n_dump-1);
+//}
+//
+//void print_dump_aux_data(ofstream& sout, dump_aux_data_t* dump_aux)
+//{
+//	sout.write((char*)(dump_aux), sizeof(dump_aux_data_t));
+//}
+//
+//void read_dump_aux_data(ifstream& input, dump_aux_data_t* dump_aux)
+//{
+//	input.read((char*)(dump_aux), sizeof(dump_aux_data_t));
+//}
+//
+//dump_aux_data_t load_dump_aux_data(const options& opt)
+//{
+//	dump_aux_data_t dump_aux;
+//
+//	string path = file::combine_path(opt.dir[DIRECTORY_NAME_IN], file::get_filename_without_ext(opt.in_fn[INPUT_NAME_BODYLIST]) + ".aux.dat");
+//	ifstream input(path.c_str(), ios::in | ios::binary);
+//	if (input) 
+//	{
+//		read_dump_aux_data(input, &dump_aux);
+//	}
+//	else
+//	{
+//		throw string("Cannot open " + path + ".");
+//	}
+//	input.close();
+//
+//	return dump_aux;
+//}
 
 void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream& sout)
 {
@@ -295,7 +474,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 			{
 				sout << "n_tpb: " << setw(6) << n_tpb;
 				ppd->set_n_tpb(n_tpb);
-				interaction_bound int_bound = ppd->n_bodies->get_bound_SI(n_tpb);
+				interaction_bound int_bound = ppd->n_bodies->get_bound_SI();
 
 				clock_t t_start = clock();
 				float cu_elt = ppd->benchmark_calc_grav_accel(curr_t, n_sink, int_bound, bmd, p, r, v, d_dy);
@@ -346,7 +525,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 		int n_sink = ppd->n_bodies->get_n_SI();
 		if (0 < n_sink)
 		{
-			interaction_bound int_bound = ppd->n_bodies->get_bound_SI(1);
+			interaction_bound int_bound = ppd->n_bodies->get_bound_SI();
 
 			t_start = clock();
 			ppd->cpu_calc_grav_accel_SI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
@@ -360,7 +539,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 		n_sink = ppd->n_bodies->get_n_NSI();
 		if (0 < n_sink)
 		{
-			interaction_bound int_bound = ppd->n_bodies->get_bound_NSI(1);
+			interaction_bound int_bound = ppd->n_bodies->get_bound_NSI();
 
 			t_start = clock();
 			ppd->cpu_calc_grav_accel_NSI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
@@ -374,7 +553,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 		n_sink = ppd->n_bodies->get_n_NI();
 		if (0 < n_sink)
 		{
-			interaction_bound int_bound = ppd->n_bodies->get_bound_NI(1);
+			interaction_bound int_bound = ppd->n_bodies->get_bound_NI();
 
 			t_start = clock();			
 			ppd->cpu_calc_grav_accel_NI(curr_t, int_bound, bmd, p, r, v, h_dy, 0x0, 0x0);
@@ -400,9 +579,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 	pp_disk_t::integral_t integrals[2];
 
-	uint32_t n_save    = 0;
 	uint32_t n_removed = 0;
-	uint32_t n_dump    = 1;
 
 	if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 	{
@@ -415,22 +592,10 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		}
 	}
 
+	print::result(opt, output, ppd);
+	//print_result(opt, output, ppd);
 	ppd->calc_integral(false, integrals[0]);
 	ppd->print_integral_data(integrals[0], *output[OUTPUT_NAME_INTEGRAL]);
-
-	{
-		string prefix = create_prefix(opt);
-		string result_ordinal = redutilcu::number_to_string(n_save, 6, true);
-		string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_RESULT]) + "_" + result_ordinal + ".txt";
-		output[OUTPUT_NAME_RESULT] = new ofstream(path.c_str(), ios::out);
-		if (!*output[OUTPUT_NAME_RESULT]) 
-		{
-			throw string("Cannot open " + path + ".");
-		}
-		ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
-		output[OUTPUT_NAME_RESULT]->close();
-		n_save++;
-	}
 
 /* main cycle */
 #if 1
@@ -504,20 +669,12 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		if (opt.param->output_interval <= fabs(ps))
 		{
 			ps = 0.0;
-
-			string prefix = create_prefix(opt);
-			string result_ordinal = redutilcu::number_to_string(n_save, 6, true);
-			string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_RESULT]) + "_" + result_ordinal + ".txt";
-			output[OUTPUT_NAME_RESULT] = new ofstream(path.c_str(), ios::out);
-			if (!*output[OUTPUT_NAME_RESULT]) 
+			uint32_t n_save = print::result(opt, output, ppd);
+			if (opt.verbose)
 			{
-				throw string("Cannot open " + path + ".");
+				string msg = "The results were saved with ordinal number: " + redutilcu::number_to_string(n_save);
+				file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
 			}
-			ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
-			output[OUTPUT_NAME_RESULT]->close();
-			n_save++;
-
-			//ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
 			ppd->calc_integral(false, integrals[1]);
 			ppd->print_integral_data(integrals[1], *output[OUTPUT_NAME_INTEGRAL]);
 		}
@@ -545,18 +702,17 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			}
 		}
 
-		if (100 <= n_removed || opt.dump_dt < (clock() - time_last_dump) / (double)CLOCKS_PER_SEC)
-		{
-			n_removed = 0;
-			time_last_dump = clock();
-			print_dump(output, opt, ppd, dt, n_dump, DATA_REPRESENTATION_BINARY);
-			if (opt.verbose)
-			{
-				string msg = "Dump file was created with ordinal number: " + redutilcu::number_to_string(n_dump);
-				file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
-			}
-			n_dump++;
-		}
+		//if (100 <= n_removed || opt.dump_dt < (clock() - time_last_dump) / (double)CLOCKS_PER_SEC)
+		//{
+		//	n_removed = 0;
+		//	time_last_dump = clock();
+		//	uint32_t n_dump = print_dump(output, opt, ppd, dt, DATA_REPRESENTATION_BINARY);
+		//	if (opt.verbose)
+		//	{
+		//		string msg = "Dump file was created with ordinal number: " + redutilcu::number_to_string(n_dump);
+		//		file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+		//	}
+		//}
 
 		if (opt.info_dt < (clock() - time_last_info) / (double)CLOCKS_PER_SEC) 
 		{
@@ -571,7 +727,14 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	if (0.0 < ps)
 	{
 		ps = 0.0;
-		ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
+		uint32_t n_save = print::result(opt, output, ppd);
+		if (opt.verbose)
+		{
+			string msg = "The results were saved with ordinal number: " + redutilcu::number_to_string(n_save);
+			file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+		}
+		ppd->calc_integral(false, integrals[1]);
+		ppd->print_integral_data(integrals[1], *output[OUTPUT_NAME_INTEGRAL]);
 	}
 
 	// Needed by nvprof.exe
@@ -583,7 +746,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 void run_test()
 {
-	test_number_of_bodies();
+	test_n_objects_t();
 }
 
 //http://stackoverflow.com/questions/11666049/cuda-kernel-results-different-in-release-mode
@@ -600,16 +763,33 @@ int main(int argc, const char** argv, const char** env)
 	try
 	{
 		options opt = options(argc, argv);
-
 		if (opt.test)
 		{
 			run_test();
 			return (EXIT_SUCCESS);
 		}
-		open_streams(opt, output);
-		// TODO: GNU C does not compile with commented line		string dummy = opt.param->get_data();		file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, dummy, opt.print_to_screen);
-		//file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, opt.param->get_data(), opt.print_to_screen);
 
+		string prefix = create_prefix(opt);
+		string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INFO]) + ".txt";
+		output[OUTPUT_NAME_INFO] = new ofstream(path.c_str(), ios::out);
+		if (!*output[OUTPUT_NAME_INFO]) 
+		{
+			throw string("Cannot open " + path + ".");
+		}
+
+		path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_LOG]) + ".txt";
+		output[OUTPUT_NAME_LOG] = new ofstream(path.c_str(), ios::out);
+		if (!*output[OUTPUT_NAME_LOG]) 
+		{
+			throw string("Cannot open " + path + ".");
+		}
+
+#ifdef __GNUC__
+		string dummy = opt.param->get_data();
+		file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, dummy, opt.print_to_screen);
+#else
+		file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, opt.param->get_data(), opt.print_to_screen);
+#endif
 		if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 		{
 			set_device(opt.id_dev, std::cout);
@@ -619,14 +799,14 @@ int main(int argc, const char** argv, const char** env)
 		pp_disk *ppd = opt.create_pp_disk();
 
 		ttt_t dt = 0.1; // [day]
-		if (opt.continue_simulation)
-		{
-			string msg = "Simulation continues from t = " + redutilcu::number_to_string(ppd->t / constants::Gauss) + " [day]";
-			file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
+		//if (opt.continue_simulation)
+		//{
+		//	string msg = "Simulation continues from t = " + redutilcu::number_to_string(ppd->t / constants::Gauss) + " [day]";
+		//	file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
 
-			dump_aux_data_t dump_aux = load_dump_aux_data(opt);
-			dt = dump_aux.dt / constants::Gauss;
-		}
+		//	dump_aux_data_t dump_aux = load_dump_aux_data(opt);
+		//	dt = dump_aux.dt / constants::Gauss;
+		//}
 
 		integrator *intgr = opt.create_integrator(ppd, dt);
 

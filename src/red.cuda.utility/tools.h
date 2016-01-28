@@ -6,8 +6,6 @@
 // includes project
 #include "red_type.h"
 
-using namespace std;
-
 namespace redutilcu
 {
 	namespace tools
@@ -17,24 +15,24 @@ namespace redutilcu
 		/// Default comment character
 		static const char* comment = "#";
 
-		bool is_number(const string& str);
+		bool is_number(const std::string& str);
 
 		/// Removes all leading white-space characters from the current string object.
 		/// The default white spaces are: " \t\n\r\f\v"
-		string& ltrim(string& s);
-		string& ltrim(string& s, const char* t);
+		std::string& ltrim(std::string& s);
+		std::string& ltrim(std::string& s, const char* t);
 
-		string& rtrim(string& s);
-		string& rtrim(string& s, const char* t);
+		std::string& rtrim(std::string& s);
+		std::string& rtrim(std::string& s, const char* t);
 
-		string& trim(string& s);
-		string& trim(string& s, const char* t);
+		std::string& trim(std::string& s);
+		std::string& trim(std::string& s, const char* t);
 
-		string& trim_comment(string& s);
-		string& trim_comment(string& s, const char* t);
+		std::string& trim_comment(std::string& s);
+		std::string& trim_comment(std::string& s, const char* t);
 
-		string get_time_stamp(bool use_comma);
-		string convert_time_t(time_t t);
+		std::string get_time_stamp(bool use_comma);
+		std::string convert_time_t(time_t t);
 
 		void populate_data(uint32_t* n_bodies, pp_disk_t::sim_data_t *sim_data);
 

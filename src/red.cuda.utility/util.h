@@ -7,9 +7,9 @@ namespace redutilcu
 	__host__ __device__ var4_t rotate_2D_vector(var_t theta, const var4_t& r);
 
 	template <typename T>
-	std::string number_to_string(T number);
-	template <typename T>
 	std::string number_to_string( T number, uint32_t width, bool fill);
+	template <typename T>
+	std::string number_to_string(T number);
 
 	void device_query(ostream& sout, int id_dev, bool print_to_screen);
 

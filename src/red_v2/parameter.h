@@ -10,7 +10,7 @@ public:
 	parameter(std::string& dir, std::string& filename, bool verbose);
 	~parameter();
 
-	std::string get_data();
+	std::string get_data()  { return data; }
 
 	std::string filename;              //!< holds the path of the file containing the parameters of the simulation
 	std::string simulation_name;       //! name of the simulation
@@ -43,7 +43,6 @@ private:
 	void create_default();
 	void parse();
 	void set_param(std::string& key, std::string& value);
-	void transform_time();
 
 	std::string	data;   //!< holds a copy of the file containing the parameters of the simulation
 	bool verbose;       //!< print the key - value information to the screen

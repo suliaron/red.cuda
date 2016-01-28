@@ -18,7 +18,6 @@
 
 // includes project
 #include "int_rungekutta8.h"
-#include "number_of_bodies.h"
 #include "nbody_exception.h"
 #include "red_macro.h"
 #include "red_constants.h"

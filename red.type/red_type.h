@@ -1,6 +1,6 @@
 #pragma once
 
-// includes system
+#include <cstring>     // memcpy
 #include <stdint.h>
 #include <vector>
 
@@ -38,6 +38,14 @@ typedef enum dyn_model
 			DYN_MODEL_N
 		} dyn_model_t;
 
+typedef enum input_format_name
+		{
+			INPUT_FORMAT_RED,
+			INPUT_FORMAT_NONAME,
+			INPUT_FORMAT_HIPERION,
+            INPUT_FORMAT_N
+		} input_format_name_t;
+
 typedef enum copy_direction
 		{
 			COPY_DIRECTION_TO_HOST,
@@ -47,23 +55,36 @@ typedef enum copy_direction
 
 typedef enum output_name
 		{
-			OUTPUT_NAME_DUMP,
-			OUTPUT_NAME_DUMP_AUX,
-			OUTPUT_NAME_EVENT,
-			OUTPUT_NAME_INFO,
 			OUTPUT_NAME_LOG,
-			OUTPUT_NAME_RESULT,
+			OUTPUT_NAME_INFO,
+			OUTPUT_NAME_EVENT,
+			OUTPUT_NAME_DATA,
+			OUTPUT_NAME_DATA_INFO,
 			OUTPUT_NAME_INTEGRAL,
 			OUTPUT_NAME_INTEGRAL_EVENT,
 			OUTPUT_NAME_N
+			//OUTPUT_NAME_DUMP,
+			//OUTPUT_NAME_DUMP_AUX,
+			//OUTPUT_NAME_EVENT,
+			//OUTPUT_NAME_INFO,
+			//OUTPUT_NAME_LOG,
+			//OUTPUT_NAME_RESULT,
+			//OUTPUT_NAME_INTEGRAL,
+			//OUTPUT_NAME_INTEGRAL_EVENT,
+			//OUTPUT_NAME_N
 		} output_name_t;
 
 typedef enum input_name
 		{
-			INPUT_NAME_BODYLIST,
+			INPUT_NAME_DATA,
+			INPUT_NAME_DATA_INFO,
 			INPUT_NAME_PARAMETER,
 			INPUT_NAME_GAS_DISK_MODEL,
 			INPUT_NAME_N
+			//INPUT_NAME_BODYLIST,
+			//INPUT_NAME_PARAMETER,
+			//INPUT_NAME_GAS_DISK_MODEL,
+			//INPUT_NAME_N
 		} input_name_t;
 
 typedef enum directory_name
@@ -73,12 +94,12 @@ typedef enum directory_name
 			DIRECTORY_NAME_N
 		} directory_name_t;
 
-typedef enum data_representation
+typedef enum data_rep
 		{
 			DATA_REPRESENTATION_ASCII,
 			DATA_REPRESENTATION_BINARY,
 			DATA_REPRESENTATION_N,
-		} data_representation_t;
+		} data_rep_t;
 
 typedef enum gas_decrease
 		{ 
@@ -133,7 +154,6 @@ typedef enum event_name
 			EVENT_NAME_NONE,
 			EVENT_NAME_HIT_CENTRUM,
 			EVENT_NAME_EJECTION,
-			EVENT_NAME_CLOSE_ENCOUNTER,
 			EVENT_NAME_COLLISION,
 			EVENT_NAME_N
 		} event_name_t;
@@ -352,8 +372,6 @@ namespace pp_disk_t
 	} event_data_t;
 } /* namespace pp_disk_t */
 
-
-
 typedef struct analytic_gas_disk_params
 		{
 			var2_t rho;   //!< The density of the gas disk in the midplane (time dependent)	
@@ -434,3 +452,172 @@ struct interaction_bound
 		source.x = x1;		source.y = y1;
 	}
 };
+
+typedef struct n_objects
+{
+	n_objects(uint32_t n_s, uint32_t n_gp, uint32_t n_rp, uint32_t n_pp, uint32_t n_spl, uint32_t n_pl, uint32_t n_tp)
+	{
+		initial[BODY_TYPE_STAR]              = n_s;
+		initial[BODY_TYPE_GIANTPLANET]       = n_gp;
+		initial[BODY_TYPE_ROCKYPLANET]       = n_rp;
+		initial[BODY_TYPE_PROTOPLANET]       = n_pp;
+		initial[BODY_TYPE_SUPERPLANETESIMAL] = n_spl;
+		initial[BODY_TYPE_PLANETESIMAL]      = n_pl;
+		initial[BODY_TYPE_TESTPARTICLE]      = n_tp;
+
+		memcpy(playing, initial, sizeof(playing));
+
+		memset(inactive, 0, sizeof(inactive));
+		memset(removed,  0, sizeof(removed));
+
+		n_removed = 0;
+
+		sink.x   = sink.y   = 0;
+		source.x = source.y = 0;
+	}
+
+	void update()
+	{
+		n_removed = 0;
+		for (uint32_t i = 0; i < BODY_TYPE_N; i++)
+		{
+			playing[i] -= inactive[i];
+			removed[i] += inactive[i];
+			n_removed  += inactive[i];
+			inactive[i] = 0;
+		}
+	}
+
+	uint32_t get_n_SI() 
+	{
+		return (playing[BODY_TYPE_STAR] + playing[BODY_TYPE_GIANTPLANET] + playing[BODY_TYPE_ROCKYPLANET] + playing[BODY_TYPE_PROTOPLANET]);
+	}
+
+	uint32_t get_n_NSI()
+	{
+		return (playing[BODY_TYPE_SUPERPLANETESIMAL] + playing[BODY_TYPE_PLANETESIMAL]);
+	}
+
+	uint32_t get_n_NI()
+	{
+		return playing[BODY_TYPE_TESTPARTICLE];
+	}
+
+	uint32_t get_n_total_initial()
+	{
+		uint32_t n = 0;
+		for (uint32_t i = 0; i < BODY_TYPE_N; i++)
+		{
+			n += initial[i];
+		}
+		return n; 
+	}
+
+	uint32_t get_n_total_playing()
+	{
+		uint32_t n = 0;
+		for (uint32_t i = 0; i < BODY_TYPE_N; i++)
+		{
+			n += playing[i];
+		}
+		return n; 
+	}
+
+	uint32_t get_n_total_active()
+	{
+		uint32_t n = 0;
+		for (uint32_t i = 0; i < BODY_TYPE_N; i++)
+		{
+			n += playing[i] - inactive[i];
+		}
+		return n; 
+	}
+
+	uint32_t get_n_total_inactive()
+	{
+		uint32_t n = 0;
+		for (uint32_t i = 0; i < BODY_TYPE_N; i++)
+		{
+			n += inactive[i];
+		}
+		return n; 
+	}
+
+	uint32_t get_n_total_removed()
+	{
+		uint32_t n = 0;
+		for (uint32_t i = 0; i < BODY_TYPE_N; i++)
+		{
+			n += removed[i];
+		}
+		return n; 
+	}
+
+	uint32_t get_n_GD()
+	{
+		return (playing[BODY_TYPE_SUPERPLANETESIMAL] + playing[BODY_TYPE_PLANETESIMAL]);
+	}
+
+	uint32_t get_n_MT1()
+	{
+		return (playing[BODY_TYPE_ROCKYPLANET] + playing[BODY_TYPE_PROTOPLANET]);
+	}
+
+	uint32_t get_n_MT2()
+	{
+		return playing[BODY_TYPE_GIANTPLANET];
+	}
+
+	uint32_t get_n_massive()
+	{
+		return (get_n_SI() + get_n_NSI());
+	}
+
+	uint32_t get_n_active_by(body_type_t type)
+	{
+		return (playing[type] - inactive[type]);
+	}
+
+	interaction_bound get_bound_SI()
+	{
+		sink.x   = 0, sink.y   = get_n_SI();
+		source.x = 0, source.y = get_n_massive();
+
+		return interaction_bound(sink, source);
+	}
+
+	interaction_bound get_bound_NSI()
+	{
+		sink.x   = get_n_SI(), sink.y   = sink.x + get_n_NSI();
+		source.x = 0,		   source.y = get_n_SI();
+
+		return interaction_bound(sink, source);
+	}
+
+	interaction_bound get_bound_NI()
+	{
+		sink.x   = get_n_massive(), sink.y   = sink.x + get_n_NI();
+		source.x = 0,   	        source.y = get_n_massive();
+
+		return interaction_bound(sink, source);
+	}
+
+	interaction_bound get_bound_GD()
+	{
+		sink.x   = get_n_SI(), sink.y   = sink.x + get_n_NSI();
+		source.x = 0,		   source.y = 0;
+
+		return interaction_bound(sink, source);
+	}
+
+	uint32_t initial[ BODY_TYPE_N];   //!< Number of initial bodies
+	uint32_t playing[ BODY_TYPE_N];   //!< Number of bodies which are iterated over in the gravitational computation (may have negative id)
+	uint32_t inactive[BODY_TYPE_N];   //!< Number of bodies which has negative id (these are part of the playing bodies, and are flaged to be removed in the next call to remove inactive bodies function)
+	uint32_t removed[ BODY_TYPE_N];   //!< Number of removed bodies
+
+	uint32_t n_removed;               //!< Number of bodies which were removed during the last update() function call
+
+	uint2_t sink;
+	uint2_t source;
+
+} n_objects_t;

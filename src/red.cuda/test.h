@@ -1,5 +1,5 @@
 #pragma once
 
 
-void test_number_of_bodies();
+void test_n_objects_t();
 

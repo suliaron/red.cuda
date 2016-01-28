@@ -239,7 +239,7 @@ void Emese_data_format_to_red_cuda_format(const string& input_path, const string
 			body_md.mig_stop_at = 0.0;
 			body_md.mig_type = MIGRATION_TYPE_NO;
 
-			file::print_body_record(output, name, time, &param,&body_md, &rVec, &vVec);
+			file::print_body_record_ascii_RED(output, name, &param, &body_md, &rVec, &vVec);
 		}
 		input.close();
 		output.close();
@@ -250,7 +250,7 @@ void Emese_data_format_to_red_cuda_format(const string& input_path, const string
 	}
 }
 
-void log_start(ostream& sout, int argc, const char** argv, const char** env, string& params)
+void log_start(ostream& sout, int argc, const char** argv, const char** env, string params)
 {
 	sout << tools::get_time_stamp(false) << " starting " << argv[0] << endl;
 	sout << "Command line arguments: " << endl;
@@ -296,25 +296,9 @@ void log_start(ostream& sout, int argc, const char** argv, const char** env, str
 	sout << endl;
 
 	sout << "Parameters:" << endl << params << endl;
-
-	//sout << "Collision detection model: ";
-	//switch (cdm)
-	//{
-	//case COLLISION_DETECTION_MODEL_STEP:
-	//	sout << "check at the beginning of each step" << endl;
-	//	break;
-	//case COLLISION_DETECTION_MODEL_SUB_STEP:
-	//	sout << "check during the integration step" << endl;
-	//	break;
-	//case COLLISION_DETECTION_MODEL_INTERPOLATION:
-	//	throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-	//default:
-	//	throw string("Parameter 'cdm' is out of range.");
-	//}
-	//sout << endl;
 }
 
-void log_start(ostream& sout, int argc, const char** argv, const char** env, string& params, bool print_to_screen)
+void log_start(ostream& sout, int argc, const char** argv, const char** env, string params, bool print_to_screen)
 {
 	log_start(sout, argc, argv, env, params);
 	if (print_to_screen)
@@ -332,7 +316,33 @@ void log_message(ostream& sout, string msg, bool print_to_screen)
 	}
 }
 
-void print_body_record(ofstream &sout, string name, var_t epoch, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd, var4_t *r, var4_t *v)
+void print_data_info_record_ascii_RED(ofstream& sout, ttt_t t, n_objects_t* n_bodies)
+{
+	static uint32_t int_t_w  =  8;
+	static uint32_t var_t_w  = 25;
+
+	sout.precision(16);
+	sout.setf(ios::right);
+	sout.setf(ios::scientific);
+
+	sout << setw(var_t_w) << t << SEP;
+	for (uint32_t type = 0; type < BODY_TYPE_N; type++)
+	{
+		sout << setw(int_t_w) << n_bodies->get_n_active_by((body_type_t)type) << SEP;
+	}
+}
+
+void print_data_info_record_binary_RED(ofstream& sout, ttt_t t, n_objects_t* n_bodies)
+{
+	sout.write((char*)&(t), sizeof(ttt_t));
+	for (uint32_t type = 0; type < BODY_TYPE_N; type++)
+	{
+		uint32_t n = n_bodies->get_n_active_by((body_type_t)type);
+		sout.write((char*)&n, sizeof(n));
+	}
+}
+
+void print_body_record_ascii_RED(ofstream &sout, string name, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd, var4_t *r, var4_t *v)
 {
 	static int int_t_w  =  8;
 	static int var_t_w  = 25;
@@ -341,24 +351,32 @@ void print_body_record(ofstream &sout, string name, var_t epoch, pp_disk_t::para
 	sout.setf(ios::right);
 	sout.setf(ios::scientific);
 
-	sout << setw(int_t_w) << bmd->id << SEP
-		 << setw(     30) << name << SEP
-		 << setw(      2) << bmd->body_type << SEP 
-		 << setw(var_t_w) << epoch << SEP
-		 << setw(var_t_w) << p->mass << SEP
-		 << setw(var_t_w) << p->radius << SEP
-		 << setw(var_t_w) << p->density << SEP
-		 << setw(var_t_w) << p->cd << SEP
-		 << setw(      2) << bmd->mig_type << SEP
+	sout << setw(     30) << name             << SEP
+		 << setw(int_t_w) << bmd->id          << SEP
+		 << setw(      2) << bmd->body_type   << SEP 
+		 << setw(      2) << bmd->mig_type    << SEP
 		 << setw(var_t_w) << bmd->mig_stop_at << SEP
-		 << setw(var_t_w) << r->x << SEP
-		 << setw(var_t_w) << r->y << SEP
-		 << setw(var_t_w) << r->z << SEP
-		 << setw(var_t_w) << v->x << SEP
-		 << setw(var_t_w) << v->y << SEP
-		 << setw(var_t_w) << v->z << endl;
+		 << setw(var_t_w) << p->mass          << SEP
+		 << setw(var_t_w) << p->radius        << SEP
+		 << setw(var_t_w) << p->density       << SEP
+		 << setw(var_t_w) << p->cd            << SEP
+		 << setw(var_t_w) << r->x             << SEP
+		 << setw(var_t_w) << r->y             << SEP
+		 << setw(var_t_w) << r->z             << SEP
+		 << setw(var_t_w) << v->x             << SEP
+		 << setw(var_t_w) << v->y             << SEP
+		 << setw(var_t_w) << v->z             << endl;
 
     sout.flush();
+}
+
+void print_body_record_binary_RED(ofstream &sout, string name, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd, var4_t *r, var4_t *v)
+{
+	sout.write((char*)name.c_str(), 30*sizeof(char));
+	sout.write((char*)bmd, sizeof(pp_disk_t::body_metadata_t));
+	sout.write((char*)p,   sizeof(pp_disk_t::param_t));
+	sout.write((char*)r,   3*sizeof(var_t));
+	sout.write((char*)v,   3*sizeof(var_t));
 }
 
 void print_body_record_HIPERION(ofstream &sout, string name, var_t epoch, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *body_md, var4_t *r, var4_t *v)
@@ -554,6 +572,84 @@ void print_oe_record(ofstream &sout, ttt_t epoch, orbelem_t* oe, pp_disk_t::para
          << setw(var_t_w) << p->cd          << endl;
 
 	sout.flush();
+}
+
+void load_data_info_record_ascii(ifstream& input, var_t& t0, n_objects_t** n_bodies)
+{
+	uint32_t ns, ngp, nrp, npp, nspl, npl, ntp;
+	ns = ngp = nrp = npp = nspl = npl = ntp = 0;
+
+	input >> t0;
+	input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp;
+
+	*n_bodies = new n_objects_t(ns, ngp, nrp, npp, nspl, npl, ntp);
+}
+
+void load_data_info_record_binary(ifstream& input, var_t& t0, n_objects_t** n_bodies)
+{
+	uint32_t ns, ngp, nrp, npp, nspl, npl, ntp;
+	ns = ngp = nrp = npp = nspl = npl = ntp = 0;
+
+	input.read((char*)&t0, sizeof(ttt_t));
+
+	input.read((char*)&ns,   sizeof(ns));
+	input.read((char*)&ngp,  sizeof(ngp));
+	input.read((char*)&nrp,  sizeof(nrp));
+	input.read((char*)&npp,  sizeof(npp));
+	input.read((char*)&nspl, sizeof(nspl));
+	input.read((char*)&npl,  sizeof(npl));
+	input.read((char*)&ntp,  sizeof(ntp));
+
+	*n_bodies = new n_objects_t(ns, ngp, nrp, npp, nspl, npl, ntp);
+}
+
+void load_data_record_ascii(ifstream& input, std::string& name, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd, var4_t *r, var4_t *v)
+{
+	int_t	type = 0;
+	string	buffer;
+
+	// name
+	input >> buffer;
+	// The names must be less than or equal to 30 chars
+	if (buffer.length() > 30)
+	{
+		buffer = buffer.substr(0, 30);
+	}
+	name = buffer;
+
+	// id
+	input >> bmd->id;
+	// body type
+	input >> type;
+	bmd->body_type = static_cast<body_type_t>(type);
+	// migration type
+	input >> type;
+	bmd->mig_type = static_cast<migration_type_t>(type);
+	// migration stop at
+	input >> bmd->mig_stop_at;
+
+	// mass, radius density and stokes coefficient
+	input >> p->mass >> p->radius >> p->density >> p->cd;
+
+	// position
+	input >> r->x >> r->y >> r->z;
+	// velocity
+	input >> v->x >> v->y >> v->z;
+	r->w = v->w = 0.0;
+}
+
+void load_data_record_binary(ifstream& input, std::string& name, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd, var4_t *r, var4_t *v)
+{
+	char buffer[30];
+	memset(buffer, 0, sizeof(buffer));
+
+	input.read(buffer,      30*sizeof(char));
+	input.read((char*)&bmd,  1*sizeof(pp_disk_t::body_metadata_t));
+	input.read((char*)&p,    1*sizeof(pp_disk_t::param_t));
+	input.read((char*)&r,    3*sizeof(var_t));
+	input.read((char*)&v,    3*sizeof(var_t));
+
+	name = buffer;
 }
 
 } /* file */

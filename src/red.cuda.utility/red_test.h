@@ -3,8 +3,6 @@
 
 #include "red_type.h"
 
-using namespace std;
-
 namespace redutilcu
 {
 	namespace red_test

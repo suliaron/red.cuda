@@ -1,14 +1,12 @@
-// includes system
 #include <algorithm>
 #include <cstring>
 #include <iostream>
 
-// includes project
-#include "red_constants.h"
 #include "parameter.h"
 #include "redutilcu.h"
 
-using namespace std;
+#include "red_constants.h"
+
 using namespace redutilcu;
 
 parameter::parameter(string& dir, string& filename, bool verbose) :
@@ -28,8 +26,7 @@ parameter::parameter(string& dir, string& filename, bool verbose) :
 	}
 	file::load_ascii_file(path, data);
 	parse();
-	transform_time();
-	stop_time = start_time + simulation_length;
+	//stop_time = start_time + simulation_length;
 }
 
 parameter::~parameter() 
@@ -38,7 +35,7 @@ parameter::~parameter()
 
 void parameter::create_default()
 {
-	adaptive           = true;
+	adaptive           = false;
 	error_check_for_tp = false;
 
 	output_data_rep    = DATA_REPRESENTATION_ASCII;
@@ -46,18 +43,14 @@ void parameter::create_default()
 	int_type           = INTEGRATOR_RUNGEKUTTAFEHLBERG78;
 	tolerance          = 1.0e-10;
 
-	start_time         = 0.0;		// [day]
-	simulation_length  = 0.0;		// [day]
-	output_interval    = 0.0;		// [day]
+	start_time         = 0.0;
+	stop_time          = 0.0;
+	simulation_length  = 0.0;
+	output_interval    = 0.0;
 
-	cdm                = COLLISION_DETECTION_MODEL_SUB_STEP;
+	cdm                = COLLISION_DETECTION_MODEL_STEP;
 
 	memset(threshold, 0, THRESHOLD_N * sizeof(var_t));
-}
-
-string parameter::get_data()
-{
-	return data;
 }
 
 void parameter::parse()
@@ -119,6 +112,7 @@ void parameter::set_param(string& key, string& value)
     }
     else if (key == "output data representation" || key == "odr")
 	{
+		simulation_desc = value;
 		transform(value.begin(), value.end(), value.begin(), ::tolower);
 		if (     value == "t" || value == "text")
 		{
@@ -148,14 +142,14 @@ void parameter::set_param(string& key, string& value)
 		{
 			int_type = INTEGRATOR_RUNGEKUTTA4;
 		}
-		else if (value == "rkf8" || value == "rungekuttafehlberg8" || value == "runge-kutta-fehlberg8")
+		else if (value == "rkf5" || value == "rungekuttafehlberg5" || value == "runge-kutta-fehlberg5")
+		{
+			int_type = INTEGRATOR_RUNGEKUTTAFEHLBERG56;
+		}
+		else if (value == "rkf7" || value == "rungekuttafehlberg7" || value == "runge-kutta-fehlberg7")
 		{
 			int_type = INTEGRATOR_RUNGEKUTTAFEHLBERG78;
 		}			
-		//else if (value == "rkn"  || value == "rungekuttanystrom" || value == "runge-kutta-nystrom")
-		//{
-		//	int_type = INTEGRATOR_RUNGEKUTTANYSTROM;
-		//}
 		else
 		{
 			throw string("Invalid integrator type: " + value);
@@ -185,14 +179,6 @@ void parameter::set_param(string& key, string& value)
 			throw string("Invalid value at: " + key);
 		}
 	}
-    else if (key == "start_time" || key == "start time")
-	{
-		if (!tools::is_number(value))
-		{
-			throw string("Invalid number at: " + key);
-		}
-		start_time = atof(value.c_str()) * constants::YearToDay;
-	}
     else if (key == "length")
 	{
 		if (!tools::is_number(value))
@@ -209,50 +195,6 @@ void parameter::set_param(string& key, string& value)
 		}
 		output_interval = atof(value.c_str()) * constants::YearToDay;
 	}
-    else if (key == "cdm" || key == "collision_detection_method" || key == "collision detection method")
-	{
-		transform(value.begin(), value.end(), value.begin(), ::tolower);
-		if (     value == "step")
-		{
-			cdm = COLLISION_DETECTION_MODEL_STEP;
-		}
-		else if (value == "sub_step" || value == "sub step" )
-		{
-			cdm = COLLISION_DETECTION_MODEL_SUB_STEP;
-		}
-		else if (value == "interpolation")
-		{
-			cdm = COLLISION_DETECTION_MODEL_INTERPOLATION;
-		}
-		else
-		{
-			throw string("Invalid collision detection method type: " + value);
-		}
-	}
-    else if (key == "ejection")
-	{
-		if (!tools::is_number(value))
-		{
-			throw string("Invalid number at: " + key);
-		}
-		threshold[THRESHOLD_EJECTION_DISTANCE] = atof(value.c_str());
-	}
-    else if (key == "hit_centrum" || key == "hit centrum")
-	{
-		if (!tools::is_number(value))
-		{
-			throw string("Invalid number at: " + key);
-		}
-		threshold[THRESHOLD_HIT_CENTRUM_DISTANCE] = atof(value.c_str());
-	}
-    else if (key == "radii_enhance_factor" || key == "collision_factor" || key == "radii enhance factor" || key == "collision factor")
-	{
-		if (!tools::is_number(value))
-		{
-			throw string("Invalid number at: " + key);
-		}
-		threshold[THRESHOLD_RADII_ENHANCE_FACTOR] = atof(value.c_str());
-	}
 	else
 	{
 		throw string("Invalid parameter: " + key + ".");
@@ -268,13 +210,6 @@ void parameter::set_param(string& key, string& value)
 	}
 }
 
-void parameter::transform_time()
-{
-	start_time        *= constants::Gauss;    // [day * k]
-	simulation_length *= constants::Gauss;    // [day * k]
-	output_interval	  *= constants::Gauss;    // [day * k]
-}
-
 ostream& operator<<(ostream& stream, const parameter* p)
 {
 	const char* integrator_name[] = 
@@ -282,29 +217,19 @@ ostream& operator<<(ostream& stream, const parameter* p)
 			"INTEGRATOR_EULER"
 			"INTEGRATOR_RUNGEKUTTA2",
 			"INTEGRATOR_RUNGEKUTTA4",
-			"INTEGRATOR_RUNGEKUTTAFEHLBERG78"
+			"INTEGRATOR_RUNGEKUTTAFEHLBERG56",
+			"INTEGRATOR_RUNGEKUTTAFEHLBERG78",
+			"INTEGRATOR_RUNGEKUTTANYSTROM"
 		};
 
-	const char* threshold_name[] = 
-		{
-			"THRESHOLD_HIT_CENTRUM_DISTANCE",
-			"THRESHOLD_EJECTION_DISTANCE",
-			"THRESHOLD_RADII_ENHANCE_FACTOR"
-		};
-
-	stream << "simulation name: " << p->simulation_name << endl;
-	stream << "simulation description: " << p->simulation_desc << endl;
-	stream << "simulation frame center: barycentric" << endl;
-	stream << "simulation integrator: " << integrator_name[p->int_type] << endl;
-	stream << "simulation tolerance: " << p->tolerance << endl;
-	stream << "simulation adaptive: " << (p->adaptive ? "true" : "false") << endl;
-	stream << "simulation start time: " << p->start_time << endl;
-	stream << "simulation length: " << p->simulation_length << endl;
+	stream << "simulation name           : " << p->simulation_name << endl;
+	stream << "simulation description    : " << p->simulation_desc << endl;
+	stream << "output data representation: " << (DATA_REPRESENTATION_ASCII == p->output_data_rep ? "text" : "binary") << endl;
+	stream << "simulation integrator     : " << integrator_name[p->int_type] << endl;
+	stream << "simulation tolerance      : " << p->tolerance << endl;
+	stream << "simulation adaptive       : " << (p->adaptive ? "true" : "false") << endl;
+	stream << "simulation length         : " << p->simulation_length << endl;
 	stream << "simulation output interval: " << p->output_interval << endl;
-	for (int i = 0; i < THRESHOLD_N; i++)
-	{
-		stream << "simulation threshold[" << threshold_name[i] << "]: " << p->threshold[i] << endl;
-	}
 
 	return stream;
 }

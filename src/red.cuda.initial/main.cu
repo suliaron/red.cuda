@@ -25,7 +25,12 @@
 
 #include <windows.h>
 
-inline void delay(unsigned long ms)
+using namespace std;
+using namespace redutilcu;
+
+typedef unsigned long ulong;
+
+inline void delay(ulong ms)
 {
 	Sleep( ms );
 }
@@ -33,16 +38,12 @@ inline void delay(unsigned long ms)
 
 #include <unistd.h>
 
-inline void delay( unsigned long ms )
+inline void delay(ulong ms)
 {
 	usleep( ms * 1000 );
 }
 #endif 
 
-using namespace std;
-using namespace redutilcu;
-
-typedef unsigned long ulong;
 
 namespace ephemeris_major_planets
 {
@@ -90,14 +91,14 @@ namespace ephemeris_major_planets
 
 void populate_solar_system(body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 {
-    ttt_t           epoch   = 2457153.5;
-	pp_disk_t::param_t	        param   = {0.0, 0.0, 0.0, 0.0};
+    ttt_t epoch = 2457153.5;
+	pp_disk_t::param_t param = {0.0, 0.0, 0.0, 0.0};
 	pp_disk_t::body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
-	orbelem_t       oe      = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+	orbelem_t oe = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // The id of each body must be larger than 0 in order to indicate inactive body with negative id (ie. zero is not good)
-    int bodyIdx = 0;
-	int bodyId = 1;
+    uint32_t bodyIdx = 0;
+	uint32_t bodyId = 1;
 
 	// Star: Sun
 	{
@@ -254,16 +255,15 @@ void populate_solar_system(body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 	}
 }
 
-void populate_disk(body_disk_t& disk, pp_disk_t::sim_data_t *sd)
+void populate_disk(ttt_t epoch, body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 {
-    ttt_t epoch = 0.0;
 	pp_disk_t::param_t param = {0.0, 0.0, 0.0, 0.0};
 	pp_disk_t::body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
-	orbelem_t oe  = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+	orbelem_t oe = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // The id of each body must be larger than 0 in order to indicate inactive body with negative id (ie. zero is not good)
-    int bodyIdx = 0;
-	int bodyId  = 1;
+    uint32_t bodyIdx = 0;
+	uint32_t bodyId  = 1;
 	for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)
 	{
 		for (int i = 0; i < disk.nBody[body_type]; i++, bodyIdx++, bodyId++)
@@ -313,20 +313,23 @@ void populate_disk(body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 
 namespace set_parameters
 {
-void Chambers2001(nebula& n, body_disk_t& disk)
+uint32_t Chambers2001(nebula& n, body_disk_t& disk)
 {
-	srand((uint32_t)time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	const var_t rho_solid = 3.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_PROTOPLANET ] = 153;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at  = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at  = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
@@ -362,33 +365,43 @@ void Chambers2001(nebula& n, body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 
-void solar_system(body_disk_t& disk)
+uint32_t solar_system(body_disk_t& disk)
 {
-	srand((uint32_t)time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_ROCKYPLANET] = 4;
 	disk.nBody[BODY_TYPE_GIANTPLANET] = 4;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at = new var_t[n_body];
+
+	return seed;
 }
 
-void pl_to_test_anal_gd(body_disk_t& disk)
+uint32_t pl_to_test_anal_gd(body_disk_t& disk)
 {
-	srand(time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_PLANETESIMAL] = 10;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
@@ -421,9 +434,11 @@ void pl_to_test_anal_gd(body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 
-void coll_stat_run(nebula& n, body_disk_t& disk)
+uint32_t coll_stat_run(nebula& n, body_disk_t& disk)
 {
 	uint32_t seed = (uint32_t)time(NULL);
 	cout << "The seed number is " << seed << endl;
@@ -435,11 +450,11 @@ void coll_stat_run(nebula& n, body_disk_t& disk)
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_PROTOPLANET ] = 10000;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at  = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at  = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
@@ -475,22 +490,27 @@ void coll_stat_run(nebula& n, body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 
-void Dvorak(nebula& n, body_disk_t& disk)
+uint32_t Dvorak(nebula& n, body_disk_t& disk)
 {
-	srand((uint32_t)time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	const var_t rhoBasalt = 2.7 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_PROTOPLANET ] = 2000;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at  = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at  = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
@@ -526,11 +546,16 @@ void Dvorak(nebula& n, body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 
-void Hansen_2009(body_disk_t& disk)
+uint32_t Hansen_2009(body_disk_t& disk)
 {
-	srand((uint32_t)time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	const var_t rhoBasalt = 2.7 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
@@ -538,11 +563,11 @@ void Hansen_2009(body_disk_t& disk)
 	disk.nBody[BODY_TYPE_GIANTPLANET ] = 1;
 	disk.nBody[BODY_TYPE_PROTOPLANET ] = 400;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at  = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at  = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
@@ -596,20 +621,25 @@ void Hansen_2009(body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 
-void Two_body(body_disk_t& disk)
+uint32_t Two_body(body_disk_t& disk)
 {
-	srand((uint32_t)time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_ROCKYPLANET] = 1;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
@@ -642,20 +672,25 @@ void Two_body(body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 
-void n_gp(body_disk_t& disk)
+uint32_t n_gp(body_disk_t& disk)
 {
-	srand((uint32_t)time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_GIANTPLANET] = 10;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
@@ -690,22 +725,27 @@ void n_gp(body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 
-void n_pp(body_disk_t& disk)
+uint32_t n_pp(body_disk_t& disk)
 {
-	srand((uint32_t)time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	disk.nBody[BODY_TYPE_STAR       ] = 1;
 	disk.nBody[BODY_TYPE_PROTOPLANET] = 500;
 	//disk.nBody[BODY_TYPE_PROTOPLANET] = 2000;
 	//disk.nBody[BODY_TYPE_PROTOPLANET] = 10000;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 	int type = BODY_TYPE_STAR;
 
 	disk.names.push_back("star");
@@ -738,20 +778,25 @@ void n_pp(body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 
-void n_spl(body_disk_t& disk)
+uint32_t n_spl(body_disk_t& disk)
 {
-	srand((uint32_t)time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	disk.nBody[BODY_TYPE_STAR             ] = 1;
 	disk.nBody[BODY_TYPE_SUPERPLANETESIMAL] = 10;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 
 	int type = BODY_TYPE_STAR;
 	{
@@ -789,20 +834,25 @@ void n_spl(body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 
-void n_pl(body_disk_t& disk)
+uint32_t n_pl(body_disk_t& disk)
 {
-	srand((uint32_t)time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_PLANETESIMAL] = 10;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 
 	int type = BODY_TYPE_STAR;
 	{
@@ -839,20 +889,25 @@ void n_pl(body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 
-void n_tp(body_disk_t& disk)
+uint32_t n_tp(body_disk_t& disk)
 {
-	srand((uint32_t)time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_TESTPARTICLE] = 10;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 
 	int type = BODY_TYPE_STAR;
 	{
@@ -890,21 +945,26 @@ void n_tp(body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 
-void GT_scenario(body_disk_t& disk)
+uint32_t GT_scenario(body_disk_t& disk)
 {
-	srand((uint32_t)time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_GIANTPLANET ] = 2;
 	disk.nBody[BODY_TYPE_PROTOPLANET ] = 2000;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 	int type = BODY_TYPE_STAR;
 	{
 		disk.names.push_back("star");
@@ -962,21 +1022,26 @@ void GT_scenario(body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 
-void GT_scenario_mod(body_disk_t& disk)
+uint32_t GT_scenario_mod(body_disk_t& disk)
 {
-	srand((uint32_t)time(NULL));
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_GIANTPLANET ] = 3;
 	disk.nBody[BODY_TYPE_PROTOPLANET ] = 2000;
 
-	int_t nBodies = calc_number_of_bodies(disk);
-	disk.mig_type = new migration_type_t[nBodies];
-	disk.stop_at = new var_t[nBodies];
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at = new var_t[n_body];
 
-    int bodyIdx = 0;
+    uint32_t bodyIdx = 0;
 	int type = BODY_TYPE_STAR;
 	{
 		disk.names.push_back("Sun");
@@ -1034,6 +1099,8 @@ void GT_scenario_mod(body_disk_t& disk)
 			disk.stop_at[bodyIdx] = 0.0;
 		}
 	}
+
+	return seed;
 }
 } /* set_parameters */
 
@@ -1041,8 +1108,10 @@ namespace create_disk
 {
 void Chambers2001(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
+	body_disk_t disk;
 	initialize(disk);
 
 	// Inner disk: r = 0.3, ... 0.7: the surface density is prop to r
@@ -1099,19 +1168,21 @@ void Chambers2001(string& dir, string& filename)
 		var_t m_pp = (1.0 / 60.0) * constants::EarthToSolar;
 		int_t n_pp = (int)(m_solid / m_pp);
 
-		set_parameters::Chambers2001(mmsn, disk);
+		uint32_t seed = set_parameters::Chambers2001(mmsn, disk);
+		string path = file::combine_path(dir, filename) + ".seed.txt";
+		print_number(path, seed);
 
 		pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-		int nBodies = calc_number_of_bodies(disk);
-		allocate_host_storage(sim_data, nBodies);
+		uint32_t n_body = calc_number_of_bodies(disk);
+		allocate_host_storage(sim_data, n_body);
 
-		populate_disk(disk, sim_data);
+		populate_disk(t0, disk, sim_data);
 
 		// Scale the masses in order to get the required mass transform_mass()
 		{
-			var_t m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+			var_t m_total_pp = tools::get_total_mass(n_body, BODY_TYPE_PROTOPLANET, sim_data);
 			var_t f = m_solid / m_total_pp;
-			for (int i = 0; i < nBodies; i++)
+			for (uint32_t i = 0; i < n_body; i++)
 			{
 				// Only the masses of the protoplanets will be scaled
 				if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
@@ -1119,7 +1190,7 @@ void Chambers2001(string& dir, string& filename)
 					sim_data->h_p[i].mass *= f;
 				}
 			}
-			m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+			m_total_pp = tools::get_total_mass(n_body, BODY_TYPE_PROTOPLANET, sim_data);
 			if (fabs(m_total_pp - m_solid) > 1.0e-15)
 			{
 				cerr << "The required mass was not reached." << endl;
@@ -1129,7 +1200,7 @@ void Chambers2001(string& dir, string& filename)
 
 		// Computes the physical quantities with the new mass
 		{
-			int bodyIdx = 0;
+			uint32_t bodyIdx = 0;
 			for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 			{
 				for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
@@ -1159,7 +1230,7 @@ void Chambers2001(string& dir, string& filename)
 			// The coordinates of the central star
 			sim_data->h_y[0][0] = rVec;
 			sim_data->h_y[1][0] = vVec;
-			for (int i = 1; i < nBodies; i++)
+			for (uint32_t i = 1; i < n_body; i++)
 			{
 				var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 				tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
@@ -1192,19 +1263,21 @@ void Chambers2001(string& dir, string& filename)
 	var_t m_gas   = mmsn.gas_c.calc_mass();
 	var_t m_solid = mmsn.solid_c.calc_mass();
 
-	set_parameters::Dvorak(mmsn, disk);
+	uint32_t seed = set_parameters::Dvorak(mmsn, disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Scale the masses in order to get the required mass transform_mass()
 	{
-		var_t m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+		var_t m_total_pp = tools::get_total_mass(n_body, BODY_TYPE_PROTOPLANET, sim_data);
 		var_t f = m_solid / m_total_pp;
-		for (int i = 0; i < nBodies; i++)
+		for (uint32_t i = 0; i < n_body; i++)
 		{
 			// Only the masses of the protoplanets will be scaled
 			if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
@@ -1212,7 +1285,7 @@ void Chambers2001(string& dir, string& filename)
 				sim_data->h_p[i].mass *= f;
 			}
 		}
-		m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+		m_total_pp = tools::get_total_mass(n_body, BODY_TYPE_PROTOPLANET, sim_data);
 		if (fabs(m_total_pp - m_solid) > 1.0e-15)
 		{
 			cerr << "The required mass was not reached." << endl;
@@ -1222,7 +1295,7 @@ void Chambers2001(string& dir, string& filename)
 
 	// Computes the physical quantities with the new mass
 	{
-		int bodyIdx = 0;
+		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
 			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
@@ -1252,7 +1325,7 @@ void Chambers2001(string& dir, string& filename)
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
@@ -1261,13 +1334,13 @@ void Chambers2001(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	deallocate_host_storage(sim_data);
 
@@ -1276,8 +1349,10 @@ void Chambers2001(string& dir, string& filename)
 
 void coll_stat_run(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
+	body_disk_t disk;
 	initialize(disk);
 
 	// Create a MMSN with gas component and solids component
@@ -1301,19 +1376,21 @@ void coll_stat_run(string& dir, string& filename)
 	var_t m_gas   = mmsn.gas_c.calc_mass();
 	var_t m_solid = mmsn.solid_c.calc_mass();
 
-	set_parameters::coll_stat_run(mmsn, disk);
+	uint32_t seed = set_parameters::coll_stat_run(mmsn, disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	uint32_t nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Scale the masses in order to get the required mass transform_mass()
 	{
 		uint32_t n_pp = calc_number_of_bodies(disk, BODY_TYPE_PROTOPLANET);
 		var_t m_pp = m_solid / n_pp;
-		for (int i = 0; i < nBodies; i++)
+		for (uint32_t i = 0; i < n_body; i++)
 		{
 			// Only the masses of the protoplanets will be scaled
 			if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
@@ -1321,7 +1398,7 @@ void coll_stat_run(string& dir, string& filename)
 				sim_data->h_p[i].mass = m_pp;
 			}
 		}
-		var_t m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+		var_t m_total_pp = tools::get_total_mass(n_body, BODY_TYPE_PROTOPLANET, sim_data);
 		if (fabs(m_total_pp - m_solid) > 1.0e-15)
 		{
 			cerr << "The required mass was not reached." << endl;
@@ -1331,7 +1408,7 @@ void coll_stat_run(string& dir, string& filename)
 
 	// Computes the physical quantities with the new mass
 	{
-		int bodyIdx = 0;
+		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
 			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
@@ -1351,7 +1428,7 @@ void coll_stat_run(string& dir, string& filename)
 		}
 	}
 
-	// Calculate coordinates and velocities
+	// Calculate coordinates and velocities from the orbital elements
 	{
 		// The mass of the central star
 		var_t m0    = sim_data->h_p[0].mass;
@@ -1361,7 +1438,7 @@ void coll_stat_run(string& dir, string& filename)
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
@@ -1370,13 +1447,16 @@ void coll_stat_run(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".info.txt";
+	print_data_info(path, t0, disk, sim_data, INPUT_FORMAT_RED);
+
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	deallocate_host_storage(sim_data);
 
@@ -1385,8 +1465,10 @@ void coll_stat_run(string& dir, string& filename)
 
 void Dvorak(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
+	body_disk_t disk;
 	initialize(disk);
 
 	// Create a MMSN with gas component and solids component
@@ -1410,19 +1492,21 @@ void Dvorak(string& dir, string& filename)
 	var_t m_gas   = mmsn.gas_c.calc_mass();
 	var_t m_solid = mmsn.solid_c.calc_mass();
 
-	set_parameters::Dvorak(mmsn, disk);
+	uint32_t seed = set_parameters::Dvorak(mmsn, disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Scale the masses in order to get the required mass transform_mass()
 	{
-		var_t m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+		var_t m_total_pp = tools::get_total_mass(n_body, BODY_TYPE_PROTOPLANET, sim_data);
 		var_t f = m_solid / m_total_pp;
-		for (int i = 0; i < nBodies; i++)
+		for (uint32_t i = 0; i < n_body; i++)
 		{
 			// Only the masses of the protoplanets will be scaled
 			if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
@@ -1430,7 +1514,7 @@ void Dvorak(string& dir, string& filename)
 				sim_data->h_p[i].mass *= f;
 			}
 		}
-		m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+		m_total_pp = tools::get_total_mass(n_body, BODY_TYPE_PROTOPLANET, sim_data);
 		if (fabs(m_total_pp - m_solid) > 1.0e-15)
 		{
 			cerr << "The required mass was not reached." << endl;
@@ -1440,7 +1524,7 @@ void Dvorak(string& dir, string& filename)
 
 	// Computes the physical quantities with the new mass
 	{
-		int bodyIdx = 0;
+		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
 			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
@@ -1470,7 +1554,7 @@ void Dvorak(string& dir, string& filename)
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
@@ -1479,13 +1563,13 @@ void Dvorak(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	deallocate_host_storage(sim_data);
 
@@ -1494,15 +1578,21 @@ void Dvorak(string& dir, string& filename)
 
 void Hansen_2009(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
-	set_parameters::Hansen_2009(disk);
+	body_disk_t disk;
+	initialize(disk);
+
+	uint32_t seed = set_parameters::Hansen_2009(disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Calculate coordinates and velocities
 	{
@@ -1515,7 +1605,7 @@ void Hansen_2009(string& dir, string& filename)
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
 		int gp_counter = 0;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			if (BODY_TYPE_GIANTPLANET == sim_data->h_body_md[i].body_type && gp_counter < 1)
 			{				
@@ -1536,19 +1626,19 @@ void Hansen_2009(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	//path = file::combine_path(dir, filename) + "_NONMAE.txt";
-	//print(path, disk, sim_data, INPUT_FORMAT_NONAME);
+	//print_data(path, disk, sim_data, INPUT_FORMAT_NONAME);
 
 	//path = file::combine_path(dir, filename) + "_HIPERION.txt";
-	//print(path, disk, sim_data, INPUT_FORMAT_HIPERION);
+	//print_data(path, disk, sim_data, INPUT_FORMAT_HIPERION);
 
 	deallocate_host_storage(sim_data);
 
@@ -1557,22 +1647,27 @@ void Hansen_2009(string& dir, string& filename)
 
 void GT_scenario(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
+	body_disk_t disk;
 	initialize(disk);
-	set_parameters::GT_scenario(disk);
+
+	uint32_t seed = set_parameters::GT_scenario(disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Scale the masses in order to get the required mass transform_mass()
 	//{
-	//	var_t m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+	//	var_t m_total_pp = tools::get_total_mass(n_body, BODY_TYPE_PROTOPLANET, sim_data);
 	//	var_t f = m_solid / m_total_pp;
-	//	for (int i = 0; i < nBodies; i++)
+	//	for (uint32_t i = 0; i < n_body; i++)
 	//	{
 	//		// Only the masses of the protoplanets will be scaled
 	//		if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
@@ -1580,7 +1675,7 @@ void GT_scenario(string& dir, string& filename)
 	//			sim_data->h_p[i].mass *= f;
 	//		}
 	//	}
-	//	m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+	//	m_total_pp = tools::get_total_mass(n_body, BODY_TYPE_PROTOPLANET, sim_data);
 	//	if (fabs(m_total_pp - m_solid) > 1.0e-15)
 	//	{
 	//		cerr << "The required mass was not reached." << endl;
@@ -1590,7 +1685,7 @@ void GT_scenario(string& dir, string& filename)
 
 	// Computes the physical quantities with the new mass
 	{
-		int bodyIdx = 0;
+		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
 			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
@@ -1621,7 +1716,7 @@ void GT_scenario(string& dir, string& filename)
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
 		int gp_counter = 0;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			if (BODY_TYPE_GIANTPLANET == sim_data->h_body_md[i].body_type && gp_counter < 2)
 			{				
@@ -1655,13 +1750,13 @@ void GT_scenario(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	deallocate_host_storage(sim_data);
 
@@ -1670,22 +1765,27 @@ void GT_scenario(string& dir, string& filename)
 
 void GT_scenario_mod(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
+	body_disk_t disk;
 	initialize(disk);
-	set_parameters::GT_scenario_mod(disk);
+
+	uint32_t seed = set_parameters::GT_scenario_mod(disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Scale the masses in order to get the required mass transform_mass()
 	//{
-	//	var_t m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+	//	var_t m_total_pp = tools::get_total_mass(n_body, BODY_TYPE_PROTOPLANET, sim_data);
 	//	var_t f = m_solid / m_total_pp;
-	//	for (int i = 0; i < nBodies; i++)
+	//	for (uint32_t i = 0; i < n_body; i++)
 	//	{
 	//		// Only the masses of the protoplanets will be scaled
 	//		if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
@@ -1693,7 +1793,7 @@ void GT_scenario_mod(string& dir, string& filename)
 	//			sim_data->h_p[i].mass *= f;
 	//		}
 	//	}
-	//	m_total_pp = tools::get_total_mass(nBodies, BODY_TYPE_PROTOPLANET, sim_data);
+	//	m_total_pp = tools::get_total_mass(n_body, BODY_TYPE_PROTOPLANET, sim_data);
 	//	if (fabs(m_total_pp - m_solid) > 1.0e-15)
 	//	{
 	//		cerr << "The required mass was not reached." << endl;
@@ -1703,7 +1803,7 @@ void GT_scenario_mod(string& dir, string& filename)
 
 	// Computes the physical quantities with the new mass
 	{
-		int bodyIdx = 0;
+		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
 			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
@@ -1734,7 +1834,7 @@ void GT_scenario_mod(string& dir, string& filename)
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
 		int gp_counter = 0;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			if (BODY_TYPE_GIANTPLANET == sim_data->h_body_md[i].body_type && gp_counter < 3)
 			{				
@@ -1776,13 +1876,13 @@ void GT_scenario_mod(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	deallocate_host_storage(sim_data);
 
@@ -1791,17 +1891,21 @@ void GT_scenario_mod(string& dir, string& filename)
 
 void two_body(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
+	body_disk_t disk;
 	initialize(disk);
 
-	set_parameters::Two_body(disk);
+	uint32_t seed = set_parameters::Two_body(disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Calculate coordinates and velocities
 	{
@@ -1813,7 +1917,7 @@ void two_body(string& dir, string& filename)
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
@@ -1822,13 +1926,13 @@ void two_body(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	deallocate_host_storage(sim_data);
 
@@ -1837,21 +1941,25 @@ void two_body(string& dir, string& filename)
 
 void n_gp(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
+	body_disk_t disk;
 	initialize(disk);
 
-	set_parameters::n_gp(disk);
+	uint32_t seed = set_parameters::n_gp(disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Computes the physical quantities with the new mass
 	{
-		int bodyIdx = 0;
+		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
 			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
@@ -1881,7 +1989,7 @@ void n_gp(string& dir, string& filename)
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 
@@ -1893,19 +2001,19 @@ void n_gp(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	path = file::combine_path(dir, filename) + "_NONMAE.txt";
-	print(path, disk, sim_data, INPUT_FORMAT_NONAME);
+	print_data(path, disk, sim_data, INPUT_FORMAT_NONAME);
 
 	path = file::combine_path(dir, filename) + "_HIPERION.txt";
-	print(path, disk, sim_data, INPUT_FORMAT_HIPERION);
+	print_data(path, disk, sim_data, INPUT_FORMAT_HIPERION);
 
 	deallocate_host_storage(sim_data);
 
@@ -1914,19 +2022,25 @@ void n_gp(string& dir, string& filename)
 
 void n_pp(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
-	set_parameters::n_pp(disk);
+	body_disk_t disk;
+	initialize(disk);
+
+	uint32_t seed = set_parameters::n_pp(disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Computes the physical quantities with the new mass
 	//{
-	//	int bodyIdx = 0;
+	//	uint32_t bodyIdx = 0;
 	//	for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 	//	{
 	//		for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
@@ -1956,7 +2070,7 @@ void n_pp(string& dir, string& filename)
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
@@ -1965,19 +2079,19 @@ void n_pp(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	//path = file::combine_path(dir, filename) + "_NONMAE.txt";
-	//print(path, disk, sim_data, INPUT_FORMAT_NONAME);
+	//print_data(path, disk, sim_data, INPUT_FORMAT_NONAME);
 
 	//path = file::combine_path(dir, filename) + "_HIPERION.txt";
-	//print(path, disk, sim_data, INPUT_FORMAT_HIPERION);
+	//print_data(path, disk, sim_data, INPUT_FORMAT_HIPERION);
 
 	deallocate_host_storage(sim_data);
 
@@ -1986,17 +2100,21 @@ void n_pp(string& dir, string& filename)
 
 void n_spl(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
+	body_disk_t disk;
 	initialize(disk);
 
-	set_parameters::n_spl(disk);
+	uint32_t seed = set_parameters::n_spl(disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Calculate coordinates and velocities
 	{
@@ -2008,7 +2126,7 @@ void n_spl(string& dir, string& filename)
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
@@ -2017,13 +2135,13 @@ void n_spl(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	deallocate_host_storage(sim_data);
 
@@ -2032,21 +2150,25 @@ void n_spl(string& dir, string& filename)
 
 void n_pl(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
+	body_disk_t disk;
 	initialize(disk);
 
-	set_parameters::n_pl(disk);
+	uint32_t seed = set_parameters::n_pl(disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Computes the physical quantities with the new mass
 	{
-		int bodyIdx = 0;
+		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
 			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
@@ -2076,7 +2198,7 @@ void n_pl(string& dir, string& filename)
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
@@ -2085,13 +2207,13 @@ void n_pl(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	deallocate_host_storage(sim_data);
 
@@ -2100,17 +2222,21 @@ void n_pl(string& dir, string& filename)
 
 void n_tp(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
+	body_disk_t disk;
 	initialize(disk);
 
-	set_parameters::n_tp(disk);
+	uint32_t seed = set_parameters::n_tp(disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Calculate coordinates and velocities
 	{
@@ -2122,7 +2248,7 @@ void n_tp(string& dir, string& filename)
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
@@ -2131,11 +2257,11 @@ void n_tp(string& dir, string& filename)
 		}
 	}
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	deallocate_host_storage(sim_data);
 
@@ -2144,17 +2270,21 @@ void n_tp(string& dir, string& filename)
 
 void n_pl_to_test_anal_gd(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
+	body_disk_t disk;
 	initialize(disk);
 
-	set_parameters::pl_to_test_anal_gd(disk);
+	uint32_t seed = set_parameters::pl_to_test_anal_gd(disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
-	populate_disk(disk, sim_data);
+	populate_disk(t0, disk, sim_data);
 
 	// Calculate coordinates and velocities
 	{
@@ -2166,7 +2296,7 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			sim_data->h_oe[i].sma = (var_t)i;
@@ -2176,13 +2306,13 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	deallocate_host_storage(sim_data);
 
@@ -2191,15 +2321,19 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 
 void solar_system(string& dir, string& filename)
 {
-	body_disk_t disk;
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
 
+	body_disk_t disk;
 	initialize(disk);
 
-	set_parameters::solar_system(disk);
+	uint32_t seed = set_parameters::solar_system(disk);
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
-	int nBodies = calc_number_of_bodies(disk);
-	allocate_host_storage(sim_data, nBodies);
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
 
 	populate_solar_system(disk, sim_data);
 
@@ -2213,7 +2347,7 @@ void solar_system(string& dir, string& filename)
 		// The coordinates of the central star
 		sim_data->h_y[0][0] = rVec;
 		sim_data->h_y[1][0] = vVec;
-		for (int i = 1; i < nBodies; i++)
+		for (uint32_t i = 1; i < n_body; i++)
 		{
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
@@ -2222,13 +2356,13 @@ void solar_system(string& dir, string& filename)
 		}
 	}
 
-	tools::transform_to_bc(nBodies, false, sim_data);
+	tools::transform_to_bc(n_body, false, sim_data);
 
-	string path = file::combine_path(dir, filename) + ".oe.txt";
-	print(path, nBodies, sim_data);
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, sim_data);
 
-	path = file::combine_path(dir, filename) + ".txt";
-	print(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	deallocate_host_storage(sim_data);
 
@@ -2314,6 +2448,8 @@ int main(int argc, const char **argv)
 	string filename;
 	string output_path;
 
+	parse_options(argc, argv, outDir, filename);
+
 #if 0
 	{
 		string out_dir = "C:\\Work\\red.cuda.Results\\CollisionStatistics\\2D";
@@ -2324,13 +2460,11 @@ int main(int argc, const char **argv)
 
 #if 1
 	{
-		string out_dir = "C:\\Work\\red.cuda.Results\\CollStatRezso\\2D";
-		project_collision_Rezso_2D::create_init_cond(out_dir);
+		project_collision_Rezso_2D::create_init_cond(outDir);
 		return (EXIT_SUCCESS);
 	}
 #endif	
 
-	parse_options(argc, argv, outDir, filename);
 
 	try
 	{

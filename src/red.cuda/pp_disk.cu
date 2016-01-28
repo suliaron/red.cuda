@@ -284,7 +284,7 @@ static __global__
 {
 	const uint32_t i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
 
-	var_t ed2  = SQR(dc_threshold[THRESHOLD_EJECTION_DISTANCE]);
+	var_t ed2  = (0.0 < dc_threshold[THRESHOLD_EJECTION_DISTANCE] ? SQR(dc_threshold[THRESHOLD_EJECTION_DISTANCE]) : DBL_MAX);
 	var_t hcd2 = SQR(dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
 	// Ignore the inactive bodies (whose id < 0) and the star
 	if (i < int_bound.sink.y && bmd[i].id > 0 && bmd[i].body_type != BODY_TYPE_STAR)
@@ -298,7 +298,7 @@ static __global__
 			k = atomicAdd(event_counter, 1);
 			pp_disk_utility::store_event_data(EVENT_NAME_EJECTION,    curr_t, sqrt(r2), 0, i, p, r, v, bmd, &events[k]);
 		}
-		else if (hcd2 > r2)
+		if (hcd2 > r2)
 		{
 			k = atomicAdd(event_counter, 1);
 			pp_disk_utility::store_event_data(EVENT_NAME_HIT_CENTRUM, curr_t, sqrt(r2), 0, i, p, r, v, bmd, &events[k]);
@@ -582,7 +582,7 @@ uint32_t pp_disk::benchmark()
 		for (uint32_t n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
 			set_n_tpb(n_tpb);
-			interaction_bound int_bound = n_bodies->get_bound_SI(n_tpb);
+			interaction_bound int_bound = n_bodies->get_bound_SI();
 
 			clock_t t_start = clock();
 			float cu_elt = benchmark_calc_grav_accel(t, n_sink, int_bound, bmd, p, r, v, d_dy);
@@ -717,7 +717,7 @@ void pp_disk::cpu_calc_drag_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 	uint32_t n_sink = n_bodies->get_n_NSI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_GD(n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_GD();
 		cpu_calc_drag_accel_NSI(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, dy);
 	}
 }
@@ -948,22 +948,53 @@ void pp_disk::cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound,
 
 void pp_disk::cpu_calc_grav_accel_NI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* bmd, const param_t* p, const var4_t* r, const var4_t* v, var4_t* a)
 {
-	cpu_calc_grav_accel_SI(t, int_bound, bmd, p, r, v, a);
+	for (uint32_t i = int_bound.sink.x; i < int_bound.sink.y; i++)
+	{
+		if (0 < bmd[i].id)
+		{
+			var4_t dVec = {0.0, 0.0, 0.0, 0.0};
+			for (uint32_t j = int_bound.source.x; j < int_bound.source.y; j++) 
+			{
+				/* Skip the body with the same index and those which are inactive ie. id < 0 */
+				if (i == j || 0 > bmd[j].id)
+				{
+					continue;
+				}
+				// r_ij 3 FLOP
+				dVec.x = r[j].x - r[i].x;
+				dVec.y = r[j].y - r[i].y;
+				dVec.z = r[j].z - r[i].z;
+				// 5 FLOP
+				dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+
+				// 20 FLOP
+				var_t d = sqrt(dVec.w);								// = r
+				// 2 FLOP
+				var_t r_3 = 1.0 / (d*dVec.w);
+				// 1 FLOP
+				dVec.w = p[j].mass * r_3;
+				// 6 FLOP
+				a[i].x += dVec.w * dVec.x;
+				a[i].y += dVec.w * dVec.y;
+				a[i].z += dVec.w * dVec.z;
+			} // 36 44 FLOP
+		}
+	}
 }
 
 void pp_disk::cpu_calc_grav_accel_NI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* bmd, const param_t* p, const var4_t* r, const var4_t* v, var4_t* a, event_data_t* events, uint32_t *event_counter)
 {
-	cpu_calc_grav_accel_SI(t, int_bound, bmd, p, r, v, a, events, event_counter);
+	throw string("cpu_calc_grav_accel_NI() is not implemented.");
 }
 
 void pp_disk::cpu_calc_grav_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* bmd, const param_t* p, const var4_t* r, const var4_t* v, var4_t* a)
 {
-	cpu_calc_grav_accel_SI(t, int_bound, bmd, p, r, v, a);
+	throw string("cpu_calc_grav_accel_NSI() is not implemented.");
 }
 
 void pp_disk::cpu_calc_grav_accel_NSI(ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* bmd, const param_t* p, const var4_t* r, const var4_t* v, var4_t* a, event_data_t* events, uint32_t *event_counter)
 {
-	cpu_calc_grav_accel_SI(t, int_bound, bmd, p, r, v, a, events, event_counter);
+	throw string("cpu_calc_grav_accel_NSI() is not implemented.");
 }
 
 void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v, var4_t* dy)
@@ -974,7 +1005,7 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 	uint32_t n_sink = n_bodies->get_n_SI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_SI(n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_SI();
 		switch (cdm)
 		{
 		case COLLISION_DETECTION_MODEL_STEP:
@@ -993,7 +1024,7 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 	n_sink = n_bodies->get_n_NSI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_NSI(n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_NSI();
 		switch (cdm)
 		{
 		case COLLISION_DETECTION_MODEL_STEP:
@@ -1012,7 +1043,7 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 	n_sink = n_bodies->get_n_NI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_NI(n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_NI();
 		switch (cdm)
 		{
 		case COLLISION_DETECTION_MODEL_STEP:
@@ -1037,7 +1068,7 @@ void pp_disk::gpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 	uint32_t n_sink = n_bodies->get_n_SI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_SI(n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_SI();
 		set_kernel_launch_param(n_sink);
 
 		switch (cdm)
@@ -1059,7 +1090,7 @@ void pp_disk::gpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 	n_sink = n_bodies->get_n_NSI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_NSI(n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_NSI();
 		set_kernel_launch_param(n_sink);
 
 		switch (cdm)
@@ -1081,7 +1112,7 @@ void pp_disk::gpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 	n_sink = n_bodies->get_n_NI();
 	if (0 < n_sink)
 	{
-		interaction_bound int_bound = n_bodies->get_bound_NI(n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_NI();
 		set_kernel_launch_param(n_sink);
 
 		switch (cdm)
@@ -1110,7 +1141,7 @@ void pp_disk::gpu_calc_drag_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 	if (0 < n_sink)
 	{
 		set_kernel_launch_param(n_sink);
-		interaction_bound int_bound = n_bodies->get_bound_GD(n_tpb);
+		interaction_bound int_bound = n_bodies->get_bound_GD();
 		kernel_pp_disk::calc_drag_accel_NSI<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy);
 		CUDA_CHECK_ERROR();
 	}
@@ -1175,7 +1206,7 @@ void pp_disk::cpu_check_for_ejection_hit_centrum()
 	const param_t* p = sim_data->h_p;
 	body_metadata_t* bmd = sim_data->body_md;
 	
-	var_t ed2  = SQR(threshold[THRESHOLD_EJECTION_DISTANCE]);
+	var_t ed2  = (0.0 < threshold[THRESHOLD_EJECTION_DISTANCE] ? SQR(threshold[THRESHOLD_EJECTION_DISTANCE]) : DBL_MAX);
 	var_t hcd2 = SQR(threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
 	for (uint32_t i = int_bound.sink.x; i < int_bound.sink.y; i++)
 	{
@@ -1189,7 +1220,7 @@ void pp_disk::cpu_check_for_ejection_hit_centrum()
 				pp_disk_utility::store_event_data(EVENT_NAME_EJECTION,    t, sqrt(r2), 0, i, p, r, v, bmd, &events[event_counter]);
 				event_counter++;
 			}
-			else if (hcd2 > r2)
+			if (hcd2 > r2)
 			{
 				pp_disk_utility::store_event_data(EVENT_NAME_HIT_CENTRUM, t, sqrt(r2), 0, i, p, r, v, bmd, &events[event_counter]);
 				event_counter++;
@@ -1600,7 +1631,7 @@ void pp_disk::swap()
 
 
 
-pp_disk::pp_disk(number_of_bodies *n_bodies, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, uint32_t id_dev, computing_device_t comp_dev) :
+pp_disk::pp_disk(n_objects_t* n_bodies, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, uint32_t id_dev, computing_device_t comp_dev) :
 	n_bodies(n_bodies),
 	g_disk_model(g_disk_model),
 	cdm(cdm),
@@ -1614,8 +1645,8 @@ pp_disk::pp_disk(number_of_bodies *n_bodies, gas_disk_model_t g_disk_model, coll
 	tools::populate_data(n_bodies->initial, sim_data);
 }
 
-pp_disk::pp_disk(string& path, bool continue_simulation, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, uint32_t id_dev, computing_device_t comp_dev, const var_t* thrshld, bool pts) :
-	continue_simulation(continue_simulation),
+pp_disk::pp_disk(string& path_data, string& path_data_info, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, uint32_t id_dev, computing_device_t comp_dev, const var_t* thrshld) :
+	n_bodies(0x0),
 	g_disk_model(g_disk_model),
 	cdm(cdm),
 	id_dev(id_dev),
@@ -1624,19 +1655,18 @@ pp_disk::pp_disk(string& path, bool continue_simulation, gas_disk_model_t g_disk
 	initialize();
 	memcpy(threshold, thrshld, THRESHOLD_N * sizeof(var_t));
 
-	data_representation_t repres = (file::get_extension(path) == "txt" ? DATA_REPRESENTATION_ASCII : DATA_REPRESENTATION_BINARY);
-	n_bodies = load_number_of_bodies(path, repres);
+	data_rep_t repres = (file::get_extension(path_data) == "txt" ? DATA_REPRESENTATION_ASCII : DATA_REPRESENTATION_BINARY);
+	//n_bodies = load_number_of_bodies(path, repres);
+	load_data_info(path_data_info, this->t, this->n_bodies, repres);
 
 	allocate_storage();
-	redutilcu::create_aliases(comp_dev, sim_data);
-	load(path, repres);
+	load_data(path_data, this->sim_data, repres);
 
-	if (!continue_simulation)
-	{
-		transform_to_bc(pts);
-		transform_time();
-		transform_velocity();
-	}
+	redutilcu::create_aliases(comp_dev, sim_data);
+
+	transform_to_bc(false);
+	transform_time();
+	transform_velocity();
 }
 
 pp_disk::~pp_disk()
@@ -1840,19 +1870,18 @@ void pp_disk::transform_velocity()
 	}
 }
 
-number_of_bodies* pp_disk::load_number_of_bodies(string& path, data_representation_t repres)
-{
-	uint32_t ns, ngp, nrp, npp, nspl, npl, ntp;
-	ns = ngp = nrp = npp = nspl = npl = ntp = 0;
 
+void pp_disk::load_data_info(std::string& path, var_t& t0, n_objects_t* n_bodies, data_rep_t repres)
+{
 	ifstream input;
+
 	switch (repres)
 	{
 	case DATA_REPRESENTATION_ASCII:
-		input.open(path.c_str());
+		input.open(path.c_str(), ios::in);
 		if (input) 
 		{
-			input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp;
+			file::load_data_info_record_ascii(input, this->t, &(this->n_bodies));
 		}
 		else 
 		{
@@ -1863,13 +1892,7 @@ number_of_bodies* pp_disk::load_number_of_bodies(string& path, data_representati
 		input.open(path.c_str(), ios::in | ios::binary);
 		if (input) 
 		{
-			input.read((char*)&ns,   sizeof(ns));
-			input.read((char*)&ngp,  sizeof(ngp));
-			input.read((char*)&nrp,  sizeof(nrp));
-			input.read((char*)&npp,  sizeof(npp));
-			input.read((char*)&nspl, sizeof(nspl));
-			input.read((char*)&npl,  sizeof(npl));
-			input.read((char*)&ntp,  sizeof(ntp));
+			file::load_data_info_record_binary(input, this->t, &(this->n_bodies));
 		}
 		else 
 		{
@@ -1878,194 +1901,77 @@ number_of_bodies* pp_disk::load_number_of_bodies(string& path, data_representati
 		break;
 	}
 	input.close();
-
-    return new number_of_bodies(ns, ngp, nrp, npp, nspl, npl, ntp);
 }
 
-void pp_disk::load_body_record(ifstream& input, uint32_t k, ttt_t* epoch, body_metadata_t* body_md, param_t* p, var4_t* r, var4_t* v)
+void pp_disk::load_data(std::string& path_data, pp_disk_t::sim_data_t* sim_data, data_rep_t repres)
 {
-	int_t	type = 0;
-	string	dummy;
-
-	// id
-	input >> body_md[k].id;
-	// name
-	input >> dummy;
-	// The names must be less than or equal to 30 chars
-	if (dummy.length() > 30)
-	{
-		dummy = dummy.substr(0, 30);
-	}
-	body_names.push_back(dummy);
-	// body type
-	input >> type;
-	body_md[k].body_type = static_cast<body_type_t>(type);
-	// epoch
-	input >> epoch[k];
-
-	// mass, radius density and stokes coefficient
-	input >> p[k].mass >> p[k].radius >> p[k].density >> p[k].cd;
-
-	// migration type
-	input >> type;
-	body_md[k].mig_type = static_cast<migration_type_t>(type);
-	// migration stop at
-	input >> body_md[k].mig_stop_at;
-
-	// position
-	input >> r[k].x >> r[k].y >> r[k].z;
-	// velocity
-	input >> v[k].x >> v[k].y >> v[k].z;
-
-	r[k].w = v[k].w = 0.0;
-}
-
-void pp_disk::load(string& path, data_representation_t repres)
-{
-	cout << "Loading " << path << " ";
-
-	ifstream input;
-	switch (repres)
-	{
-	case DATA_REPRESENTATION_ASCII:
-		input.open(path.c_str());
-		if (input) 
-		{
-			load_ascii(input);
-		}
-		else 
-		{
-			throw string("Cannot open " + path + ".");
-		}
-		break;
-	case DATA_REPRESENTATION_BINARY:
-		input.open(path.c_str(), ios::in | ios::binary);
-		if (input) 
-		{
-			load_binary(input);
-		}
-		else 
-		{
-			throw string("Cannot open " + path + ".");
-		}
-		break;
-	}
-	input.close();
-
-	cout << " done" << endl;
-}
-
-void pp_disk::load_ascii(ifstream& input)
-{
-	uint32_t ns, ngp, nrp, npp, nspl, npl, ntp;
-	input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp;
-
 	var4_t* r = sim_data->h_y[0];
 	var4_t* v = sim_data->h_y[1];
 	param_t* p = sim_data->h_p;
 	body_metadata_t* bmd = sim_data->h_body_md;
 	ttt_t* epoch = sim_data->h_epoch;
-
-	uint32_t pcd = 1;
 
 	const uint32_t n_total = n_bodies->get_n_total_playing();
-	for (uint32_t i = 0; i < n_total; i++)
+	uint32_t pcd = 1;
+
+	ifstream input;
+	switch (repres)
 	{
-		load_body_record(input, i, epoch, bmd, p, r, v);
-		if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
+	case DATA_REPRESENTATION_ASCII:
+		input.open(path_data.c_str(), ios::in);
+		if (input) 
 		{
-			cout << ".";
-			pcd++;
-			flush(cout);
+			for (uint32_t i = 0; i < n_total; i++)
+			{
+				string name;
+				file::load_data_record_ascii(input, name, &p[i], &bmd[i], &r[i], &v[i]);
+				body_names.push_back(name);
+				if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
+				{
+					pcd++;
+					cout << ".";	flush(cout);
+				}
+			}
 		}
+		else 
+		{
+			throw string("Cannot open " + path_data + ".");
+		}
+		break;
+	case DATA_REPRESENTATION_BINARY:
+		input.open(path_data.c_str(), ios::in | ios::binary);
+		if (input) 
+		{
+			for (uint32_t i = 0; i < n_total; i++)
+			{
+				string name;
+				file::load_data_record_binary(input, name, &p[i], &bmd[i], &r[i], &v[i]);
+				body_names.push_back(name);
+				if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
+				{
+					pcd++;
+					cout << ".";	flush(cout);
+				}
+			}
+		}
+		else 
+		{
+			throw string("Cannot open " + path_data + ".");
+		}
+		break;
 	}
+	input.close();
 }
 
-void pp_disk::load_binary(ifstream& input)
+
+void pp_disk::print_data(string& path, data_rep_t repres)
 {
-	for (uint32_t type = 0; type < BODY_TYPE_N; type++)
-	{
-		uint32_t tmp = 0;
-		input.read((char*)&tmp, sizeof(tmp));
-	}
+	ofstream sout;
 
-	char name_buffer[30];
-	var4_t* r = sim_data->h_y[0];
-	var4_t* v = sim_data->h_y[1];
-	param_t* p = sim_data->h_p;
-	body_metadata_t* bmd = sim_data->h_body_md;
-	ttt_t* epoch = sim_data->h_epoch;
-
-	const uint32_t n_total = n_bodies->get_n_total_initial();
-	for (uint32_t i = 0; i < n_total; i++)
-	{
-		memset(name_buffer, 0, sizeof(name_buffer));
-
-		input.read((char*)&epoch[i],  1*sizeof(ttt_t));
-		input.read(name_buffer,      30*sizeof(char));
-		input.read((char*)&bmd[i],    1*sizeof(body_metadata_t));
-		input.read((char*)&p[i],      1*sizeof(param_t));
-		input.read((char*)&r[i],      1*sizeof(var4_t));
-		input.read((char*)&v[i],      1*sizeof(var4_t));
-
-		body_names.push_back(name_buffer);
-	}
-}
-
-void pp_disk::print_dump(ofstream& sout, data_representation_t repres)
-{
 	if (COMPUTING_DEVICE_GPU == comp_dev)
 	{
 		copy_to_host();
 	}
-
-	switch (repres)
-	{
-	case DATA_REPRESENTATION_ASCII:
-		for (uint32_t type = 0; type < BODY_TYPE_N; type++)
-		{
-			sout << n_bodies->get_n_active_by((body_type_t)type) << SEP;
-		}
-		sout << endl;
-		print_result_ascii(sout);
-		break;
-	case DATA_REPRESENTATION_BINARY:
-		for (uint32_t type = 0; type < BODY_TYPE_N; type++)
-		{
-			uint32_t _n = n_bodies->get_n_active_by((body_type_t)type);
-			sout.write((char*)&_n, sizeof(_n));
-		}
-		print_result_binary(sout);
-		break;
-	}
-}
-
-void pp_disk::print_result(ofstream& sout, data_representation_t repres)
-{
-	if (COMPUTING_DEVICE_GPU == comp_dev)
-	{
-		copy_to_host();
-	}
-
-	switch (repres)
-	{
-	case DATA_REPRESENTATION_ASCII:
-		print_result_ascii(sout);
-		break;
-	case DATA_REPRESENTATION_BINARY:
-		print_result_binary(sout);
-		break;
-	}
-}
-
-void pp_disk::print_result_ascii(ofstream& sout)
-{
-	static uint32_t int_t_w  =  8;
-	static uint32_t var_t_w  = 25;
-
-	sout.precision(16);
-	sout.setf(ios::right);
-	sout.setf(ios::scientific);
 
 	var4_t* r = sim_data->h_y[0];
 	var4_t* v = sim_data->h_y[1];
@@ -2073,154 +1979,188 @@ void pp_disk::print_result_ascii(ofstream& sout)
 	body_metadata_t* bmd = sim_data->h_body_md;
 
 	const uint32_t n = n_bodies->get_n_total_playing();
-	for (uint32_t i = 0; i < n; i++)
-    {
-		// Skip inactive bodies
-		if (bmd[i].id < 0)
+	switch (repres)
+	{
+	case DATA_REPRESENTATION_ASCII:
+		sout.open(path.c_str(), ios::out);
+		for (uint32_t i = 0; i < n; i++)
 		{
-			continue;
+			// Skip inactive bodies
+			if (bmd[i].id < 0)
+			{
+				continue;
+			}
+			int orig_idx = bmd[i].id - 1;
+			// Transform the velocity into AU/day unit
+			var4_t velo = v[i];
+			velo.x *= constants::Gauss;
+			velo.y *= constants::Gauss;
+			velo.z *= constants::Gauss;
+			file::print_body_record_ascii_RED(sout, body_names[orig_idx], &p[i], &bmd[i], &r[i], &velo);
 		}
-		int orig_idx = bmd[i].id - 1;
-		sout << setw(int_t_w) << bmd[i].id << SEP                    /* id of the body                                                (int)              */
-			 << setw(     30) << body_names[orig_idx] << SEP         /* name of the body                                              (string = 30 char) */ 
-			 << setw(      2) << bmd[i].body_type << SEP             /* type of the body                                              (int)              */
-			 << setw(var_t_w) << t / constants::Gauss << SEP         /* time of the record                           [day]            (double)           */
-			 << setw(var_t_w) << p[i].mass << SEP                    /* mass of the body                             [solar mass]     (double)           */
-			 << setw(var_t_w) << p[i].radius << SEP                  /* radius of the body                           [AU]             (double)           */
-			 << setw(var_t_w) << p[i].density << SEP                 /* density of the body in                       [solar mass/AU3] (double)           */
-			 << setw(var_t_w) << p[i].cd << SEP                      /* Stokes drag coefficeint dimensionless                         (double)           */
-			 << setw(      2) << bmd[i].mig_type << SEP              /* migration type of the body                                    (int)              */
-			 << setw(var_t_w) << bmd[i].mig_stop_at << SEP           /* migration stops at this barycentric distance [AU]             (double)           */
-			 << setw(var_t_w) << r[i].x << SEP                       /* body's x-coordiante in barycentric system    [AU]             (double)           */
-			 << setw(var_t_w) << r[i].y << SEP                       /* body's y-coordiante in barycentric system    [AU]             (double)           */
-			 << setw(var_t_w) << r[i].z << SEP                       /* body's z-coordiante in barycentric system    [AU]             (double)           */
-			 << setw(var_t_w) << v[i].x * constants::Gauss << SEP    /* body's x-velocity in baryentric system       [AU/day]         (double)           */
-			 << setw(var_t_w) << v[i].y * constants::Gauss << SEP    /* body's y-velocity in barycentric system      [AU/day]         (double)           */
-			 << setw(var_t_w) << v[i].z * constants::Gauss << endl;  /* body's z-velocity in barycentric system      [AU/day]         (double)           */
-    }
-	sout.flush();
-}
-
-void pp_disk::print_result_binary(ofstream& sout)
-{
-	char name_buffer[30];
-
-	var4_t* r = sim_data->h_y[0];
-	var4_t* v = sim_data->h_y[1];
-	param_t* p = sim_data->h_p;
-	body_metadata_t* bmd = sim_data->h_body_md;
-
-	const uint32_t n = n_bodies->get_n_total_playing();
-	for (uint32_t i = 0; i < n; i++)
-    {
-		// Skip inactive bodies
-		if (bmd[i].id < 0)
+		break;
+	case DATA_REPRESENTATION_BINARY:
+		sout.open(path.c_str(), ios::out | ios::binary);
+		for (uint32_t i = 0; i < n; i++)
 		{
-			continue;
+			// Skip inactive bodies
+			if (bmd[i].id < 0)
+			{
+				continue;
+			}
+			int orig_idx = bmd[i].id - 1;
+			// Transform the velocity into AU/day unit
+			var4_t velo = v[i];
+			velo.x *= constants::Gauss;
+			velo.y *= constants::Gauss;
+			velo.z *= constants::Gauss;
+			file::print_body_record_binary_RED(sout, body_names[orig_idx], &p[i], &bmd[i], &r[i], &velo);
 		}
-		int orig_idx = bmd[i].id - 1;
-		memset(name_buffer, 0, sizeof(name_buffer));
-		strcpy(name_buffer, body_names[orig_idx].c_str());
-
-		sout.write((char*)&(this->t), sizeof(ttt_t));
-		sout.write(name_buffer,    sizeof(name_buffer));
-		sout.write((char*)&bmd[i], sizeof(body_metadata_t));
-		sout.write((char*)&p[i],   sizeof(param_t));
-		sout.write((char*)&r[i],   sizeof(var4_t));
-		sout.write((char*)&v[i],   sizeof(var4_t));
+		break;
 	}
+	sout.close();
 }
 
-void pp_disk::print_event_data(ofstream& sout, ofstream& log_f)
+void pp_disk::print_data_info(string& path, data_rep_t repres)
+{
+	ofstream sout;
+
+	switch (repres)
+	{
+	case DATA_REPRESENTATION_ASCII:
+		sout.open(path.c_str(), ios::out);
+		if (input) 
+		{
+			file::print_data_info_record_ascii_RED(sout, this->t / constants::Gauss, this->n_bodies);
+		}
+		else 
+		{
+			throw string("Cannot open " + path + ".");
+		}
+		break;
+	case DATA_REPRESENTATION_BINARY:
+		sout.open(path.c_str(), ios::out | ios::binary);
+		if (input) 
+		{
+			file::print_data_info_record_binary_RED(sout, this->t / constants::Gauss, this->n_bodies);
+		}
+		else 
+		{
+			throw string("Cannot open " + path + ".");
+		}
+		break;
+	}
+	sout.close();
+}
+
+void pp_disk::print_event_data(string& path, ofstream& log_f)
 {
 	static uint32_t int_t_w =  8;
 	static uint32_t var_t_w = 25;
-	string e_names[] = {"NONE", "HIT_CENTRUM", "EJECTION", "CLOSE_ENCOUNTER", "COLLISION"};
+	string e_names[] = {"NONE", "HIT_CENTRUM", "EJECTION", "COLLISION"};
 
-	sout.precision(16);
-	sout.setf(ios::right);
-	sout.setf(ios::scientific);
-
-	log_f.precision(16);
-	log_f.setf(ios::right);
-	log_f.setf(ios::scientific);
-
-	for (uint32_t i = 0; i < sp_events.size(); i++)
+	ofstream sout;
+	sout.open(path.c_str(), ios::out);
+	if (sout) 
 	{
-		sout << setw(16)      << e_names[sp_events[i].event_name] << SEP       /* type of the event                              []                  */
-			 << setw(var_t_w) << sp_events[i].t / constants::Gauss << SEP      /* time of the event                              [day]               */
-			 << setw(var_t_w) << sp_events[i].d << SEP                         /* distance of the two bodies                     [AU]                */
-			 << setw(int_t_w) << sp_events[i].id1 << SEP		               /* id of the survivor                             []                  */
-			 << setw(int_t_w) << sp_events[i].id2 << SEP		               /* id of the merger                               []                  */
+		sout.precision(16);
+		sout.setf(ios::right);
+		sout.setf(ios::scientific);
 
-			                                                                   /* BEFORE THE EVENT                                                   */ 
-			 << setw(var_t_w) << sp_events[i].p1.mass << SEP                   /* survivor's mass                                [solar mass]        */
-			 << setw(var_t_w) << sp_events[i].p1.density << SEP                /*            density                             [solar mass / AU^3] */
-			 << setw(var_t_w) << sp_events[i].p1.radius << SEP                 /*            radius                              [AU]                */
-			 << setw(var_t_w) << sp_events[i].r1.x << SEP                      /*            x-coordiante in barycentric system  [AU]                */
-			 << setw(var_t_w) << sp_events[i].r1.y << SEP                      /*            y-coordiante                        [AU]                */
-			 << setw(var_t_w) << sp_events[i].r1.z << SEP                      /*            z-coordiante                        [AU]                */
-			 << setw(var_t_w) << sp_events[i].v1.x * constants::Gauss << SEP   /*            x-velocity                          [AU / day]          */
-			 << setw(var_t_w) << sp_events[i].v1.y * constants::Gauss << SEP   /*            y-velocity                          [AU / day]          */
-			 << setw(var_t_w) << sp_events[i].v1.z * constants::Gauss << SEP   /*            z-velocity                          [AU / day]          */
-
-			 << setw(var_t_w) << sp_events[i].p2.mass << SEP                   /* merger's mass                                  [solar mass]        */
-			 << setw(var_t_w) << sp_events[i].p2.density << SEP                /*          density                               [solar mass / AU^3] */
-			 << setw(var_t_w) << sp_events[i].p2.radius << SEP                 /*          radius                                [AU]                */
-			 << setw(var_t_w) << sp_events[i].r2.x << SEP                      /*          x-coordiante in barycentric system    [AU]                */
-			 << setw(var_t_w) << sp_events[i].r2.y << SEP                      /*          y-coordiante                          [AU]                */
-			 << setw(var_t_w) << sp_events[i].r2.z << SEP                      /*          z-coordiante                          [AU]                */
-			 << setw(var_t_w) << sp_events[i].v2.x * constants::Gauss << SEP   /*          x-velocity                            [AU / day]          */
-			 << setw(var_t_w) << sp_events[i].v2.y * constants::Gauss << SEP   /*          y-velocity                            [AU / day]          */
-			 << setw(var_t_w) << sp_events[i].v2.z * constants::Gauss << SEP   /*          z-velocity                            [AU / day]          */
-
-			                                                                   /* AFTER THE EVENT                                                    */ 
-			 << setw(var_t_w) << sp_events[i].ps.mass << SEP                   /* survivor's mass                                [solar mass]        */
-			 << setw(var_t_w) << sp_events[i].ps.density << SEP                /*            density                             [solar mass / AU^3] */
-			 << setw(var_t_w) << sp_events[i].ps.radius << SEP                 /*            radius                              [AU]                */
-			 << setw(var_t_w) << sp_events[i].rs.x << SEP                      /*            x-coordiante in barycentric system  [AU]                */
-			 << setw(var_t_w) << sp_events[i].rs.y << SEP                      /*            y-coordiante                        [AU]                */
-			 << setw(var_t_w) << sp_events[i].rs.z << SEP                      /*            z-coordiante                        [AU]                */
-			 << setw(var_t_w) << sp_events[i].vs.x * constants::Gauss << SEP   /*            x-velocity                          [AU / day]          */
-			 << setw(var_t_w) << sp_events[i].vs.y * constants::Gauss << SEP   /*            y-velocity                          [AU / day]          */
-			 << setw(var_t_w) << sp_events[i].vs.z * constants::Gauss << SEP   /*            z-velocity                          [AU / day]          */
-			 << endl;
-
-		if (log_f)
+		for (uint32_t i = 0; i < sp_events.size(); i++)
 		{
-			log_f << tools::get_time_stamp(false) << SEP 
-				  << e_names[sp_events[i].event_name] << SEP
-			      << setw(int_t_w) << sp_events[i].id1 << SEP
-			      << setw(int_t_w) << sp_events[i].id2 << SEP
-				  << endl;
+			sout << setw(16)      << e_names[sp_events[i].event_name] << SEP       /* type of the event                              []                  */
+				 << setw(var_t_w) << sp_events[i].t / constants::Gauss << SEP      /* time of the event                              [day]               */
+				 << setw(var_t_w) << sp_events[i].d << SEP                         /* distance of the two bodies                     [AU]                */
+				 << setw(int_t_w) << sp_events[i].id1 << SEP		               /* id of the survivor                             []                  */
+				 << setw(int_t_w) << sp_events[i].id2 << SEP		               /* id of the merger                               []                  */
+
+																				   /* BEFORE THE EVENT                                                   */ 
+				 << setw(var_t_w) << sp_events[i].p1.mass << SEP                   /* survivor's mass                                [solar mass]        */
+				 << setw(var_t_w) << sp_events[i].p1.density << SEP                /*            density                             [solar mass / AU^3] */
+				 << setw(var_t_w) << sp_events[i].p1.radius << SEP                 /*            radius                              [AU]                */
+				 << setw(var_t_w) << sp_events[i].r1.x << SEP                      /*            x-coordiante in barycentric system  [AU]                */
+				 << setw(var_t_w) << sp_events[i].r1.y << SEP                      /*            y-coordiante                        [AU]                */
+				 << setw(var_t_w) << sp_events[i].r1.z << SEP                      /*            z-coordiante                        [AU]                */
+				 << setw(var_t_w) << sp_events[i].v1.x * constants::Gauss << SEP   /*            x-velocity                          [AU / day]          */
+				 << setw(var_t_w) << sp_events[i].v1.y * constants::Gauss << SEP   /*            y-velocity                          [AU / day]          */
+				 << setw(var_t_w) << sp_events[i].v1.z * constants::Gauss << SEP   /*            z-velocity                          [AU / day]          */
+
+				 << setw(var_t_w) << sp_events[i].p2.mass << SEP                   /* merger's mass                                  [solar mass]        */
+				 << setw(var_t_w) << sp_events[i].p2.density << SEP                /*          density                               [solar mass / AU^3] */
+				 << setw(var_t_w) << sp_events[i].p2.radius << SEP                 /*          radius                                [AU]                */
+				 << setw(var_t_w) << sp_events[i].r2.x << SEP                      /*          x-coordiante in barycentric system    [AU]                */
+				 << setw(var_t_w) << sp_events[i].r2.y << SEP                      /*          y-coordiante                          [AU]                */
+				 << setw(var_t_w) << sp_events[i].r2.z << SEP                      /*          z-coordiante                          [AU]                */
+				 << setw(var_t_w) << sp_events[i].v2.x * constants::Gauss << SEP   /*          x-velocity                            [AU / day]          */
+				 << setw(var_t_w) << sp_events[i].v2.y * constants::Gauss << SEP   /*          y-velocity                            [AU / day]          */
+				 << setw(var_t_w) << sp_events[i].v2.z * constants::Gauss << SEP   /*          z-velocity                            [AU / day]          */
+
+																				   /* AFTER THE EVENT                                                    */ 
+				 << setw(var_t_w) << sp_events[i].ps.mass << SEP                   /* survivor's mass                                [solar mass]        */
+				 << setw(var_t_w) << sp_events[i].ps.density << SEP                /*            density                             [solar mass / AU^3] */
+				 << setw(var_t_w) << sp_events[i].ps.radius << SEP                 /*            radius                              [AU]                */
+				 << setw(var_t_w) << sp_events[i].rs.x << SEP                      /*            x-coordiante in barycentric system  [AU]                */
+				 << setw(var_t_w) << sp_events[i].rs.y << SEP                      /*            y-coordiante                        [AU]                */
+				 << setw(var_t_w) << sp_events[i].rs.z << SEP                      /*            z-coordiante                        [AU]                */
+				 << setw(var_t_w) << sp_events[i].vs.x * constants::Gauss << SEP   /*            x-velocity                          [AU / day]          */
+				 << setw(var_t_w) << sp_events[i].vs.y * constants::Gauss << SEP   /*            y-velocity                          [AU / day]          */
+				 << setw(var_t_w) << sp_events[i].vs.z * constants::Gauss << SEP   /*            z-velocity                          [AU / day]          */
+				 << endl;
+
+			if (log_f)
+			{
+				log_f.precision(16);
+				log_f.setf(ios::right);
+				log_f.setf(ios::scientific);
+
+				log_f << tools::get_time_stamp(false) << SEP 
+					  << e_names[sp_events[i].event_name] << SEP
+					  << setw(int_t_w) << sp_events[i].id1 << SEP
+					  << setw(int_t_w) << sp_events[i].id2 << SEP
+					  << endl;
+			}
 		}
+		sout.close();
+		log_f.flush();
 	}
-	sout.flush();
-	log_f.flush();
+	else 
+	{
+		throw string("Cannot open " + path + ".");
+	}
 }
 
-void pp_disk::print_integral_data(integral_t& I, ofstream& sout)
+void pp_disk::print_integral_data(string& path, integral_t& I)
 {
 	static uint32_t var_t_w  = 25;
 
-	sout.precision(16);
-	sout.setf(ios::right);
-	sout.setf(ios::scientific);
+	ofstream sout;
+	sout.open(path.c_str(), ios::out);
+	if (sout) 
+	{
+		sout.precision(16);
+		sout.setf(ios::right);
+		sout.setf(ios::scientific);
 
-	sout << setw(var_t_w) << t / constants::Gauss << SEP       /* time of the record                      [day]                        */
- 		 << setw(var_t_w) << I.R.x << SEP                      /* x-coordinate of the system's barycenter [AU]                         */
-		 << setw(var_t_w) << I.R.y << SEP                      /* y-coordinate of the system's barycenter [AU]                         */
-		 << setw(var_t_w) << I.R.z << SEP                      /* z-coordinate of the system's barycenter [AU]                         */
-		 << setw(var_t_w) << I.V.x * constants::Gauss << SEP   /* x velocity of the system's barycenter   [AU/day]                     */
-		 << setw(var_t_w) << I.V.y * constants::Gauss << SEP   /* y velocity of the system's barycenter   [AU/day]                     */
-		 << setw(var_t_w) << I.V.z * constants::Gauss << SEP   /* z velocity of the system's barycenter   [AU/day]                     */
-		 << setw(var_t_w) << I.C.x * constants::Gauss << SEP   /* x component of the system's angular momentum [AU^2 * solar mass/day] */
-		 << setw(var_t_w) << I.C.y * constants::Gauss << SEP   /* y component of the system's angular momentum [AU^2 * solar mass/day] */
-		 << setw(var_t_w) << I.C.z * constants::Gauss << SEP   /* z component of the system's angular momentum [AU^2 * solar mass/day] */
-		 << setw(var_t_w) << I.E * constants::Gauss2 << SEP    /* total energy of the system [solar mass * AU^2/day^2]                 */
-		 << endl;
+		sout << setw(var_t_w) << t / constants::Gauss << SEP       /* time of the record                      [day]                        */
+ 			 << setw(var_t_w) << I.R.x << SEP                      /* x-coordinate of the system's barycenter [AU]                         */
+			 << setw(var_t_w) << I.R.y << SEP                      /* y-coordinate of the system's barycenter [AU]                         */
+			 << setw(var_t_w) << I.R.z << SEP                      /* z-coordinate of the system's barycenter [AU]                         */
+			 << setw(var_t_w) << I.V.x * constants::Gauss << SEP   /* x velocity of the system's barycenter   [AU/day]                     */
+			 << setw(var_t_w) << I.V.y * constants::Gauss << SEP   /* y velocity of the system's barycenter   [AU/day]                     */
+			 << setw(var_t_w) << I.V.z * constants::Gauss << SEP   /* z velocity of the system's barycenter   [AU/day]                     */
+			 << setw(var_t_w) << I.C.x * constants::Gauss << SEP   /* x component of the system's angular momentum [AU^2 * solar mass/day] */
+			 << setw(var_t_w) << I.C.y * constants::Gauss << SEP   /* y component of the system's angular momentum [AU^2 * solar mass/day] */
+			 << setw(var_t_w) << I.C.z * constants::Gauss << SEP   /* z component of the system's angular momentum [AU^2 * solar mass/day] */
+			 << setw(var_t_w) << I.E * constants::Gauss2 << SEP    /* total energy of the system [solar mass * AU^2/day^2]                 */
+			 << endl;
 
-	sout.flush();
+		sout.close();
+	}
+	else 
+	{
+		throw string("Cannot open " + path + ".");
+	}
 }
 
 #undef GAS_REDUCTION_THRESHOLD

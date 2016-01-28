@@ -1,4 +1,5 @@
 // includes, system 
+#include <iomanip>      // setw()
 #include <cmath>
 #include <fstream>		// ofstream
 #include <string>		// string
@@ -169,85 +170,16 @@ void generate_pp(phys_prop_dist_t *pp_d, pp_disk_t::param_t& param)
 	}
 }
 
-void print(string &path, body_disk_t& disk, pp_disk_t::sim_data_t* sd, input_format_name_t format)
+void print_uint32_t(string &path, uint32_t n)
 {
 	printf("Writing %s to disk .", path.c_str());
 
-	ofstream output(path.c_str(), ios_base::out);
-	if (output)
+	ofstream sout(path.c_str(), ios_base::out);
+	if (sout)
 	{
-		int_t nBodies = calc_number_of_bodies(disk);
-
-		if (INPUT_FORMAT_RED == format)
-		{
-			for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)
-			{
-				output << disk.nBody[body_type] << SEP;
-			}
-			output << endl;
-		}
-		if (INPUT_FORMAT_NONAME == format)
-		{
-			output << "Time: " << sd->h_epoch[0] << endl;
-			output << "Number of bodies: " << nBodies << endl;
-			output << "Coordinate system: barycentric" << endl;
-			output << endl;
-			output << "id                       name                     type                     cx [AU]                  cy [AU]                  cz [AU]                  vx [AU/day]              vy [AU/day]              vz [AU/day]              mass [sol]               radius [AU]" << endl;
-			output << endl;
-		}
-		if (INPUT_FORMAT_HIPERION == format)
-		{
-			output << "# HEADER_BEGIN" << endl;
-			output << "# CountSnapshot   = 0" << endl;
-			output << "# Iter            = 0" << endl;
-			output << "# Time            = 0" << endl;
-			output << "# NewDt           = 0" << endl;
-			output << "# Ntot            = " << nBodies << endl;
-			output << "# Ngrav           = " << disk.nBody[BODY_TYPE_STAR] + disk.nBody[BODY_TYPE_GIANTPLANET] + disk.nBody[BODY_TYPE_ROCKYPLANET] + disk.nBody[BODY_TYPE_PROTOPLANET] << endl;
-			output << "# Nst             = " << disk.nBody[BODY_TYPE_STAR] << endl;
-			output << "# Npl             = " << disk.nBody[BODY_TYPE_GIANTPLANET] + disk.nBody[BODY_TYPE_ROCKYPLANET] << endl;
-			output << "# Nplms           = " << disk.nBody[BODY_TYPE_PROTOPLANET] << endl;
-			output << "# Ndust           = " << disk.nBody[BODY_TYPE_PLANETESIMAL] + disk.nBody[BODY_TYPE_TESTPARTICLE] << endl;
-			output << "# NCstr           = 0" << endl;
-			output << "# NCpl            = 0" << endl;
-			output << "# NCplms          = 0" << endl;
-			output << "# Ekin0           = -1.000000" << endl;
-			output << "# Epot0           = -1.000000" << endl;
-			output << "# Eloss           = 0.000000" << endl;
-			output << "# dE              = 0" << endl;
-			output << "# OrbitalPeriod   = 6.2831854820251465e+00" << endl;
-			output << "# TimeCPU         = 0"  << endl;
-			output << "# HEADER_END" << endl;
-		}
-
-		int p = 1;
-		for (int i = 0; i < nBodies; i++)
-		{
-			if (p <= (int)((((var_t)i/(var_t)nBodies))*100.0))
-			{
-				printf(".");
-				p++;
-			}
-			switch (format)
-			{
-			case INPUT_FORMAT_RED:
-				file::print_body_record(         output, disk.names[i], sd->h_epoch[i], &sd->h_p[i], &sd->h_body_md[i], &sd->h_y[0][i], &sd->h_y[1][i]);
-				break;
-			case INPUT_FORMAT_NONAME:
-				file::print_body_record_Emese(   output, disk.names[i], sd->h_epoch[i], &sd->h_p[i], &sd->h_body_md[i], &sd->h_y[0][i], &sd->h_y[1][i]);
-				break;
-			case INPUT_FORMAT_HIPERION:
-				file::print_body_record_HIPERION(output, disk.names[i], sd->h_epoch[i], &sd->h_p[i], &sd->h_body_md[i], &sd->h_y[0][i], &sd->h_y[1][i]);
-				break;
-			default:
-				throw string("Invalid format in print().");
-				break;
-			}
-		}
-		output.flush();
-		output.close();
+		sout << n;
+		sout.close();
 		printf(" done\n");
-
 	}
 	else
 	{
@@ -255,16 +187,156 @@ void print(string &path, body_disk_t& disk, pp_disk_t::sim_data_t* sd, input_for
 	}
 }
 
-void print(string &path, int n, pp_disk_t::sim_data_t *sd)
+template <typename T>
+void print_number(string& path, T number)
 {
-	ofstream	output(path.c_str(), ios_base::out);
-	if (output)
-	{		
-		for (int i = 0; i < n; i++)
+	printf("Writing %s to disk .", path.c_str());
+
+	ofstream sout(path.c_str(), ios_base::out);
+	if (sout)
+	{
+		sout << number;
+		sout.close();
+		printf(" done\n");
+	}
+	else
+	{
+		throw string("Cannot open " + path + "!");
+	}
+}
+template void print_number<char>(         string& path, char number);
+template void print_number<unsigned char>(string& path, unsigned char number);
+template void print_number<int>(          string& path, int number);
+template void print_number<uint32_t>(     string& path, uint32_t number);
+template void print_number<long>(         string& path, long number);
+template void print_number<unsigned long>(string& path, unsigned long number);
+
+void print_data(string &path, body_disk_t& disk, pp_disk_t::sim_data_t* sd, input_format_name_t format)
+{
+	printf("Writing %s to disk .", path.c_str());
+
+	ofstream sout(path.c_str(), ios_base::out);
+	if (sout)
+	{
+		uint32_t n_body = calc_number_of_bodies(disk);
+
+		if (INPUT_FORMAT_RED == format)
 		{
-			file::print_oe_record(output, &sd->h_oe[i]);
+			;
 		}
-		output.close();
+		if (INPUT_FORMAT_NONAME == format)
+		{
+			sout << "Time: " << sd->h_epoch[0] << endl;
+			sout << "Number of bodies: " << n_body << endl;
+			sout << "Coordinate system: barycentric" << endl;
+			sout << endl;
+			sout << "id                       name                     type                     cx [AU]                  cy [AU]                  cz [AU]                  vx [AU/day]              vy [AU/day]              vz [AU/day]              mass [sol]               radius [AU]" << endl;
+			sout << endl;
+		}
+		if (INPUT_FORMAT_HIPERION == format)
+		{
+			sout << "# HEADER_BEGIN" << endl;
+			sout << "# CountSnapshot   = 0" << endl;
+			sout << "# Iter            = 0" << endl;
+			sout << "# Time            = 0" << endl;
+			sout << "# NewDt           = 0" << endl;
+			sout << "# Ntot            = " << n_body << endl;
+			sout << "# Ngrav           = " << disk.nBody[BODY_TYPE_STAR] + disk.nBody[BODY_TYPE_GIANTPLANET] + disk.nBody[BODY_TYPE_ROCKYPLANET] + disk.nBody[BODY_TYPE_PROTOPLANET] << endl;
+			sout << "# Nst             = " << disk.nBody[BODY_TYPE_STAR] << endl;
+			sout << "# Npl             = " << disk.nBody[BODY_TYPE_GIANTPLANET] + disk.nBody[BODY_TYPE_ROCKYPLANET] << endl;
+			sout << "# Nplms           = " << disk.nBody[BODY_TYPE_PROTOPLANET] << endl;
+			sout << "# Ndust           = " << disk.nBody[BODY_TYPE_PLANETESIMAL] + disk.nBody[BODY_TYPE_TESTPARTICLE] << endl;
+			sout << "# NCstr           = 0" << endl;
+			sout << "# NCpl            = 0" << endl;
+			sout << "# NCplms          = 0" << endl;
+			sout << "# Ekin0           = -1.000000" << endl;
+			sout << "# Epot0           = -1.000000" << endl;
+			sout << "# Eloss           = 0.000000" << endl;
+			sout << "# dE              = 0" << endl;
+			sout << "# OrbitalPeriod   = 6.2831854820251465e+00" << endl;
+			sout << "# TimeCPU         = 0"  << endl;
+			sout << "# HEADER_END" << endl;
+		}
+
+		int p = 1;
+		for (uint32_t i = 0; i < n_body; i++)
+		{
+			if (p <= (int)((((var_t)i/(var_t)n_body))*100.0))
+			{
+				printf(".");
+				p++;
+			}
+			switch (format)
+			{
+			case INPUT_FORMAT_RED:
+				file::print_body_record_ascii_RED(     sout, disk.names[i], &sd->h_p[i], &sd->h_body_md[i], &sd->h_y[0][i], &sd->h_y[1][i]);
+				break;
+			case INPUT_FORMAT_NONAME:
+				file::print_body_record_Emese(   sout, disk.names[i], sd->h_epoch[i], &sd->h_p[i], &sd->h_body_md[i], &sd->h_y[0][i], &sd->h_y[1][i]);
+				break;
+			case INPUT_FORMAT_HIPERION:
+				file::print_body_record_HIPERION(sout, disk.names[i], sd->h_epoch[i], &sd->h_p[i], &sd->h_body_md[i], &sd->h_y[0][i], &sd->h_y[1][i]);
+				break;
+			default:
+				throw string("Invalid format in print_data().");
+				break;
+			}
+		}
+		sout.close();
+		printf(" done\n");
+	}
+	else
+	{
+		throw string("Cannot open " + path + "!");
+	}
+}
+
+void print_data_info(string &path, ttt_t t0, body_disk_t& disk, pp_disk_t::sim_data_t* sd, input_format_name_t format)
+{
+	static uint32_t int_t_w  =  8;
+	static uint32_t var_t_w  = 25;
+
+	printf("Writing %s to disk .", path.c_str());
+
+	ofstream sout(path.c_str(), ios_base::out);
+	if (sout)
+	{
+		sout.precision(16);
+		sout.setf(ios::right);
+		sout.setf(ios::scientific);
+
+		uint32_t n_body = calc_number_of_bodies(disk);
+		if (INPUT_FORMAT_RED == format)
+		{
+			file::print_data_info_record_RED(sout, t0, );
+		}
+		if (INPUT_FORMAT_NONAME == format)
+		{
+			;
+		}
+		if (INPUT_FORMAT_HIPERION == format)
+		{
+			;
+		}
+		sout.close();
+		printf(" done\n");
+	}
+	else
+	{
+		throw string("Cannot open " + path + "!");
+	}
+}
+
+void print_oe(string &path, uint32_t n, pp_disk_t::sim_data_t *sd)
+{
+	ofstream sout(path.c_str(), ios_base::out);
+	if (sout)
+	{		
+		for (uint32_t i = 0; i < n; i++)
+		{
+			file::print_oe_record(sout, &sd->h_oe[i]);
+		}
+		sout.close();
 	}
 	else
 	{

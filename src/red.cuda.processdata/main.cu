@@ -74,7 +74,7 @@ void print(string &path, pp_disk_t::sim_data_t *sd)
 				printf(".");
 				p++;
 			}
-			file::print_body_record(output, body_names[i], sd->h_epoch[i], &sd->h_p[i], &sd->h_body_md[i], &sd->h_y[0][i], &sd->h_y[1][i]);
+			file::print_body_record_ascii_RED(output, body_names[i], &sd->h_p[i], &sd->h_body_md[i], &sd->h_y[0][i], &sd->h_y[1][i]);
 		}
 		output.flush();
 		output.close();
@@ -86,7 +86,7 @@ void print(string &path, pp_disk_t::sim_data_t *sd)
 	}
 }
 
-void read_snapshot(string& path, ttt_t t, data_representation_t repres)
+void read_snapshot(string& path, ttt_t t, data_rep_t repres)
 {
 	ttt_t epoch[1];
 	pp_disk_t::body_metadata_t bmd[1];
@@ -209,7 +209,7 @@ void read_snapshot(string& path, ttt_t t, data_representation_t repres)
     return;
 }
 
-void read_body(string& path, int id, int& n_id_record, data_representation_t repres)
+void read_body(string& path, int id, int& n_id_record, data_rep_t repres)
 {
 	ttt_t epoch[1];
 	pp_disk_t::body_metadata_t bmd[1];

@@ -5,14 +5,13 @@
 
 #include "analytic_gas_disk.h"
 #include "fargo_gas_disk.h"
-#include "number_of_bodies.h"
 #include "red_type.h"
 
 class pp_disk
 {
 public:
-	pp_disk(number_of_bodies *n_bodies,             gas_disk_model_t g_disk_model, collision_detection_model_t cdm, uint32_t id_dev, computing_device_t comp_dev);
-	pp_disk(std::string& path, bool continue_simulation, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, uint32_t id_dev, computing_device_t comp_dev, const var_t* thrshld, bool pts);
+	pp_disk(n_objects_t *n_bodies, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, uint32_t id_dev, computing_device_t comp_dev);
+	pp_disk(std::string& path_data, std::string& path_data_info, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, uint32_t id_dev, computing_device_t comp_dev, const var_t* thrshld);
 	~pp_disk();
 
 	//! Copies ODE parameters and variables from the host to the cuda device
@@ -57,37 +56,28 @@ public:
 
 	//! Print the data of all bodies
 	/*!
-		\param sout   print the data to this stream
+		\param path   print the data to this file
 		\param repres indicates the data representation of the file, i.e. text or binary
 	*/
-	void print_result(ofstream& sout, data_representation_t repres);
-	//! Print the data of all bodies in text format
-	/*   
-		\param sout print the data to this stream
-	*/
-	void print_result_ascii(ofstream& sout);
-	//! Print the data of all bodies in binary format
+	void print_data(std::string& path, data_rep_t repres);
+	//! Print the data of all bodies
 	/*!
-		\param sout print the data to this stream
-	*/
-	void print_result_binary(ofstream& sout);
-	//! Print the data of all bodies in text format
-	/*!
-		\param sout   print the data to this stream
+		\param path   print the data to this file
 		\param repres indicates the data representation of the file, i.e. text or binary
 	*/
-	void print_dump(ofstream& sout, data_representation_t repres);
+	void print_data_info(std::string& path, data_rep_t repres);
+
 	//! Print the event data
 	/*!
-		\param sout print the data to this stream
+		\param path print the data to this file
 		\param log_f print the data to this stream
 	*/
-	void print_event_data(ofstream& sout, ofstream& log_f);
+	void print_event_data(std::string& path, ofstream& log_f);
 	//! Print the classical integrals
 	/*!
 		\param sout print the data to this stream
 	*/
-	void print_integral_data(pp_disk_t::integral_t& I, ofstream& sout);
+	void print_integral_data(std::string& path, pp_disk_t::integral_t& I);
 
 	//! From the events it will create a vector containing one entry for each colliding pair with the earliest collision time
 	void populate_sp_events();
@@ -163,7 +153,7 @@ public:
 	void print_sim_data(computing_device_t comp_dev);
 
 	ttt_t t;                                   //!< time when the variables are valid
-	number_of_bodies* n_bodies;                //!< class containing the number of different bodies
+	n_objects_t* n_bodies;                     //!< struct containing the number of different bodies
 	pp_disk_t::sim_data_t* sim_data;           //!< struct containing all the data of the simulation
 
 	gas_disk_model_t g_disk_model;
@@ -180,32 +170,10 @@ private:
 	void initialize();
 
 	void increment_event_counter(uint32_t *event_counter);
-	//! Loads the initial position and velocity of the bodies
-	/*!
-		\param path the full path of the data file
-		\param repres the representation of the data in the file (i.e. ASCII or BINARY)
-	*/
-	void load(std::string& path, data_representation_t repres);
-	//! Loads the initial position and velocity of the bodies
-	/*!
-		\param input the input stream from which to read the data
-	*/
-	void load_ascii(ifstream& input);
-	//! Loads the initial position and velocity of the bodies
-	/*!
-		\param input the input stream from which to read the data
-	*/
-	void load_binary(ifstream& input);
-	void load_dump(std::string& path, data_representation_t repres);
-	void load_body_record(ifstream& input, uint32_t k, ttt_t* epoch, pp_disk_t::body_metadata_t* body_md, pp_disk_t::param_t* p, var4_t* r, var4_t* v);
 
-	//! Loads the number of bodies from the file
-	/*!
-		\param path the full path of the data file
-		\param repres the representation of the data in the file (i.e. ASCII or BINARY)
-	*/
-	number_of_bodies* load_number_of_bodies(std::string& path, data_representation_t repres);
-
+	void load_data_info(std::string& path, var_t& t0, n_objects_t* n_bodies, data_rep_t repres);
+	void load_data(std::string& path_data, pp_disk_t::sim_data_t* sim_data, data_rep_t repres);
+	
 	//! Allocates storage for data on the host and device memory
 	void allocate_storage();
 
@@ -221,7 +189,6 @@ private:
 	//! Transform the velocity using the new time unit: 1/k = 58.13244 ...
 	void transform_velocity();
 
-	bool    continue_simulation;          //!< Continues a simulation from its last saved output
 	uint32_t id_dev;                      //!< The id of the GPU
 	computing_device_t comp_dev;          //!< The computing device to carry out the calculations (cpu or gpu)
 	collision_detection_model_t cdm;      //! Collision detection model
