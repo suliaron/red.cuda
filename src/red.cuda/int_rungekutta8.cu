@@ -402,7 +402,7 @@ void rungekutta8::cpu_calc_y_np1(int_t n, var_t *y_np1, ttt_t dt, const var_t *y
 rungekutta8::rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, computing_device_t comp_dev) :
 	integrator(ppd, dt, adaptive, tolerance, (adaptive ? 13 : 11), comp_dev)
 {
-	name  = "Runge-Kutta-Fehlberg8";
+	name  = "Runge-Kutta-Fehlberg7";
 	order = 7;
 }
 

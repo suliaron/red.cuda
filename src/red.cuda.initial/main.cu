@@ -311,6 +311,55 @@ void populate_disk(ttt_t epoch, body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 	} /* for */
 }
 
+// Calculate coordinates, velocities and minimal orbital period from the orbital elements
+void calculate_phase(pp_disk_t::sim_data_t* sim_data, uint32_t n_body, ttt_t &dt)
+{
+	var_t min_P = DBL_MAX;
+	// The mass of the central star
+	var_t m0    = sim_data->h_p[0].mass;
+	var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+	var4_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+	// The coordinates of the central star
+	sim_data->h_y[0][0] = rVec;
+	sim_data->h_y[1][0] = vVec;
+	for (uint32_t i = 1; i < n_body; i++)
+	{
+		var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+		tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+		sim_data->h_y[0][i] = rVec;
+		sim_data->h_y[1][i] = vVec;
+
+		ttt_t P = tools::calc_orbital_period(mu, sim_data->h_oe[i].sma);
+		if (min_P > P)
+		{
+			min_P = P;
+		}
+	}
+	dt = min_P / 1000.0;
+}
+
+void print_all_input_data(string& dir, string& filename, uint32_t n_body, uint32_t seed, ttt_t t0, ttt_t dt, body_disk_t& disk, pp_disk_t::sim_data_t* sim_data)
+{
+	string path = file::combine_path(dir, filename) + ".seed.txt";
+	print_number(path, seed);
+
+	path = file::combine_path(dir, filename) + ".info.txt";
+	print_data_info(path, t0, dt, disk, INPUT_FORMAT_RED);
+
+	path = file::combine_path(dir, filename) + ".oe.txt";
+	print_oe(path, n_body, t0, sim_data);
+
+	path = file::combine_path(dir, filename) + ".data.txt";
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+
+	//path = file::combine_path(dir, filename) + "_NONMAE.txt";
+	//print_data(path, disk, sim_data, INPUT_FORMAT_NONAME);
+
+	//path = file::combine_path(dir, filename) + "_HIPERION.txt";
+	//print_data(path, disk, sim_data, INPUT_FORMAT_HIPERION);
+}
+
 namespace set_parameters
 {
 uint32_t Chambers2001(nebula& n, body_disk_t& disk)
@@ -1169,8 +1218,6 @@ void Chambers2001(string& dir, string& filename)
 		int_t n_pp = (int)(m_solid / m_pp);
 
 		uint32_t seed = set_parameters::Chambers2001(mmsn, disk);
-		string path = file::combine_path(dir, filename) + ".seed.txt";
-		print_number(path, seed);
 
 		pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 		uint32_t n_body = calc_number_of_bodies(disk);
@@ -1220,26 +1267,9 @@ void Chambers2001(string& dir, string& filename)
 			}
 		}
 
-		// Calculate coordinates and velocities
-		{
-			// The mass of the central star
-			var_t m0 = sim_data->h_p[0].mass;
-			var4_t rVec = {0.0, 0.0, 0.0, 0.0};
-			var4_t vVec = {0.0, 0.0, 0.0, 0.0};
-
-			// The coordinates of the central star
-			sim_data->h_y[0][0] = rVec;
-			sim_data->h_y[1][0] = vVec;
-			for (uint32_t i = 1; i < n_body; i++)
-			{
-				var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-				tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-				sim_data->h_y[0][i] = rVec;
-				sim_data->h_y[1][i] = vVec;
-			}
-		}
+		ttt_t dt = 0.0;
+		calculate_phase(sim_data, n_body, dt);
 	}
-
 
 
 	// Create a MMSN with gas component and solids component
@@ -1264,8 +1294,6 @@ void Chambers2001(string& dir, string& filename)
 	var_t m_solid = mmsn.solid_c.calc_mass();
 
 	uint32_t seed = set_parameters::Dvorak(mmsn, disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -1316,31 +1344,12 @@ void Chambers2001(string& dir, string& filename)
 	}
 
 	// Calculate coordinates and velocities
-	{
-		// The mass of the central star
-		var_t m0 = sim_data->h_p[0].mass;
-		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
-		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
-
-		// The coordinates of the central star
-		sim_data->h_y[0][0] = rVec;
-		sim_data->h_y[1][0] = vVec;
-		for (uint32_t i = 1; i < n_body; i++)
-		{
-			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			sim_data->h_y[0][i] = rVec;
-			sim_data->h_y[1][i] = vVec;
-		}
-	}
+	ttt_t dt = 0.0;
+	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -1377,8 +1386,6 @@ void coll_stat_run(string& dir, string& filename)
 	var_t m_solid = mmsn.solid_c.calc_mass();
 
 	uint32_t seed = set_parameters::coll_stat_run(mmsn, disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -1428,35 +1435,13 @@ void coll_stat_run(string& dir, string& filename)
 		}
 	}
 
-	// Calculate coordinates and velocities from the orbital elements
-	{
-		// The mass of the central star
-		var_t m0    = sim_data->h_p[0].mass;
-		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
-		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
-
-		// The coordinates of the central star
-		sim_data->h_y[0][0] = rVec;
-		sim_data->h_y[1][0] = vVec;
-		for (uint32_t i = 1; i < n_body; i++)
-		{
-			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			sim_data->h_y[0][i] = rVec;
-			sim_data->h_y[1][i] = vVec;
-		}
-	}
+	// Calculate coordinates, velocities and minimal orbital period from the orbital elements
+	ttt_t dt = 0.0;
+	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".info.txt";
-	print_data_info(path, t0, disk, sim_data, INPUT_FORMAT_RED);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -1493,8 +1478,6 @@ void Dvorak(string& dir, string& filename)
 	var_t m_solid = mmsn.solid_c.calc_mass();
 
 	uint32_t seed = set_parameters::Dvorak(mmsn, disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -1544,32 +1527,12 @@ void Dvorak(string& dir, string& filename)
 		}
 	}
 
-	// Calculate coordinates and velocities
-	{
-		// The mass of the central star
-		var_t m0 = sim_data->h_p[0].mass;
-		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
-		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
-
-		// The coordinates of the central star
-		sim_data->h_y[0][0] = rVec;
-		sim_data->h_y[1][0] = vVec;
-		for (uint32_t i = 1; i < n_body; i++)
-		{
-			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			sim_data->h_y[0][i] = rVec;
-			sim_data->h_y[1][i] = vVec;
-		}
-	}
+	ttt_t dt = 0.0;
+	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -1585,8 +1548,6 @@ void Hansen_2009(string& dir, string& filename)
 	initialize(disk);
 
 	uint32_t seed = set_parameters::Hansen_2009(disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -1594,8 +1555,10 @@ void Hansen_2009(string& dir, string& filename)
 
 	populate_disk(t0, disk, sim_data);
 
-	// Calculate coordinates and velocities
+	// Calculate coordinates, velocities and minimal orbital period from the orbital elements
+	ttt_t dt = 0.0;
 	{
+		var_t min_P = DBL_MAX;
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
 		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
@@ -1623,22 +1586,19 @@ void Hansen_2009(string& dir, string& filename)
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
+
+			ttt_t P = tools::calc_orbital_period(mu, sim_data->h_oe[i].sma);
+			if (min_P > P)
+			{
+				min_P = P;
+			}
 		}
+		dt = min_P / 1000.0;
 	}
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
-
-	//path = file::combine_path(dir, filename) + "_NONMAE.txt";
-	//print_data(path, disk, sim_data, INPUT_FORMAT_NONAME);
-
-	//path = file::combine_path(dir, filename) + "_HIPERION.txt";
-	//print_data(path, disk, sim_data, INPUT_FORMAT_HIPERION);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -1654,8 +1614,6 @@ void GT_scenario(string& dir, string& filename)
 	initialize(disk);
 
 	uint32_t seed = set_parameters::GT_scenario(disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -1705,8 +1663,10 @@ void GT_scenario(string& dir, string& filename)
 		}
 	}
 
-	// Calculate coordinates and velocities
+	// Calculate coordinates, velocities and minimal orbital period from the orbital elements
+	ttt_t dt = 0.0;
 	{
+		var_t min_P = DBL_MAX;
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
 		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
@@ -1747,16 +1707,19 @@ void GT_scenario(string& dir, string& filename)
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
+
+			ttt_t P = tools::calc_orbital_period(mu, sim_data->h_oe[i].sma);
+			if (min_P > P)
+			{
+				min_P = P;
+			}
 		}
+		dt = min_P / 1000.0;
 	}
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -1772,8 +1735,6 @@ void GT_scenario_mod(string& dir, string& filename)
 	initialize(disk);
 
 	uint32_t seed = set_parameters::GT_scenario_mod(disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -1823,8 +1784,10 @@ void GT_scenario_mod(string& dir, string& filename)
 		}
 	}
 
-	// Calculate coordinates and velocities
+	// Calculate coordinates, velocities and minimal orbital period from the orbital elements
+	ttt_t dt = 0.0;
 	{
+		var_t min_P = DBL_MAX;
 		// The mass of the central star
 		var_t m0 = sim_data->h_p[0].mass;
 		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
@@ -1873,16 +1836,18 @@ void GT_scenario_mod(string& dir, string& filename)
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
 			sim_data->h_y[0][i] = rVec;
 			sim_data->h_y[1][i] = vVec;
+			ttt_t P = tools::calc_orbital_period(mu, sim_data->h_oe[i].sma);
+			if (min_P > P)
+			{
+				min_P = P;
+			}
 		}
+		dt = min_P / 1000.0;
 	}
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -1898,8 +1863,6 @@ void two_body(string& dir, string& filename)
 	initialize(disk);
 
 	uint32_t seed = set_parameters::Two_body(disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -1907,32 +1870,12 @@ void two_body(string& dir, string& filename)
 
 	populate_disk(t0, disk, sim_data);
 
-	// Calculate coordinates and velocities
-	{
-		// The mass of the central star
-		var_t m0 = sim_data->h_p[0].mass;
-		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
-		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
-
-		// The coordinates of the central star
-		sim_data->h_y[0][0] = rVec;
-		sim_data->h_y[1][0] = vVec;
-		for (uint32_t i = 1; i < n_body; i++)
-		{
-			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			sim_data->h_y[0][i] = rVec;
-			sim_data->h_y[1][i] = vVec;
-		}
-	}
+	ttt_t dt = 0.0;
+	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -1948,8 +1891,6 @@ void n_gp(string& dir, string& filename)
 	initialize(disk);
 
 	uint32_t seed = set_parameters::n_gp(disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -1979,41 +1920,12 @@ void n_gp(string& dir, string& filename)
 		}
 	}
 
-	// Calculate coordinates and velocities
-	{
-		// The mass of the central star
-		var_t m0 = sim_data->h_p[0].mass;
-		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
-		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
-
-		// The coordinates of the central star
-		sim_data->h_y[0][0] = rVec;
-		sim_data->h_y[1][0] = vVec;
-		for (uint32_t i = 1; i < n_body; i++)
-		{
-			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-
-			sim_data->h_oe[i].sma = i * 3.0;
-
-			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			sim_data->h_y[0][i] = rVec;
-			sim_data->h_y[1][i] = vVec;
-		}
-	}
+	ttt_t dt = 0.0;
+	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
-
-	path = file::combine_path(dir, filename) + "_NONMAE.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_NONAME);
-
-	path = file::combine_path(dir, filename) + "_HIPERION.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_HIPERION);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -2029,8 +1941,6 @@ void n_pp(string& dir, string& filename)
 	initialize(disk);
 
 	uint32_t seed = set_parameters::n_pp(disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -2060,38 +1970,12 @@ void n_pp(string& dir, string& filename)
 	//	}
 	//}
 
-	// Calculate coordinates and velocities
-	{
-		// The mass of the central star
-		var_t m0 = sim_data->h_p[0].mass;
-		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
-		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
-
-		// The coordinates of the central star
-		sim_data->h_y[0][0] = rVec;
-		sim_data->h_y[1][0] = vVec;
-		for (uint32_t i = 1; i < n_body; i++)
-		{
-			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			sim_data->h_y[0][i] = rVec;
-			sim_data->h_y[1][i] = vVec;
-		}
-	}
+	ttt_t dt = 0.0;
+	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
-
-	//path = file::combine_path(dir, filename) + "_NONMAE.txt";
-	//print_data(path, disk, sim_data, INPUT_FORMAT_NONAME);
-
-	//path = file::combine_path(dir, filename) + "_HIPERION.txt";
-	//print_data(path, disk, sim_data, INPUT_FORMAT_HIPERION);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -2107,8 +1991,6 @@ void n_spl(string& dir, string& filename)
 	initialize(disk);
 
 	uint32_t seed = set_parameters::n_spl(disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -2116,32 +1998,12 @@ void n_spl(string& dir, string& filename)
 
 	populate_disk(t0, disk, sim_data);
 
-	// Calculate coordinates and velocities
-	{
-		// The mass of the central star
-		var_t m0 = sim_data->h_p[0].mass;
-		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
-		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
-
-		// The coordinates of the central star
-		sim_data->h_y[0][0] = rVec;
-		sim_data->h_y[1][0] = vVec;
-		for (uint32_t i = 1; i < n_body; i++)
-		{
-			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			sim_data->h_y[0][i] = rVec;
-			sim_data->h_y[1][i] = vVec;
-		}
-	}
+	ttt_t dt = 0.0;
+	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -2157,8 +2019,6 @@ void n_pl(string& dir, string& filename)
 	initialize(disk);
 
 	uint32_t seed = set_parameters::n_pl(disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -2188,32 +2048,12 @@ void n_pl(string& dir, string& filename)
 		}
 	}
 
-	// Calculate coordinates and velocities
-	{
-		// The mass of the central star
-		var_t m0 = sim_data->h_p[0].mass;
-		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
-		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
-
-		// The coordinates of the central star
-		sim_data->h_y[0][0] = rVec;
-		sim_data->h_y[1][0] = vVec;
-		for (uint32_t i = 1; i < n_body; i++)
-		{
-			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			sim_data->h_y[0][i] = rVec;
-			sim_data->h_y[1][i] = vVec;
-		}
-	}
+	ttt_t dt = 0.0;
+	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -2229,8 +2069,6 @@ void n_tp(string& dir, string& filename)
 	initialize(disk);
 
 	uint32_t seed = set_parameters::n_tp(disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -2238,30 +2076,10 @@ void n_tp(string& dir, string& filename)
 
 	populate_disk(t0, disk, sim_data);
 
-	// Calculate coordinates and velocities
-	{
-		// The mass of the central star
-		var_t m0 = sim_data->h_p[0].mass;
-		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
-		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
+	ttt_t dt = 0.0;
+	calculate_phase(sim_data, n_body, dt);
 
-		// The coordinates of the central star
-		sim_data->h_y[0][0] = rVec;
-		sim_data->h_y[1][0] = vVec;
-		for (uint32_t i = 1; i < n_body; i++)
-		{
-			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			sim_data->h_y[0][i] = rVec;
-			sim_data->h_y[1][i] = vVec;
-		}
-	}
-
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -2277,8 +2095,6 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 	initialize(disk);
 
 	uint32_t seed = set_parameters::pl_to_test_anal_gd(disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -2286,33 +2102,12 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 
 	populate_disk(t0, disk, sim_data);
 
-	// Calculate coordinates and velocities
-	{
-		// The mass of the central star
-		var_t m0 = sim_data->h_p[0].mass;
-		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
-		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
-
-		// The coordinates of the central star
-		sim_data->h_y[0][0] = rVec;
-		sim_data->h_y[1][0] = vVec;
-		for (uint32_t i = 1; i < n_body; i++)
-		{
-			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			sim_data->h_oe[i].sma = (var_t)i;
-			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			sim_data->h_y[0][i] = rVec;
-			sim_data->h_y[1][i] = vVec;
-		}
-	}
+	ttt_t dt = 0.0;
+	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 
@@ -2328,8 +2123,6 @@ void solar_system(string& dir, string& filename)
 	initialize(disk);
 
 	uint32_t seed = set_parameters::solar_system(disk);
-	string path = file::combine_path(dir, filename) + ".seed.txt";
-	print_number(path, seed);
 
 	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
 	uint32_t n_body = calc_number_of_bodies(disk);
@@ -2337,32 +2130,12 @@ void solar_system(string& dir, string& filename)
 
 	populate_solar_system(disk, sim_data);
 
-	// Calculate coordinates and velocities
-	{
-		// The mass of the central star
-		var_t m0 = sim_data->h_p[0].mass;
-		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
-		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
-
-		// The coordinates of the central star
-		sim_data->h_y[0][0] = rVec;
-		sim_data->h_y[1][0] = vVec;
-		for (uint32_t i = 1; i < n_body; i++)
-		{
-			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
-			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
-			sim_data->h_y[0][i] = rVec;
-			sim_data->h_y[1][i] = vVec;
-		}
-	}
+	ttt_t dt = 0.0;
+	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, false, sim_data);
 
-	path = file::combine_path(dir, filename) + ".oe.txt";
-	print_oe(path, n_body, sim_data);
-
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
 

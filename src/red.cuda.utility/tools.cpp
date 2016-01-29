@@ -391,17 +391,15 @@ void calc_bc(uint32_t n, bool pts, const pp_disk_t::sim_data_t *sim_data, var_t 
 		{
 			continue;
 		}
-		var_t m = p[j].mass;
-		R0->x += m * r[j].x;
-		R0->y += m * r[j].y;
-		R0->z += m * r[j].z;
+		var_t m_j = p[j].mass;
+		R0->x += m_j * r[j].x;
+		R0->y += m_j * r[j].y;
+		R0->z += m_j * r[j].z;
 
-		V0->x += m * v[j].x;
-		V0->y += m * v[j].y;
-		V0->z += m * v[j].z;
+		V0->x += m_j * v[j].x;
+		V0->y += m_j * v[j].y;
+		V0->z += m_j * v[j].z;
 	}
-	//var_t M0 = get_total_mass(n, sim_data);
-
 	R0->x /= M0;	R0->y /= M0;	R0->z /= M0;
 	V0->x /= M0;	V0->y /= M0;	V0->z /= M0;
 
@@ -867,6 +865,13 @@ void calc_oe(var_t mu, const var4_t* rVec, const var4_t* vVec, orbelem_t* oe)
 	oe->peri = peri;
 	oe->node = node;
 	oe->mean = M;
+}
+
+ttt_t calc_orbital_period(var_t mu, var_t a)
+{
+	static var_t two_pi = 6.283185307179586;
+
+	return (two_pi*sqrt(CUBE(a)/mu));
 }
 
 void print_vector(const var4_t *v)

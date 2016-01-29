@@ -316,7 +316,7 @@ void log_message(ostream& sout, string msg, bool print_to_screen)
 	}
 }
 
-void print_data_info_record_ascii_RED(ofstream& sout, ttt_t t, n_objects_t* n_bodies)
+void print_data_info_record_ascii_RED(ofstream& sout, ttt_t t, ttt_t dt, n_objects_t* n_bodies)
 {
 	static uint32_t int_t_w  =  8;
 	static uint32_t var_t_w  = 25;
@@ -325,16 +325,18 @@ void print_data_info_record_ascii_RED(ofstream& sout, ttt_t t, n_objects_t* n_bo
 	sout.setf(ios::right);
 	sout.setf(ios::scientific);
 
-	sout << setw(var_t_w) << t << SEP;
+	sout << setw(var_t_w) << t << SEP
+		 << setw(var_t_w) << dt << SEP;
 	for (uint32_t type = 0; type < BODY_TYPE_N; type++)
 	{
 		sout << setw(int_t_w) << n_bodies->get_n_active_by((body_type_t)type) << SEP;
 	}
 }
 
-void print_data_info_record_binary_RED(ofstream& sout, ttt_t t, n_objects_t* n_bodies)
+void print_data_info_record_binary_RED(ofstream& sout, ttt_t t, ttt_t dt, n_objects_t* n_bodies)
 {
 	sout.write((char*)&(t), sizeof(ttt_t));
+	sout.write((char*)&(dt), sizeof(ttt_t));
 	for (uint32_t type = 0; type < BODY_TYPE_N; type++)
 	{
 		uint32_t n = n_bodies->get_n_active_by((body_type_t)type);
@@ -574,23 +576,24 @@ void print_oe_record(ofstream &sout, ttt_t epoch, orbelem_t* oe, pp_disk_t::para
 	sout.flush();
 }
 
-void load_data_info_record_ascii(ifstream& input, var_t& t0, n_objects_t** n_bodies)
+void load_data_info_record_ascii(ifstream& input, var_t& t, var_t& dt, n_objects_t** n_bodies)
 {
 	uint32_t ns, ngp, nrp, npp, nspl, npl, ntp;
 	ns = ngp = nrp = npp = nspl = npl = ntp = 0;
 
-	input >> t0;
+	input >> t >> dt; 
 	input >> ns >> ngp >> nrp >> npp >> nspl >> npl >> ntp;
 
 	*n_bodies = new n_objects_t(ns, ngp, nrp, npp, nspl, npl, ntp);
 }
 
-void load_data_info_record_binary(ifstream& input, var_t& t0, n_objects_t** n_bodies)
+void load_data_info_record_binary(ifstream& input, var_t& t, var_t& dt, n_objects_t** n_bodies)
 {
 	uint32_t ns, ngp, nrp, npp, nspl, npl, ntp;
 	ns = ngp = nrp = npp = nspl = npl = ntp = 0;
 
-	input.read((char*)&t0, sizeof(ttt_t));
+	input.read((char*)&t, sizeof(ttt_t));
+	input.read((char*)&dt, sizeof(ttt_t));
 
 	input.read((char*)&ns,   sizeof(ns));
 	input.read((char*)&ngp,  sizeof(ngp));

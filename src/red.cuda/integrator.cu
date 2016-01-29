@@ -26,7 +26,7 @@ using namespace redutilcu;
 
 integrator::integrator(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance, int n_stage, computing_device_t comp_dev) : 
 	ppd(ppd),
-	dt_try(dt * constants::Gauss), // Transform time unit
+	dt_try(dt),
 	adaptive(adaptive),
 	tolerance(tolerance),
 	n_stage(n_stage),

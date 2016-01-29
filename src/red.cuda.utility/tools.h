@@ -65,6 +65,7 @@ namespace redutilcu
 		void kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E);
 		void calc_phase(var_t mu, const orbelem_t* oe, var4_t* rVec, var4_t* vVec);
 		void calc_oe(   var_t mu, const var4_t* rVec, const var4_t* vVec, orbelem_t* oe);
+		ttt_t calc_orbital_period(var_t mu, var_t a);
 
 		void print_vector(const var4_t *v);
 		void print_parameter(const pp_disk_t::param_t *p);

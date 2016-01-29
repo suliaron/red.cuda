@@ -1653,14 +1653,13 @@ pp_disk::pp_disk(string& path_data, string& path_data_info, gas_disk_model_t g_d
 	comp_dev(comp_dev)
 {
 	initialize();
-	memcpy(threshold, thrshld, THRESHOLD_N * sizeof(var_t));
+	memcpy(threshold, thrshld, THRESHOLD_N*sizeof(var_t));
 
 	data_rep_t repres = (file::get_extension(path_data) == "txt" ? DATA_REPRESENTATION_ASCII : DATA_REPRESENTATION_BINARY);
-	//n_bodies = load_number_of_bodies(path, repres);
-	load_data_info(path_data_info, this->t, this->n_bodies, repres);
+	load_data_info(path_data_info, repres);
 
 	allocate_storage();
-	load_data(path_data, this->sim_data, repres);
+	load_data(path_data, repres);
 
 	redutilcu::create_aliases(comp_dev, sim_data);
 
@@ -1683,7 +1682,11 @@ pp_disk::~pp_disk()
 
 void pp_disk::initialize()
 {
+	n_tpb           = 1;
+
 	t               = 0.0;
+	dt              = 0.0;
+
 	sim_data        = 0x0;
 	event_counter   = 0;
 	d_event_counter = 0x0;
@@ -1697,6 +1700,8 @@ void pp_disk::initialize()
 	memset(n_ejection,    0, sizeof(n_ejection));
 	memset(n_collision,   0, sizeof(n_collision));
 	memset(n_event,       0, sizeof(n_event));
+
+	memset(threshold, 0, THRESHOLD_N*sizeof(var_t));
 }
 
 void pp_disk::allocate_storage()
@@ -1854,6 +1859,8 @@ void pp_disk::transform_time()
 	{
 		sim_data->h_epoch[j] *= constants::Gauss;
 	}
+	this->t *= constants::Gauss;
+	this->dt *= constants::Gauss;
 }
 
 void pp_disk::transform_velocity()
@@ -1870,7 +1877,7 @@ void pp_disk::transform_velocity()
 	}
 }
 
-void pp_disk::load_data_info(std::string& path, var_t& t0, n_objects_t* n_bodies, data_rep_t repres)
+void pp_disk::load_data_info(std::string& path, data_rep_t repres)
 {
 	ifstream input;
 
@@ -1880,7 +1887,7 @@ void pp_disk::load_data_info(std::string& path, var_t& t0, n_objects_t* n_bodies
 		input.open(path.c_str(), ios::in);
 		if (input) 
 		{
-			file::load_data_info_record_ascii(input, this->t, &(this->n_bodies));
+			file::load_data_info_record_ascii(input, this->t, this->dt, &(this->n_bodies));
 		}
 		else 
 		{
@@ -1891,7 +1898,7 @@ void pp_disk::load_data_info(std::string& path, var_t& t0, n_objects_t* n_bodies
 		input.open(path.c_str(), ios::in | ios::binary);
 		if (input) 
 		{
-			file::load_data_info_record_binary(input, this->t, &(this->n_bodies));
+			file::load_data_info_record_binary(input, this->t, this->dt, &(this->n_bodies));
 		}
 		else 
 		{
@@ -1902,7 +1909,7 @@ void pp_disk::load_data_info(std::string& path, var_t& t0, n_objects_t* n_bodies
 	input.close();
 }
 
-void pp_disk::load_data(std::string& path_data, pp_disk_t::sim_data_t* sim_data, data_rep_t repres)
+void pp_disk::load_data(std::string& path_data, data_rep_t repres)
 {
 	var4_t* r = sim_data->h_y[0];
 	var4_t* v = sim_data->h_y[1];
@@ -1918,48 +1925,88 @@ void pp_disk::load_data(std::string& path_data, pp_disk_t::sim_data_t* sim_data,
 	{
 	case DATA_REPRESENTATION_ASCII:
 		input.open(path_data.c_str(), ios::in);
-		if (input) 
-		{
-			for (uint32_t i = 0; i < n_total; i++)
-			{
-				string name;
-				file::load_data_record_ascii(input, name, &p[i], &bmd[i], &r[i], &v[i]);
-				body_names.push_back(name);
-				if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
-				{
-					pcd++;
-					cout << ".";	flush(cout);
-				}
-			}
-		}
-		else 
-		{
-			throw string("Cannot open " + path_data + ".");
-		}
 		break;
 	case DATA_REPRESENTATION_BINARY:
 		input.open(path_data.c_str(), ios::in | ios::binary);
-		if (input) 
+		break;
+	default:
+		throw string("Parameter 'repres' is out of range.");
+	}
+
+	if (input) 
+	{
+		cout << "Loading " << path_data << " ";
+		for (uint32_t i = 0; i < n_total; i++)
 		{
-			for (uint32_t i = 0; i < n_total; i++)
+			string name;
+			if (DATA_REPRESENTATION_ASCII == repres)
 			{
-				string name;
+				file::load_data_record_ascii(input, name, &p[i], &bmd[i], &r[i], &v[i]);
+			}
+			else
+			{
 				file::load_data_record_binary(input, name, &p[i], &bmd[i], &r[i], &v[i]);
-				body_names.push_back(name);
-				if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
-				{
-					pcd++;
-					cout << ".";	flush(cout);
-				}
+			}
+			body_names.push_back(name);
+			if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
+			{
+				pcd++;
+				cout << ".";	flush(cout);
 			}
 		}
-		else 
-		{
-			throw string("Cannot open " + path_data + ".");
-		}
-		break;
+		input.close();
+		cout << " done" << endl;
 	}
-	input.close();
+	else 
+	{
+		throw string("Cannot open " + path_data + ".");
+	}
+
+	//switch (repres)
+	//{
+	//case DATA_REPRESENTATION_ASCII:
+	//	input.open(path_data.c_str(), ios::in);
+	//	if (input) 
+	//	{
+	//		for (uint32_t i = 0; i < n_total; i++)
+	//		{
+	//			string name;
+	//			file::load_data_record_ascii(input, name, &p[i], &bmd[i], &r[i], &v[i]);
+	//			body_names.push_back(name);
+	//			if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
+	//			{
+	//				pcd++;
+	//				cout << ".";	flush(cout);
+	//			}
+	//		}
+	//	}
+	//	else 
+	//	{
+	//		throw string("Cannot open " + path_data + ".");
+	//	}
+	//	break;
+	//case DATA_REPRESENTATION_BINARY:
+	//	input.open(path_data.c_str(), ios::in | ios::binary);
+	//	if (input) 
+	//	{
+	//		for (uint32_t i = 0; i < n_total; i++)
+	//		{
+	//			string name;
+	//			file::load_data_record_binary(input, name, &p[i], &bmd[i], &r[i], &v[i]);
+	//			body_names.push_back(name);
+	//			if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
+	//			{
+	//				pcd++;
+	//				cout << ".";	flush(cout);
+	//			}
+	//		}
+	//	}
+	//	else 
+	//	{
+	//		throw string("Cannot open " + path_data + ".");
+	//	}
+	//	break;
+	//}
 }
 
 void pp_disk::print_data(string& path, data_rep_t repres)
@@ -2029,7 +2076,7 @@ void pp_disk::print_data_info(string& path, data_rep_t repres)
 		sout.open(path.c_str(), ios::out);
 		if (sout) 
 		{
-			file::print_data_info_record_ascii_RED(sout, this->t / constants::Gauss, this->n_bodies);
+			file::print_data_info_record_ascii_RED(sout, this->t / constants::Gauss, this->dt / constants::Gauss,  this->n_bodies);
 		}
 		else 
 		{
@@ -2040,7 +2087,7 @@ void pp_disk::print_data_info(string& path, data_rep_t repres)
 		sout.open(path.c_str(), ios::out | ios::binary);
 		if (sout) 
 		{
-			file::print_data_info_record_binary_RED(sout, this->t / constants::Gauss, this->n_bodies);
+			file::print_data_info_record_binary_RED(sout, this->t / constants::Gauss, this->dt / constants::Gauss,  this->n_bodies);
 		}
 		else 
 		{

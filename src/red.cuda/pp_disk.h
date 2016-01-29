@@ -153,6 +153,7 @@ public:
 	void print_sim_data(computing_device_t comp_dev);
 
 	ttt_t t;                                   //!< time when the variables are valid
+	ttt_t dt;                                  //!< timestep for the integrator
 	n_objects_t* n_bodies;                     //!< struct containing the number of different bodies
 	pp_disk_t::sim_data_t* sim_data;           //!< struct containing all the data of the simulation
 
@@ -171,8 +172,8 @@ private:
 
 	void increment_event_counter(uint32_t *event_counter);
 
-	void load_data_info(std::string& path, var_t& t0, n_objects_t* n_bodies, data_rep_t repres);
-	void load_data(std::string& path_data, pp_disk_t::sim_data_t* sim_data, data_rep_t repres);
+	void load_data_info(std::string& path, data_rep_t repres);
+	void load_data(std::string& path_data, data_rep_t repres);
 	
 	//! Allocates storage for data on the host and device memory
 	void allocate_storage();

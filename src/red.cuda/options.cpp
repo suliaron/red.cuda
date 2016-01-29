@@ -128,18 +128,6 @@ void options::parse(int argc, const char** argv)
 		{
 			comp_dev = COMPUTING_DEVICE_GPU;
 		}
-		else if (p == "--analytic_gas_disk" || p == "-ga")
-		{
-			i++;
-			in_fn[INPUT_NAME_GAS_DISK_MODEL] = argv[i];
-			g_disk_model = GAS_DISK_MODEL_ANALYTIC;
-		}
-		else if (p == "--fargo_gas_disk" || p == "-gf")
-		{
-			i++;
-			in_fn[INPUT_NAME_GAS_DISK_MODEL] = argv[i];
-			g_disk_model = GAS_DISK_MODEL_FARGO;
-		}
 
 		else if (p == "--info-filename" || p == "-info")
 		{
@@ -156,28 +144,13 @@ void options::parse(int argc, const char** argv)
 			i++;
 			out_fn[OUTPUT_NAME_LOG] = argv[i];
 		}
-		else if (p == "--result-filename" || p == "-result")
+		else if (p == "--data-filename" || p == "-data")
 		{
 			i++;
 			out_fn[OUTPUT_NAME_DATA] = argv[i];
 			out_fn[OUTPUT_NAME_DATA_INFO] = out_fn[OUTPUT_NAME_DATA] + ".info";
 		}
 
-
-
-		else if (p == "--initial_conditions" || p == "-ic")
-		{
-			i++;
-			in_fn[INPUT_NAME_DATA] = argv[i];
-			string base_fn = file::get_filename_without_ext(in_fn[INPUT_NAME_DATA]);			
-			in_fn[INPUT_NAME_DATA_INFO] = base_fn + ".info." + file::get_extension(in_fn[INPUT_NAME_DATA]);
-		}
-
-		else if (p =="--parameters" || p == "-p")
-		{
-			i++;
-			in_fn[INPUT_NAME_PARAMETER] = argv[i];
-		}
 
 		else if (p == "--inputDir" || p == "-iDir")
 		{
@@ -189,6 +162,35 @@ void options::parse(int argc, const char** argv)
 			i++;
 			dir[DIRECTORY_NAME_OUT] = argv[i];
 		}
+
+		else if (p == "--input_data" || p == "-id")
+		{
+			i++;
+			in_fn[INPUT_NAME_DATA] = argv[i];
+		}
+		else if (p == "--input_data_info" || p == "-idf")
+		{
+			i++;
+			in_fn[INPUT_NAME_DATA_INFO] = argv[i];
+		}
+		else if (p =="--parameters" || p == "-p")
+		{
+			i++;
+			in_fn[INPUT_NAME_PARAMETER] = argv[i];
+		}
+		else if (p == "--analytic_gas_disk" || p == "-ga")
+		{
+			g_disk_model = GAS_DISK_MODEL_ANALYTIC;
+			i++;
+			in_fn[INPUT_NAME_GAS_DISK_MODEL] = argv[i];
+		}
+		else if (p == "--fargo_gas_disk" || p == "-gf")
+		{
+			g_disk_model = GAS_DISK_MODEL_FARGO;
+			i++;
+			in_fn[INPUT_NAME_GAS_DISK_MODEL] = argv[i];
+		}
+
 
 		else if (p == "--number-of-bodies" || p == "-nb")
 		{
@@ -260,9 +262,6 @@ pp_disk* options::create_pp_disk()
 	{
 		ppd->copy_to_device();
 	}
-	// TODO: start time comes from the info.txt file
-	// ppd->t = (continue_simulation ? ppd->sim_data->h_epoch[0] : param->start_time);
-	ppd->t = 0.0;
 
 	return ppd;
 }
@@ -316,17 +315,20 @@ void options::print_usage()
 	cout << "     -gpu    | --gpu                          : execute the code on the graphics processing unit (GPU) (default value is true)" << endl;
 	cout << "     -cpu    | --cpu                          : execute the code on the cpu if required by the user or if no GPU is installed (default value is false)" << endl;
 
-	cout << "     -ic     | --initial_condition <filename> : the file containing the initial conditions"  << endl;
-	cout << "     -info   | --info-filename <filename>     : the name of the file where the runtime output of the code will be stored (default value is info.txt)" << endl;
-	cout << "     -event  | --event-filename <filename>    : the name of the file where the details of each event will be stored (default value is event.txt)" << endl;
-	cout << "     -log    | --log-filename <filename>      : the name of the file where the details of the execution of the code will be stored (default value is log.txt)" << endl;
-	cout << "     -result | --result-filename <filename>   : the name of the file where the simlation data for a time instance will be stored (default value is result.txt)" << endl;
-
 	cout << "     -iDir   | --inputDir <directory>         : the directory containing the input files"  << endl;
 	cout << "     -oDir   | --outputDir <directory>        : the directory where the output files will be stored (if omitted the input directory will be used)" << endl;
-	cout << "     -p      | --parameter <filename>         : the file containing the parameters of the simulation"  << endl;
-	cout << "     -ga     | --analytic_gas_disk <filename> : the file containing the parameters of an analyticaly prescribed gas disk"  << endl;
-	cout << "     -gf     | --fargo_gas_disk <filename>    : the file containing the details of the gas disk resulted from FARGO simulations"  << endl;
+
+	cout << "     -id     | --input_data <filename>        : the input file containing the parameters and the initial coordinates and velocities of each object" << endl;
+	cout << "     -idf    | --input_data_info <filename>   : the input file containing the initial time and the number of the objects by their type" << endl;
+	cout << "     -p      | --parameter <filename>         : the input file containing the parameters of the simulation"  << endl;
+	cout << "     -ga     | --analytic_gas_disk <filename> : the input file containing the parameters of an analyticaly prescribed gas disk"  << endl;
+	cout << "     -gf     | --fargo_gas_disk <filename>    : the input file containing the details of the gas disk resulted from FARGO simulations"  << endl;
+
+	cout << "     -info   | --info-filename <filename>     : the output file where the runtime output of the code will be stored (default value is info.txt)" << endl;
+	cout << "     -event  | --event-filename <filename>    : the output file where the details of each event will be stored (default value is event.txt)" << endl;
+	cout << "     -log    | --log-filename <filename>      : the output file where the details of the execution of the code will be stored (default value is log.txt)" << endl;
+	cout << "     -result | --result-filename <filename>   : the output file where the simlation data for a time instance will be stored (default value is result.txt)" << endl;
+
 	cout << "     -nb     | --number-of-bodies             : set the number of bodies for benchmarking (pattern: n_st n_gp n_rp n_pp n_spl n_pl n_tp)" << endl;
 
 	cout << "     -h      | --help                         : print this help" << endl;

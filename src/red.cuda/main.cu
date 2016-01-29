@@ -215,86 +215,6 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 	sout << endl;
 }
 
-//uint32_t print_result(const options& opt, ofstream** output, pp_disk* ppd)
-//{
-//	static uint32_t n_save = 0;
-//
-//	string prefix = create_prefix(opt);
-//	string result_ordinal = redutilcu::number_to_string(n_save, 6, true);
-//	string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_RESULT]) + "_" + result_ordinal + ".txt";
-//
-//	output[OUTPUT_NAME_RESULT] = new ofstream(path.c_str(), ios::out);
-//	if (!*output[OUTPUT_NAME_RESULT]) 
-//	{
-//		throw string("Cannot open " + path + ".");
-//	}
-//	ppd->print_result(*output[OUTPUT_NAME_RESULT], DATA_REPRESENTATION_ASCII);
-//	output[OUTPUT_NAME_RESULT]->close();
-//
-//	n_save++;
-//	return (n_save-1);
-//}
-
-//uint32_t print_dump(ofstream **output, const options& opt, pp_disk* ppd, ttt_t dt, data_rep_t repres)
-//{
-//	static uint32_t n_dump = 1;
-//
-//	string prefix = create_prefix(opt);
-//	string ext = (repres == DATA_REPRESENTATION_ASCII ? "txt" : "bin");
-//	string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DUMP] + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + "." + ext);
-//
-//	output[OUTPUT_NAME_DUMP] = new ofstream(path.c_str(), ios::out | ios::binary);
-//	if(!output[OUTPUT_NAME_DUMP])
-//	{
-//		throw string("Cannot open " + path + ".");
-//	}
-//	ppd->print_dump(*output[OUTPUT_NAME_DUMP], repres);
-//	delete output[OUTPUT_NAME_DUMP];
-//
-//	dump_aux_data_t dump_aux;
-//	dump_aux.dt = dt;
-//
-//	path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DUMP_AUX] + redutilcu::number_to_string(n_dump) + "_" + ppd->n_bodies->get_n_playing() + ".dat");
-//	output[OUTPUT_NAME_DUMP_AUX] = new ofstream(path.c_str(), ios::out | ios::binary);
-//	if(!output[OUTPUT_NAME_DUMP_AUX])
-//	{
-//		throw string("Cannot open " + path + ".");
-//	}
-//	print_dump_aux_data(*output[OUTPUT_NAME_DUMP_AUX], &dump_aux);
-//	delete output[OUTPUT_NAME_DUMP_AUX];
-//
-//	n_dump++;
-//	return (n_dump-1);
-//}
-//
-//void print_dump_aux_data(ofstream& sout, dump_aux_data_t* dump_aux)
-//{
-//	sout.write((char*)(dump_aux), sizeof(dump_aux_data_t));
-//}
-//
-//void read_dump_aux_data(ifstream& input, dump_aux_data_t* dump_aux)
-//{
-//	input.read((char*)(dump_aux), sizeof(dump_aux_data_t));
-//}
-//
-//dump_aux_data_t load_dump_aux_data(const options& opt)
-//{
-//	dump_aux_data_t dump_aux;
-//
-//	string path = file::combine_path(opt.dir[DIRECTORY_NAME_IN], file::get_filename_without_ext(opt.in_fn[INPUT_NAME_BODYLIST]) + ".aux.dat");
-//	ifstream input(path.c_str(), ios::in | ios::binary);
-//	if (input) 
-//	{
-//		read_dump_aux_data(input, &dump_aux);
-//	}
-//	else
-//	{
-//		throw string("Cannot open " + path + ".");
-//	}
-//	input.close();
-//
-//	return dump_aux;
-//}
 
 void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream& sout)
 {
@@ -438,9 +358,10 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 {
 	static string prefix = create_prefix(opt);
 	static string ext = (DATA_REPRESENTATION_ASCII == opt.param->output_data_rep ? "txt" : "dat");
+
 	static string path_info = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INFO] + ".txt");
-	static string path_integral = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INTEGRAL] + "." + ext);
-	static string path_integral_event = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INTEGRAL_EVENT] + "." + ext);
+	static string path_integral = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INTEGRAL] + ".txt");
+	static string path_integral_event = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INTEGRAL_EVENT] + ".txt");
 	static string path_event = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_EVENT] + ".txt");
 
 	uint32_t n_print = 0;
@@ -670,18 +591,7 @@ int main(int argc, const char** argv, const char** env)
 		}
 
 		pp_disk *ppd = opt.create_pp_disk();
-
-		ttt_t dt = 0.1; // [day]
-		//if (opt.continue_simulation)
-		//{
-		//	string msg = "Simulation continues from t = " + redutilcu::number_to_string(ppd->t / constants::Gauss) + " [day]";
-		//	file::log_message(*output[OUTPUT_NAME_LOG], msg, opt.print_to_screen);
-
-		//	dump_aux_data_t dump_aux = load_dump_aux_data(opt);
-		//	dt = dump_aux.dt / constants::Gauss;
-		//}
-
-		integrator *intgr = opt.create_integrator(ppd, dt);
+		integrator *intgr = opt.create_integrator(ppd, ppd->dt);
 
 		if (opt.benchmark)
 		{

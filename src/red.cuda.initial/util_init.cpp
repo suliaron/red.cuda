@@ -219,7 +219,6 @@ void print_data(string &path, body_disk_t& disk, pp_disk_t::sim_data_t* sd, inpu
 	if (sout)
 	{
 		uint32_t n_body = calc_number_of_bodies(disk);
-
 		if (INPUT_FORMAT_RED == format)
 		{
 			;
@@ -291,24 +290,17 @@ void print_data(string &path, body_disk_t& disk, pp_disk_t::sim_data_t* sd, inpu
 	}
 }
 
-void print_data_info(string &path, ttt_t t0, body_disk_t& disk, pp_disk_t::sim_data_t* sd, input_format_name_t format)
+void print_data_info(string &path, ttt_t t, ttt_t dt, body_disk_t& disk, input_format_name_t format)
 {
-	static uint32_t int_t_w  =  8;
-	static uint32_t var_t_w  = 25;
-
 	printf("Writing %s to disk .", path.c_str());
 
 	ofstream sout(path.c_str(), ios_base::out);
 	if (sout)
 	{
-		sout.precision(16);
-		sout.setf(ios::right);
-		sout.setf(ios::scientific);
-
-		uint32_t n_body = calc_number_of_bodies(disk);
+		n_objects_t *n_bodies = new n_objects_t(disk.nBody[BODY_TYPE_STAR], disk.nBody[BODY_TYPE_GIANTPLANET], disk.nBody[BODY_TYPE_ROCKYPLANET], disk.nBody[BODY_TYPE_PROTOPLANET], disk.nBody[BODY_TYPE_SUPERPLANETESIMAL], disk.nBody[BODY_TYPE_PLANETESIMAL], disk.nBody[BODY_TYPE_TESTPARTICLE]);
 		if (INPUT_FORMAT_RED == format)
 		{
-			file::print_data_info_record_RED(sout, t0, );
+			file::print_data_info_record_ascii_RED(sout, t, dt, n_bodies);
 		}
 		if (INPUT_FORMAT_NONAME == format)
 		{
@@ -327,16 +319,25 @@ void print_data_info(string &path, ttt_t t0, body_disk_t& disk, pp_disk_t::sim_d
 	}
 }
 
-void print_oe(string &path, uint32_t n, pp_disk_t::sim_data_t *sd)
+void print_oe(string &path, uint32_t n, ttt_t t, pp_disk_t::sim_data_t *sd)
 {
+	printf("Writing %s to disk .", path.c_str());
+
 	ofstream sout(path.c_str(), ios_base::out);
 	if (sout)
 	{		
+		int p = 1;
 		for (uint32_t i = 0; i < n; i++)
 		{
-			file::print_oe_record(sout, &sd->h_oe[i]);
+			file::print_oe_record(sout, t, &sd->h_oe[i], &sd->h_p[i], &sd->h_body_md[i]);
+			if (p <= (int)((((var_t)i/(var_t)n))*100.0))
+			{
+				printf(".");
+				p++;
+			}
 		}
 		sout.close();
+		printf(" done\n");
 	}
 	else
 	{
