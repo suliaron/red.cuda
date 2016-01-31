@@ -181,10 +181,7 @@ private:
 	//! Sets the grid and block for the kernel launch
 	void set_kernel_launch_param(uint32_t n_data);
 	//! Transforms the system to barycentric reference frame
-	/*!
-		\param pts If true then writes the position and velocity of the barycenter to the standard output.
-	*/
-	void transform_to_bc(bool pts);
+	void transform_to_bc();
 	//! Transform the time using the new time unit: 1/k = 58.13244 ...
 	void transform_time();
 	//! Transform the velocity using the new time unit: 1/k = 58.13244 ...

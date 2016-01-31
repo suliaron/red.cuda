@@ -1611,7 +1611,7 @@ void pp_disk::calc_integral(bool cpy_to_HOST, integral_t& integrals)
 		copy_to_host();
 	}
 	var_t M0 = tools::get_total_mass(n, sim_data);
-	tools::calc_bc(n, false, sim_data, M0, &(integrals.R), &(integrals.V));
+	tools::calc_bc(n, sim_data, M0, &(integrals.R), &(integrals.V));
 	integrals.C = tools::calc_angular_momentum(n, sim_data);
 	integrals.E = tools::calc_total_energy(n, sim_data);
 }
@@ -1663,7 +1663,7 @@ pp_disk::pp_disk(string& path_data, string& path_data_info, gas_disk_model_t g_d
 
 	redutilcu::create_aliases(comp_dev, sim_data);
 
-	transform_to_bc(false);
+	transform_to_bc();
 	transform_time();
 	transform_velocity();
 }
@@ -1843,11 +1843,11 @@ var_t pp_disk::get_mass_of_star()
 	throw string("No star is included.");
 }
 
-void pp_disk::transform_to_bc(bool pts)
+void pp_disk::transform_to_bc()
 {
 	const uint32_t n_total = n_bodies->get_n_total_playing();
 
-	tools::transform_to_bc(n_total, pts, sim_data);
+	tools::transform_to_bc(n_total, sim_data);
 }
 
 void pp_disk::transform_time()

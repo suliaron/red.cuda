@@ -6,7 +6,7 @@
 #include "red.cuda.initial.type.h"
 
 string create_name(int i, int type);
-void initialize(body_disk &disk);
+
 uint32_t calc_number_of_bodies(body_disk &bd);
 uint32_t calc_number_of_bodies(body_disk &bd, body_type_t bt);
 //void generate_oe(orbelem_name_t name, oe_dist_t *oe_d, var_t* oe);

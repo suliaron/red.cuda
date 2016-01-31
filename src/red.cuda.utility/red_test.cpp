@@ -635,7 +635,7 @@ static void test_tools()
 		var4_t result_V0 = {0.0, 0.0, 0.0, 0.0};
 
 		var_t M0 = tools::get_total_mass(4, sim_data);
-		tools::calc_bc(4, false, sim_data, M0, &result_R0, &result_V0);
+		tools::calc_bc(4, sim_data, M0, &result_R0, &result_V0);
 
 		var_t dr = fabs(expected_R0.x - result_R0.x) + 
 			       fabs(expected_R0.y - result_R0.y) + 
@@ -676,7 +676,7 @@ static void test_tools()
 	
 		sim_data_t* sim_data = create_sim_data();
 
-		tools::transform_to_bc(4, false, sim_data);
+		tools::transform_to_bc(4, sim_data);
 
 		var4_t r0[] = { 
 			            {-0.5, -0.5, 0.0, 0.0},

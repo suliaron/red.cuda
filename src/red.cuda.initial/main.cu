@@ -312,7 +312,7 @@ void populate_disk(ttt_t epoch, body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 }
 
 // Calculate coordinates, velocities and minimal orbital period from the orbital elements
-void calculate_phase(pp_disk_t::sim_data_t* sim_data, uint32_t n_body, ttt_t &dt)
+void calculate_phase(const pp_disk_t::sim_data_t* sim_data, uint32_t n_body, ttt_t &dt)
 {
 	var_t min_P = DBL_MAX;
 	// The mass of the central star
@@ -344,14 +344,29 @@ void print_all_input_data(string& dir, string& filename, uint32_t n_body, uint32
 	string path = file::combine_path(dir, filename) + ".seed.txt";
 	print_number(path, seed);
 
-	path = file::combine_path(dir, filename) + ".info.txt";
+	string fn_info = filename + ".info.txt";
+	path = file::combine_path(dir, fn_info);
 	print_data_info(path, t0, dt, disk, INPUT_FORMAT_RED);
+
+	string fn_data = filename + ".data.txt";
+	path = file::combine_path(dir, fn_data);
+	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
 
 	path = file::combine_path(dir, filename) + ".oe.txt";
 	print_oe(path, n_body, t0, sim_data);
 
-	path = file::combine_path(dir, filename) + ".data.txt";
-	print_data(path, disk, sim_data, INPUT_FORMAT_RED);
+	path = file::combine_path(dir, "start_files.txt");
+	printf("Writing %s to disk.\n", path.c_str());
+	ofstream sout(path.c_str(), ios_base::out);
+	if (sout)
+	{
+		sout << fn_info << endl;
+		sout << fn_data << endl;
+	}
+	else
+	{
+		throw string("Cannot open " + path + "!");
+	}
 
 	//path = file::combine_path(dir, filename) + "_NONMAE.txt";
 	//print_data(path, disk, sim_data, INPUT_FORMAT_NONAME);
@@ -1159,9 +1174,7 @@ void Chambers2001(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	// Inner disk: r = 0.3, ... 0.7: the surface density is prop to r
 	{
@@ -1347,7 +1360,7 @@ void Chambers2001(string& dir, string& filename)
 	ttt_t dt = 0.0;
 	calculate_phase(sim_data, n_body, dt);
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1360,9 +1373,7 @@ void coll_stat_run(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	// Create a MMSN with gas component and solids component
 	var_t r_1     =   0.5;      /* inner rim of the disk [AU]    */
@@ -1382,8 +1393,8 @@ void coll_stat_run(string& dir, string& filename)
 	solid_component solid_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_ice, p);
 	nebula mmsn(gas_c, solid_c);
 
-	var_t m_gas   = mmsn.gas_c.calc_mass();
-	var_t m_solid = mmsn.solid_c.calc_mass();
+	var_t m_gas   = mmsn.gas_c.calc_mass();       // The mass is in solar mass unit
+	var_t m_solid = mmsn.solid_c.calc_mass();     // The mass is in solar mass unit
 
 	uint32_t seed = set_parameters::coll_stat_run(mmsn, disk);
 
@@ -1396,7 +1407,7 @@ void coll_stat_run(string& dir, string& filename)
 	// Scale the masses in order to get the required mass transform_mass()
 	{
 		uint32_t n_pp = calc_number_of_bodies(disk, BODY_TYPE_PROTOPLANET);
-		var_t m_pp = m_solid / n_pp;
+		var_t m_pp = m_solid / n_pp;    // The mass is in solar mass unit
 		for (uint32_t i = 0; i < n_body; i++)
 		{
 			// Only the masses of the protoplanets will be scaled
@@ -1439,7 +1450,7 @@ void coll_stat_run(string& dir, string& filename)
 	ttt_t dt = 0.0;
 	calculate_phase(sim_data, n_body, dt);
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1452,9 +1463,7 @@ void Dvorak(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	// Create a MMSN with gas component and solids component
 	var_t r_1  =  0.025;  /* inner rim of the disk [AU] */
@@ -1530,7 +1539,7 @@ void Dvorak(string& dir, string& filename)
 	ttt_t dt = 0.0;
 	calculate_phase(sim_data, n_body, dt);
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1543,9 +1552,7 @@ void Hansen_2009(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	uint32_t seed = set_parameters::Hansen_2009(disk);
 
@@ -1596,7 +1603,7 @@ void Hansen_2009(string& dir, string& filename)
 		dt = min_P / 1000.0;
 	}
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1609,9 +1616,7 @@ void GT_scenario(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	uint32_t seed = set_parameters::GT_scenario(disk);
 
@@ -1717,7 +1722,7 @@ void GT_scenario(string& dir, string& filename)
 		dt = min_P / 1000.0;
 	}
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1730,9 +1735,7 @@ void GT_scenario_mod(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	uint32_t seed = set_parameters::GT_scenario_mod(disk);
 
@@ -1845,7 +1848,7 @@ void GT_scenario_mod(string& dir, string& filename)
 		dt = min_P / 1000.0;
 	}
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1858,9 +1861,7 @@ void two_body(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	uint32_t seed = set_parameters::Two_body(disk);
 
@@ -1873,7 +1874,7 @@ void two_body(string& dir, string& filename)
 	ttt_t dt = 0.0;
 	calculate_phase(sim_data, n_body, dt);
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1886,9 +1887,7 @@ void n_gp(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	uint32_t seed = set_parameters::n_gp(disk);
 
@@ -1923,7 +1922,7 @@ void n_gp(string& dir, string& filename)
 	ttt_t dt = 0.0;
 	calculate_phase(sim_data, n_body, dt);
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1936,9 +1935,7 @@ void n_pp(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	uint32_t seed = set_parameters::n_pp(disk);
 
@@ -1973,7 +1970,7 @@ void n_pp(string& dir, string& filename)
 	ttt_t dt = 0.0;
 	calculate_phase(sim_data, n_body, dt);
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1986,9 +1983,7 @@ void n_spl(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	uint32_t seed = set_parameters::n_spl(disk);
 
@@ -2001,7 +1996,7 @@ void n_spl(string& dir, string& filename)
 	ttt_t dt = 0.0;
 	calculate_phase(sim_data, n_body, dt);
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -2014,9 +2009,7 @@ void n_pl(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	uint32_t seed = set_parameters::n_pl(disk);
 
@@ -2051,7 +2044,7 @@ void n_pl(string& dir, string& filename)
 	ttt_t dt = 0.0;
 	calculate_phase(sim_data, n_body, dt);
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -2064,9 +2057,7 @@ void n_tp(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	uint32_t seed = set_parameters::n_tp(disk);
 
@@ -2090,9 +2081,7 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	uint32_t seed = set_parameters::pl_to_test_anal_gd(disk);
 
@@ -2105,7 +2094,7 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 	ttt_t dt = 0.0;
 	calculate_phase(sim_data, n_body, dt);
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -2118,9 +2107,7 @@ void solar_system(string& dir, string& filename)
 {
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
-
 	body_disk_t disk;
-	initialize(disk);
 
 	uint32_t seed = set_parameters::solar_system(disk);
 
@@ -2133,7 +2120,7 @@ void solar_system(string& dir, string& filename)
 	ttt_t dt = 0.0;
 	calculate_phase(sim_data, n_body, dt);
 
-	tools::transform_to_bc(n_body, false, sim_data);
+	tools::transform_to_bc(n_body, sim_data);
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -2237,7 +2224,6 @@ int main(int argc, const char **argv)
 		return (EXIT_SUCCESS);
 	}
 #endif	
-
 
 	try
 	{

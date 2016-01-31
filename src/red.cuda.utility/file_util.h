@@ -32,7 +32,6 @@ namespace redutilcu
 
 		void print_oe_record(ofstream &sout, orbelem_t* oe);
 		void print_oe_record(ofstream &sout, orbelem_t* oe, pp_disk_t::param_t *p);
-		void print_oe_record(ofstream &sout, orbelem_t* oe, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd);
 		void print_oe_record(ofstream &sout, ttt_t epoch, orbelem_t* oe, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd);
 
 		void load_data_info_record_ascii( ifstream& input, var_t& t, var_t& dt, n_objects_t** n_bodies);

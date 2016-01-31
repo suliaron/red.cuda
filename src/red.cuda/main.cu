@@ -397,8 +397,13 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	}
 
 	string n_print_str = redutilcu::number_to_string(n_print, 6, true);
-	string path_data = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + "." + ext);
+	string fn_data = prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + "." + ext;
+	string path_data = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], fn_data);
 	ppd->print_data(path_data, opt.param->output_data_rep);
+
+	string fn_data_info = prefix + opt.out_fn[OUTPUT_NAME_DATA_INFO] + "_" + n_print_str + "." + ext;
+	string path_data_info = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], fn_data_info);
+	ppd->print_data_info(path_data_info, opt.param->output_data_rep);
 	n_print++;
 
 	ppd->calc_integral(false, integrals[0]);
@@ -477,13 +482,32 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			ps = 0.0;
 
 			n_print_str = redutilcu::number_to_string(n_print, 6, true);
-			path_data = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + "." + ext);
+			fn_data = prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + "." + ext;
+			path_data = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], fn_data);
 			ppd->print_data(path_data, opt.param->output_data_rep);
+
+			fn_data_info = prefix + opt.out_fn[OUTPUT_NAME_DATA_INFO] + "_" + n_print_str + "." + ext;
+			path_data_info = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], fn_data_info);
+			ppd->print_data_info(path_data_info, opt.param->output_data_rep);
 			n_print++;
+
+			{
+				string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], "start_files.txt");
+				ofstream sout(path.c_str(), ios_base::out);
+				if (sout)
+				{
+					sout << fn_data_info << endl;
+					sout << fn_data << endl;
+				}
+				else
+				{
+					throw string("Cannot open " + path + "!");
+				}
+			}
 
 			if (opt.verbose)
 			{
-				string msg = "The data was saved with ordinal number: " + n_print_str;
+				string msg = "The data was saved into " + fn_data;
 				file::log_message(*slog, msg, opt.print_to_screen);
 			}
 			ppd->calc_integral(false, integrals[1]);
@@ -527,9 +551,28 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	{
 		ps = 0.0;
 		n_print_str = redutilcu::number_to_string(n_print, 6, true);
-		path_data = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + "." + ext);
+		fn_data = prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + "." + ext;
+		path_data = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], fn_data);
 		ppd->print_data(path_data, opt.param->output_data_rep);
+
+		fn_data_info = prefix + opt.out_fn[OUTPUT_NAME_DATA_INFO] + "_" + n_print_str + "." + ext;
+		path_data_info = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], fn_data_info);
+		ppd->print_data_info(path_data_info, opt.param->output_data_rep);
 		n_print++;
+
+		{
+			string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], "start_files.txt");
+			ofstream sout(path.c_str(), ios_base::out);
+			if (sout)
+			{
+				sout << fn_data_info << endl;
+				sout << fn_data << endl;
+			}
+			else
+			{
+				throw string("Cannot open " + path + "!");
+			}
+		}
 
 		if (opt.verbose)
 		{

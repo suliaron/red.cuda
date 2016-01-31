@@ -376,7 +376,7 @@ var_t get_total_mass(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 	return M0 ;
 }
 
-void calc_bc(uint32_t n, bool pts, const pp_disk_t::sim_data_t *sim_data, var_t M0, var4_t* R0, var4_t* V0)
+void calc_bc(uint32_t n, const pp_disk_t::sim_data_t *sim_data, var_t M0, var4_t* R0, var4_t* V0)
 {
 	const var4_t* r = sim_data->h_y[0];
 	const var4_t* v = sim_data->h_y[1];
@@ -402,32 +402,21 @@ void calc_bc(uint32_t n, bool pts, const pp_disk_t::sim_data_t *sim_data, var_t 
 	}
 	R0->x /= M0;	R0->y /= M0;	R0->z /= M0;
 	V0->x /= M0;	V0->y /= M0;	V0->z /= M0;
-
-	if (pts)
-	{
-		cout << "   Position and velocity of the barycenter:" << endl;
-		cout << "     R0: ";  print_vector(R0);
-		cout << "     V0: ";  print_vector(V0);
-	}
 }
 
-void transform_to_bc(uint32_t n, bool pts, const pp_disk_t::sim_data_t *sim_data)
+void transform_to_bc(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 {
-	if (pts)
-	{
-		cout << "Transforming to barycentric system ... " << endl;
-	}
-
 	// Position and velocity of the system's barycenter
 	var4_t R0 = {0.0, 0.0, 0.0, 0.0};
 	var4_t V0 = {0.0, 0.0, 0.0, 0.0};
 
 	var_t M0 = get_total_mass(n, sim_data);
-	calc_bc(n, pts, sim_data, M0, &R0, &V0);
+	calc_bc(n, sim_data, M0, &R0, &V0);
 
 	var4_t* r = sim_data->h_y[0];
 	var4_t* v = sim_data->h_y[1];
 	// Transform the bodies coordinates and velocities
+	int pcd = 1;
 	for (int j = n - 1; j >= 0; j-- )
 	{
 		if (0 > sim_data->h_body_md[j].id)
@@ -436,11 +425,6 @@ void transform_to_bc(uint32_t n, bool pts, const pp_disk_t::sim_data_t *sim_data
 		}
 		r[j].x -= R0.x;		r[j].y -= R0.y;		r[j].z -= R0.z;
 		v[j].x -= V0.x;		v[j].y -= V0.y;		v[j].z -= V0.z;
-	}
-
-	if (pts)
-	{
-		cout << "done" << endl;
 	}
 }
 
