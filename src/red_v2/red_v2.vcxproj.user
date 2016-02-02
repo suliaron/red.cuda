@@ -9,7 +9,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>-m rtbp1D -cpu -ef -iDir E:\Work\ELTE\Szakdolgozat\Test\rtbp1D2 -p parameters.txt -ic input.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-m tbp3D -cpu -ef -iDir E:\Work\ELTE\Szakdolgozat\Test\tbp3D -p parameters.txt -ic input.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

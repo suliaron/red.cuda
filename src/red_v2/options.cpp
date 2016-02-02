@@ -11,6 +11,7 @@
 #include "tbp1D.h"
 #include "rtbp1D.h"
 #include "tbp3D.h"
+#include "rtbp3D.h"
 
 #include "redutilcu.h"
 #include "red_constants.h"
@@ -80,6 +81,10 @@ void options::parse(int argc, const char** argv)
 			else if (value == "tbp3D")
 			{
 				dyn_model = DYN_MODEL_TBP3D;
+			}
+			else if (value == "rtbp3D")
+			{
+				dyn_model = DYN_MODEL_RTBP3D;
 			}
 			else
 			{
@@ -292,7 +297,7 @@ ode* options::create_tbp3D()
 
 ode* options::create_rtbp3D()
 {
-	tbp3D* model = new tbp3D(1, comp_dev);
+	rtbp3D* model = new rtbp3D(1, comp_dev);
 	
 	string path = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_DATA]);
 	model->load(path);

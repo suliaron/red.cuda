@@ -180,15 +180,18 @@ void tbp1D::load_binary(ifstream& input)
 	throw string("The load_binary() is not implemented.");
 }
 
-void tbp1D::print_result(ofstream& sout, data_rep_t repres)
+void tbp1D::print_result(ofstream** sout, data_rep_t repres)
 {
+	calc_energy();
 	switch (repres)
 	{
 	case DATA_REPRESENTATION_ASCII:
-		print_result_ascii(sout);
+		print_result_ascii(*sout[OUTPUT_NAME_DATA]);
+		print_integral_data_ascii(*sout[OUTPUT_NAME_INTEGRAL]);
 		break;
 	case DATA_REPRESENTATION_BINARY:
-		print_result_binary(sout);
+		print_result_binary(*sout[OUTPUT_NAME_DATA]);
+		print_integral_data_binary(*sout[OUTPUT_NAME_INTEGRAL]);
 		break;
 	}
 }

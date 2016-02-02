@@ -114,9 +114,11 @@ void rtbp3D::calc_energy()
 {
 	const tbp3D_t::param_t* p = (tbp3D_t::param_t*)h_p;
 
-	var_t r  = sqrt( SQR(h_y[0]) + SQR(h_y[1]) + SQR(h_y[2]) );
-	var_t v2 = SQR(h_y[3]) + SQR(h_y[4]) + SQR(h_y[5]);
-
+	var_t r  = SQR(h_y[0]) + SQR(h_y[1]) + SQR(h_y[2]) + SQR(h_y[3]);
+	var_t vx = (2.0/r) * (h_y[0] * h_y[4] - h_y[1] * h_y[5] - h_y[2] * h_y[6] + h_y[3] * h_y[7]);		// vx = 2/r * (u1*vu1 - u2*vu2 - u3*vu3 + u4*vu4)
+	var_t vy = (2.0/r) * (h_y[1] * h_y[4] + h_y[0] * h_y[5] - h_y[3] * h_y[6] - h_y[2] * h_y[7]);		// vy = 2/r * (u2*vu1 - u1*vu2 - u4*vu3 + u3*vu4)
+	var_t vz = (2.0/r) * (h_y[2] * h_y[4] + h_y[3] * h_y[5] + h_y[0] * h_y[6] + h_y[1] * h_y[7]);		// vz = 2/r * (u3*vu1 - u4*vu2 - u1*vu3 + u2*vu4)
+	var_t v2 = SQR(vx) + SQR(vy) + SQR(vz);
 	h = 0.5 * v2 - p[0].mu / r;
 }
 
@@ -219,15 +221,18 @@ void rtbp3D::load_binary(ifstream& input)
 	throw string("The load_binary() is not implemented.");
 }
 
-void rtbp3D::print_result(ofstream& sout, data_rep_t repres)
+void rtbp3D::print_result(ofstream** sout, data_rep_t repres)
 {
+	calc_energy();
 	switch (repres)
 	{
 	case DATA_REPRESENTATION_ASCII:
-		print_result_ascii(sout);
+		print_result_ascii(*sout[OUTPUT_NAME_DATA]);
+		print_integral_data_ascii(*sout[OUTPUT_NAME_INTEGRAL]);
 		break;
 	case DATA_REPRESENTATION_BINARY:
-		print_result_binary(sout);
+		print_result_binary(*sout[OUTPUT_NAME_DATA]);
+		print_integral_data_binary(*sout[OUTPUT_NAME_INTEGRAL]);
 		break;
 	}
 }

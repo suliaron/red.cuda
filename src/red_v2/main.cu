@@ -80,43 +80,43 @@ void open_streams(const options* opt, ofstream** output, data_rep_t output_data_
 	}
 }
 
-void print_result(const options* opt, ode* f, ofstream **sout)
-{
-	tbp1D* _tbp1D = dynamic_cast<tbp1D*>(f);
-	rtbp1D* _rtbp1D = dynamic_cast<rtbp1D*>(f);
-
-	tbp3D* _tbp3D = dynamic_cast<tbp3D*>(f);
-	rtbp3D* _rtbp3D = dynamic_cast<rtbp3D*>(f);
-
-	if (     0x0 != _tbp1D)
-	{
-		_tbp1D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
-		_tbp1D->calc_energy();
-		_tbp1D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
-	}
-	else if (0x0 != _rtbp1D)
-	{
-		_rtbp1D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
-		_rtbp1D->calc_energy();
-		_rtbp1D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
-	}
-	else if (0x0 != _tbp3D)
-	{
-		_tbp3D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
-		_tbp3D->calc_energy();
-		_tbp3D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
-	}
-	else if (0x0 != _rtbp3D)
-	{
-		_rtbp3D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
-		_rtbp3D->calc_energy();
-		_rtbp3D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
-	}
-	else
-	{
-		throw string("Could not cast f to tbp1D*.");
-	}
-}
+//void print_result(const options* opt, ode* f, ofstream **sout)
+//{
+//	tbp1D* _tbp1D = dynamic_cast<tbp1D*>(f);
+//	rtbp1D* _rtbp1D = dynamic_cast<rtbp1D*>(f);
+//
+//	tbp3D* _tbp3D = dynamic_cast<tbp3D*>(f);
+//	rtbp3D* _rtbp3D = dynamic_cast<rtbp3D*>(f);
+//
+//	if (     0x0 != _tbp1D)
+//	{
+//		_tbp1D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
+//		_tbp1D->calc_energy();
+//		_tbp1D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
+//	}
+//	else if (0x0 != _rtbp1D)
+//	{
+//		_rtbp1D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
+//		_rtbp1D->calc_energy();
+//		_rtbp1D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
+//	}
+//	else if (0x0 != _tbp3D)
+//	{
+//		_tbp3D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
+//		_tbp3D->calc_energy();
+//		_tbp3D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
+//	}
+//	else if (0x0 != _rtbp3D)
+//	{
+//		_rtbp3D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
+//		_rtbp3D->calc_energy();
+//		_rtbp3D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
+//	}
+//	else
+//	{
+//		throw string("Could not cast f to tbp1D*.");
+//	}
+//}
 
 void run_simulation(const options* opt, ode* f, integrator* intgr, ofstream** output)
 {
@@ -132,7 +132,9 @@ void run_simulation(const options* opt, ode* f, integrator* intgr, ofstream** ou
 	/* 
 	 * Main cycle
 	 */
-	print_result(opt, f, output);
+	//print_result(opt, f, output);
+	f->print_result(output, opt->param->output_data_rep);
+
 	while (f->t <= opt->param->stop_time)
 	{
 		// make the integration step, and measure the time it takes
@@ -145,7 +147,7 @@ void run_simulation(const options* opt, ode* f, integrator* intgr, ofstream** ou
 		if (opt->param->output_interval <= fabs(ps))
 		{
 			ps = 0.0;
-			print_result(opt, f, output);
+			f->print_result(output, opt->param->output_data_rep);
 		}
 
 		if (opt->info_dt < (clock() - time_last_info) / (double)CLOCKS_PER_SEC) 
@@ -203,7 +205,7 @@ int main(int argc, const char** argv, const char** env)
 	} /* try */
 	catch (const string& msg)
 	{
-		print_result(opt, f, output);
+		f->print_result(output,opt->param->output_data_rep);
 		if (0x0 != output[OUTPUT_NAME_LOG])
 		{
 			file::log_message(*output[OUTPUT_NAME_LOG], "Error: " + msg, false);
