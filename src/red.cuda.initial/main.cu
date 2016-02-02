@@ -512,7 +512,7 @@ uint32_t coll_stat_run(nebula& n, body_disk_t& disk)
 	const var_t rhoSilicate = 2.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
-	disk.nBody[BODY_TYPE_PROTOPLANET ] = 100;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 10000;
 
 	uint32_t n_body = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[n_body];
@@ -2494,7 +2494,7 @@ void create_init_cond(string& out_dir)
 {
 	char buffer[4];
 	// Iterates over the different initial seed
-	for (uint32_t j = 0; j < 1; j++)
+	for (uint32_t j = 0; j < 10; j++)
 	{
 		sprintf(buffer, "%02d", j+1);
 		string postfix(buffer);
