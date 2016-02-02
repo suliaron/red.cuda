@@ -7,6 +7,7 @@
 #include "options.h"
 #include "rtbp1D.h"
 #include "tbp1D.h"
+#include "rtbp3D.h"
 #include "tbp3D.h"
 
 #include "red_type.h"
@@ -85,6 +86,7 @@ void print_result(const options* opt, ode* f, ofstream **sout)
 	rtbp1D* _rtbp1D = dynamic_cast<rtbp1D*>(f);
 
 	tbp3D* _tbp3D = dynamic_cast<tbp3D*>(f);
+	rtbp3D* _rtbp3D = dynamic_cast<rtbp3D*>(f);
 
 	if (     0x0 != _tbp1D)
 	{
@@ -103,6 +105,12 @@ void print_result(const options* opt, ode* f, ofstream **sout)
 		_tbp3D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
 		_tbp3D->calc_energy();
 		_tbp3D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
+	}
+	else if (0x0 != _rtbp3D)
+	{
+		_rtbp3D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
+		_rtbp3D->calc_energy();
+		_rtbp3D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
 	}
 	else
 	{
@@ -175,6 +183,9 @@ int main(int argc, const char** argv, const char** env)
 			break;
 		case DYN_MODEL_TBP3D:
 			f = opt->create_tbp3D();
+			break;
+		case DYN_MODEL_RTBP3D:
+			f = opt->create_rtbp3D();
 			break;
 		default:
 			throw string("Invalid dynamical model.");

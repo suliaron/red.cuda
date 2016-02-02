@@ -35,6 +35,7 @@ typedef enum dyn_model
 			DYN_MODEL_TBP3D,
 
 			DYN_MODEL_RTBP1D,
+			DYN_MODEL_RTBP3D,
 			DYN_MODEL_N
 		} dyn_model_t;
 

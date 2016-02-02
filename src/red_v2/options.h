@@ -18,6 +18,7 @@ public:
 	ode* create_tbp1D();
 	ode* create_rtbp1D();
 	ode* create_tbp3D();
+	ode* create_rtbp3D();
 
 	integrator* create_integrator(ode& f, ttt_t dt);
 	

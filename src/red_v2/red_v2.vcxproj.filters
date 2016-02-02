@@ -44,6 +44,9 @@
     <CudaCompile Include="tbp3D.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
+    <CudaCompile Include="rtbp3D.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="options.cpp">
@@ -88,6 +91,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tbp3D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtbp3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -290,6 +290,25 @@ ode* options::create_tbp3D()
 	return model;
 }
 
+ode* options::create_rtbp3D()
+{
+	tbp3D* model = new tbp3D(1, comp_dev);
+	
+	string path = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_DATA]);
+	model->load(path);
+	// TODO: calc_integrals
+	model->calc_energy();
+
+	model->t    = model->h_epoch[0];
+	model->tout = model->t;
+
+	param->start_time = model->t;
+	// TODO: transform time variables in opt
+	param->stop_time = param->start_time + param->simulation_length;
+
+	return model;
+}
+
 //pp_disk* options::create_pp_disk()
 //{
 //	pp_disk* ppd = 0x0;
