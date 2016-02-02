@@ -98,8 +98,10 @@ string get_extension(const string& path)
 	return result;
 }
 
-void load_ascii_file(const string& path, string& result)
+uint32_t load_ascii_file(const string& path, string& result)
 {
+	uint32_t n_line = 0;
+
 	std::ifstream file(path.c_str(), ifstream::in);
 	if (file)
 	{
@@ -115,13 +117,16 @@ void load_ascii_file(const string& path, string& result)
 			}
 			result += str;
 			result.push_back('\n');
+			n_line++;
 		} 	
+		file.close();
 	}
 	else
 	{
 		throw string("The file '" + path + "' could not opened!\r\n");
 	}
-	file.close();
+
+	return n_line;
 }
 
 void load_binary_file(const string& path, size_t n_data, var_t* data)
@@ -622,10 +627,10 @@ void load_data_record_binary(ifstream& input, std::string& name, pp_disk_t::para
 	memset(buffer, 0, sizeof(buffer));
 
 	input.read(buffer,      30*sizeof(char));
-	input.read((char*)&bmd,  1*sizeof(pp_disk_t::body_metadata_t));
-	input.read((char*)&p,    1*sizeof(pp_disk_t::param_t));
-	input.read((char*)&r,    3*sizeof(var_t));
-	input.read((char*)&v,    3*sizeof(var_t));
+	input.read((char*)bmd,  1*sizeof(pp_disk_t::body_metadata_t));
+	input.read((char*)p,    1*sizeof(pp_disk_t::param_t));
+	input.read((char*)r,    3*sizeof(var_t));
+	input.read((char*)v,    3*sizeof(var_t));
 
 	name = buffer;
 }

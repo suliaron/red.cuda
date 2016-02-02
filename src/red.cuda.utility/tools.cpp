@@ -416,8 +416,7 @@ void transform_to_bc(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 	var4_t* r = sim_data->h_y[0];
 	var4_t* v = sim_data->h_y[1];
 	// Transform the bodies coordinates and velocities
-	int pcd = 1;
-	for (int j = n - 1; j >= 0; j-- )
+	for (int j = n - 1; j >= 0; j--)
 	{
 		if (0 > sim_data->h_body_md[j].id)
 		{
@@ -428,16 +427,36 @@ void transform_to_bc(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 	}
 }
 
+void transform_time(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
+{
+	for (uint32_t i = 0; i < n; i++)
+	{
+		sim_data->h_epoch[i] *= constants::Gauss;
+	}
+}
+
+void transform_velocity(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
+{
+	var4_t* v = sim_data->h_y[1];
+	// Transform the bodies' velocities
+	for (uint32_t i = 0; i < n; i++)
+	{
+		v[i].x /= constants::Gauss;	
+		v[i].y /= constants::Gauss;	
+		v[i].z /= constants::Gauss;
+	}
+}
+
 var_t calc_radius(var_t m, var_t density)
 {
-	static var_t four_pi_over_three = 4.1887902047863909846168578443727;
+	static var_t four_pi_over_three = 4.188790204786391;
 
 	return pow(1.0/four_pi_over_three * m/density, 1.0/3.0);
 }
 
 var_t calc_density(var_t m, var_t R)
 {
-	static var_t four_pi_over_three = 4.1887902047863909846168578443727;
+	static var_t four_pi_over_three = 4.188790204786391;
 
 	if (R == 0.0)
 	{
@@ -448,7 +467,7 @@ var_t calc_density(var_t m, var_t R)
 
 var_t calc_mass(var_t R, var_t density)
 {
-	static var_t four_pi_over_three = 4.1887902047863909846168578443727;
+	static var_t four_pi_over_three = 4.188790204786391;
 
 	return four_pi_over_three * CUBE(R) * density;
 }

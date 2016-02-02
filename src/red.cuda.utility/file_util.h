@@ -14,7 +14,7 @@ namespace redutilcu
 		string get_directory(const std::string& path);
 		string get_extension(const std::string& path);
 
-		void load_ascii_file(const std::string& path, std::string& result);
+		uint32_t load_ascii_file(const std::string& path, std::string& result);
 		void load_binary_file(const std::string& path, size_t n_data, var_t* data);
 
 		void Emese_data_format_to_red_cuda_format(const std::string& input_path, const std::string& output_path);

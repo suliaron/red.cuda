@@ -29,7 +29,6 @@ parameter::parameter(string& dir, string& filename, bool verbose) :
 	file::load_ascii_file(path, data);
 	parse();
 	transform_time();
-	stop_time = start_time + simulation_length;
 }
 
 parameter::~parameter() 
@@ -46,9 +45,8 @@ void parameter::create_default()
 	int_type           = INTEGRATOR_RUNGEKUTTAFEHLBERG78;
 	tolerance          = 1.0e-10;
 
-	start_time         = 0.0;		// [day]
-	simulation_length  = 0.0;		// [day]
-	output_interval    = 0.0;		// [day]
+	simulation_length  = 0.0;		// [k day]
+	output_interval    = 0.0;		// [k day]
 
 	cdm                = COLLISION_DETECTION_MODEL_SUB_STEP;
 
@@ -152,10 +150,6 @@ void parameter::set_param(string& key, string& value)
 		{
 			int_type = INTEGRATOR_RUNGEKUTTAFEHLBERG78;
 		}			
-		//else if (value == "rkn"  || value == "rungekuttanystrom" || value == "runge-kutta-nystrom")
-		//{
-		//	int_type = INTEGRATOR_RUNGEKUTTANYSTROM;
-		//}
 		else
 		{
 			throw string("Invalid integrator type: " + value);
@@ -185,14 +179,14 @@ void parameter::set_param(string& key, string& value)
 			throw string("Invalid value at: " + key);
 		}
 	}
-    else if (key == "start_time" || key == "start time")
-	{
-		if (!tools::is_number(value))
-		{
-			throw string("Invalid number at: " + key);
-		}
-		start_time = atof(value.c_str()) * constants::YearToDay;
-	}
+	//else if (key == "start_time" || key == "start time")
+	//{
+	//	if (!tools::is_number(value))
+	//	{
+	//		throw string("Invalid number at: " + key);
+	//	}
+	//	start_time = atof(value.c_str()) * constants::YearToDay;
+	//}
     else if (key == "length")
 	{
 		if (!tools::is_number(value))
@@ -270,7 +264,6 @@ void parameter::set_param(string& key, string& value)
 
 void parameter::transform_time()
 {
-	start_time        *= constants::Gauss;    // [day * k]
 	simulation_length *= constants::Gauss;    // [day * k]
 	output_interval	  *= constants::Gauss;    // [day * k]
 }
@@ -298,7 +291,7 @@ ostream& operator<<(ostream& stream, const parameter* p)
 	stream << "simulation integrator: " << integrator_name[p->int_type] << endl;
 	stream << "simulation tolerance: " << p->tolerance << endl;
 	stream << "simulation adaptive: " << (p->adaptive ? "true" : "false") << endl;
-	stream << "simulation start time: " << p->start_time << endl;
+	//stream << "simulation start time: " << p->start_time << endl;
 	stream << "simulation length: " << p->simulation_length << endl;
 	stream << "simulation output interval: " << p->output_interval << endl;
 	for (int i = 0; i < THRESHOLD_N; i++)

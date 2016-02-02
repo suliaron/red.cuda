@@ -309,7 +309,7 @@ void print_oe(string &path, uint32_t n, ttt_t t, pp_disk_t::sim_data_t *sd)
 		for (uint32_t i = 0; i < n; i++)
 		{
 			file::print_oe_record(sout, t, &sd->h_oe[i], &sd->h_p[i], &sd->h_body_md[i]);
-			if (pcd <= (int)((((var_t)i/(var_t)n))*100.0))
+			if (pcd <= (int)((((var_t)(i+1)/(var_t)n))*100.0))
 			{
 				printf(".");
 				pcd++;

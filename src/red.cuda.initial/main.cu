@@ -255,7 +255,7 @@ void populate_solar_system(body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 	}
 }
 
-void populate_disk(ttt_t epoch, body_disk_t& disk, pp_disk_t::sim_data_t *sd)
+void populate_disk(ttt_t t0, body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 {
 	pp_disk_t::param_t param = {0.0, 0.0, 0.0, 0.0};
 	pp_disk_t::body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
@@ -303,7 +303,7 @@ void populate_disk(ttt_t epoch, body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 				generate_oe(&disk.oe_d[body_type], oe);
 			}
 
-            sd->h_epoch[  bodyIdx] = epoch;
+            sd->h_epoch[  bodyIdx] = t0;
 			sd->h_body_md[bodyIdx] = body_md;
 			sd->h_p[      bodyIdx] = param;
 			sd->h_oe[     bodyIdx] = oe;
@@ -512,7 +512,7 @@ uint32_t coll_stat_run(nebula& n, body_disk_t& disk)
 	const var_t rhoSilicate = 2.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
-	disk.nBody[BODY_TYPE_PROTOPLANET ] = 10000;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 100;
 
 	uint32_t n_body = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[n_body];
@@ -1172,6 +1172,15 @@ namespace create_disk
 {
 void Chambers2001(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+	
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -1361,6 +1370,21 @@ void Chambers2001(string& dir, string& filename)
 	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1371,7 +1395,16 @@ void Chambers2001(string& dir, string& filename)
 
 void coll_stat_run(string& dir, string& filename)
 {
-	// Epoch for the disk's state
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
+	// t0 is the epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
 
@@ -1451,6 +1484,21 @@ void coll_stat_run(string& dir, string& filename)
 	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1461,6 +1509,15 @@ void coll_stat_run(string& dir, string& filename)
 
 void Dvorak(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -1540,6 +1597,21 @@ void Dvorak(string& dir, string& filename)
 	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1550,6 +1622,15 @@ void Dvorak(string& dir, string& filename)
 
 void Hansen_2009(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -1604,6 +1685,21 @@ void Hansen_2009(string& dir, string& filename)
 	}
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1614,6 +1710,15 @@ void Hansen_2009(string& dir, string& filename)
 
 void GT_scenario(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -1723,6 +1828,21 @@ void GT_scenario(string& dir, string& filename)
 	}
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1733,6 +1853,15 @@ void GT_scenario(string& dir, string& filename)
 
 void GT_scenario_mod(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -1849,6 +1978,21 @@ void GT_scenario_mod(string& dir, string& filename)
 	}
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1859,6 +2003,15 @@ void GT_scenario_mod(string& dir, string& filename)
 
 void two_body(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -1875,6 +2028,21 @@ void two_body(string& dir, string& filename)
 	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1885,6 +2053,15 @@ void two_body(string& dir, string& filename)
 
 void n_gp(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -1923,6 +2100,21 @@ void n_gp(string& dir, string& filename)
 	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1933,6 +2125,15 @@ void n_gp(string& dir, string& filename)
 
 void n_pp(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -1971,6 +2172,21 @@ void n_pp(string& dir, string& filename)
 	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -1981,6 +2197,15 @@ void n_pp(string& dir, string& filename)
 
 void n_spl(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -1997,6 +2222,21 @@ void n_spl(string& dir, string& filename)
 	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -2007,6 +2247,15 @@ void n_spl(string& dir, string& filename)
 
 void n_pl(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -2045,6 +2294,21 @@ void n_pl(string& dir, string& filename)
 	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -2055,6 +2319,15 @@ void n_pl(string& dir, string& filename)
 
 void n_tp(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -2070,6 +2343,23 @@ void n_tp(string& dir, string& filename)
 	ttt_t dt = 0.0;
 	calculate_phase(sim_data, n_body, dt);
 
+	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
+
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
 	deallocate_host_storage(sim_data);
@@ -2079,6 +2369,15 @@ void n_tp(string& dir, string& filename)
 
 void n_pl_to_test_anal_gd(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -2095,6 +2394,21 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
@@ -2105,6 +2419,15 @@ void n_pl_to_test_anal_gd(string& dir, string& filename)
 
 void solar_system(string& dir, string& filename)
 {
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
 	// Epoch for the disk's state
 	ttt_t t0 = 0.0;
 	body_disk_t disk;
@@ -2121,6 +2444,21 @@ void solar_system(string& dir, string& filename)
 	calculate_phase(sim_data, n_body, dt);
 
 	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
 
 	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
 
