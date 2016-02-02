@@ -30,26 +30,6 @@ string create_name(int i, int type)
 	return name;
 }
 
-void initialize(body_disk &disk)
-{
-	for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
-	{
-		disk.nBody[type] = 0;
-        for (int i = 0; i < ORBITAL_ELEMENT_N; i++) 
-		{
-			disk.oe_d[type].range[i].x = disk.oe_d[type].range[i].y = 0.0;
-			disk.oe_d[type].item[i] = 0x0;
-		}
-		for (int i = 0; i < 4; i++) 
-		{
-			disk.pp_d[type].range[i].x = disk.pp_d[type].range[i].y = 0.0;
-			disk.pp_d[type].item[i] = 0x0;
-		}
-	}
-	disk.mig_type = 0x0;
-	disk.stop_at  = 0x0;
-}
-
 uint32_t calc_number_of_bodies(body_disk &bd)
 {
 	uint32_t result = 0;
@@ -72,7 +52,6 @@ uint32_t calc_number_of_bodies(body_disk &bd, body_type_t bt)
 	}
 	return result;
 }
-
 
 void generate_oe(orbelem_name_t name, oe_dist_t *oe_d, var_t* oe)
 {
@@ -257,13 +236,13 @@ void print_data(string &path, body_disk_t& disk, pp_disk_t::sim_data_t* sd, inpu
 			sout << "# HEADER_END" << endl;
 		}
 
-		int p = 1;
+		int pcd = 1;
 		for (uint32_t i = 0; i < n_body; i++)
 		{
-			if (p <= (int)((((var_t)i/(var_t)n_body))*100.0))
+			if (pcd <= (int)((((var_t)i/(var_t)n_body))*100.0))
 			{
 				printf(".");
-				p++;
+				pcd++;
 			}
 			switch (format)
 			{
@@ -326,14 +305,14 @@ void print_oe(string &path, uint32_t n, ttt_t t, pp_disk_t::sim_data_t *sd)
 	ofstream sout(path.c_str(), ios_base::out);
 	if (sout)
 	{		
-		int p = 1;
+		int pcd = 1;
 		for (uint32_t i = 0; i < n; i++)
 		{
 			file::print_oe_record(sout, t, &sd->h_oe[i], &sd->h_p[i], &sd->h_body_md[i]);
-			if (p <= (int)((((var_t)i/(var_t)n))*100.0))
+			if (pcd <= (int)((((var_t)(i+1)/(var_t)n))*100.0))
 			{
 				printf(".");
-				p++;
+				pcd++;
 			}
 		}
 		sout.close();

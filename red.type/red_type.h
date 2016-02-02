@@ -77,6 +77,7 @@ typedef enum output_name
 
 typedef enum input_name
 		{
+			INPUT_NAME_START_FILES,
 			INPUT_NAME_DATA,
 			INPUT_NAME_DATA_INFO,
 			INPUT_NAME_PARAMETER,

@@ -66,13 +66,13 @@ void print(string &path, pp_disk_t::sim_data_t *sd)
 	{
 		int_t nBodies = n_total;
 
-		int p = 1;
+		int pcd = 1;
 		for (int i = 0; i < nBodies; i++)
 		{
-			if (p <= (int)((((var_t)i/(var_t)nBodies))*100.0))
+			if (pcd <= (int)((((var_t)i/(var_t)nBodies))*100.0))
 			{
 				printf(".");
-				p++;
+				pcd++;
 			}
 			file::print_body_record_ascii_RED(output, body_names[i], &sd->h_p[i], &sd->h_body_md[i], &sd->h_y[0][i], &sd->h_y[1][i]);
 		}

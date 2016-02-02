@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <string>
 #include <fstream>
+#include <float.h>
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -1482,7 +1483,8 @@ void pp_disk::rebuild_vectors()
 
 	sim_data_t* sim_data_temp = new sim_data_t;
 	// Only the data of the active bodies will be temporarily stored
-	allocate_host_storage(sim_data_temp, n_total_active);//n_bodies->get_n_total_active());
+	allocate_host_storage(sim_data_temp, n_total_active);
+	vector<string> names(n_total_active);
 
 	// Create aliases:
 	var4_t* r = sim_data->h_y[0];
@@ -1495,13 +1497,14 @@ void pp_disk::rebuild_vectors()
 	uint32_t k = 0;
 	for ( ; i < n_total_players; i++)
 	{
-		// Active?
-		if (0 < bmd[i].id)
+		// Active? i.e. its id is positive?
+		if (0 < bmd[i].id && n_total_active > k)
 		{
 			sim_data_temp->h_y[0][k]    = r[i];
 			sim_data_temp->h_y[1][k]    = v[i];
 			sim_data_temp->h_p[k]       = p[i];
 			sim_data_temp->h_body_md[k] = bmd[i];
+			names[k]                    = body_names[i];
 			k++;
 		}
 	}
@@ -1511,13 +1514,14 @@ void pp_disk::rebuild_vectors()
 	}
 	this->n_bodies->update();
 
-	//uint32_t n_total = n_bodies->get_n_total_active();
 	for (i = 0; i < n_total_active; i++)
 	{
 		r[i]   = sim_data_temp->h_y[0][i];
 		v[i]   = sim_data_temp->h_y[1][i];
 		p[i]   = sim_data_temp->h_p[i];
 		bmd[i] = sim_data_temp->h_body_md[i];
+
+		body_names[i] = names[i];
 	}
 
 	if (COMPUTING_DEVICE_GPU == comp_dev)
@@ -1611,7 +1615,7 @@ void pp_disk::calc_integral(bool cpy_to_HOST, integral_t& integrals)
 		copy_to_host();
 	}
 	var_t M0 = tools::get_total_mass(n, sim_data);
-	tools::calc_bc(n, false, sim_data, M0, &(integrals.R), &(integrals.V));
+	tools::calc_bc(n, sim_data, M0, &(integrals.R), &(integrals.V));
 	integrals.C = tools::calc_angular_momentum(n, sim_data);
 	integrals.E = tools::calc_total_energy(n, sim_data);
 }
@@ -1662,10 +1666,6 @@ pp_disk::pp_disk(string& path_data, string& path_data_info, gas_disk_model_t g_d
 	load_data(path_data, repres);
 
 	redutilcu::create_aliases(comp_dev, sim_data);
-
-	transform_to_bc(false);
-	transform_time();
-	transform_velocity();
 }
 
 pp_disk::~pp_disk()
@@ -1843,39 +1843,39 @@ var_t pp_disk::get_mass_of_star()
 	throw string("No star is included.");
 }
 
-void pp_disk::transform_to_bc(bool pts)
-{
-	const uint32_t n_total = n_bodies->get_n_total_playing();
-
-	tools::transform_to_bc(n_total, pts, sim_data);
-}
-
-void pp_disk::transform_time()
-{
-	// Transform the bodies' epochs
-	const uint32_t n_total = n_bodies->get_n_total_playing();
-
-	for (uint32_t j = 0; j < n_total; j++ )
-	{
-		sim_data->h_epoch[j] *= constants::Gauss;
-	}
-	this->t *= constants::Gauss;
-	this->dt *= constants::Gauss;
-}
-
-void pp_disk::transform_velocity()
-{
-	const uint32_t n_total = n_bodies->get_n_total_playing();
-
-	var4_t* v = sim_data->h_y[1];
-	// Transform the bodies' velocities
-	for (uint32_t j = 0; j < n_total; j++ )
-	{
-		v[j].x /= constants::Gauss;	
-		v[j].y /= constants::Gauss;	
-		v[j].z /= constants::Gauss;
-	}
-}
+//void pp_disk::transform_to_bc()
+//{
+//	const uint32_t n_total = n_bodies->get_n_total_playing();
+//
+//	tools::transform_to_bc(n_total, sim_data);
+//}
+//
+//void pp_disk::transform_time()
+//{
+//	// Transform the bodies' epochs
+//	const uint32_t n_total = n_bodies->get_n_total_playing();
+//
+//	for (uint32_t j = 0; j < n_total; j++ )
+//	{
+//		sim_data->h_epoch[j] *= constants::Gauss;
+//	}
+//	this->t *= constants::Gauss;
+//	this->dt *= constants::Gauss;
+//}
+//
+//void pp_disk::transform_velocity()
+//{
+//	const uint32_t n_total = n_bodies->get_n_total_playing();
+//
+//	var4_t* v = sim_data->h_y[1];
+//	// Transform the bodies' velocities
+//	for (uint32_t j = 0; j < n_total; j++ )
+//	{
+//		v[j].x /= constants::Gauss;	
+//		v[j].y /= constants::Gauss;	
+//		v[j].z /= constants::Gauss;
+//	}
+//}
 
 void pp_disk::load_data_info(std::string& path, data_rep_t repres)
 {
@@ -1917,9 +1917,6 @@ void pp_disk::load_data(std::string& path_data, data_rep_t repres)
 	body_metadata_t* bmd = sim_data->h_body_md;
 	ttt_t* epoch = sim_data->h_epoch;
 
-	const uint32_t n_total = n_bodies->get_n_total_playing();
-	uint32_t pcd = 1;
-
 	ifstream input;
 	switch (repres)
 	{
@@ -1935,6 +1932,9 @@ void pp_disk::load_data(std::string& path_data, data_rep_t repres)
 
 	if (input) 
 	{
+		uint32_t pcd = 1;
+		const uint32_t n_total = n_bodies->get_n_total_playing();
+
 		cout << "Loading " << path_data << " ";
 		for (uint32_t i = 0; i < n_total; i++)
 		{
@@ -1948,7 +1948,7 @@ void pp_disk::load_data(std::string& path_data, data_rep_t repres)
 				file::load_data_record_binary(input, name, &p[i], &bmd[i], &r[i], &v[i]);
 			}
 			body_names.push_back(name);
-			if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
+			if (pcd <= (int)((((var_t)(i+1)/(var_t)n_total))*100.0))
 			{
 				pcd++;
 				cout << ".";	flush(cout);
@@ -1961,52 +1961,6 @@ void pp_disk::load_data(std::string& path_data, data_rep_t repres)
 	{
 		throw string("Cannot open " + path_data + ".");
 	}
-
-	//switch (repres)
-	//{
-	//case DATA_REPRESENTATION_ASCII:
-	//	input.open(path_data.c_str(), ios::in);
-	//	if (input) 
-	//	{
-	//		for (uint32_t i = 0; i < n_total; i++)
-	//		{
-	//			string name;
-	//			file::load_data_record_ascii(input, name, &p[i], &bmd[i], &r[i], &v[i]);
-	//			body_names.push_back(name);
-	//			if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
-	//			{
-	//				pcd++;
-	//				cout << ".";	flush(cout);
-	//			}
-	//		}
-	//	}
-	//	else 
-	//	{
-	//		throw string("Cannot open " + path_data + ".");
-	//	}
-	//	break;
-	//case DATA_REPRESENTATION_BINARY:
-	//	input.open(path_data.c_str(), ios::in | ios::binary);
-	//	if (input) 
-	//	{
-	//		for (uint32_t i = 0; i < n_total; i++)
-	//		{
-	//			string name;
-	//			file::load_data_record_binary(input, name, &p[i], &bmd[i], &r[i], &v[i]);
-	//			body_names.push_back(name);
-	//			if (pcd <= (int)((((var_t)i/(var_t)n_total))*100.0))
-	//			{
-	//				pcd++;
-	//				cout << ".";	flush(cout);
-	//			}
-	//		}
-	//	}
-	//	else 
-	//	{
-	//		throw string("Cannot open " + path_data + ".");
-	//	}
-	//	break;
-	//}
 }
 
 void pp_disk::print_data(string& path, data_rep_t repres)
@@ -2035,13 +1989,7 @@ void pp_disk::print_data(string& path, data_rep_t repres)
 			{
 				continue;
 			}
-			int orig_idx = bmd[i].id - 1;
-			// Transform the velocity into AU/day unit
-			var4_t velo = v[i];
-			velo.x *= constants::Gauss;
-			velo.y *= constants::Gauss;
-			velo.z *= constants::Gauss;
-			file::print_body_record_ascii_RED(sout, body_names[orig_idx], &p[i], &bmd[i], &r[i], &velo);
+			file::print_body_record_ascii_RED(sout, body_names[i], &p[i], &bmd[i], &r[i], &v[i]);
 		}
 		break;
 	case DATA_REPRESENTATION_BINARY:
@@ -2053,13 +2001,7 @@ void pp_disk::print_data(string& path, data_rep_t repres)
 			{
 				continue;
 			}
-			int orig_idx = bmd[i].id - 1;
-			// Transform the velocity into AU/day unit
-			var4_t velo = v[i];
-			velo.x *= constants::Gauss;
-			velo.y *= constants::Gauss;
-			velo.z *= constants::Gauss;
-			file::print_body_record_binary_RED(sout, body_names[orig_idx], &p[i], &bmd[i], &r[i], &velo);
+			file::print_body_record_binary_RED(sout, body_names[i], &p[i], &bmd[i], &r[i], &v[i]);
 		}
 		break;
 	}
@@ -2076,7 +2018,7 @@ void pp_disk::print_data_info(string& path, data_rep_t repres)
 		sout.open(path.c_str(), ios::out);
 		if (sout) 
 		{
-			file::print_data_info_record_ascii_RED(sout, this->t / constants::Gauss, this->dt / constants::Gauss,  this->n_bodies);
+			file::print_data_info_record_ascii_RED(sout, this->t, this->dt, this->n_bodies);
 		}
 		else 
 		{
@@ -2087,7 +2029,7 @@ void pp_disk::print_data_info(string& path, data_rep_t repres)
 		sout.open(path.c_str(), ios::out | ios::binary);
 		if (sout) 
 		{
-			file::print_data_info_record_binary_RED(sout, this->t / constants::Gauss, this->dt / constants::Gauss,  this->n_bodies);
+			file::print_data_info_record_binary_RED(sout, this->t, this->dt, this->n_bodies);
 		}
 		else 
 		{
@@ -2105,7 +2047,7 @@ void pp_disk::print_event_data(string& path, ofstream& log_f)
 	string e_names[] = {"NONE", "HIT_CENTRUM", "EJECTION", "COLLISION"};
 
 	ofstream sout;
-	sout.open(path.c_str(), ios::out);
+	sout.open(path.c_str(), ios::out | ios::app);
 	if (sout) 
 	{
 		sout.precision(16);
@@ -2180,7 +2122,7 @@ void pp_disk::print_integral_data(string& path, integral_t& I)
 	static uint32_t var_t_w  = 25;
 
 	ofstream sout;
-	sout.open(path.c_str(), ios::out);
+	sout.open(path.c_str(), ios::out | ios::app);
 	if (sout) 
 	{
 		sout.precision(16);

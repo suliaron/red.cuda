@@ -40,8 +40,10 @@ namespace redutilcu
 		var_t get_total_mass(uint32_t n, const pp_disk_t::sim_data_t *sim_data);
 		//! Computes the total mass of the bodies with type in the system
 		var_t get_total_mass(uint32_t n, body_type_t type, const pp_disk_t::sim_data_t *sim_data);
-		void calc_bc(uint32_t n, bool verbose, const pp_disk_t::sim_data_t *sim_data, var_t M, var4_t* R0, var4_t* V0);
-		void transform_to_bc(uint32_t n, bool verbose, const pp_disk_t::sim_data_t *sim_data);
+		void calc_bc(uint32_t n, const pp_disk_t::sim_data_t *sim_data, var_t M, var4_t* R0, var4_t* V0);
+		void transform_to_bc(uint32_t n, const pp_disk_t::sim_data_t *sim_data);
+		void transform_time( uint32_t n, const pp_disk_t::sim_data_t *sim_data);
+		void transform_velocity(uint32_t n, const pp_disk_t::sim_data_t *sim_data);
 
 		var_t calc_radius(var_t m, var_t density);
 		var_t calc_density(var_t m, var_t R);
@@ -57,8 +59,8 @@ namespace redutilcu
 		var_t calc_kinetic_energy(const var4_t* v);
 		var_t calc_pot_energy(var_t mu, const var4_t* r);
 
-        var_t calc_total_energy(        uint32_t n, const pp_disk_t::sim_data_t *sim_data);
-        var_t calc_total_energy_CMU(    uint32_t n, const pp_disk_t::sim_data_t *sim_data);
+        var_t calc_total_energy(         uint32_t n, const pp_disk_t::sim_data_t *sim_data);
+        var_t calc_total_energy_CMU(     uint32_t n, const pp_disk_t::sim_data_t *sim_data);
         var4_t calc_angular_momentum(    uint32_t n, const pp_disk_t::sim_data_t *sim_data);
         var4_t calc_angular_momentum_CMU(uint32_t n, const pp_disk_t::sim_data_t *sim_data);
        

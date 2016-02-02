@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include "options.h"
 #include "analytic_gas_disk.h"
@@ -49,7 +50,7 @@ void options::create_default()
 	id_dev              = 0;
 	n_change_to_cpu     = 100;
 
-	comp_dev            = COMPUTING_DEVICE_GPU;
+	comp_dev            = COMPUTING_DEVICE_CPU;
 	g_disk_model        = GAS_DISK_MODEL_NONE;
 
 	out_fn[OUTPUT_NAME_LOG]            = "log";
@@ -129,28 +130,6 @@ void options::parse(int argc, const char** argv)
 			comp_dev = COMPUTING_DEVICE_GPU;
 		}
 
-		else if (p == "--info-filename" || p == "-info")
-		{
-			i++;
-			out_fn[OUTPUT_NAME_INFO] = argv[i];
-		}
-		else if (p == "--event-filename" || p == "-event")
-		{
-			i++;
-			out_fn[OUTPUT_NAME_EVENT] = argv[i];
-		}
-		else if (p == "--log-filename" || p == "-log")
-		{
-			i++;
-			out_fn[OUTPUT_NAME_LOG] = argv[i];
-		}
-		else if (p == "--data-filename" || p == "-data")
-		{
-			i++;
-			out_fn[OUTPUT_NAME_DATA] = argv[i];
-			out_fn[OUTPUT_NAME_DATA_INFO] = out_fn[OUTPUT_NAME_DATA] + ".info";
-		}
-
 
 		else if (p == "--inputDir" || p == "-iDir")
 		{
@@ -163,6 +142,12 @@ void options::parse(int argc, const char** argv)
 			dir[DIRECTORY_NAME_OUT] = argv[i];
 		}
 
+
+		else if (p == "--input" || p == "-i")
+		{
+			i++;
+			in_fn[INPUT_NAME_START_FILES] = argv[i];
+		}
 		else if (p == "--input_data" || p == "-id")
 		{
 			i++;
@@ -238,8 +223,38 @@ pp_disk* options::create_pp_disk()
 	}
 	else
 	{
-		string path_data      = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_DATA]);
-		string path_data_info = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_DATA_INFO]);
+		string path_data;
+		string path_data_info;
+
+		if (0 < in_fn[INPUT_NAME_START_FILES].length())
+		{
+			string path = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_START_FILES]);
+			std::ifstream file(path.c_str(), ifstream::in);
+			if (file)
+			{
+				uint32_t n = 0;
+				string str;
+				while (getline(file, str))
+				{
+					if (0 == n)
+					{
+						in_fn[INPUT_NAME_DATA_INFO] = str;
+					}
+					if (1 == n)
+					{
+						in_fn[INPUT_NAME_DATA] = str;
+					}
+					n++;
+				} 	
+				file.close();
+			}
+			else
+			{
+				throw string("The file '" + path + "' could not opened.");
+			}
+		}
+		path_data      = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_DATA]);
+		path_data_info = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_DATA_INFO]);
 		ppd = new pp_disk(path_data, path_data_info, g_disk_model, param->cdm, id_dev, comp_dev, param->threshold);
 	}
 
@@ -300,7 +315,7 @@ integrator* options::create_integrator(pp_disk* ppd, ttt_t dt)
 void options::print_usage()
 {
 	cout << "Usage: red.cuda <parameterlist>" << endl;
-	cout << "Parameters:" << endl;
+	cout << "Parameters:" << endl << endl;
 	cout << "     -b      | --benchmark                    : run benchmark to find out the optimal number of threads per block" << endl;
 	cout << "     -t      | --test                         : run tests" << endl;
 	cout << "     -v      | --verbose                      : verbose mode (log all event during the execution fo the code to the log file)" << endl;
@@ -312,22 +327,18 @@ void options::print_usage()
 	cout << "     -id_dev | --id_active_device <number>    : the id of the device which will execute the code (default value is 0)" << endl;
 	cout << "     -n_chg  | --n_change_to_cpu <number>     : the threshold value for the total number of SI bodies to change to the CPU (default value is 100)" << endl;
 
-	cout << "     -gpu    | --gpu                          : execute the code on the graphics processing unit (GPU) (default value is true)" << endl;
-	cout << "     -cpu    | --cpu                          : execute the code on the cpu if required by the user or if no GPU is installed (default value is false)" << endl;
+	cout << "     -gpu    | --gpu                          : execute the code on the graphics processing unit (GPU) (default value is false)" << endl;
+	cout << "     -cpu    | --cpu                          : execute the code on the cpu if required by the user or if no GPU is installed (default value is true)" << endl;
 
 	cout << "     -iDir   | --inputDir <directory>         : the directory containing the input files"  << endl;
 	cout << "     -oDir   | --outputDir <directory>        : the directory where the output files will be stored (if omitted the input directory will be used)" << endl;
 
+	cout << "     -i      | --input <filename>             : the input file containing the filename of the input_data and input_data_info" << endl;
 	cout << "     -id     | --input_data <filename>        : the input file containing the parameters and the initial coordinates and velocities of each object" << endl;
 	cout << "     -idf    | --input_data_info <filename>   : the input file containing the initial time and the number of the objects by their type" << endl;
 	cout << "     -p      | --parameter <filename>         : the input file containing the parameters of the simulation"  << endl;
 	cout << "     -ga     | --analytic_gas_disk <filename> : the input file containing the parameters of an analyticaly prescribed gas disk"  << endl;
 	cout << "     -gf     | --fargo_gas_disk <filename>    : the input file containing the details of the gas disk resulted from FARGO simulations"  << endl;
-
-	cout << "     -info   | --info-filename <filename>     : the output file where the runtime output of the code will be stored (default value is info.txt)" << endl;
-	cout << "     -event  | --event-filename <filename>    : the output file where the details of each event will be stored (default value is event.txt)" << endl;
-	cout << "     -log    | --log-filename <filename>      : the output file where the details of the execution of the code will be stored (default value is log.txt)" << endl;
-	cout << "     -result | --result-filename <filename>   : the output file where the simlation data for a time instance will be stored (default value is result.txt)" << endl;
 
 	cout << "     -nb     | --number-of-bodies             : set the number of bodies for benchmarking (pattern: n_st n_gp n_rp n_pp n_spl n_pl n_tp)" << endl;
 

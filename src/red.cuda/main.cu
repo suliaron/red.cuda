@@ -59,7 +59,7 @@ void info(const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* T_CPU, clock
 
 void info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt, clock_t* T_CPU, clock_t* dT_CPU)
 {
-	static const string header_str = "dev,date      ,time    ,t [d]      ,dt [d]     ,dt_avg [d] ,dT [s]     ,dT_avg [s] ,Nc   ,Ne   ,Nh   ,nb_p ,nb_i,nb_r ,ns_t    ,ns_p    ,ns_f    ,ns_a,ns_r  ,ngp_a,ngp_r,nrp_a,nrp_r,npp_a,npp_r,nspl_a,nspl_r,npl_a,npl_r,ntp_a,ntp_r";
+	static const string header_str = "device, date, time, t [d], dt [d], dt_avg [d], dT [s], dT_avg [s], Nc, Ne, Nh, n_playing, n_inactive, n_removed, n_step_total, n_step_passed, n_step_failed, ns_a, ns_r, ngp_a, ngp_r, nrp_a, nrp_r, npp_a, npp_r, nspl_a, nspl_r, npl_a, npl_r, ntp_a, ntp_r";
 	static bool first_call = true;
 	
 	sout.setf(ios::right);
@@ -215,6 +215,73 @@ void print_info(ofstream& sout, const pp_disk* ppd, integrator *intgr, ttt_t dt,
 	sout << endl;
 }
 
+void print_data(const options& opt, pp_disk* ppd, pp_disk_t::integral_t* integrals, uint32_t& n_print, string& path_integral, string& prefix, string& ext, ofstream* slog)
+{
+	string n_print_str = redutilcu::number_to_string(n_print, OUTPUT_ORDINAL_NUMBER_WIDTH, true);
+	string fn_data = prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + "." + ext;
+	string path_data = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], fn_data);
+	ppd->print_data(path_data, opt.param->output_data_rep);
+
+	string fn_data_info = prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + ".info." + ext;
+	string path_data_info = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], fn_data_info);
+	ppd->print_data_info(path_data_info, opt.param->output_data_rep);
+	n_print++;
+
+	string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], "start_files.txt");
+	ofstream sout(path.c_str(), ios_base::out);
+	if (sout)
+	{
+		sout << fn_data_info << endl;
+		sout << fn_data << endl;
+	}
+	else
+	{
+		throw string("Cannot open " + path + "!");
+	}
+
+	ppd->calc_integral(false, integrals[1]);
+	ppd->print_integral_data(path_integral, integrals[1]);
+}
+
+ttt_t get_length(const options& opt, const pp_disk* ppd, string& prefix, string& ext)
+{
+	ifstream input;
+
+	string n_print_str = redutilcu::number_to_string(0, OUTPUT_ORDINAL_NUMBER_WIDTH, true);
+	string fn_data_info = prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + ".info." + ext;
+	string path_data_info = file::combine_path(opt.dir[DIRECTORY_NAME_IN], fn_data_info);
+
+	ttt_t _t = 0;
+	ttt_t _dt = 0;
+	n_objects_t* n_dummy = new n_objects_t(0, 0, 0, 0, 0, 0, 0);
+	switch (opt.param->output_data_rep)
+	{
+	case DATA_REPRESENTATION_ASCII:
+		input.open(path_data_info.c_str(), ios::in);
+		if (input) 
+		{
+			file::load_data_info_record_ascii(input, _t, _dt, &(n_dummy));
+		}
+		else 
+		{
+			throw string("Cannot open " + path_data_info + ".");
+		}
+		break;
+	case DATA_REPRESENTATION_BINARY:
+		input.open(path_data_info.c_str(), ios::in | ios::binary);
+		if (input) 
+		{
+			file::load_data_info_record_binary(input, _t, _dt, &(n_dummy));
+		}
+		else 
+		{
+			throw string("Cannot open " + path_data_info + ".");
+		}
+		break;
+	}
+	input.close();
+	return ((opt.param->simulation_length - _t) - ppd->t);
+}
 
 void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream& sout)
 {
@@ -359,12 +426,12 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	static string prefix = create_prefix(opt);
 	static string ext = (DATA_REPRESENTATION_ASCII == opt.param->output_data_rep ? "txt" : "dat");
 
-	static string path_info = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INFO] + ".txt");
-	static string path_integral = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INTEGRAL] + ".txt");
+	static string path_info           = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INFO] + ".txt");
+	static string path_integral       = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INTEGRAL] + ".txt");
 	static string path_integral_event = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INTEGRAL_EVENT] + ".txt");
-	static string path_event = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_EVENT] + ".txt");
+	static string path_event          = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_EVENT] + ".txt");
 
-	uint32_t n_print = 0;
+	uint32_t n_removed = 0;
 
 	ttt_t ps = 0.0;
 	ttt_t dt = 0.0;
@@ -377,7 +444,36 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 	pp_disk_t::integral_t integrals[2];
 
-	uint32_t n_removed = 0;
+	ofstream* sinfo = new ofstream(path_info.c_str(), ios::out | ios::app);
+	if (!sinfo) 
+	{
+		throw string("Cannot open " + path_info + ".");
+	}
+
+	ppd->calc_integral(false, integrals[0]);
+
+	uint32_t n_print = 0;
+	if (0 < opt.in_fn[INPUT_NAME_START_FILES].length() && "data" == opt.in_fn[INPUT_NAME_DATA].substr(0, 4))
+	{
+		string str = opt.in_fn[INPUT_NAME_DATA];
+		size_t pos = str.find_first_of("_");
+		str = str.substr(pos + 1, OUTPUT_ORDINAL_NUMBER_WIDTH);
+		n_print = atoi(str.c_str());
+		n_print++;
+	}
+
+	ttt_t length = 0.0;
+	if (0 == n_print)
+	{
+		print_data(opt, ppd, integrals, n_print, path_integral, prefix, ext, slog);
+		length = opt.param->simulation_length;
+	}
+	// This is a restart, so find out the length of this restart
+	else
+	{
+		length = get_length(opt, ppd, prefix, ext);
+	}
+	const ttt_t Tend = ppd->t + length;
 
 	if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 	{
@@ -390,23 +486,9 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		}
 	}
 
-	ofstream* sinfo = new ofstream(path_info.c_str(), ios::out);
-	if (!sinfo) 
-	{
-		throw string("Cannot open " + path_info + ".");
-	}
-
-	string n_print_str = redutilcu::number_to_string(n_print, 6, true);
-	string path_data = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + "." + ext);
-	ppd->print_data(path_data, opt.param->output_data_rep);
-	n_print++;
-
-	ppd->calc_integral(false, integrals[0]);
-	ppd->print_integral_data(path_integral, integrals[0]);
-
 /* main cycle */
 #if 1
-	while (ppd->t <= opt.param->stop_time && 1 < ppd->n_bodies->get_n_total_active())
+	while (ppd->t <= Tend && 1 < ppd->n_bodies->get_n_total_active())
 	{
 		if (COMPUTING_DEVICE_GPU == intgr->get_computing_device() && opt.n_change_to_cpu >= ppd->n_bodies->get_n_SI())
 		{
@@ -475,19 +557,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		if (opt.param->output_interval <= fabs(ps))
 		{
 			ps = 0.0;
-
-			n_print_str = redutilcu::number_to_string(n_print, 6, true);
-			path_data = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + "." + ext);
-			ppd->print_data(path_data, opt.param->output_data_rep);
-			n_print++;
-
-			if (opt.verbose)
-			{
-				string msg = "The data was saved with ordinal number: " + n_print_str;
-				file::log_message(*slog, msg, opt.print_to_screen);
-			}
-			ppd->calc_integral(false, integrals[1]);
-			ppd->print_integral_data(path_integral, integrals[1]);
+			print_data(opt, ppd, integrals, n_print, path_integral, prefix, ext, slog);
 		}
 
 		if (16 <= ppd->n_event[EVENT_COUNTER_NAME_LAST_CLEAR])
@@ -526,18 +596,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	if (0.0 < ps)
 	{
 		ps = 0.0;
-		n_print_str = redutilcu::number_to_string(n_print, 6, true);
-		path_data = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + "." + ext);
-		ppd->print_data(path_data, opt.param->output_data_rep);
-		n_print++;
-
-		if (opt.verbose)
-		{
-			string msg = "The data was saved with ordinal number: " + n_print_str;
-			file::log_message(*slog, msg, opt.print_to_screen);
-		}
-		ppd->calc_integral(false, integrals[1]);
-		ppd->print_integral_data(path_integral, integrals[1]);
+		print_data(opt, ppd, integrals, n_print, path_integral, prefix, ext, slog);
 	}
 
 	// Needed by nvprof.exe
@@ -572,7 +631,7 @@ int main(int argc, const char** argv, const char** env)
 
 		string prefix = create_prefix(opt);
 		string path_log = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_LOG]) + ".txt";
-		slog = new ofstream(path_log.c_str(), ios::out);
+		slog = new ofstream(path_log.c_str(), ios::out | ios::app);
 		if (!slog) 
 		{
 			throw string("Cannot open " + path_log + ".");
@@ -580,7 +639,7 @@ int main(int argc, const char** argv, const char** env)
 
 #ifdef __GNUC__
 		string dummy = opt.param->get_data();
-		file::log_start(*output[OUTPUT_NAME_LOG], argc, argv, env, dummy, opt.print_to_screen);
+		file::log_start(*slog, argc, argv, env, dummy, opt.print_to_screen);
 #else
 		file::log_start(*slog, argc, argv, env, opt.param->get_data(), opt.print_to_screen);
 #endif

@@ -8,6 +8,7 @@
 #include "cuda_runtime.h"
 
 #define NDIM		4		// Number of dimensions, 4 to coalesce memory copies
+#define OUTPUT_ORDINAL_NUMBER_WIDTH 9
 
 #define K			(var_t)0.01720209895
 #define K2			(var_t)0.0002959122082855911025

@@ -98,8 +98,10 @@ string get_extension(const string& path)
 	return result;
 }
 
-void load_ascii_file(const string& path, string& result)
+uint32_t load_ascii_file(const string& path, string& result)
 {
+	uint32_t n_line = 0;
+
 	std::ifstream file(path.c_str(), ifstream::in);
 	if (file)
 	{
@@ -115,13 +117,16 @@ void load_ascii_file(const string& path, string& result)
 			}
 			result += str;
 			result.push_back('\n');
+			n_line++;
 		} 	
+		file.close();
 	}
 	else
 	{
 		throw string("The file '" + path + "' could not opened!\r\n");
 	}
-	file.close();
+
+	return n_line;
 }
 
 void load_binary_file(const string& path, size_t n_data, var_t* data)
@@ -525,31 +530,6 @@ void print_oe_record(ofstream &sout, orbelem_t* oe, pp_disk_t::param_t *p)
 	sout.flush();
 }
 
-void print_oe_record(ofstream &sout, orbelem_t* oe, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd)
-{
-	static int var_t_w  = 15;
-	static int int_t_w  = 7;
-
-	sout.precision(6);
-	sout.setf(ios::right);
-	sout.setf(ios::scientific);
-
-	sout << setw(int_t_w) << bmd->id        << SEP 
-		 << setw(int_t_w) << bmd->body_type << SEP 
-		 << setw(var_t_w) << oe->sma        << SEP 
-         << setw(var_t_w) << oe->ecc        << SEP 
-         << setw(var_t_w) << oe->inc        << SEP 
-         << setw(var_t_w) << oe->peri       << SEP 
-         << setw(var_t_w) << oe->node       << SEP 
-         << setw(var_t_w) << oe->mean       << SEP
-         << setw(var_t_w) << p->mass        << SEP
-         << setw(var_t_w) << p->radius      << SEP
-         << setw(var_t_w) << p->density     << SEP
-         << setw(var_t_w) << p->cd          << endl;
-
-	sout.flush();
-}
-
 void print_oe_record(ofstream &sout, ttt_t epoch, orbelem_t* oe, pp_disk_t::param_t *p, pp_disk_t::body_metadata_t *bmd)
 {
 	static int var_t_w  = 15;
@@ -562,16 +542,16 @@ void print_oe_record(ofstream &sout, ttt_t epoch, orbelem_t* oe, pp_disk_t::para
 	sout << setw(var_t_w) << epoch          << SEP 
 		 << setw(int_t_w) << bmd->id        << SEP 
 		 << setw(      2) << bmd->body_type << SEP 
+         << setw(var_t_w) << p->mass        << SEP
+         << setw(var_t_w) << p->radius      << SEP
+         << setw(var_t_w) << p->density     << SEP
+         << setw(var_t_w) << p->cd          << SEP
 		 << setw(var_t_w) << oe->sma        << SEP 
          << setw(var_t_w) << oe->ecc        << SEP 
          << setw(var_t_w) << oe->inc        << SEP 
          << setw(var_t_w) << oe->peri       << SEP 
          << setw(var_t_w) << oe->node       << SEP 
-         << setw(var_t_w) << oe->mean       << SEP
-         << setw(var_t_w) << p->mass        << SEP
-         << setw(var_t_w) << p->radius      << SEP
-         << setw(var_t_w) << p->density     << SEP
-         << setw(var_t_w) << p->cd          << endl;
+         << setw(var_t_w) << oe->mean       << endl;
 
 	sout.flush();
 }
@@ -647,10 +627,10 @@ void load_data_record_binary(ifstream& input, std::string& name, pp_disk_t::para
 	memset(buffer, 0, sizeof(buffer));
 
 	input.read(buffer,      30*sizeof(char));
-	input.read((char*)&bmd,  1*sizeof(pp_disk_t::body_metadata_t));
-	input.read((char*)&p,    1*sizeof(pp_disk_t::param_t));
-	input.read((char*)&r,    3*sizeof(var_t));
-	input.read((char*)&v,    3*sizeof(var_t));
+	input.read((char*)bmd,  1*sizeof(pp_disk_t::body_metadata_t));
+	input.read((char*)p,    1*sizeof(pp_disk_t::param_t));
+	input.read((char*)r,    3*sizeof(var_t));
+	input.read((char*)v,    3*sizeof(var_t));
 
 	name = buffer;
 }
