@@ -2,7 +2,7 @@
 #include <iomanip>
 #include <string>
 #include <fstream>
-#include <climits>
+#include <float.h>
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"

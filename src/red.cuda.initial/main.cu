@@ -11,6 +11,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <float.h>
 
 // includes, project
 #include "distribution.h"
