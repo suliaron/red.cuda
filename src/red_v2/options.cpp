@@ -309,44 +309,6 @@ ode* options::create_rtbp3D()
 	return model;
 }
 
-//pp_disk* options::create_pp_disk()
-//{
-//	pp_disk* ppd = 0x0;
-//
-//	if (benchmark)
-//	{
-//		ppd = new pp_disk(n_bodies, g_disk_model, param->cdm, id_dev, comp_dev);
-//	}
-//	else
-//	{
-//		string path = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_BODYLIST]);
-//		ppd = new pp_disk(path, continue_simulation, g_disk_model, param->cdm, id_dev, comp_dev, param->threshold, print_to_screen);
-//	}
-//
-//	switch (g_disk_model)
-//	{
-//	case GAS_DISK_MODEL_NONE:
-//		break;
-//	case GAS_DISK_MODEL_ANALYTIC:
-//		ppd->a_gd = new analytic_gas_disk(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_GAS_DISK_MODEL], print_to_screen);
-//		ppd->a_gd->calc(ppd->get_mass_of_star());
-//		break;
-//	case GAS_DISK_MODEL_FARGO:
-//		ppd->f_gd = new fargo_gas_disk(in_fn[INPUT_NAME_BODYLIST], in_fn[INPUT_NAME_GAS_DISK_MODEL], comp_dev, print_to_screen);
-//		break;
-//	default:
-//		throw string("Parameter 'g_disk_model' is out of range");
-//	}
-//
-//	if (COMPUTING_DEVICE_GPU == comp_dev)
-//	{
-//		ppd->copy_to_device();
-//	}
-//	ppd->t = (continue_simulation ? ppd->sim_data->h_epoch[0] : param->start_time);
-//
-//	return ppd;
-//}
-
 integrator* options::create_integrator(ode& f, ttt_t dt)
 {
 	integrator* intgr = 0x0;

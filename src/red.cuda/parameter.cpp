@@ -48,8 +48,6 @@ void parameter::create_default()
 	simulation_length  = 0.0;		// [k day]
 	output_interval    = 0.0;		// [k day]
 
-	cdm                = COLLISION_DETECTION_MODEL_SUB_STEP;
-
 	memset(threshold, 0, THRESHOLD_N * sizeof(var_t));
 }
 
@@ -202,26 +200,6 @@ void parameter::set_param(string& key, string& value)
 			throw string("Invalid number at: " + key);
 		}
 		output_interval = atof(value.c_str()) * constants::YearToDay;
-	}
-    else if (key == "cdm" || key == "collision_detection_method" || key == "collision detection method")
-	{
-		transform(value.begin(), value.end(), value.begin(), ::tolower);
-		if (     value == "step")
-		{
-			cdm = COLLISION_DETECTION_MODEL_STEP;
-		}
-		else if (value == "sub_step" || value == "sub step" )
-		{
-			cdm = COLLISION_DETECTION_MODEL_SUB_STEP;
-		}
-		else if (value == "interpolation")
-		{
-			cdm = COLLISION_DETECTION_MODEL_INTERPOLATION;
-		}
-		else
-		{
-			throw string("Invalid collision detection method type: " + value);
-		}
 	}
     else if (key == "ejection")
 	{

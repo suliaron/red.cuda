@@ -219,7 +219,7 @@ pp_disk* options::create_pp_disk()
 
 	if (benchmark)
 	{
-		ppd = new pp_disk(n_bodies, g_disk_model, param->cdm, id_dev, comp_dev);
+		ppd = new pp_disk(n_bodies, g_disk_model, id_dev, comp_dev);
 	}
 	else
 	{
@@ -255,7 +255,7 @@ pp_disk* options::create_pp_disk()
 		}
 		path_data      = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_DATA]);
 		path_data_info = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_DATA_INFO]);
-		ppd = new pp_disk(path_data, path_data_info, g_disk_model, param->cdm, id_dev, comp_dev, param->threshold);
+		ppd = new pp_disk(path_data, path_data_info, g_disk_model, id_dev, comp_dev, param->threshold);
 	}
 
 	switch (g_disk_model)

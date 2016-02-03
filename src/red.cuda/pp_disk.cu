@@ -525,16 +525,6 @@ static __global__
 	}
 }
 
-static __global__
-	void print_epochs(uint32_t n, const ttt_t* epoch)
-{
-	uint32_t tid = 0;
-	while (tid < n)
-	{
-		printf("%5d %20.16lf\n", tid, epoch[tid]);
-		tid++;
-	}
-}
 
 static __global__
 	void print_vector(uint32_t n, const var4_t* v)
@@ -547,13 +537,6 @@ static __global__
 	}
 }
 
-static __global__
-	void print_constant_memory()
-{
-	printf("dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE        ] : %lf\n", dc_threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]);
-	printf("dc_threshold[THRESHOLD_EJECTION_DISTANCE           ] : %lf\n", dc_threshold[THRESHOLD_EJECTION_DISTANCE]);
-	printf("dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR        ] : %lf\n", dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR]);
-}
 } /* kernel_utility */
 
 
@@ -580,7 +563,7 @@ uint32_t pp_disk::benchmark()
 	uint32_t min_idx = 0;
 	if (0 < n_sink)
 	{
-		for (uint32_t n_tpb = half_warp_size; n_tpb <= deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
+		for (uint32_t n_tpb = half_warp_size; n_tpb <= (uint32_t)deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
 			set_n_tpb(n_tpb);
 			interaction_bound int_bound = n_bodies->get_bound_SI();
@@ -623,19 +606,7 @@ float pp_disk::benchmark_calc_grav_accel(ttt_t curr_t, uint32_t n_sink, interact
 	set_kernel_launch_param(n_sink);
 
 	CUDA_SAFE_CALL(cudaEventRecord(start, 0));
-	switch (cdm)
-	{
-	case COLLISION_DETECTION_MODEL_STEP:
-		kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(int_bound, sim_data->body_md, sim_data->p, r, a);
-		break;
-	case COLLISION_DETECTION_MODEL_SUB_STEP:
-		kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(curr_t, int_bound, sim_data->body_md, sim_data->p, r, v, a, d_events, d_event_counter);
-		break;
-	case COLLISION_DETECTION_MODEL_INTERPOLATION:
-		throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-	default:
-		throw string("Parameter 'cdm' is out of range.");
-	}
+	kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(int_bound, sim_data->body_md, sim_data->p, r, a);
 	CUDA_CHECK_ERROR();
 	CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
 	CUDA_SAFE_CALL(cudaEventSynchronize(stop));
@@ -1007,57 +978,21 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 	if (0 < n_sink)
 	{
 		interaction_bound int_bound = n_bodies->get_bound_SI();
-		switch (cdm)
-		{
-		case COLLISION_DETECTION_MODEL_STEP:
-			cpu_calc_grav_accel_SI(curr_t, int_bound, bmd, p, r, v, dy);
-			break;
-		case COLLISION_DETECTION_MODEL_SUB_STEP:
-			cpu_calc_grav_accel_SI(curr_t, int_bound, bmd, p, r, v, dy, events, &event_counter);
-			break;
-		case COLLISION_DETECTION_MODEL_INTERPOLATION:
-			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-		default:
-			throw string("Parameter 'cdm' is out of range.");
-		}
+		cpu_calc_grav_accel_SI(curr_t, int_bound, bmd, p, r, v, dy);
 	}
 
 	n_sink = n_bodies->get_n_NSI();
 	if (0 < n_sink)
 	{
 		interaction_bound int_bound = n_bodies->get_bound_NSI();
-		switch (cdm)
-		{
-		case COLLISION_DETECTION_MODEL_STEP:
-			cpu_calc_grav_accel_NSI(curr_t, int_bound, bmd, p, r, v, dy);
-			break;
-		case COLLISION_DETECTION_MODEL_SUB_STEP:
-			cpu_calc_grav_accel_NSI(curr_t, int_bound, bmd, p, r, v, dy, events, &event_counter);
-			break;
-		case COLLISION_DETECTION_MODEL_INTERPOLATION:
-			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-		default:
-			throw string("Parameter 'cdm' is out of range.");
-		}
+		cpu_calc_grav_accel_NSI(curr_t, int_bound, bmd, p, r, v, dy);
 	}
 
 	n_sink = n_bodies->get_n_NI();
 	if (0 < n_sink)
 	{
 		interaction_bound int_bound = n_bodies->get_bound_NI();
-		switch (cdm)
-		{
-		case COLLISION_DETECTION_MODEL_STEP:
-			cpu_calc_grav_accel_NI(curr_t, int_bound, bmd, p, r, v, dy);
-			break;
-		case COLLISION_DETECTION_MODEL_SUB_STEP:
-			cpu_calc_grav_accel_NI(curr_t, int_bound, bmd, p, r, v, dy, events, &event_counter);
-			break;
-		case COLLISION_DETECTION_MODEL_INTERPOLATION:
-			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-		default:
-			throw string("Parameter 'cdm' is out of range.");
-		}
+		cpu_calc_grav_accel_NI(curr_t, int_bound, bmd, p, r, v, dy);
 	}
 }
 
@@ -1071,20 +1006,7 @@ void pp_disk::gpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 	{
 		interaction_bound int_bound = n_bodies->get_bound_SI();
 		set_kernel_launch_param(n_sink);
-
-		switch (cdm)
-		{
-		case COLLISION_DETECTION_MODEL_STEP:
-			kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(int_bound, bmd, p, r, dy);
-			break;
-		case COLLISION_DETECTION_MODEL_SUB_STEP:
-			kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy, d_events, d_event_counter);
-			break;
-		case COLLISION_DETECTION_MODEL_INTERPOLATION:
-			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-		default:
-			throw string("Parameter 'cdm' is out of range.");
-		}
+		kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(int_bound, bmd, p, r, dy);
 		CUDA_CHECK_ERROR();
 	}
 
@@ -1093,20 +1015,7 @@ void pp_disk::gpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 	{
 		interaction_bound int_bound = n_bodies->get_bound_NSI();
 		set_kernel_launch_param(n_sink);
-
-		switch (cdm)
-		{
-		case COLLISION_DETECTION_MODEL_STEP:
-			kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(int_bound, bmd, p, r, dy);
-			break;
-		case COLLISION_DETECTION_MODEL_SUB_STEP:
-			kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy, d_events, d_event_counter);
-			break;
-		case COLLISION_DETECTION_MODEL_INTERPOLATION:
-			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-		default:
-			throw string("Parameter 'cdm' is out of range.");
-		}
+		kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(int_bound, bmd, p, r, dy);
 		CUDA_CHECK_ERROR();
 	}
 
@@ -1115,20 +1024,7 @@ void pp_disk::gpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 	{
 		interaction_bound int_bound = n_bodies->get_bound_NI();
 		set_kernel_launch_param(n_sink);
-
-		switch (cdm)
-		{
-		case COLLISION_DETECTION_MODEL_STEP:
-			kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(int_bound, bmd, p, r, dy);
-			break;
-		case COLLISION_DETECTION_MODEL_SUB_STEP:
-			kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(curr_t, int_bound, bmd, p, r, v, dy, d_events, d_event_counter);
-			break;
-		case COLLISION_DETECTION_MODEL_INTERPOLATION:
-			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-		default:
-			throw string("Parameter 'cdm' is out of range.");
-		}
+		kernel_pp_disk::calc_grav_accel_naive<<<grid, block>>>(int_bound, bmd, p, r, dy);
 		CUDA_CHECK_ERROR();
 	}
 }
@@ -1168,31 +1064,16 @@ bool pp_disk::check_for_ejection_hit_centrum()
 
 bool pp_disk::check_for_collision()
 {
-	switch (cdm)
+	switch (comp_dev)
 	{
-	case COLLISION_DETECTION_MODEL_STEP:
-		switch (comp_dev)
-		{
-		case COMPUTING_DEVICE_CPU:
-			cpu_check_for_collision();
-			break;
-		case COMPUTING_DEVICE_GPU:
-			gpu_check_for_collision();
-			break;
-		default:
-			throw string("Parameter 'comp_dev' is out of range.");
-		}
+	case COMPUTING_DEVICE_CPU:
+		cpu_check_for_collision();
 		break;
-	case COLLISION_DETECTION_MODEL_SUB_STEP:
-		if (COMPUTING_DEVICE_GPU == comp_dev)
-		{
-			copy_vector_to_host((void *)&event_counter, (void *)d_event_counter, 1*sizeof(uint32_t));
-		}
+	case COMPUTING_DEVICE_GPU:
+		gpu_check_for_collision();
 		break;
-	case COLLISION_DETECTION_MODEL_INTERPOLATION:
-		throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
 	default:
-		throw string("Parameter 'cdm' is out of range.");
+		throw string("Parameter 'comp_dev' is out of range.");
 	}
 	return (0 < event_counter ? true : false);
 }
@@ -1635,10 +1516,9 @@ void pp_disk::swap()
 
 
 
-pp_disk::pp_disk(n_objects_t* n_bodies, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, uint32_t id_dev, computing_device_t comp_dev) :
+pp_disk::pp_disk(n_objects_t* n_bodies, gas_disk_model_t g_disk_model, uint32_t id_dev, computing_device_t comp_dev) :
 	n_bodies(n_bodies),
 	g_disk_model(g_disk_model),
-	cdm(cdm),
 	id_dev(id_dev),
 	comp_dev(comp_dev)
 {
@@ -1649,10 +1529,9 @@ pp_disk::pp_disk(n_objects_t* n_bodies, gas_disk_model_t g_disk_model, collision
 	tools::populate_data(n_bodies->initial, sim_data);
 }
 
-pp_disk::pp_disk(string& path_data, string& path_data_info, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, uint32_t id_dev, computing_device_t comp_dev, const var_t* thrshld) :
+pp_disk::pp_disk(string& path_data, string& path_data_info, gas_disk_model_t g_disk_model, uint32_t id_dev, computing_device_t comp_dev, const var_t* thrshld) :
 	n_bodies(0x0),
 	g_disk_model(g_disk_model),
-	cdm(cdm),
 	id_dev(id_dev),
 	comp_dev(comp_dev)
 {
@@ -1915,7 +1794,6 @@ void pp_disk::load_data(std::string& path_data, data_rep_t repres)
 	var4_t* v = sim_data->h_y[1];
 	param_t* p = sim_data->h_p;
 	body_metadata_t* bmd = sim_data->h_body_md;
-	ttt_t* epoch = sim_data->h_epoch;
 
 	ifstream input;
 	switch (repres)
@@ -1948,7 +1826,7 @@ void pp_disk::load_data(std::string& path_data, data_rep_t repres)
 				file::load_data_record_binary(input, name, &p[i], &bmd[i], &r[i], &v[i]);
 			}
 			body_names.push_back(name);
-			if (pcd <= (int)((((var_t)(i+1)/(var_t)n_total))*100.0))
+			if (pcd <= (uint32_t)((((var_t)(i+1)/(var_t)n_total))*100.0))
 			{
 				pcd++;
 				cout << ".";	flush(cout);

@@ -48,8 +48,6 @@ void parameter::create_default()
 	simulation_length  = 0.0;
 	output_interval    = 0.0;
 
-	cdm                = COLLISION_DETECTION_MODEL_STEP;
-
 	memset(threshold, 0, THRESHOLD_N * sizeof(var_t));
 }
 

@@ -10,8 +10,8 @@
 class pp_disk
 {
 public:
-	pp_disk(n_objects_t *n_bodies, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, uint32_t id_dev, computing_device_t comp_dev);
-	pp_disk(std::string& path_data, std::string& path_data_info, gas_disk_model_t g_disk_model, collision_detection_model_t cdm, uint32_t id_dev, computing_device_t comp_dev, const var_t* thrshld);
+	pp_disk(n_objects_t *n_bodies, gas_disk_model_t g_disk_model, uint32_t id_dev, computing_device_t comp_dev);
+	pp_disk(std::string& path_data, std::string& path_data_info, gas_disk_model_t g_disk_model, uint32_t id_dev, computing_device_t comp_dev, const var_t* thrshld);
 	~pp_disk();
 
 	//! Copies ODE parameters and variables from the host to the cuda device
@@ -28,9 +28,6 @@ public:
 	*/
 	void set_computing_device(computing_device_t device);
 	computing_device_t get_computing_device() { return comp_dev; }
-
-	void set_cdm(collision_detection_model_t c) { cdm = c;    }
-	collision_detection_model_t get_cdm(void)   { return cdm; }
 
 	void set_n_tpb(uint32_t n)   { n_tpb = n;     }
 	uint32_t  get_n_tpb(void)    { return n_tpb;  }
@@ -189,7 +186,6 @@ private:
 
 	uint32_t id_dev;                      //!< The id of the GPU
 	computing_device_t comp_dev;          //!< The computing device to carry out the calculations (cpu or gpu)
-	collision_detection_model_t cdm;      //! Collision detection model
 									      
 	uint32_t n_tpb;                       //!< The number of thread per block to use for kernel launches
 									      

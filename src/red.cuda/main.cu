@@ -128,27 +128,8 @@ string create_prefix(const options& opt)
 		string dev = (opt.comp_dev == COMPUTING_DEVICE_CPU ? "cpu" : "gpu");
 		// as: adaptive step-size, fs: fix step-size
 		string adapt = (opt.param->adaptive == true ? "as" : "fs");
-		// collision detection model
-		string cdm;
-		switch (opt.param->cdm)
-		{
-		case COLLISION_DETECTION_MODEL_STEP:
-			// bs: between step
-			cdm = "bs";
-			break;
-		case COLLISION_DETECTION_MODEL_SUB_STEP:
-			// bs: sub-step
-			cdm = "ss";
-			break;
-		case COLLISION_DETECTION_MODEL_INTERPOLATION:
-			throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not implemented.");
-		default:
-			throw string("Parameter 'cdm' is out of range.");
-		}
-
-		
 		string int_name(integrator_type_short_name[opt.param->int_type]);
-		prefix += config + sep + dev + sep + cdm + sep + adapt + sep + int_name + sep;
+		prefix += config + sep + dev + sep + sep + adapt + sep + int_name + sep;
 	}
 
 	return prefix;
@@ -527,30 +508,19 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 		if (0.0 < opt.param->threshold[THRESHOLD_RADII_ENHANCE_FACTOR])
 		{
-			bool collision = false;
-			switch (opt.param->cdm)
+			bool collision = ppd->check_for_collision();
+			if (collision)
 			{
-			case COLLISION_DETECTION_MODEL_STEP:
-			case COLLISION_DETECTION_MODEL_SUB_STEP:
-				collision = ppd->check_for_collision();
-				if (collision)
-				{
-					pp_disk_t::integral_t I;
+				pp_disk_t::integral_t I;
 
-					ppd->calc_integral(true, I);
-					ppd->print_integral_data(path_integral_event, I);
-					ppd->handle_collision();
-					ppd->calc_integral(false, I);
-					ppd->print_integral_data(path_integral_event, I);
+				ppd->calc_integral(true, I);
+				ppd->print_integral_data(path_integral_event, I);
+				ppd->handle_collision();
+				ppd->calc_integral(false, I);
+				ppd->print_integral_data(path_integral_event, I);
 
-					ppd->print_event_data(path_event, *slog);
-					ppd->clear_event_counter();
-				}
-				break;
-			case COLLISION_DETECTION_MODEL_INTERPOLATION:
-				throw string("COLLISION_DETECTION_MODEL_INTERPOLATION is not yet implemented.");
-			default:
-				throw string("Parameter 'cdm' is out of range.");
+				ppd->print_event_data(path_event, *slog);
+				ppd->clear_event_counter();
 			}
 		}
 
@@ -662,18 +632,24 @@ int main(int argc, const char** argv, const char** env)
 		}
 
 	} /* try */
-	catch (const nbody_exception& ex)
-	{
-		file::log_message(*slog, "Error: " + string(ex.what()), false);
-		cerr << "Error: " << ex.what() << endl;
-	}
+	//catch (const nbody_exception& ex)
+	//{
+	//	cerr << "Error: " << ex.what() << endl;
+	//	file::log_message(*slog, "Error: " + string(ex.what()), false);
+	//}
 	catch (const string& msg)
 	{
-		file::log_message(*slog, "Error: " + msg, false);
 		cerr << "Error: " << msg << endl;
+		if (0x0 != slog)
+		{
+			file::log_message(*slog, "Error: " + msg, false);
+		}
 	}
-	file::log_message(*slog, "Total time: " + tools::convert_time_t(time(NULL) - start) + " s", false);
 	cout << "Total time: " << time(NULL) - start << " s" << endl;
+	if (0x0 != slog)
+	{
+		file::log_message(*slog, "Total time: " + tools::convert_time_t(time(NULL) - start) + " s", false);
+	}
 
 	return (EXIT_SUCCESS);
 }

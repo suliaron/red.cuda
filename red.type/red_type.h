@@ -119,14 +119,6 @@ typedef enum gas_disk_model
 			GAS_DISK_MODEL_N,
 		} gas_disk_model_t;
 
-typedef enum collision_detection_model
-		{
-			COLLISION_DETECTION_MODEL_STEP,
-			COLLISION_DETECTION_MODEL_SUB_STEP,
-			COLLISION_DETECTION_MODEL_INTERPOLATION,
-			COLLISION_DETECTION_MODEL_N,
-		} collision_detection_model_t;
-
 typedef enum computing_device
 		{
 			COMPUTING_DEVICE_CPU,
@@ -136,9 +128,9 @@ typedef enum computing_device
 
 typedef enum threshold
 		{
-			THRESHOLD_HIT_CENTRUM_DISTANCE,
-			THRESHOLD_EJECTION_DISTANCE,
-			THRESHOLD_RADII_ENHANCE_FACTOR,
+			THRESHOLD_HIT_CENTRUM_DISTANCE,  //! inside this limit the body is considered to have hitted the central body and removed from the simulation [AU]
+			THRESHOLD_EJECTION_DISTANCE,     //! beyond this limit the body is removed from the simulation [AU]
+			THRESHOLD_RADII_ENHANCE_FACTOR,  //! two bodies collide when their mutual distance is smaller than the sum of their radii multiplied by this number. Real physical collision corresponds to the value of 1.0.
 			THRESHOLD_N
 		} threshold_t;
 
