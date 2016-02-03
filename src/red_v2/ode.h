@@ -18,6 +18,7 @@ public:
 	void swap();
 
 	virtual void calc_dy(uint16_t stage, ttt_t curr_t, const var_t* y_temp, var_t* dy) = 0;
+	virtual void print_result(ofstream **sout, data_rep_t repres) = 0;
 
 	void initialize();
 

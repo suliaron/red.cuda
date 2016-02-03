@@ -20,7 +20,7 @@ public:
 		\param sout   print the data to this stream
 		\param repres indicates the data representation of the file, i.e. text or binary
 	*/
-	void print_result(ofstream& sout, data_rep_t repres);
+	void print_result(ofstream** sout, data_rep_t repres);
 	//! Print the data of all bodies in text format
 	/*   
 		\param sout print the data to this stream
