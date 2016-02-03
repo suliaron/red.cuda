@@ -807,8 +807,6 @@ void pp_disk::cpu_calc_drag_accel_NSI(ttt_t curr_t, interaction_bound int_bound,
 
 void pp_disk::cpu_calc_grav_accel_SI( ttt_t curr_t, interaction_bound int_bound, const body_metadata_t* bmd, const param_t* p, const var4_t* r, const var4_t* v, var4_t* a)
 {
-	memset(a, 0, (int_bound.sink.y - int_bound.sink.x)*sizeof(var4_t));
-
 	for (uint32_t i = int_bound.sink.x; i < int_bound.sink.y; i++)
 	{
 		if (0 < bmd[i].id)
@@ -973,6 +971,9 @@ void pp_disk::cpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v
 {
 	const param_t* p = sim_data->p;
 	const body_metadata_t* bmd = sim_data->body_md;
+
+	uint32_t n_body = n_bodies->get_n_total_playing();
+	memset(dy, 0, n_body*sizeof(var4_t));
 
 	uint32_t n_sink = n_bodies->get_n_SI();
 	if (0 < n_sink)

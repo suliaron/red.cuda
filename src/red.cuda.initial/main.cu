@@ -1184,7 +1184,7 @@ uint32_t Birgit_scenario(body_disk_t& disk)
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
 	disk.nBody[BODY_TYPE_GIANTPLANET ] = 1;
-	disk.nBody[BODY_TYPE_TESTPARTICLE] = 1;
+	disk.nBody[BODY_TYPE_TESTPARTICLE] = 10;
 
 	uint32_t n_body = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[n_body];
@@ -2599,6 +2599,7 @@ void Birgit_scenario(string& dir, string& filename)
 			if (BODY_TYPE_TESTPARTICLE == sim_data->h_body_md[i].body_type)
 			{
 				sim_data->h_oe[i].sma = 2.4 + tp_counter * 0.01;
+				tp_counter++;
 			}
 
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
