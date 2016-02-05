@@ -48,6 +48,9 @@ void parameter::create_default()
 	simulation_length  = 0.0;		// [k day]
 	output_interval    = 0.0;		// [k day]
 
+	info_dt             = 5.0;      // [sec]
+	dump_dt             = 3600.0;   // [sec]
+
 	memset(threshold, 0, THRESHOLD_N * sizeof(var_t));
 }
 
@@ -200,6 +203,22 @@ void parameter::set_param(string& key, string& value)
 			throw string("Invalid number at: " + key);
 		}
 		output_interval = atof(value.c_str()) * constants::YearToDay;
+	}
+	else if (key == "info dt" || key == "idt")
+	{
+		if (!tools::is_number(value)) 
+		{
+			throw string("Invalid number at: " + key);
+		}
+		info_dt = atof(value.c_str());
+	}
+	else if (key == "dump dt" || key == "ddt")
+	{
+		if (!tools::is_number(value)) 
+		{
+			throw string("Invalid number at: " + key);
+		}
+		dump_dt = atof(value.c_str());
 	}
     else if (key == "ejection")
 	{

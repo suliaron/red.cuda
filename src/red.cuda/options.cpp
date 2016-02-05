@@ -45,8 +45,6 @@ void options::create_default()
 	print_to_screen     = false;
 	ef                  = false;
 
-	info_dt             = 5.0;     // [sec]
-
 	id_dev              = 0;
 	n_change_to_cpu     = 100;
 
@@ -90,16 +88,6 @@ void options::parse(int argc, const char** argv)
 		else if (p == "-ef")
 		{
 			ef = true;
-		}
-
-		else if (p == "--info-dt" || p == "-i_dt")
-		{
-			i++;
-			if (!tools::is_number(argv[i])) 
-			{
-				throw string("Invalid number at: " + p);
-			}
-			info_dt = atof(argv[i]);
 		}
 
 		else if (p == "--id_active_device" || p == "-id_dev")

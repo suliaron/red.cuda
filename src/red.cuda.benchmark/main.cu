@@ -2453,7 +2453,7 @@ void create_filename(option_t& opt, cpu_info_t& cpu_info, string& result_filenam
 
 	if (COMPUTING_DEVICE_GPU == opt.comp_dev)
 	{
-		cuda_dev_name = redutilcu::get_name_cuda_device(opt.id_dev);
+		cuda_dev_name = redutilcu::get_device_name(opt.id_dev);
 		std::replace(cuda_dev_name.begin(), cuda_dev_name.end(), ' ', '_');
 	}
 	else

@@ -119,7 +119,7 @@ inline int _ConvertSMVer2Cores(int major, int minor)
 }
 // end of GPU Architecture definitions
 
-string get_name_cuda_device(int id_dev)
+string get_device_name(int id_dev)
 {
 	cudaDeviceProp deviceProp;
     CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, id_dev));
@@ -223,16 +223,6 @@ void device_query(ostream& sout, int id_dev)
     sProfileString += "\n";
 
 	sout << sProfileString;
-}
-
-string get_device_name(int id_dev)
-{
-    cudaDeviceProp deviceProp;
-    CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, id_dev));
-
-	string name = deviceProp.name;
-
-	return name;
 }
 
 void set_kernel_launch_param(uint32_t n_data, uint16_t n_tpb, dim3& grid, dim3& block)

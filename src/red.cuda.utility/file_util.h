@@ -7,12 +7,12 @@ namespace redutilcu
 {
 	namespace file 
 	{
-		string combine_path(const std::string& dir, const std::string& filename);
+		std::string combine_path(const std::string& dir, const std::string& filename);
 
-		string get_filename(const std::string& path);
-		string get_filename_without_ext(const std::string& path);
-		string get_directory(const std::string& path);
-		string get_extension(const std::string& path);
+		std::string get_filename(const std::string& path);
+		std::string get_filename_without_ext(const std::string& path);
+		std::string get_directory(const std::string& path);
+		std::string get_extension(const std::string& path);
 
 		uint32_t load_ascii_file(const std::string& path, std::string& result);
 		void load_binary_file(const std::string& path, size_t n_data, var_t* data);

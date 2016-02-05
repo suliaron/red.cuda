@@ -15,7 +15,7 @@ namespace redutilcu
 
 	int get_id_fastest_cuda_device();
 	int get_n_cuda_device();
-	string get_name_cuda_device(int id_dev);
+	std::string get_device_name(int id_dev);
 
 	void set_kernel_launch_param(uint32_t n_data, uint16_t n_tpb, dim3& grid, dim3& block);
 
@@ -49,7 +49,7 @@ namespace redutilcu
 
 
 	void set_device(int id_of_target_dev, ostream& sout);
-	void print_array(string path, int n, var_t *data, computing_device_t comp_dev);
+	void print_array(std::string path, int n, var_t *data, computing_device_t comp_dev);
 
 	void create_aliases(computing_device_t comp_dev, pp_disk_t::sim_data_t *sd);
 } /* redutilcu */

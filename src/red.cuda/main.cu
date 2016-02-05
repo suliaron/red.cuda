@@ -224,6 +224,29 @@ void print_data(const options& opt, pp_disk* ppd, pp_disk_t::integral_t* integra
 	ppd->print_integral_data(path_integral, integrals[1]);
 }
 
+void print_dump(const options& opt, pp_disk* ppd, string& prefix, string& ext, ofstream* slog)
+{
+	string fn_data = prefix + "dump." + ext;
+	string path_data = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], fn_data);
+	ppd->print_data(path_data, opt.param->output_data_rep);
+
+	string fn_data_info = prefix + "dump.info." + ext;
+	string path_data_info = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], fn_data_info);
+	ppd->print_data_info(path_data_info, opt.param->output_data_rep);
+
+	string path = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], "start_files.txt");
+	ofstream sout(path.c_str(), ios_base::out);
+	if (sout)
+	{
+		sout << fn_data_info << endl;
+		sout << fn_data << endl;
+	}
+	else
+	{
+		throw string("Cannot open " + path + "!");
+	}
+}
+
 ttt_t get_length(const options& opt, const pp_disk* ppd, string& prefix, string& ext)
 {
 	ifstream input;
@@ -412,8 +435,6 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	static string path_integral_event = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INTEGRAL_EVENT] + ".txt");
 	static string path_event          = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_EVENT] + ".txt");
 
-	uint32_t n_removed = 0;
-
 	ttt_t ps = 0.0;
 	ttt_t dt = 0.0;
 
@@ -449,7 +470,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		print_data(opt, ppd, integrals, n_print, path_integral, prefix, ext, slog);
 		length = opt.param->simulation_length;
 	}
-	// This is a restart, so find out the length of this restart
+	// This is a restart, so find out the length (the simulation must ended at the original length)
 	else
 	{
 		length = get_length(opt, ppd, prefix, ext);
@@ -481,6 +502,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			}
 		}
 
+		// TODO: egységesíteni ezt és a collision-t: check_for_event()
 		if ((0.0 < opt.param->threshold[THRESHOLD_EJECTION_DISTANCE] || 0.0 < opt.param->threshold[THRESHOLD_HIT_CENTRUM_DISTANCE]))
 		{
 			bool eje_hc = ppd->check_for_ejection_hit_centrum();
@@ -534,7 +556,6 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		{
 			ppd->set_event_counter(EVENT_COUNTER_NAME_LAST_CLEAR, 0);
 			ppd->rebuild_vectors();
-			n_removed += ppd->n_bodies->n_removed;
 			if (opt.verbose)
 			{
 				string msg = "Rebuild the vectors (removed " + redutilcu::number_to_string(ppd->n_bodies->n_removed) + " inactive bodies at t: " + redutilcu::number_to_string(ppd->t / constants::Gauss) + " [d])";
@@ -553,7 +574,18 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 			}
 		}
 
-		if (opt.info_dt < (clock() - time_last_info) / (double)CLOCKS_PER_SEC) 
+		if (opt.param->dump_dt < (clock() - time_last_dump) / (double)CLOCKS_PER_SEC)
+		{
+			time_last_dump = clock();
+			print_dump(opt, ppd, prefix, ext, slog);
+			if (opt.verbose)
+			{
+				string msg = "Dump file was created";
+				file::log_message(*slog, msg, opt.print_to_screen);
+			}
+		}
+
+		if (opt.param->info_dt < (clock() - time_last_info) / (double)CLOCKS_PER_SEC)
 		{
 			time_last_info = clock();
 			print_info(*sinfo, ppd, intgr, dt, &T_CPU, &dT_CPU);

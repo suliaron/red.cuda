@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-oDir C:\Work\red.cuda.Results\Birgit_2 -f input</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-oDir C:\Work\red.cuda.Results\CollStatRezso\Test_BinaryO -f input</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
