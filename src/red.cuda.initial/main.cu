@@ -1,5 +1,4 @@
-﻿// includes, system 
-#include <algorithm>
+﻿#include <algorithm>
 #include <cmath>
 #include <ctime>
 #include <cassert>
@@ -13,14 +12,14 @@
 #include <vector>
 #include <float.h>
 
-// includes, project
 #include "distribution.h"
 #include "nebula.h"
+#include "red.cuda.initial.type.h"
+#include "util_init.h"
+
 #include "red_constants.h"
 #include "red_type.h"
 #include "redutilcu.h"
-#include "util_init.h"
-#include "red.cuda.initial.type.h"
 
 #if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 

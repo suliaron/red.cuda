@@ -44,23 +44,21 @@ int_rungekutta8.o \
 integrator.o \
 main.o \
 nbody_exception.o \
-#number_of_bodies.o \
 options.o \
 parameter.o \
 pp_disk.o \
-test.o \
-#tokenizer.o
+test.o
 
 RED_INITIAL_OBJS := \
 distribution.o \
-main.o
+main.o \
 nebula.o \
-util_init.o \
+util_init.o
 
 RED_UTILITY_OBJS := \
 file_util.o \
 red_test.o \
-tokenizer.o
+tokenizer.o \
 tools.o \
 util.o
 

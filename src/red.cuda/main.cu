@@ -12,7 +12,6 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-// includes project
 #include "nbody_exception.h"
 #include "integrator.h"
 #include "options.h"
