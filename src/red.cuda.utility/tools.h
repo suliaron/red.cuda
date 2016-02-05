@@ -1,9 +1,6 @@
 #pragma once
-
-//includes system
 #include <string>
 
-// includes project
 #include "red_type.h"
 
 namespace redutilcu
@@ -74,4 +71,4 @@ namespace redutilcu
 		void print_body_metadata(const pp_disk_t::body_metadata_t *b);
 		void print_body_metadata(const pp_disk_t::body_metadata_new_t *b);
 	} /* tools */
-} /* redutilcu_tools */
+} /* redutilcu */

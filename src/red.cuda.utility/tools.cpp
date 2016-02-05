@@ -1,4 +1,3 @@
-// includes system
 #include <cctype>
 #include <cmath>
 #include <ctime>
@@ -9,7 +8,6 @@
 #include <cstdlib>
 #include <string.h>
 
-// includes project
 #include "tools.h"
 #include "red_constants.h"
 #include "red_macro.h"
