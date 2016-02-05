@@ -32,21 +32,21 @@ public:
 
 	fargo_gas_disk_params_t params;
 
-	vector<var_t*> h_density;    //!< Gas density in the HOST memory
-	vector<var_t*> d_density;    //!< Gas density in the DEVICE memory
-	vector<var_t*> density;      //!< Alias to the gas density (either in the HOST or the DEVICE memory)
+	std::vector<var_t*> h_density;    //!< Gas density in the HOST memory
+	std::vector<var_t*> d_density;    //!< Gas density in the DEVICE memory
+	std::vector<var_t*> density;      //!< Alias to the gas density (either in the HOST or the DEVICE memory)
 
-	vector<var_t*> h_vrad;       //!< Gas radial velocity in the HOST memory
-	vector<var_t*> d_vrad;       //!< Gas radial velocity in the DEVICE memory
-	vector<var_t*> vrad;         //!< Alias to the gas radial velocity (either in the HOST or the DEVICE memory)
+	std::vector<var_t*> h_vrad;       //!< Gas radial velocity in the HOST memory
+	std::vector<var_t*> d_vrad;       //!< Gas radial velocity in the DEVICE memory
+	std::vector<var_t*> vrad;         //!< Alias to the gas radial velocity (either in the HOST or the DEVICE memory)
 
-	vector<var_t*> h_vtheta;     //!< Gas azimuthal velocity in the HOST memory
-	vector<var_t*> d_vtheta;     //!< Gas azimuthal velocity in the DEVICE memory
-	vector<var_t*> vtheta;       //!< Alias to the gas azimuthal velocity (either in the HOST or the DEVICE memory)
+	std::vector<var_t*> h_vtheta;     //!< Gas azimuthal velocity in the HOST memory
+	std::vector<var_t*> d_vtheta;     //!< Gas azimuthal velocity in the DEVICE memory
+	std::vector<var_t*> vtheta;       //!< Alias to the gas azimuthal velocity (either in the HOST or the DEVICE memory)
 
-	vector<var_t*> h_used_rad;
-	vector<var_t*> d_used_rad;
-	vector<var_t*> used_rad;
+	std::vector<var_t*> h_used_rad;
+	std::vector<var_t*> d_used_rad;
+	std::vector<var_t*> used_rad;
 
 private:
 	void initialize();

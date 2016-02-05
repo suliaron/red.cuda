@@ -1,6 +1,5 @@
 #pragma once
 
-// includes, project
 #include "red_type.h"
 
 class gas_component

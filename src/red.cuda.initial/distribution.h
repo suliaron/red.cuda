@@ -1,8 +1,5 @@
 #pragma once
 
-// includes, system 
-
-// includes, project
 #include "red_macro.h"
 #include "red_type.h"
 

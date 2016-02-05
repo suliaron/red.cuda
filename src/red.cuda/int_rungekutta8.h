@@ -65,6 +65,6 @@ private:
 	void call_kernel_calc_y_np1(int n_var);
 	void call_kernel_calc_error(int n_var);
 
-	vector<vector <var4_t*> >	dydx;	//!< Holds the derivatives for the differential equations
-	var4_t**                     d_dydt; //!< Vector of vectors on the device: contains a copy of the dydx vector
+	std::vector<std::vector <var4_t*> >	dydx;	//!< Holds the derivatives for the differential equations
+	var4_t**                     d_dydt;        //!< Vector of vectors on the device: contains a copy of the dydx vector
 };

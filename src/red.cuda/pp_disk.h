@@ -199,7 +199,7 @@ private:
 									      
 	pp_disk_t::event_data_t* events;			      //!< Vector on the host containing data for events (one colliding pair multiple occurances)
 	pp_disk_t::event_data_t* d_events;			      //!< Vector on the device containing data for events (one colliding pair multiple occurances)
-	vector<pp_disk_t::event_data_t> sp_events;	      //!< Vector on the host containing data for events but  (one colliding pair one occurances)
+	std::vector<pp_disk_t::event_data_t> sp_events;	  //!< Vector on the host containing data for events but  (one colliding pair one occurances)
 
-	vector<std::string> body_names;
+	std::vector<std::string> body_names;
 };

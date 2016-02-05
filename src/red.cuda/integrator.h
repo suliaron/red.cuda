@@ -55,17 +55,17 @@ protected:
 	bool adaptive;                      //!< True if the method estimates the error and accordingly adjusts the step-size	
 	var_t tolerance;                    //!< The maximum of the allowed local truncation error
 
-	vector<vector <var4_t*> > h_dydx;    //!< Differentials in the HOST memory
-	vector<vector <var4_t*> > d_dydx;    //!< Differentials in the DEVICE memory
-	vector<vector <var4_t*> > dydx;      //!< Alias to the differentials (either in the HOST or the DEVICE memory)
+	std::vector<std::vector <var4_t*> > h_dydx;    //!< Differentials in the HOST memory
+	std::vector<std::vector <var4_t*> > d_dydx;    //!< Differentials in the DEVICE memory
+	std::vector<std::vector <var4_t*> > dydx;      //!< Alias to the differentials (either in the HOST or the DEVICE memory)
 
-	vector<var4_t*> h_ytemp;	            //!< Holds the temporary solution approximation along the step in the HOST memory
-	vector<var4_t*> d_ytemp;	            //!< Holds the temporary solution approximation along the step in the DEVICE memory
-	vector<var4_t*> ytemp;	            //!< Alias either to h_ytemp or d_ytemp depending on the executing processing unit
+	std::vector<var4_t*> h_ytemp;	            //!< Holds the temporary solution approximation along the step in the HOST memory
+	std::vector<var4_t*> d_ytemp;	            //!< Holds the temporary solution approximation along the step in the DEVICE memory
+	std::vector<var4_t*> ytemp;	            //!< Alias either to h_ytemp or d_ytemp depending on the executing processing unit
 
-	vector<var_t*> h_err;	            //!< Holds the leading local truncation error for each variable in HOST memory
-	vector<var_t*> d_err;	            //!< Holds the leading local truncation error for each variable in DEVICE memory
-	vector<var_t*> err;                 //!< Alias to the leading local truncation error (either in the HOST or the DEVICE memory)
+	std::vector<var_t*> h_err;	            //!< Holds the leading local truncation error for each variable in HOST memory
+	std::vector<var_t*> d_err;	            //!< Holds the leading local truncation error for each variable in DEVICE memory
+	std::vector<var_t*> err;                 //!< Alias to the leading local truncation error (either in the HOST or the DEVICE memory)
 
 private:
 	void initialize();
