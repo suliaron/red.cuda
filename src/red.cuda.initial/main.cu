@@ -25,9 +25,6 @@
 
 #include <windows.h>
 
-using namespace std;
-using namespace redutilcu;
-
 typedef unsigned long ulong;
 
 inline void delay(ulong ms)
@@ -44,6 +41,8 @@ inline void delay(ulong ms)
 }
 #endif 
 
+using namespace std;
+using namespace redutilcu;
 
 namespace ephemeris_major_planets
 {
