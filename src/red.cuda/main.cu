@@ -106,7 +106,8 @@ string create_prefix(const options& opt)
 				"E",
 				"RK2",
 				"RK4",
-				"RKF8"
+				"RK5",
+				"RKF7"
 	};
 
 	string prefix;
@@ -128,7 +129,7 @@ string create_prefix(const options& opt)
 		// as: adaptive step-size, fs: fix step-size
 		string adapt = (opt.param->adaptive == true ? "as" : "fs");
 		string int_name(integrator_type_short_name[opt.param->int_type]);
-		prefix += config + sep + dev + sep + sep + adapt + sep + int_name + sep;
+		prefix += config + sep + dev + sep + adapt + sep + int_name + sep;
 	}
 
 	return prefix;
