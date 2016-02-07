@@ -294,7 +294,7 @@ static __global__
 
 		// Calculate the distance from the barycenter
 		var_t r2 = SQR(r[i].x) + SQR(r[i].y) + SQR(r[i].z);
-		if (     ed2 < r2)
+		if (ed2 < r2)
 		{
 			k = atomicAdd(event_counter, 1);
 			pp_disk_utility::store_event_data(EVENT_NAME_EJECTION,    curr_t, sqrt(r2), 0, i, p, r, v, bmd, &events[k]);
@@ -1098,7 +1098,7 @@ void pp_disk::cpu_check_for_ejection_hit_centrum()
 		{
 			// Calculate the distance from the barycenter
 			var_t r2 = SQR(r[i].x) + SQR(r[i].y) + SQR(r[i].z);
-			if (     ed2 < r2)
+			if (ed2 < r2)
 			{
 				pp_disk_utility::store_event_data(EVENT_NAME_EJECTION,    t, sqrt(r2), 0, i, p, r, v, bmd, &events[event_counter]);
 				event_counter++;
@@ -1138,7 +1138,7 @@ void pp_disk::cpu_check_for_collision(interaction_bound int_bound, bool SI_NSI, 
 			for (uint32_t j = i + 1; j < int_bound.source.y; j++) 
 			{
 				/* Skip inactive bodies, i.e. id < 0 and the star type bodies*/
-				if (0 > bmd[j].id && BODY_TYPE_STAR != bmd[i].body_type)
+				if (0 > bmd[j].id && BODY_TYPE_STAR != bmd[j].body_type)
 				{
 					continue;
 				}

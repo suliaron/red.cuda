@@ -22,20 +22,14 @@
 #include "redutilcu.h"
 
 #if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
-
 #include <windows.h>
-
-typedef unsigned long ulong;
-
-inline void delay(ulong ms)
+inline void delay(unsigned long ms)
 {
 	Sleep( ms );
 }
 #else  /* presume POSIX */
-
 #include <unistd.h>
-
-inline void delay(ulong ms)
+inline void delay(unsigned long ms)
 {
 	usleep( ms * 1000 );
 }
@@ -260,7 +254,8 @@ void populate_disk(ttt_t t0, body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 	pp_disk_t::body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
 	orbelem_t oe = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
-    // The id of each body must be larger than 0 in order to indicate inactive body with negative id (ie. zero is not good)
+    // The id of each body must be larger than 0 in order to indicate inactive body with negative id 
+	// (ie. zero is not good)
     uint32_t bodyIdx = 0;
 	uint32_t bodyId  = 1;
 	for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)
@@ -300,7 +295,8 @@ void populate_disk(ttt_t t0, body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 				}
 			}
 
-			if (BODY_TYPE_STAR == body_type)
+			// The primary star
+			if (BODY_TYPE_STAR == body_type && 1 == bodyId)
 			{
 				oe.sma = oe.ecc = oe.inc = oe.peri = oe.node = oe.mean = 0.0;
 			}
@@ -321,12 +317,12 @@ void populate_disk(ttt_t t0, body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 void calculate_phase(const pp_disk_t::sim_data_t* sim_data, uint32_t n_body, ttt_t &dt)
 {
 	var_t min_P = DBL_MAX;
-	// The mass of the central star
+	// The mass of the primary star
 	var_t m0    = sim_data->h_p[0].mass;
 	var4_t rVec = {0.0, 0.0, 0.0, 0.0};
 	var4_t vVec = {0.0, 0.0, 0.0, 0.0};
 
-	// The coordinates of the central star
+	// The coordinates of the primary star
 	sim_data->h_y[0][0] = rVec;
 	sim_data->h_y[1][0] = vVec;
 	for (uint32_t i = 1; i < n_body; i++)
@@ -1242,6 +1238,72 @@ uint32_t Birgit_scenario(body_disk_t& disk)
 	return seed;
 }
 
+uint32_t Elke_binary_test(body_disk_t& disk)
+{
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
+
+	const var_t rhoSilicate = 2.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+
+	disk.nBody[BODY_TYPE_STAR        ] = 2;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 100;
+
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at  = new var_t[n_body];
+
+    uint32_t bodyIdx = 0;
+	int type = BODY_TYPE_STAR;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 100.0, 100.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
+		disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), constants::SolarRadiusToAu, constants::SolarRadiusToAu);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		disk.names.push_back("primary_star");
+		disk.names.push_back("secondary_star");
+		for (int i = 0; i < disk.nBody[type]; bodyIdx++, i++)
+		{
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+
+	type = BODY_TYPE_PROTOPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 2.0);
+
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new rayleigh_distribution(rand(), 0.02);
+		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC].x = 0.0;
+		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC].y = 0.2;
+
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0*constants::CeresToSolar, 1.0*constants::CeresToSolar);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), rhoSilicate, rhoSilicate);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; bodyIdx++, i++) 
+		{
+			disk.names.push_back(create_name(i + 1, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+
+	return seed;
+}
 } /* set_parameters */
 
 namespace create_disk
@@ -2638,6 +2700,97 @@ void Birgit_scenario(string& dir, string& filename)
 	delete sim_data;
 }
 
+void Elke_binary_test(string& dir, string& filename)
+{
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
+	body_disk_t disk;
+
+	uint32_t seed = set_parameters::Elke_binary_test(disk);
+
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
+
+	populate_disk(t0, disk, sim_data);
+
+	// Calculate coordinates, velocities and minimal orbital period from the orbital elements
+	ttt_t dt = 0.0;
+	{
+		var_t min_P = DBL_MAX;
+		// The mass of the primary star
+		var_t m0 = sim_data->h_p[0].mass;
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the primary star
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
+		int gp_counter = 0;
+		for (uint32_t i = 1; i < n_body; i++)
+		{
+			if (BODY_TYPE_GIANTPLANET == sim_data->h_body_md[i].body_type && gp_counter < 3)
+			{				
+				if (0 == gp_counter)
+				{
+					disk.names[i] = "Jupiter";
+					sim_data->h_p[i].mass          = 1.0 * constants::JupiterToSolar;
+					sim_data->h_p[i].radius        = 71492.0 * constants::KilometerToAu;
+					sim_data->h_p[i].density       = tools::calc_density(sim_data->h_p[i].mass, sim_data->h_p[i].radius);
+					ttt_t epoch = extract_from_horizon_output(ephemeris_major_planets::date_20150511::jupiter_oe, sim_data->h_oe[i]);
+				}
+				gp_counter++;
+			}
+			if (0.4 > sim_data->h_oe[i].sma)
+			{
+				sim_data->h_oe[i].sma = 0.4;
+			}
+
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
+			ttt_t P = tools::calc_orbital_period(mu, sim_data->h_oe[i].sma);
+			if (min_P > P)
+			{
+				min_P = P;
+			}
+		}
+		dt = min_P / 1000.0;
+	}
+
+	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
+
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+} // end Elke_binary_test
 } /* create_disk */
 
 
@@ -2713,10 +2866,9 @@ int main(int argc, const char **argv)
 	string filename;
 	string output_path;
 
-	parse_options(argc, argv, outDir, filename);
-
 	try
 	{
+		parse_options(argc, argv, outDir, filename);
 
 #if 0
 		{
@@ -2726,14 +2878,16 @@ int main(int argc, const char **argv)
 		}
 #endif	
 
-#if 1
+#if 0
 		{
 			project_collision_Rezso_2D::create_init_cond(outDir);
 			return (EXIT_SUCCESS);
 		}
 #endif	
 
-		create_disk::Birgit_scenario(outDir, filename);
+		create_disk::Elke_binary_test(outDir, filename);
+
+		//create_disk::Birgit_scenario(outDir, filename);
 		//create_disk::solar_system(outDir, filename);
 		//create_disk::Hansen_2009(outDir, filename);
 		//create_disk::Chambers2001(outDir, filename);
