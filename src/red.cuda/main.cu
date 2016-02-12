@@ -523,7 +523,13 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 		// make the integration step, and measure the time it takes
 		clock_t T0_CPU = clock();
+//DEBUG CODE
+printf("ppd->t: %24.16le\t", ppd->t);
+//DEBUG CODE
 		dt = intgr->step();
+//DEBUG CODE
+printf("ppd->t: %24.16le\n", ppd->t);
+//DEBUG CODE
 		dT_CPU = (clock() - T0_CPU);
 		T_CPU += dT_CPU;
 		ps += fabs(dt);

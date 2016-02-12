@@ -1245,10 +1245,12 @@ uint32_t Elke_binary_test(body_disk_t& disk)
 	//The pseudo-random number generator is initialized using the argument passed as seed.
 	srand(seed);
 
-	const var_t rhoSilicate = 2.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+	const var_t rhoSilicate = 2.0   /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+	const var_t rhoJupiter  = 1.326 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
 	disk.nBody[BODY_TYPE_STAR        ] = 2;
-	disk.nBody[BODY_TYPE_PROTOPLANET ] = 100;
+	disk.nBody[BODY_TYPE_GIANTPLANET ] = 1;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 10000;
 
 	uint32_t n_body = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[n_body];
@@ -1258,11 +1260,11 @@ uint32_t Elke_binary_test(body_disk_t& disk)
 	int type = BODY_TYPE_STAR;
 	{
 		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 100.0, 100.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.1, 0.1);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 0.0 * PI);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 0.0 * PI);
 
 		disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
 		disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), constants::SolarRadiusToAu, constants::SolarRadiusToAu);
@@ -1277,9 +1279,28 @@ uint32_t Elke_binary_test(body_disk_t& disk)
 		}
 	}
 
+	type = BODY_TYPE_GIANTPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 5.2, 5.2);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0*constants::JupiterToSolar, 1.0*constants::JupiterToSolar);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), rhoJupiter, rhoJupiter);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		disk.names.push_back("Jupiter");
+		disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+		disk.stop_at[bodyIdx] = 0.0;
+		bodyIdx++;
+	}
+
 	type = BODY_TYPE_PROTOPLANET;
 	{
-		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 2.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 0.5, 4.0);
 
 		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new rayleigh_distribution(rand(), 0.02);
 		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC].x = 0.0;
@@ -1304,6 +1325,58 @@ uint32_t Elke_binary_test(body_disk_t& disk)
 
 	return seed;
 }
+
+uint32_t Colliding_bodies(body_disk_t& disk)
+{
+	uint32_t seed = (uint32_t)time(NULL);
+	cout << "The seed number is " << seed << endl;
+	//The pseudo-random number generator is initialized using the argument passed as seed.
+	srand(seed);
+
+	disk.nBody[BODY_TYPE_STAR       ] = 1;
+	disk.nBody[BODY_TYPE_PROTOPLANET] = 2;
+
+	uint32_t n_body = calc_number_of_bodies(disk);
+	disk.mig_type = new migration_type_t[n_body];
+	disk.stop_at = new var_t[n_body];
+
+    uint32_t bodyIdx = 0;
+	int type = BODY_TYPE_STAR;
+
+	disk.names.push_back("star");
+	disk.pp_d[type].item[MASS]       = new uniform_distribution(rand(), 1.0, 1.0);
+	disk.pp_d[type].item[RADIUS]     = new uniform_distribution(rand(), 1.0*constants::SolarRadiusToAu, 1.0*constants::SolarRadiusToAu);
+	disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+	disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+	disk.stop_at[bodyIdx] = 0.0;
+
+	type = BODY_TYPE_PROTOPLANET;
+	{
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 1.0, 2.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(),	1.0*constants::CeresToSolar, 1.0*constants::CeresToSolar);
+		//disk.pp_d[type].item[RADIUS    ] = new uniform_distribution(rand(), 1.0*constants::MeterToAu, 1.0*constants::MeterToAu);
+		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7*constants::GramPerCm3ToSolarPerAu3, 2.7*constants::GramPerCm3ToSolarPerAu3);
+		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
+
+		for (int i = 0; i < disk.nBody[type]; i++) 
+		{
+            bodyIdx++;
+			disk.names.push_back(create_name(i, type));
+			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
+			disk.stop_at[bodyIdx] = 0.0;
+		}
+	}
+
+	return seed;
+}
+
 } /* set_parameters */
 
 namespace create_disk
@@ -2791,8 +2864,109 @@ void Elke_binary_test(string& dir, string& filename)
 
 	delete sim_data;
 } // end Elke_binary_test
-} /* create_disk */
 
+void Colliding_bodies(string& dir, string& filename)
+{
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     Mean solar day    |           D | time
+	 */
+
+	// Epoch for the disk's state
+	ttt_t t0 = 0.0;
+	body_disk_t disk;
+
+	uint32_t seed = set_parameters::Colliding_bodies(disk);
+
+	pp_disk_t::sim_data_t* sim_data = new pp_disk_t::sim_data_t;
+	uint32_t n_body = calc_number_of_bodies(disk);
+	allocate_host_storage(sim_data, n_body);
+
+	populate_disk(t0, disk, sim_data);
+
+	// Calculate coordinates, velocities and minimal orbital period from the orbital elements
+	ttt_t dt = 0.0;
+	{
+		var_t min_P = DBL_MAX;
+		// The mass of the primary star
+		var_t m0 = sim_data->h_p[0].mass;
+		var4_t rVec = {0.0, 0.0, 0.0, 0.0};
+		var4_t vVec = {0.0, 0.0, 0.0, 0.0};
+
+		// The coordinates of the primary star
+		sim_data->h_y[0][0] = rVec;
+		sim_data->h_y[1][0] = vVec;
+		uint32_t pp_counter = 0;
+		for (uint32_t i = 1; i < n_body; i++)
+		{
+			if (BODY_TYPE_PROTOPLANET == sim_data->h_body_md[i].body_type)
+			{				
+				if (0 == pp_counter)
+				{
+					disk.names[i] = "target";
+					sim_data->h_oe[i].sma = 2.7;
+					sim_data->h_oe[i].ecc = 0.05;
+					sim_data->h_oe[i].inc = 0.0;
+					sim_data->h_oe[i].peri = 0.0;
+					sim_data->h_oe[i].node = 0.0;
+					sim_data->h_oe[i].mean = 0.0;
+				}
+				else if (1 == pp_counter)
+				{
+					disk.names[i] = "projectile";
+					sim_data->h_oe[i].sma = 2.7;
+					sim_data->h_oe[i].ecc = 0.05;
+					sim_data->h_oe[i].inc = 0.0;
+					sim_data->h_oe[i].peri = 0.0;
+					sim_data->h_oe[i].node = 0.0;
+					sim_data->h_oe[i].mean = 0.01 * constants::DegreeToRadian;
+				}
+				pp_counter++;
+			}
+
+			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
+			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);
+			sim_data->h_y[0][i] = rVec;
+			sim_data->h_y[1][i] = vVec;
+			ttt_t P = tools::calc_orbital_period(mu, sim_data->h_oe[i].sma);
+			if (min_P > P)
+			{
+				min_P = P;
+			}
+		}
+		dt = min_P / 1000.0;
+	}
+
+	tools::transform_to_bc(n_body, sim_data);
+	tools::transform_time(n_body, sim_data);
+	tools::transform_velocity(n_body, sim_data);
+	t0 *= constants::Gauss;
+	dt *= constants::Gauss;
+
+	/*
+	 * The units are:
+	 *     Unit name         | Unit symbol | Quantity name
+	 *     -----------------------------------------------
+	 *     Astronomical unit |          AU | length
+	 *     Solar mass        |           S | mass
+	 *     k day             |          kD | time
+	 *
+	 * where k is the Gaussian gravitational constant, k = 0.01720209895 AU^(3/2) D^(-1) S^(-1/2)
+	 */
+
+	print_all_input_data(dir, filename, n_body, seed, t0, dt, disk, sim_data);
+
+	deallocate_host_storage(sim_data);
+
+	delete sim_data;
+}
+
+
+} /* create_disk */
 
 namespace project_collision_2D
 {
@@ -2884,9 +3058,8 @@ int main(int argc, const char **argv)
 			return (EXIT_SUCCESS);
 		}
 #endif	
-
-		create_disk::Elke_binary_test(outDir, filename);
-
+		create_disk::Colliding_bodies(outDir, filename);
+		//create_disk::Elke_binary_test(outDir, filename);
 		//create_disk::Birgit_scenario(outDir, filename);
 		//create_disk::solar_system(outDir, filename);
 		//create_disk::Hansen_2009(outDir, filename);

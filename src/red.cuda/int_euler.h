@@ -15,5 +15,5 @@ public:
 
 private:
 	void cpu_sum_vector(int n, const var_t* a, const var_t* b, var_t b_factor, var_t* result);
-	void calc_y_np1(int n_var);
+	void calc_y_np1(uint32_t n_var);
 };

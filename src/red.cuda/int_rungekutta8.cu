@@ -409,7 +409,7 @@ rungekutta8::rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance,
 rungekutta8::~rungekutta8()
 {}
 
-void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
+void rungekutta8::calc_ytemp_for_fr(uint32_t n_var, int r)
 {
 	int idx = 0;
 	for (int i = 0; i < 2; i++)
@@ -582,7 +582,7 @@ void rungekutta8::calc_ytemp_for_fr(int n_var, int r)
 	} /* for */
 }
 
-void rungekutta8::calc_error(int n_var)
+void rungekutta8::calc_error(uint32_t n_var)
 {
 	for (int i = 0; i < 2; i++)
 	{
@@ -603,7 +603,7 @@ void rungekutta8::calc_error(int n_var)
 	}
 }
 
-void rungekutta8::calc_y_np1(int n_var)
+void rungekutta8::calc_y_np1(uint32_t n_var)
 {
 	for (int i = 0; i < 2; i++)
 	{
@@ -687,11 +687,18 @@ ttt_t rungekutta8::step()
 				}
 			}
 
-			int n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_massive());
+			uint32_t n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_massive());
 			// Calculate the absolute values of the errors
 			calc_error(n_var);
 			max_err = dt_try * LAMBDA * get_max_error(n_var);
-			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
+			if (0.0 < max_err)
+			{
+				dt_next = dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
+			}
+			else
+			{	
+				dt_next = dt_try;
+			}
 		}
 		iter++;
 	} while (adaptive && max_err > tolerance);
@@ -779,7 +786,7 @@ c_rungekutta8::c_rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolera
 c_rungekutta8::~c_rungekutta8()
 {}
 
-void c_rungekutta8::call_kernel_calc_ytemp(int n_var, int r)
+void c_rungekutta8::call_kernel_calc_ytemp(uint32_t n_var, int r)
 {
 	static int idx_array[] = {0, 1, 2, 4, 7, 11, 16, 22, 29, 37, 46, 56, 67};
 
@@ -794,7 +801,7 @@ void c_rungekutta8::call_kernel_calc_ytemp(int n_var, int r)
 	}
 }
 
-void c_rungekutta8::call_kernel_calc_error(int n_var)
+void c_rungekutta8::call_kernel_calc_error(uint32_t n_var)
 {
 	for (int i = 0; i < 2; i++)
 	{
@@ -808,7 +815,7 @@ void c_rungekutta8::call_kernel_calc_error(int n_var)
 	}
 }
 
-void c_rungekutta8::call_kernel_calc_y_np1(int n_var)
+void c_rungekutta8::call_kernel_calc_y_np1(uint32_t n_var)
 {
 	for (int i = 0; i < 2; i++)
 	{
@@ -879,11 +886,18 @@ ttt_t c_rungekutta8::step()
 				}
 			}
 
-			int n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_total_playing() : ppd->n_bodies->get_n_massive());
+			uint32_t n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_total_playing() : ppd->n_bodies->get_n_massive());
 			// Calculate the absolute values of the errors
 			call_kernel_calc_error(n_var);
 			max_err = dt_try * LAMBDA * get_max_error(n_var);
-			dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
+			if (0.0 < max_err)
+			{
+				dt_next = dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
+			}
+			else
+			{	
+				dt_next = dt_try;
+			}
 		}
 		iter++;
 	} while (adaptive && max_err > tolerance);

@@ -37,13 +37,13 @@ private:
 	void cpu_calc_error(int_t n, var_t *err, const var_t *f0, const var_t *f10, const var_t *f11, const var_t *f12);
 	void cpu_calc_y_np1(int_t n, var_t *y_np1, ttt_t dt, const var_t *y_n, const var_t *f0, const var_t *f5, const var_t *f6, const var_t *f7, const var_t *f8, const var_t *f9, const var_t *f10, var_t b0, var_t b5, var_t b6, var_t b7, var_t b8, var_t b9, var_t b10);
 
-	void cpu_calc_ytemp_for_fr(int n_var, int r);
-	void cpu_calc_y_np1(int n_var);
-	void cpu_calc_error(int n_var);
+	void cpu_calc_ytemp_for_fr(uint32_t n_var, int r);
+	void cpu_calc_y_np1(uint32_t n_var);
+	void cpu_calc_error(uint32_t n_var);
 
-	void calc_ytemp_for_fr(int n_var, int r);
-	void calc_y_np1(int n_var);
-	void calc_error(int n_var);
+	void calc_ytemp_for_fr(uint32_t n_var, int r);
+	void calc_y_np1(uint32_t n_var);
+	void calc_error(uint32_t n_var);
 };
 
 
@@ -61,9 +61,9 @@ public:
 	ttt_t step();
 
 private:
-	void call_kernel_calc_ytemp(int n_var, int r);
-	void call_kernel_calc_y_np1(int n_var);
-	void call_kernel_calc_error(int n_var);
+	void call_kernel_calc_ytemp(uint32_t n_var, int r);
+	void call_kernel_calc_y_np1(uint32_t n_var);
+	void call_kernel_calc_error(uint32_t n_var);
 
 	std::vector<std::vector <var4_t*> >	dydx;	//!< Holds the derivatives for the differential equations
 	var4_t**                     d_dydt;        //!< Vector of vectors on the device: contains a copy of the dydx vector

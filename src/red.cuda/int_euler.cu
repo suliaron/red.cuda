@@ -50,7 +50,7 @@ euler::euler(pp_disk *ppd, ttt_t dt, computing_device_t comp_dev) :
 euler::~euler()
 {}
 
-void euler::calc_y_np1(int n_var)
+void euler::calc_y_np1(uint32_t n_var)
 {
 	for (int i = 0; i < 2; i++)
 	{	

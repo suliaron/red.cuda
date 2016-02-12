@@ -37,7 +37,7 @@ parameter::~parameter()
 
 void parameter::create_default()
 {
-	adaptive           = true;
+	adaptive           = false;
 	error_check_for_tp = false;
 
 	output_data_rep    = DATA_REPRESENTATION_ASCII;

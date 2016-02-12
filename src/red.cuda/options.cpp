@@ -310,8 +310,6 @@ void options::print_usage()
 	cout << "     -pts    | --print_to_screen              : verbose mode and print everything to the standard output stream too" << endl;
 	cout << "     -ef     |                                : use extended file names (use only for debuging purposes)" << endl;
 
-	cout << "     -i_dt   | --info-dt <number>             : the time interval in seconds between two subsequent information print to the screen (default value is 5 sec)" << endl;
-
 	cout << "     -id_dev | --id_active_device <number>    : the id of the device which will execute the code (default value is 0)" << endl;
 	cout << "     -n_chg  | --n_change_to_cpu <number>     : the threshold value for the total number of SI bodies to change to the CPU (default value is 100)" << endl;
 

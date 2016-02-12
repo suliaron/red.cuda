@@ -48,7 +48,7 @@ rungekutta2::rungekutta2(pp_disk *ppd, ttt_t dt, computing_device_t comp_dev) :
 rungekutta2::~rungekutta2()
 {}
 
-void rungekutta2::calc_ytemp_for_fr(int n_var, int r)
+void rungekutta2::calc_ytemp_for_fr(uint32_t n_var, int r)
 {
 	for (int i = 0; i < 2; i++)
 	{
@@ -68,7 +68,7 @@ void rungekutta2::calc_ytemp_for_fr(int n_var, int r)
 	}
 }
 
-void rungekutta2::calc_y_np1(int n_var)
+void rungekutta2::calc_y_np1(uint32_t n_var)
 {
 	for (int i = 0; i < 2; i++)
 	{

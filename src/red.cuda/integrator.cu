@@ -97,7 +97,7 @@ void integrator::allocate_host_storage(int n_body)
 		}
 		if (adaptive)
 		{
-			int n_var = NDIM * n_body;
+			uint32_t n_var = NDIM * n_body;
 			ALLOCATE_HOST_VECTOR((void**)&(h_err[i]), n_var * sizeof(var_t));
 		}
 	}
@@ -116,7 +116,7 @@ void integrator::allocate_device_storage(int n_body)
 		}
 		if (adaptive)
 		{
-			int n_var = NDIM * n_body;
+			uint32_t n_var = NDIM * n_body;
 			ALLOCATE_DEVICE_VECTOR((void**)&(d_err[i]), n_var * sizeof(var_t));
 		}
 	}

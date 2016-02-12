@@ -108,7 +108,7 @@ rungekutta4::rungekutta4(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance,
 rungekutta4::~rungekutta4()
 {}
 
-void rungekutta4::calc_ytemp_for_fr(int n_var, int r)
+void rungekutta4::calc_ytemp_for_fr(uint32_t n_var, int r)
 {
 	for (int i = 0; i < 2; i++)
 	{
@@ -128,7 +128,7 @@ void rungekutta4::calc_ytemp_for_fr(int n_var, int r)
 	}
 }
 
-void rungekutta4::calc_y_np1(int n_var)
+void rungekutta4::calc_y_np1(uint32_t n_var)
 {
 	for (int i = 0; i < 2; i++)
 	{
@@ -151,7 +151,7 @@ void rungekutta4::calc_y_np1(int n_var)
 	}
 }
 
-void rungekutta4::calc_error(int n_var)
+void rungekutta4::calc_error(uint32_t n_var)
 {
 	for (int i = 0; i < 2; i++)
 	{
@@ -222,11 +222,18 @@ ttt_t rungekutta4::step()
 				ppd->calc_dydx(i, stage, ttemp, ppd->sim_data->yout[0], ppd->sim_data->yout[1], dydx[i][stage]);
 			}
 
-			int n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_massive());
+			uint32_t n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_massive());
 			// calculate: err = abs(f4 - f5)
 			calc_error(n_var);
-			max_err = dt_try * LAMBDA * get_max_error(n_var);
-			dt_next = dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
+			max_err = LAMBDA * dt_try * get_max_error(n_var);
+			if (0.0 < max_err)
+			{
+				dt_next = dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
+			}
+			else
+			{	
+				dt_next = dt_try;
+			}
 		}
 		iter++;
 	} while (adaptive && max_err > tolerance);

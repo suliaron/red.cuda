@@ -22,7 +22,7 @@ private:
 	void cpu_calc_y_np1(int n, const var_t *y_n, const var_t *f1, const var_t *f2, const var_t *f3, const var_t *f4, var_t b0, var_t b1, var_t *y_np1);
 	void cpu_calc_error(int n, const var_t *f4, const var_t* f5, var_t *result);
 
-	void calc_ytemp_for_fr(int n_var, int r);
-	void calc_y_np1(int n_var);
-	void calc_error(int n_var);
+	void calc_ytemp_for_fr(uint32_t n_var, int r);
+	void calc_y_np1(uint32_t n_var);
+	void calc_error(uint32_t n_var);
 };
