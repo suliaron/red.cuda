@@ -8,6 +8,7 @@ class rtbp3D : public ode
 {
 public:
 	rtbp3D(uint16_t n_ppo, computing_device_t comp_dev);
+	rtbp3D(uint16_t n_ppo, ttt_t t, tbp3D_t::metadata_t *md, tbp3D_t::param_t* p, var_t* r, var_t* v, computing_device_t comp_dev);
 	~rtbp3D();
 
 	void load(std::string& path);
@@ -49,6 +50,8 @@ public:
 	*/
 	void print_integral_data_binary(ofstream& sout);
 
+	static void trans_to_descartes(const var4_t& u, const var4_t& uv, var3_t& r, var3_t& v);
+	static void trans_to_parameter(const var3_t& r, const var3_t& v, var4_t& u, var4_t& uv);
 	void trans_to_descartes_var(var_t& x, var_t& y, var_t& z, var_t& vx, var_t& vy, var_t& vz);
 	void calc_energy();
 	void calc_dy(uint16_t stage, ttt_t curr_t, const var_t* y_temp, var_t* dy);

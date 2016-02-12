@@ -86,6 +86,19 @@ void rtbp3D::trans_to_descartes_var(var_t& x, var_t& y, var_t& z, var_t& vx, var
 	vz = (2.0/r) * (h_y[2] * h_y[4] + h_y[3] * h_y[5] + h_y[0] * h_y[6] + h_y[1] * h_y[7]);		// vz = 2/r * (u3*vu1 - u4*vu2 - u1*vu3 + u2*vu4)
 }
 
+static void trans_to_descartes(const var4_t& u, const var4_t& uv, var3_t& r, var3_t& v)
+{
+	var_t r = SQR(u.x) + SQR(u.y) + SQR(u.z) + SQR(u.w);							// r = u1^2 + u2^2 + u3^2 + u4^2
+
+	r.x  = SQR(u.x) - SQR(u.y) - SQR(u.z) + SQR(u.w);									// x = u1^2 - u2^2 - u3^2 + u4^2
+//TODO
+	y  = 2.0 * (h_y[0] * h_y[1] - h_y[2] * h_y[3]);												// y = 2*(u1*u2 - u3*u4)
+	z  = 2.0 * (h_y[0] * h_y[2] - h_y[1] * h_y[3]);												// z = 2*(u1*u3 - u2*u4)
+	vx = (2.0/r) * (h_y[0] * h_y[4] - h_y[1] * h_y[5] - h_y[2] * h_y[6] + h_y[3] * h_y[7]);		// vx = 2/r * (u1*vu1 - u2*vu2 - u3*vu3 + u4*vu4)
+	vy = (2.0/r) * (h_y[1] * h_y[4] + h_y[0] * h_y[5] - h_y[3] * h_y[6] - h_y[2] * h_y[7]);		// vy = 2/r * (u2*vu1 - u1*vu2 - u4*vu3 + u3*vu4)
+	vz = (2.0/r) * (h_y[2] * h_y[4] + h_y[3] * h_y[5] + h_y[0] * h_y[6] + h_y[1] * h_y[7]);		// vz = 2/r * (u3*vu1 - u4*vu2 - u1*vu3 + u2*vu4)
+}
+
 //void rtbp3D::trans_to_regular_var(var_t& x, var_t& y, var_t& z, var_t& vx, var_t& vy, var_t& vz)
 //{
 //	var_t r = SQR(h_y[0]) + SQR(h_y[1]) + SQR(h_y[2]) + SQR(h_y[3]);							// r = u1^2 + u2^2 + u3^2 + u4^2

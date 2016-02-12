@@ -13,6 +13,12 @@
 #include "red_type.h"
 #include "redutilcu.h"
 
+typedef struct system
+			{
+				ode* f;
+				integrator* intgr;
+			} system_t;
+
 using namespace std;
 using namespace redutilcu;
 
@@ -80,44 +86,6 @@ void open_streams(const options* opt, ofstream** output, data_rep_t output_data_
 	}
 }
 
-//void print_result(const options* opt, ode* f, ofstream **sout)
-//{
-//	tbp1D* _tbp1D = dynamic_cast<tbp1D*>(f);
-//	rtbp1D* _rtbp1D = dynamic_cast<rtbp1D*>(f);
-//
-//	tbp3D* _tbp3D = dynamic_cast<tbp3D*>(f);
-//	rtbp3D* _rtbp3D = dynamic_cast<rtbp3D*>(f);
-//
-//	if (     0x0 != _tbp1D)
-//	{
-//		_tbp1D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
-//		_tbp1D->calc_energy();
-//		_tbp1D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
-//	}
-//	else if (0x0 != _rtbp1D)
-//	{
-//		_rtbp1D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
-//		_rtbp1D->calc_energy();
-//		_rtbp1D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
-//	}
-//	else if (0x0 != _tbp3D)
-//	{
-//		_tbp3D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
-//		_tbp3D->calc_energy();
-//		_tbp3D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
-//	}
-//	else if (0x0 != _rtbp3D)
-//	{
-//		_rtbp3D->print_result(       *sout[OUTPUT_NAME_DATA],   opt->param->output_data_rep);
-//		_rtbp3D->calc_energy();
-//		_rtbp3D->print_integral_data(*sout[OUTPUT_NAME_INTEGRAL], opt->param->output_data_rep);
-//	}
-//	else
-//	{
-//		throw string("Could not cast f to tbp1D*.");
-//	}
-//}
-
 void run_simulation(const options* opt, ode* f, integrator* intgr, ofstream** output)
 {
 	ttt_t ps = 0.0;
@@ -156,6 +124,25 @@ void run_simulation(const options* opt, ode* f, integrator* intgr, ofstream** ou
 			//print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &T_CPU, &dT_CPU);
 		}
 	} /* while : main cycle*/
+}
+
+void simulator(options* opt, vector<system_t>& systems, fstream** output)
+{
+	systems[0].intgr->step();
+	
+	// Create new system? check distance from central body
+	if (true)
+	{
+		var3_t r = {systems[0].f->h_y[0], systems[0].f->h_y[1], systems[0].f->h_y[2]};
+		var3_t v = {systems[0].f->h_y[3], systems[0].f->h_y[4], systems[0].f->h_y[5]};
+		var4_t u, uv;
+		ttt_t t = 0.0;
+		tbp3D* model = dynamic_cast<tbp3D*>(systems[0].f);
+		
+		rtbp3D::trans_to_parameter(r, v, u, uv);
+		ode* f = new rtbp3D(1, t, model->h_md, model->h_p, &r, &v, opt->comp_dev);
+		integrator* intgr = opt->create_integrator(*f, 0.01);
+	}
 }
 
 int main(int argc, const char** argv, const char** env)
@@ -199,6 +186,13 @@ int main(int argc, const char** argv, const char** env)
 		// OR use the solution provided by the Numerical Recepies
 		intgr->set_dt_min(1.0e-6); // day
 		intgr->set_max_iter(10);
+
+
+		system_t sys = {f, intgr};
+		vector<system_t> systems;
+
+		systems.push_back(sys);
+		simulator(opt, systems, output);
 
 		run_simulation(opt, f, intgr, output);
 
