@@ -518,18 +518,20 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 				ppd->print_event_data(path_event, *slog);
 				ppd->clear_event_counter();
+
+				time_last_dump = clock();
+				print_dump(opt, ppd, prefix, ext, slog);
+				if (opt.verbose)
+				{
+					string msg = "Dump file was created";
+					file::log_message(*slog, msg, opt.print_to_screen);
+				}
 			}
 		}
 
 		// make the integration step, and measure the time it takes
 		clock_t T0_CPU = clock();
-//DEBUG CODE
-printf("ppd->t: %24.16le\t", ppd->t);
-//DEBUG CODE
 		dt = intgr->step();
-//DEBUG CODE
-printf("ppd->t: %24.16le\n", ppd->t);
-//DEBUG CODE
 		dT_CPU = (clock() - T0_CPU);
 		T_CPU += dT_CPU;
 		ps += fabs(dt);
@@ -549,6 +551,14 @@ printf("ppd->t: %24.16le\n", ppd->t);
 
 				ppd->print_event_data(path_event, *slog);
 				ppd->clear_event_counter();
+
+				time_last_dump = clock();
+				print_dump(opt, ppd, prefix, ext, slog);
+				if (opt.verbose)
+				{
+					string msg = "Dump file was created";
+					file::log_message(*slog, msg, opt.print_to_screen);
+				}
 			}
 		}
 
