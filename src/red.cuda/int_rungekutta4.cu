@@ -232,7 +232,7 @@ ttt_t rungekutta4::step()
 			}
 			else
 			{	
-				dt_next = dt_try;
+				dt_next = 2.0 * dt_try;
 			}
 		}
 		iter++;

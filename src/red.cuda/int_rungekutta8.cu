@@ -690,14 +690,14 @@ ttt_t rungekutta8::step()
 			uint32_t n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_massive());
 			// Calculate the absolute values of the errors
 			calc_error(n_var);
-			max_err = dt_try * LAMBDA * get_max_error(n_var);
+			max_err = LAMBDA * dt_try * get_max_error(n_var);
 			if (0.0 < max_err)
 			{
 				dt_next = dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
 			}
 			else
 			{	
-				dt_next = dt_try;
+				dt_next = 2.0 * dt_try;
 			}
 		}
 		iter++;
@@ -889,14 +889,14 @@ ttt_t c_rungekutta8::step()
 			uint32_t n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_total_playing() : ppd->n_bodies->get_n_massive());
 			// Calculate the absolute values of the errors
 			call_kernel_calc_error(n_var);
-			max_err = dt_try * LAMBDA * get_max_error(n_var);
+			max_err = LAMBDA * dt_try * get_max_error(n_var);
 			if (0.0 < max_err)
 			{
 				dt_next = dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
 			}
 			else
 			{	
-				dt_next = dt_try;
+				dt_next = 2.0 * dt_try;
 			}
 		}
 		iter++;
