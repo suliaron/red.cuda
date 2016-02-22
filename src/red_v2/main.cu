@@ -126,7 +126,7 @@ void run_simulation(const options* opt, ode* f, integrator* intgr, ofstream** ou
 	} /* while : main cycle*/
 }
 
-void simulator(options* opt, vector<system_t>& systems, fstream** output)
+void simulator(options* opt, vector<system_t>& systems, ofstream** output)
 {
 	systems[0].intgr->step();
 	

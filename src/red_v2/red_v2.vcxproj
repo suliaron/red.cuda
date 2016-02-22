@@ -31,6 +31,7 @@
     <CudaCompile Include="rtbp3D.cu" />
     <CudaCompile Include="tbp1D.cu" />
     <CudaCompile Include="tbp3D.cu" />
+    <CudaCompile Include="threebody.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="options.cpp" />
@@ -50,6 +51,7 @@
     <ClInclude Include="rtbp3D.h" />
     <ClInclude Include="tbp1D.h" />
     <ClInclude Include="tbp3D.h" />
+    <ClInclude Include="threebody.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\red.cuda.utility\red.cuda.utility.vcxproj">
