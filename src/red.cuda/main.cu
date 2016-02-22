@@ -650,11 +650,10 @@ int main(int argc, const char** argv, const char** env)
 		string prefix = create_prefix(opt);
 		string path_log = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_LOG]) + ".txt";
 		slog = new ofstream(path_log.c_str(), ios::out | ios::app);
-		if (!slog) 
+		if (!slog)
 		{
 			throw string("Cannot open " + path_log + ".");
 		}
-
 #ifdef __GNUC__
 		string dummy = opt.param->get_data();
 		file::log_start(*slog, argc, argv, env, dummy, opt.print_to_screen);
@@ -680,11 +679,6 @@ int main(int argc, const char** argv, const char** env)
 		}
 
 	} /* try */
-	//catch (const nbody_exception& ex)
-	//{
-	//	cerr << "Error: " << ex.what() << endl;
-	//	file::log_message(*slog, "Error: " + string(ex.what()), false);
-	//}
 	catch (const string& msg)
 	{
 		cerr << "Error: " << msg << endl;
