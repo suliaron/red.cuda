@@ -36,6 +36,7 @@ typedef enum dyn_model
 
 			DYN_MODEL_RTBP1D,
 			DYN_MODEL_RTBP3D,
+
 			DYN_MODEL_N
 		} dyn_model_t;
 
@@ -50,7 +51,7 @@ typedef enum input_format_name
 typedef enum copy_direction
 		{
 			COPY_DIRECTION_TO_HOST,
-			COPY_DIRECTION_TO_DEICE,
+			COPY_DIRECTION_TO_DEVICE,
 			COPY_DIRECTION_TO_N
 		} copy_direction_t;
 
@@ -252,6 +253,19 @@ namespace tbp3D_t
 		var_t mu;
 	} param_t;
 } /* namespace tbp3D_t */
+
+namespace threebody_t
+{
+	typedef struct metadata
+	{
+		int32_t id;
+	} metadata_t;
+
+	typedef struct param
+	{
+		var_t m;
+	} param_t;
+} /* namespace threebody_t */
 
 namespace pp_disk_t
 {
