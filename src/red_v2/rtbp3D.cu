@@ -74,21 +74,21 @@ void rtbp3D::deallocate_device_storage()
 	FREE_DEVICE_VECTOR((void **)&(h_epoch));
 }
 
-void rtbp3D::trans_to_descartes_var(var_t& x, var_t& y, var_t& z, var_t& vx, var_t& vy, var_t& vz)
-{
-	var_t r = SQR(h_y[0]) + SQR(h_y[1]) + SQR(h_y[2]) + SQR(h_y[3]);							// r = u1^2 + u2^2 + u3^2 + u4^2
+//void rtbp3D::trans_to_descartes_var(var_t& x, var_t& y, var_t& z, var_t& vx, var_t& vy, var_t& vz)
+//{
+//	var_t r = SQR(h_y[0]) + SQR(h_y[1]) + SQR(h_y[2]) + SQR(h_y[3]);							// r = u1^2 + u2^2 + u3^2 + u4^2
+//
+//	x  = SQR(h_y[0]) - SQR(h_y[1]) - SQR(h_y[2]) + SQR(h_y[3]);									// x = u1^2 - u2^2 - u3^2 + u4^2
+//	y  = 2.0 * (h_y[0] * h_y[1] - h_y[2] * h_y[3]);												// y = 2*(u1*u2 - u3*u4)
+//	z  = 2.0 * (h_y[0] * h_y[2] - h_y[1] * h_y[3]);												// z = 2*(u1*u3 - u2*u4)
+//	vx = (2.0/r) * (h_y[0] * h_y[4] - h_y[1] * h_y[5] - h_y[2] * h_y[6] + h_y[3] * h_y[7]);		// vx = 2/r * (u1*vu1 - u2*vu2 - u3*vu3 + u4*vu4)
+//	vy = (2.0/r) * (h_y[1] * h_y[4] + h_y[0] * h_y[5] - h_y[3] * h_y[6] - h_y[2] * h_y[7]);		// vy = 2/r * (u2*vu1 - u1*vu2 - u4*vu3 + u3*vu4)
+//	vz = (2.0/r) * (h_y[2] * h_y[4] + h_y[3] * h_y[5] + h_y[0] * h_y[6] + h_y[1] * h_y[7]);		// vz = 2/r * (u3*vu1 - u4*vu2 - u1*vu3 + u2*vu4)
+//}
 
-	x  = SQR(h_y[0]) - SQR(h_y[1]) - SQR(h_y[2]) + SQR(h_y[3]);									// x = u1^2 - u2^2 - u3^2 + u4^2
-	y  = 2.0 * (h_y[0] * h_y[1] - h_y[2] * h_y[3]);												// y = 2*(u1*u2 - u3*u4)
-	z  = 2.0 * (h_y[0] * h_y[2] - h_y[1] * h_y[3]);												// z = 2*(u1*u3 - u2*u4)
-	vx = (2.0/r) * (h_y[0] * h_y[4] - h_y[1] * h_y[5] - h_y[2] * h_y[6] + h_y[3] * h_y[7]);		// vx = 2/r * (u1*vu1 - u2*vu2 - u3*vu3 + u4*vu4)
-	vy = (2.0/r) * (h_y[1] * h_y[4] + h_y[0] * h_y[5] - h_y[3] * h_y[6] - h_y[2] * h_y[7]);		// vy = 2/r * (u2*vu1 - u1*vu2 - u4*vu3 + u3*vu4)
-	vz = (2.0/r) * (h_y[2] * h_y[4] + h_y[3] * h_y[5] + h_y[0] * h_y[6] + h_y[1] * h_y[7]);		// vz = 2/r * (u3*vu1 - u4*vu2 - u1*vu3 + u2*vu4)
-}
-
-static void trans_to_descartes(const var4_t& u, const var4_t& uv, var3_t& r, var3_t& v)
+static void trans_to_descartes(const var4_t& u, const var4_t& u_prime, var3_t& r, var3_t& v)
 {
-	var_t r = SQR(u.x) + SQR(u.y) + SQR(u.z) + SQR(u.w);							// r = u1^2 + u2^2 + u3^2 + u4^2
+	var_t d = SQR(u.x) + SQR(u.y) + SQR(u.z) + SQR(u.w);							// r = u1^2 + u2^2 + u3^2 + u4^2
 
 	r.x  = SQR(u.x) - SQR(u.y) - SQR(u.z) + SQR(u.w);									// x = u1^2 - u2^2 - u3^2 + u4^2
 //TODO
@@ -236,7 +236,6 @@ void rtbp3D::load_binary(ifstream& input)
 
 void rtbp3D::print_result(ofstream** sout, data_rep_t repres)
 {
-	calc_energy();
 	switch (repres)
 	{
 	case DATA_REPRESENTATION_ASCII:

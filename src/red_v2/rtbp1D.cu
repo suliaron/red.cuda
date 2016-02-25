@@ -80,7 +80,7 @@ void rtbp1D::trans_to_descartes_var(var_t& x, var_t& vx)
 	vx = (2.0/h_y[0]) * (h_y[0] * h_y[1]);
 }
 
-void rtbp1D::calc_energy()
+void rtbp1D::calc_integral()
 {
 	const tbp1D_t::param_t* p = (tbp1D_t::param_t*)h_p;
 
@@ -188,7 +188,6 @@ void rtbp1D::load_binary(ifstream& input)
 
 void rtbp1D::print_result(ofstream** sout, data_rep_t repres)
 {
-	calc_energy();
 	switch (repres)
 	{
 	case DATA_REPRESENTATION_ASCII:

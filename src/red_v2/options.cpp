@@ -74,13 +74,13 @@ void options::parse(int argc, const char** argv)
 			{
 				dyn_model = DYN_MODEL_TBP1D;
 			}
-			else if (value == "rtbp1D")
-			{
-				dyn_model = DYN_MODEL_RTBP1D;
-			}
 			else if (value == "tbp3D")
 			{
 				dyn_model = DYN_MODEL_TBP3D;
+			}
+			else if (value == "rtbp1D")
+			{
+				dyn_model = DYN_MODEL_RTBP1D;
 			}
 			else if (value == "rtbp3D")
 			{

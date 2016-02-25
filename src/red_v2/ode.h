@@ -12,14 +12,6 @@ public:
 	ode(uint16_t n_dim, uint16_t n_vpo, uint16_t n_ppo, uint32_t n_obj, computing_device_t comp_dev);
 	~ode();
 
-	void copy_vars(copy_direction_t dir);
-	void copy_params(copy_direction_t dir);
-
-	void swap();
-
-	virtual void calc_dy(uint16_t stage, ttt_t curr_t, const var_t* y_temp, var_t* dy) = 0;
-	virtual void print_result(ofstream **sout, data_rep_t repres) = 0;
-
 	void initialize();
 
 	void allocate_storage(       uint32_t n_var, uint32_t n_par);
@@ -29,6 +21,19 @@ public:
 	void deallocate_storage();
 	void deallocate_host_storage();
 	void deallocate_device_storage();
+
+	void copy_vars(copy_direction_t dir);
+	void copy_params(copy_direction_t dir);
+
+	void swap();
+
+
+	virtual void calc_dy(uint16_t stage, ttt_t curr_t, const var_t* y_temp, var_t* dy) = 0;
+	virtual void calc_integral() = 0;
+
+	virtual void print_result(ofstream **sout, data_rep_t repres) = 0;
+	virtual void print_integral_data(ofstream **sout, data_rep_t repres) = 0;
+
 
 	vector<std::string> obj_names;
 

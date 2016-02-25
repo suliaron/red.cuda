@@ -514,7 +514,7 @@ uint32_t coll_stat_run(nebula& n, body_disk_t& disk)
 	const var_t rhoSilicate = 2.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
-	disk.nBody[BODY_TYPE_PROTOPLANET ] = 100;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 10000;
 
 	uint32_t n_body = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[n_body];
@@ -3052,7 +3052,7 @@ int main(int argc, const char **argv)
 		}
 #endif	
 
-#if 0
+#if 1
 		{
 			project_collision_Rezso_2D::create_init_cond(outDir);
 			return (EXIT_SUCCESS);

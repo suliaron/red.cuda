@@ -49,8 +49,8 @@ public:
 	*/
 	void print_integral_data_binary(ofstream& sout);
 
-	void calc_energy();
 	void calc_dy(uint16_t stage, ttt_t curr_t, const var_t* y_temp, var_t* dy);
+	void calc_integral();
 
 //private:
 	void initialize();

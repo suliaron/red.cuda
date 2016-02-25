@@ -100,7 +100,6 @@ void run_simulation(const options* opt, ode* f, integrator* intgr, ofstream** ou
 	/* 
 	 * Main cycle
 	 */
-	//print_result(opt, f, output);
 	f->print_result(output, opt->param->output_data_rep);
 
 	while (f->t <= opt->param->stop_time)
@@ -116,6 +115,8 @@ void run_simulation(const options* opt, ode* f, integrator* intgr, ofstream** ou
 		{
 			ps = 0.0;
 			f->print_result(output, opt->param->output_data_rep);
+			f->calc_integral();
+			f->print_integral_data(output, opt->param->output_data_rep);
 		}
 
 		if (opt->info_dt < (clock() - time_last_info) / (double)CLOCKS_PER_SEC) 
@@ -124,25 +125,6 @@ void run_simulation(const options* opt, ode* f, integrator* intgr, ofstream** ou
 			//print_info(*output[OUTPUT_NAME_INFO], ppd, intgr, dt, &T_CPU, &dT_CPU);
 		}
 	} /* while : main cycle*/
-}
-
-void simulator(options* opt, vector<system_t>& systems, fstream** output)
-{
-	systems[0].intgr->step();
-	
-	// Create new system? check distance from central body
-	if (true)
-	{
-		var3_t r = {systems[0].f->h_y[0], systems[0].f->h_y[1], systems[0].f->h_y[2]};
-		var3_t v = {systems[0].f->h_y[3], systems[0].f->h_y[4], systems[0].f->h_y[5]};
-		var4_t u, uv;
-		ttt_t t = 0.0;
-		tbp3D* model = dynamic_cast<tbp3D*>(systems[0].f);
-		
-		rtbp3D::trans_to_parameter(r, v, u, uv);
-		ode* f = new rtbp3D(1, t, model->h_md, model->h_p, &r, &v, opt->comp_dev);
-		integrator* intgr = opt->create_integrator(*f, 0.01);
-	}
 }
 
 int main(int argc, const char** argv, const char** env)
@@ -186,13 +168,6 @@ int main(int argc, const char** argv, const char** env)
 		// OR use the solution provided by the Numerical Recepies
 		intgr->set_dt_min(1.0e-6); // day
 		intgr->set_max_iter(10);
-
-
-		system_t sys = {f, intgr};
-		vector<system_t> systems;
-
-		systems.push_back(sys);
-		simulator(opt, systems, output);
 
 		run_simulation(opt, f, intgr, output);
 

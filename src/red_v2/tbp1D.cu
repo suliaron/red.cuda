@@ -85,7 +85,7 @@ void tbp1D::calc_dy(uint16_t stage, ttt_t curr_t, const var_t* y_temp, var_t* dy
 	}
 }
 
-void tbp1D::calc_energy()
+void tbp1D::calc_integral()
 {
 	const tbp1D_t::param_t* p = (tbp1D_t::param_t*)h_p;
 
@@ -182,7 +182,6 @@ void tbp1D::load_binary(ifstream& input)
 
 void tbp1D::print_result(ofstream** sout, data_rep_t repres)
 {
-	calc_energy();
 	switch (repres)
 	{
 	case DATA_REPRESENTATION_ASCII:
