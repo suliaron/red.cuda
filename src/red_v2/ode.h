@@ -31,11 +31,11 @@ public:
 	virtual void calc_dy(uint16_t stage, ttt_t curr_t, const var_t* y_temp, var_t* dy) = 0;
 	virtual void calc_integral() = 0;
 
-	virtual void print_result(ofstream **sout, data_rep_t repres) = 0;
-	virtual void print_integral_data(ofstream **sout, data_rep_t repres) = 0;
+	virtual void print_result(std::ofstream **sout, data_rep_t repres) = 0;
+	virtual void print_integral_data(std::ofstream **sout, data_rep_t repres) = 0;
 
 
-	vector<std::string> obj_names;
+	std::vector<std::string> obj_names;
 
 	ttt_t t;              //! Current time
 	ttt_t tout;           //! Time at the end of the integration step

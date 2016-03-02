@@ -69,7 +69,7 @@ public:
 		\param path print the data to this file
 		\param log_f print the data to this stream
 	*/
-	void print_event_data(std::string& path, ofstream& log_f);
+	void print_event_data(std::string& path, std::ofstream& log_f);
 	//! Print the classical integrals
 	/*!
 		\param sout print the data to this stream

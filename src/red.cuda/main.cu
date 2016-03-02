@@ -26,7 +26,6 @@
 using namespace std;
 using namespace redutilcu;
 
-void print_dump_aux_data(ofstream& sout, dump_aux_data_t* dump_aux);
 string create_prefix(const options& opt);
 
 namespace print

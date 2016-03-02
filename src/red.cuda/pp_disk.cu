@@ -1757,7 +1757,7 @@ var_t pp_disk::get_mass_of_star()
 //	}
 //}
 
-void pp_disk::load_data_info(std::string& path, data_rep_t repres)
+void pp_disk::load_data_info(string& path, data_rep_t repres)
 {
 	ifstream input;
 
@@ -1789,7 +1789,7 @@ void pp_disk::load_data_info(std::string& path, data_rep_t repres)
 	input.close();
 }
 
-void pp_disk::load_data(std::string& path_data, data_rep_t repres)
+void pp_disk::load_data(string& path_data, data_rep_t repres)
 {
 	var4_t* r = sim_data->h_y[0];
 	var4_t* v = sim_data->h_y[1];

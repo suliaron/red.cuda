@@ -37,7 +37,7 @@ typedef struct phys_prop_dist
 
 typedef struct body_disk
 		{
-			vector<std::string>	names;
+			std::vector<std::string>	names;
 			uint32_t			nBody[BODY_TYPE_N];
 			oe_dist_t			oe_d[BODY_TYPE_N];
 			phys_prop_dist_t	pp_d[BODY_TYPE_N];

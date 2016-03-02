@@ -44,6 +44,7 @@
     <ClInclude Include="int_rungekutta4.h" />
     <ClInclude Include="int_rungekutta5.h" />
     <ClInclude Include="int_rungekutta7.h" />
+    <ClInclude Include="nbody.h" />
     <ClInclude Include="ode.h" />
     <ClInclude Include="options.h" />
     <ClInclude Include="parameter.h" />

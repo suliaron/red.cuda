@@ -9,6 +9,7 @@
 #include "redutilcu.h"
 #include "red_macro.h"
 
+using namespace std;
 using namespace redutilcu;
 
 analytic_gas_disk::analytic_gas_disk(string& dir, string& filename, bool verbose)

@@ -302,7 +302,7 @@ integrator* options::create_integrator(pp_disk* ppd, ttt_t dt)
 
 void options::print_usage()
 {
-	cout << "Usage: red.cuda <parameterlist>" << endl;
+	cout << "Usage: red <parameterlist>" << endl;
 	cout << "Parameters:" << endl << endl;
 	cout << "     -b      | --benchmark                    : run benchmark to find out the optimal number of threads per block" << endl;
 	cout << "     -t      | --test                         : run tests" << endl;

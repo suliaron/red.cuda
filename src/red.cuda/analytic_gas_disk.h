@@ -22,7 +22,7 @@ public:
 	analytic_gas_disk_params_t params;
 	
 	// Input/Output streams
-	friend ostream& operator<<(ostream& stream, const analytic_gas_disk* g_disk);
+	friend std::ostream& operator<<(std::ostream& stream, const analytic_gas_disk* g_disk);
 
 private:
 	void initialize();

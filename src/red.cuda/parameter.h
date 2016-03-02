@@ -32,7 +32,7 @@ public:
 	var_t threshold[THRESHOLD_N];	   //! Contains the threshold values: hit_centrum_dst, ejection_dst, collision_factor
 
 	// Input/Output streams
-	friend ostream& operator<<(ostream& stream, const parameter* param);
+	friend std::ostream& operator<<(std::ostream& stream, const parameter* param);
 
 private:
 	void create_default();

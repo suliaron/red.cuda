@@ -9,6 +9,8 @@
 
 #define	LAMBDA	5.0/66.0
 
+using namespace std;
+
 // The Runge-Kutta matrix
 var_t int_rungekutta5::a[] = 
 { 

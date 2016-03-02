@@ -247,15 +247,15 @@ void rtbp1D::print_result_binary(ofstream& sout)
 	throw string("The print_result_binary() is not implemented.");
 }
 
-void rtbp1D::print_integral_data(ofstream& sout, data_rep_t repres)
+void rtbp1D::print_integral_data(ofstream** sout, data_rep_t repres)
 {
 	switch (repres)
 	{
 	case DATA_REPRESENTATION_ASCII:
-		print_integral_data_ascii(sout);
+		print_integral_data_ascii(*sout);
 		break;
 	case DATA_REPRESENTATION_BINARY:
-		print_integral_data_binary(sout);
+		print_integral_data_binary(*sout);
 		break;
 	}
 }

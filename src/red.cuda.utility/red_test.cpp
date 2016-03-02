@@ -13,6 +13,7 @@
 #include "red_macro.h"
 #include "red_constants.h"
 
+using namespace std;
 using namespace pp_disk_t;
 
 namespace redutilcu

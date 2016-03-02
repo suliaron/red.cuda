@@ -9,6 +9,7 @@
 #include "redutilcu.h"
 #include "red_macro.h"
 
+using namespace std;
 using namespace redutilcu;
 
 fargo_gas_disk::fargo_gas_disk(string& dir, string& filename, computing_device_t comp_dev, bool verbose) :

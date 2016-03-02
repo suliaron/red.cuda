@@ -13,8 +13,6 @@
 #define __BUILTIN_ALIGN__
 #endif
 
-using namespace std;
-
 //! Type of time variables
 typedef double ttt_t;
 //! Type of variables
@@ -223,10 +221,53 @@ typedef struct orbelem
 			var_t mean;  //!< Mean anomaly                     [8 byte] -> 48 byte
 		} orbelem_t;
 
-typedef struct dump_aux_data
-		{
-			ttt_t dt;
-		} dump_aux_data_t;
+typedef struct ode_data
+{
+	ttt_t t;                       //! Current time (the ODE variables in y are are valid for this time)
+	ttt_t tout;                    //! Time at the end of the integration step (the ODE variables in yout are are valid for this time)
+
+	std::vector<var_t*>   y;	   //!< Vectors of initial position and velocity of the bodies on the host (either in the DEVICE or HOST memory)
+	std::vector<var_t*>   yout;    //!< Vectors of ODE variables at the end of the step (at time tout) (either in the DEVICE or HOST memory)
+	var_t*           p;            //!< Vector of body parameters (either in the DEVICE or HOST memory)
+	void*            obj_md;       //!< Vector of additional object parameters (either in the DEVICE or HOST memory)
+
+	std::vector<var_t*>   d_y;     //!< Device vectors of ODE variables at the beginning of the step (at time t)
+	std::vector<var_t*>   d_yout;  //!< Device vectors of ODE variables at the end of the step (at time tout)
+	var_t*           d_p;          //!< Device vector of body parameters
+	void*            d_obj_md;     //!< Device vector of additional body parameters
+
+	std::vector<var_t*>   h_y;     //!< Host vectors of ODE variables at the beginning of the step (at time t)
+	std::vector<var_t*>   h_yout;  //!< Host vectors of ODE variables at the end of the step (at time tout)
+	var_t*           h_p;          //!< Host vector of body parameters
+	void*            h_obj_md;     //!< Host vector of additional body parameters
+
+	uint32_t n_obj;                //! The total number of objets in the problem
+	uint16_t n_dim;                //! The space dimension of the problem 
+
+	uint16_t n_vpo;                //! The number of variables per object (vpo)
+	uint16_t n_ppo;                //! The number of parameters per object (ppo)
+
+	uint32_t n_var;                //! The total number of variables of the problem
+	uint32_t n_par;                //! The total number of parameters of the problem
+
+	dim3 grid;                     //! Defines the grid of the blocks of the current execution
+	dim3 block;                    //! Defines the block of the threads of the current execution
+	uint16_t n_tpb;                //! Holds the number of threads per block
+	computing_device_t comp_dev;   //! The execution is performed on this device
+
+	ode_data()
+	{
+		comp_dev = COMPUTING_DEVICE_CPU;
+
+		p      = d_p      = h_p      = 0x0;
+		obj_md = d_obj_md = h_obj_md = 0x0;
+		n_obj = n_dim = 0;
+		n_vpo = n_ppo = 0;
+		n_var = n_par = 0;
+		n_tpb = 1;
+	}
+} ode_data_t;
+
 
 namespace tbp1D_t
 {
@@ -267,6 +308,38 @@ namespace threebody_t
 	} param_t;
 } /* namespace threebody_t */
 
+namespace nbody_t
+{
+	// param_t gets aligned to 16 bytes.
+	typedef struct __BUILTIN_ALIGN__ param
+	{
+		var_t mass;             // [ 8 byte]
+		var_t radius;           // [ 8 byte]
+		var_t density;          // [ 8 byte]
+		var_t cd;	            // [ 8 byte]
+	} param_t;                  // [32 byte]
+
+	// body_metadata_t gets aligned to 16 bytes.
+	typedef struct __BUILTIN_ALIGN__ body_metadata
+	{
+		int32_t id;             // [ 4 byte]
+		char    body_type;      // [ 1 byte]
+		char    mig_type;       // [ 1 byte]
+		bool	active;         // [ 1 byte]
+		bool	unused;         // [ 1 byte]
+		var_t   mig_stop_at;    // [ 8 byte]
+	} body_metadata_t;      // [16 byte]
+
+	typedef struct integral
+	{			
+		var3_t R;               //!< Position vector of the system's barycenter [24 byte]
+		var3_t V;               //!< Velocity vector of the system's barycenter [24 byte]
+		var3_t C;               //!< Angular momentum vector of the system      [24 byte]
+		var_t E;                //!< Total energy of the system                 [ 8 byte]
+	} integral_t;               // [80 byte]
+
+} /* nbody_t */
+
 namespace pp_disk_t
 {
 	// param_t gets aligned to 16 bytes.
@@ -300,30 +373,30 @@ namespace pp_disk_t
 
 	typedef struct integral
 	{			
-		var4_t R;               //!< Position vector of the system's barycenter [24 byte]
-		var4_t V;               //!< Velocity vector of the system's barycenter [24 byte]
-		var4_t C;               //!< Angular momentum vector of the system      [24 byte]
+		var4_t R;               //!< Position vector of the system's barycenter [32 byte]
+		var4_t V;               //!< Velocity vector of the system's barycenter [32 byte]
+		var4_t C;               //!< Angular momentum vector of the system      [32 byte]
 		var_t E;                //!< Total energy of the system                 [ 8 byte]
-	} integral_t;               // [80 byte]
+	} integral_t;               // [104 byte]
 
 	typedef struct sim_data
 	{
-		vector<var4_t*>	 y;				//!< Vectors of initial position and velocity of the bodies on the host (either in the DEVICE or HOST memory)
-		vector<var4_t*>	 yout;			//!< Vectors of ODE variables at the end of the step (at time tout) (either in the DEVICE or HOST memory)
+		std::vector<var4_t*>	 y;		//!< Vectors of initial position and velocity of the bodies on the host (either in the DEVICE or HOST memory)
+		std::vector<var4_t*>	 yout;	//!< Vectors of ODE variables at the end of the step (at time tout) (either in the DEVICE or HOST memory)
 		param_t*		 p;   			//!< Vector of body parameters (either in the DEVICE or HOST memory)
 		body_metadata_t* body_md; 		//!< Vector of additional body parameters (either in the DEVICE or HOST memory)
 		ttt_t*			 epoch;			//!< Vector of epoch of the bodies (either in the DEVICE or HOST memory)
 		orbelem_t*		 oe;			//!< Vector of of the orbital elements (either in the DEVICE or HOST memory)
 
-		vector<var4_t*>	 d_y;			//!< Device vectors of ODE variables at the beginning of the step (at time t)
-		vector<var4_t*>	 d_yout;		//!< Device vectors of ODE variables at the end of the step (at time tout)
+		std::vector<var4_t*>	 d_y;	//!< Device vectors of ODE variables at the beginning of the step (at time t)
+		std::vector<var4_t*>	 d_yout;//!< Device vectors of ODE variables at the end of the step (at time tout)
 		param_t*		 d_p;			//!< Device vector of body parameters
 		body_metadata_t* d_body_md; 	//!< Device vector of additional body parameters
 		ttt_t*			 d_epoch;		//!< Device vector of epoch of the bodies
 		orbelem_t*		 d_oe;			//!< Device vector of the orbital elements
 
-		vector<var4_t*>	 h_y;			//!< Host vectors of initial position and velocity of the bodies on the host
-		vector<var4_t*>	 h_yout;		//!< Host vectors of ODE variables at the end of the step (at time tout)
+		std::vector<var4_t*>	 h_y;	//!< Host vectors of initial position and velocity of the bodies on the host
+		std::vector<var4_t*>	 h_yout;//!< Host vectors of ODE variables at the end of the step (at time tout)
 		param_t*		 h_p;			//!< Host vector of body parameters
 		body_metadata_t* h_body_md; 	//!< Host vector of additional body parameters
 		ttt_t*			 h_epoch;		//!< Host vector of epoch of the bodies

@@ -102,5 +102,8 @@
     <ClInclude Include="threebody.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="nbody.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

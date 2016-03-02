@@ -11,7 +11,7 @@ namespace redutilcu
 	template <typename T>
 	std::string number_to_string(T number);
 
-	void device_query(ostream& sout, int id_dev, bool print_to_screen);
+	void device_query(std::ostream& sout, int id_dev, bool print_to_screen);
 
 	int get_id_fastest_cuda_device();
 	int get_n_cuda_device();
@@ -48,7 +48,7 @@ namespace redutilcu
 	void copy_constant_to_device(const void* dst, const void *src, size_t count);
 
 
-	void set_device(int id_of_target_dev, ostream& sout);
+	void set_device(int id_of_target_dev, std::ostream& sout);
 	void print_array(std::string path, int n, var_t *data, computing_device_t comp_dev);
 
 	void create_aliases(computing_device_t comp_dev, pp_disk_t::sim_data_t *sd);

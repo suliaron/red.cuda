@@ -13,6 +13,8 @@
 #include "red_type.h"
 #include "red_macro.h"
 
+using namespace std;
+
 namespace redutilcu
 {
 template <typename T>
