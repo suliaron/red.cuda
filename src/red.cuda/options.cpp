@@ -136,16 +136,16 @@ void options::parse(int argc, const char** argv)
 			i++;
 			in_fn[INPUT_NAME_START_FILES] = argv[i];
 		}
-		else if (p == "--input_data" || p == "-id")
-		{
-			i++;
-			in_fn[INPUT_NAME_DATA] = argv[i];
-		}
-		else if (p == "--input_data_info" || p == "-idf")
-		{
-			i++;
-			in_fn[INPUT_NAME_DATA_INFO] = argv[i];
-		}
+		//else if (p == "--input_data" || p == "-id")
+		//{
+		//	i++;
+		//	in_fn[INPUT_NAME_DATA] = argv[i];
+		//}
+		//else if (p == "--input_data_info" || p == "-idf")
+		//{
+		//	i++;
+		//	in_fn[INPUT_NAME_DATA_INFO] = argv[i];
+		//}
 		else if (p =="--parameters" || p == "-p")
 		{
 			i++;
@@ -241,6 +241,10 @@ pp_disk* options::create_pp_disk()
 				throw string("The file '" + path + "' could not opened.");
 			}
 		}
+		else
+		{
+			throw string("The -i | --input <filename> option was not provided.");
+		}
 		path_data      = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_DATA]);
 		path_data_info = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_DATA_INFO]);
 		ppd = new pp_disk(path_data, path_data_info, g_disk_model, id_dev, comp_dev, param->threshold);
@@ -307,26 +311,26 @@ void options::print_usage()
 	cout << "     -b      | --benchmark                    : run benchmark to find out the optimal number of threads per block" << endl;
 	cout << "     -t      | --test                         : run tests" << endl;
 	cout << "     -v      | --verbose                      : verbose mode (log all event during the execution fo the code to the log file)" << endl;
-	cout << "     -pts    | --print_to_screen              : verbose mode and print everything to the standard output stream too" << endl;
-	cout << "     -ef     |                                : use extended file names (use only for debuging purposes)" << endl;
+	cout << "     -pts    | --print_to_screen              : verbose mode and print everything to the standard output stream too" << endl << endl;
+	//cout << "     -ef     |                                : use extended file names (use only for debuging purposes)" << endl;
 
 	cout << "     -id_dev | --id_active_device <number>    : the id of the device which will execute the code (default value is 0)" << endl;
-	cout << "     -n_chg  | --n_change_to_cpu <number>     : the threshold value for the total number of SI bodies to change to the CPU (default value is 100)" << endl;
+	cout << "     -n_chg  | --n_change_to_cpu <number>     : the threshold value for the total number of SI bodies to change to the CPU (default value is 100)" << endl << endl;
 
 	cout << "     -gpu    | --gpu                          : execute the code on the graphics processing unit (GPU) (default value is false)" << endl;
-	cout << "     -cpu    | --cpu                          : execute the code on the cpu if required by the user or if no GPU is installed (default value is true)" << endl;
+	cout << "     -cpu    | --cpu                          : execute the code on the cpu if required by the user or if no GPU is installed (default value is true)" << endl << endl;
 
 	cout << "     -iDir   | --inputDir <directory>         : the directory containing the input files"  << endl;
-	cout << "     -oDir   | --outputDir <directory>        : the directory where the output files will be stored (if omitted the input directory will be used)" << endl;
+	cout << "     -oDir   | --outputDir <directory>        : the directory where the output files will be stored (if omitted the input directory will be used)" << endl << endl;
 
-	cout << "     -i      | --input <filename>             : the input file containing the filename of the input_data and input_data_info" << endl;
-	cout << "     -id     | --input_data <filename>        : the input file containing the parameters and the initial coordinates and velocities of each object" << endl;
-	cout << "     -idf    | --input_data_info <filename>   : the input file containing the initial time and the number of the objects by their type" << endl;
+	cout << "     -i      | --input <filename>             : the input file containing the filename of the input_data_info (1st line) and input_data (2nd line)" << endl;
+	//cout << "     -idf    | --input_data_info <filename>   : the input file containing the initial time, timestep and the number of the objects by their type" << endl;
+	//cout << "     -id     | --input_data <filename>        : the input file containing the parameters and the initial coordinates and velocities of each object" << endl;
 	cout << "     -p      | --parameter <filename>         : the input file containing the parameters of the simulation"  << endl;
 	cout << "     -ga     | --analytic_gas_disk <filename> : the input file containing the parameters of an analyticaly prescribed gas disk"  << endl;
-	cout << "     -gf     | --fargo_gas_disk <filename>    : the input file containing the details of the gas disk resulted from FARGO simulations"  << endl;
+	cout << "     -gf     | --fargo_gas_disk <filename>    : the input file containing the details of the gas disk resulted from FARGO simulations"  << endl << endl;
 
-	cout << "     -nb     | --number-of-bodies             : set the number of bodies for benchmarking (pattern: n_st n_gp n_rp n_pp n_spl n_pl n_tp)" << endl;
+	cout << "     -nb     | --number-of-bodies             : set the number of bodies for benchmarking (pattern: n_st n_gp n_rp n_pp n_spl n_pl n_tp)" << endl << endl;
 
 	cout << "     -h      | --help                         : print this help" << endl;
 }

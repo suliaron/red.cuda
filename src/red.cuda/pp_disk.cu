@@ -1539,7 +1539,20 @@ pp_disk::pp_disk(string& path_data, string& path_data_info, gas_disk_model_t g_d
 	initialize();
 	memcpy(threshold, thrshld, THRESHOLD_N*sizeof(var_t));
 
-	data_rep_t repres = (file::get_extension(path_data) == "txt" ? DATA_REPRESENTATION_ASCII : DATA_REPRESENTATION_BINARY);
+	data_rep_t repres;
+	string ext = file::get_extension(path_data);
+	if (     "txt" == ext)
+	{
+		repres = DATA_REPRESENTATION_ASCII;
+	}
+	else if ("dat" == ext)
+	{
+		repres = DATA_REPRESENTATION_BINARY;
+	}
+	else
+	{
+		throw string("The extension of the input data must be either txt or dat.");
+	}
 	load_data_info(path_data_info, repres);
 
 	allocate_storage();
