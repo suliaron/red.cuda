@@ -348,7 +348,7 @@ void print_all_input_data(string& dir, string& filename, uint32_t n_body, uint32
 
 	string fn_info = filename + ".info.txt";
 	path = file::combine_path(dir, fn_info);
-	print_data_info(path, t0, dt, disk, INPUT_FORMAT_RED);
+	print_data_info(path, t0, dt, 0, disk, INPUT_FORMAT_RED);
 
 	string fn_data = filename + ".data.txt";
 	path = file::combine_path(dir, fn_data);
@@ -3052,13 +3052,13 @@ int main(int argc, const char **argv)
 		}
 #endif	
 
-#if 1
+#if 0
 		{
 			project_collision_Rezso_2D::create_init_cond(outDir);
 			return (EXIT_SUCCESS);
 		}
 #endif	
-		create_disk::Colliding_bodies(outDir, filename);
+		//create_disk::Colliding_bodies(outDir, filename);
 		//create_disk::Elke_binary_test(outDir, filename);
 		//create_disk::Birgit_scenario(outDir, filename);
 		//create_disk::solar_system(outDir, filename);
@@ -3070,7 +3070,7 @@ int main(int argc, const char **argv)
 		//create_disk::n_pl(outDir, filename);
 		//create_disk::n_spl(outDir, filename);
 		//create_disk::n_pp(outDir, filename);
-		//create_disk::two_body(outDir, filename);
+		create_disk::two_body(outDir, filename);
 		//create_disk::Dvorak(outDir, filename);
 		//create_disk::GT_scenario(outDir, filename);
 		//create_disk::GT_scenario_mod(outDir, filename);

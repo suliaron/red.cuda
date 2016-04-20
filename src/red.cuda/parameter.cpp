@@ -180,14 +180,6 @@ void parameter::set_param(string& key, string& value)
 			throw string("Invalid value at: " + key);
 		}
 	}
-	//else if (key == "start_time" || key == "start time")
-	//{
-	//	if (!tools::is_number(value))
-	//	{
-	//		throw string("Invalid number at: " + key);
-	//	}
-	//	start_time = atof(value.c_str()) * constants::YearToDay;
-	//}
     else if (key == "length")
 	{
 		if (!tools::is_number(value))

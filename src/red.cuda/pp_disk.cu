@@ -198,19 +198,19 @@ __host__ __device__
 		event_name_t name,
 		ttt_t t,
 		var_t d,
-		uint32_t idx1,
-		uint32_t idx2,
+		uint32_t idx1,     /* survivor/target   */
+		uint32_t idx2,     /* merger/projectile */
 		const param_t* p,
 		const var4_t* r,
 		const var4_t* v,
-		const body_metadata_t* body_md,
+		const body_metadata_t* bmd,
 		event_data_t *evnt)
 {
 	evnt->event_name = name;
 	evnt->d = d;
 	evnt->t = t;
-	evnt->id1 = body_md[idx1].id;
-	evnt->id2 = body_md[idx2].id;
+	evnt->id1 = bmd[idx1].id;
+	evnt->id2 = bmd[idx2].id;
 	evnt->idx1 = idx1;
 	evnt->idx2 = idx2;
 	evnt->r1 = r[idx1];
@@ -231,13 +231,13 @@ __host__ __device__
 	switch (name)
 	{
 	case EVENT_NAME_COLLISION:
-		printf("COLLISION,   %20.10le, [d], %20.10le, [AU], %5d, %5d\n", t/K, d, body_md[idx1].id, body_md[idx2].id);
+		printf("COLLISION,   %20.10le, [d], %20.10le, [AU], %5d, %5d\n", t/K, d, bmd[idx1].id, bmd[idx2].id);
 		break;
 	case EVENT_NAME_EJECTION:
-		printf("EJECTION,    %20.10le, [d], %20.10le, [AU], %5d, %5d\n", t/K, d, body_md[idx1].id, body_md[idx2].id);
+		printf("EJECTION,    %20.10le, [d], %20.10le, [AU], %5d, %5d\n", t/K, d, bmd[idx1].id, bmd[idx2].id);
 		break;
 	case EVENT_NAME_HIT_CENTRUM:
-		printf("HIT_CENTRUM, %20.10le, [d], %20.10le, [AU], %5d, %5d\n", t/K, d, body_md[idx1].id, body_md[idx2].id);
+		printf("HIT_CENTRUM, %20.10le, [d], %20.10le, [AU], %5d, %5d\n", t/K, d, bmd[idx1].id, bmd[idx2].id);
 		break;
 	}
 }
@@ -1736,40 +1736,6 @@ var_t pp_disk::get_mass_of_star()
 	throw string("No star is included.");
 }
 
-//void pp_disk::transform_to_bc()
-//{
-//	const uint32_t n_total = n_bodies->get_n_total_playing();
-//
-//	tools::transform_to_bc(n_total, sim_data);
-//}
-//
-//void pp_disk::transform_time()
-//{
-//	// Transform the bodies' epochs
-//	const uint32_t n_total = n_bodies->get_n_total_playing();
-//
-//	for (uint32_t j = 0; j < n_total; j++ )
-//	{
-//		sim_data->h_epoch[j] *= constants::Gauss;
-//	}
-//	this->t *= constants::Gauss;
-//	this->dt *= constants::Gauss;
-//}
-//
-//void pp_disk::transform_velocity()
-//{
-//	const uint32_t n_total = n_bodies->get_n_total_playing();
-//
-//	var4_t* v = sim_data->h_y[1];
-//	// Transform the bodies' velocities
-//	for (uint32_t j = 0; j < n_total; j++ )
-//	{
-//		v[j].x /= constants::Gauss;	
-//		v[j].y /= constants::Gauss;	
-//		v[j].z /= constants::Gauss;
-//	}
-//}
-
 void pp_disk::load_data_info(string& path, data_rep_t repres)
 {
 	ifstream input;
@@ -1780,7 +1746,7 @@ void pp_disk::load_data_info(string& path, data_rep_t repres)
 		input.open(path.c_str(), ios::in);
 		if (input) 
 		{
-			file::load_data_info_record_ascii(input, this->t, this->dt, &(this->n_bodies));
+			file::load_data_info_record_ascii(input, this->t, this->dt, this->dt_CPU, &(this->n_bodies));
 		}
 		else 
 		{
@@ -1791,7 +1757,7 @@ void pp_disk::load_data_info(string& path, data_rep_t repres)
 		input.open(path.c_str(), ios::in | ios::binary);
 		if (input) 
 		{
-			file::load_data_info_record_binary(input, this->t, this->dt, &(this->n_bodies));
+			file::load_data_info_record_binary(input, this->t, this->dt, this->dt_CPU, &(this->n_bodies));
 		}
 		else 
 		{
@@ -1910,7 +1876,7 @@ void pp_disk::print_data_info(string& path, data_rep_t repres)
 		sout.open(path.c_str(), ios::out);
 		if (sout) 
 		{
-			file::print_data_info_record_ascii_RED(sout, this->t, this->dt, this->n_bodies);
+			file::print_data_info_record_ascii_RED(sout, this->t, this->dt, this->dt_CPU, this->n_bodies);
 		}
 		else 
 		{
@@ -1921,7 +1887,7 @@ void pp_disk::print_data_info(string& path, data_rep_t repres)
 		sout.open(path.c_str(), ios::out | ios::binary);
 		if (sout) 
 		{
-			file::print_data_info_record_binary_RED(sout, this->t, this->dt, this->n_bodies);
+			file::print_data_info_record_binary_RED(sout, this->t, this->dt, this->dt_CPU, this->n_bodies);
 		}
 		else 
 		{

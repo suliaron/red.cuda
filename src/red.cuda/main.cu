@@ -246,46 +246,6 @@ void print_dump(const options& opt, pp_disk* ppd, string& prefix, string& ext, o
 	}
 }
 
-ttt_t get_length(const options& opt, const pp_disk* ppd, string& prefix, string& ext)
-{
-	ifstream input;
-
-	string n_print_str = redutilcu::number_to_string(0, OUTPUT_ORDINAL_NUMBER_WIDTH, true);
-	string fn_data_info = prefix + opt.out_fn[OUTPUT_NAME_DATA] + "_" + n_print_str + ".info." + ext;
-	string path_data_info = file::combine_path(opt.dir[DIRECTORY_NAME_IN], fn_data_info);
-
-	ttt_t _t = 0;
-	ttt_t _dt = 0;
-	n_objects_t* n_dummy = new n_objects_t(0, 0, 0, 0, 0, 0, 0);
-	switch (opt.param->output_data_rep)
-	{
-	case DATA_REPRESENTATION_ASCII:
-		input.open(path_data_info.c_str(), ios::in);
-		if (input) 
-		{
-			file::load_data_info_record_ascii(input, _t, _dt, &(n_dummy));
-		}
-		else 
-		{
-			throw string("Cannot open " + path_data_info + ".");
-		}
-		break;
-	case DATA_REPRESENTATION_BINARY:
-		input.open(path_data_info.c_str(), ios::in | ios::binary);
-		if (input) 
-		{
-			file::load_data_info_record_binary(input, _t, _dt, &(n_dummy));
-		}
-		else 
-		{
-			throw string("Cannot open " + path_data_info + ".");
-		}
-		break;
-	}
-	input.close();
-	return ((opt.param->simulation_length - _t) - ppd->t);
-}
-
 void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream& sout)
 {
 	cout << "See the log file for the result." << endl;
@@ -424,7 +384,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 	}
 }
 
-void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstream* slog)
+void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_t offset, ofstream* slog)
 {
 	static string prefix = create_prefix(opt);
 	static string ext = (DATA_REPRESENTATION_ASCII == opt.param->output_data_rep ? "txt" : "dat");
@@ -454,27 +414,22 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 	ppd->calc_integral(false, integrals[0]);
 
 	uint32_t n_print = 0;
-	if (0 < opt.in_fn[INPUT_NAME_START_FILES].length() && "data" == opt.in_fn[INPUT_NAME_DATA].substr(0, 4))
+	if (0 < opt.in_fn[INPUT_NAME_START_FILES].length() && 
+		4 <= opt.in_fn[INPUT_NAME_DATA].length() && "data" == opt.in_fn[INPUT_NAME_DATA].substr(0, 4))
 	{
 		string str = opt.in_fn[INPUT_NAME_DATA];
 		size_t pos = str.find_first_of("_");
 		str = str.substr(pos + 1, OUTPUT_ORDINAL_NUMBER_WIDTH);
 		n_print = atoi(str.c_str());
+		// Set ps in order to save the next snapshot at the correct epoch
+		ps = ppd->t - n_print * opt.param->output_interval;
 		n_print++;
 	}
 
-	ttt_t length = 0.0;
 	if (0 == n_print)
 	{
 		print_data(opt, ppd, integrals, n_print, path_integral, prefix, ext, slog);
-		length = opt.param->simulation_length;
 	}
-	// This is a restart, so find out the length (the simulation must ended at the original length)
-	else
-	{
-		length = get_length(opt, ppd, prefix, ext);
-	}
-	const ttt_t Tend = ppd->t + length;
 
 	if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 	{
@@ -489,7 +444,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 
 /* main cycle */
 #if 1
-	while (ppd->t <= Tend && 1 < ppd->n_bodies->get_n_total_active())
+	while (ppd->t <= opt.param->simulation_length && 1 < ppd->n_bodies->get_n_total_active())
 	{
 		if (COMPUTING_DEVICE_GPU == intgr->get_computing_device() && opt.n_change_to_cpu >= ppd->n_bodies->get_n_SI())
 		{
@@ -533,6 +488,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		dt = intgr->step();
 		dT_CPU = (clock() - T0_CPU);
 		T_CPU += dT_CPU;
+		ppd->set_dt_CPU(offset + T_CPU / CLOCKS_PER_SEC);
 		ps += fabs(dt);
 
 		if (0.0 < opt.param->threshold[THRESHOLD_RADII_ENHANCE_FACTOR])
@@ -565,6 +521,11 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, ofstrea
 		{
 			ps = 0.0;
 			print_data(opt, ppd, integrals, n_print, path_integral, prefix, ext, slog);
+			if (opt.verbose)
+			{
+				string msg = "Data file was created";
+				file::log_message(*slog, msg, opt.print_to_screen);
+			}
 		}
 
 		if (16 <= ppd->n_event[EVENT_COUNTER_NAME_LAST_CLEAR])
@@ -635,6 +596,7 @@ void run_test()
 int main(int argc, const char** argv, const char** env)
 {
 	time_t start = time(NULL);
+	uint32_t offset = 0;
 
 	ofstream* slog = 0x0;
 	try
@@ -667,6 +629,8 @@ int main(int argc, const char** argv, const char** env)
 
 		pp_disk *ppd = opt.create_pp_disk();
 		integrator *intgr = opt.create_integrator(ppd, ppd->dt);
+		// Number of seconds from previous runs
+		offset = ppd->get_dt_CPU();
 
 		if (opt.benchmark)
 		{
@@ -674,7 +638,7 @@ int main(int argc, const char** argv, const char** env)
 		}
 		else
 		{
-			run_simulation(opt, ppd, intgr, slog);
+			run_simulation(opt, ppd, intgr, offset, slog);
 		}
 
 	} /* try */
@@ -686,10 +650,11 @@ int main(int argc, const char** argv, const char** env)
 			file::log_message(*slog, "Error: " + msg, false);
 		}
 	}
-	cout << "Total time: " << time(NULL) - start << " s" << endl;
+	time_t total_time = offset + time(NULL) - start;
+	cout << "Total time: " << total_time << " s" << endl;
 	if (0x0 != slog)
 	{
-		file::log_message(*slog, "Total time: " + tools::convert_time_t(time(NULL) - start) + " s", false);
+		file::log_message(*slog, "Total time: " + tools::convert_time_t(total_time) + " s", false);
 	}
 
 	return (EXIT_SUCCESS);

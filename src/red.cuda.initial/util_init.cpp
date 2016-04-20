@@ -149,23 +149,6 @@ void generate_pp(phys_prop_dist_t *pp_d, pp_disk_t::param_t& param)
 	}
 }
 
-void print_uint32_t(string &path, uint32_t n)
-{
-	printf("Writing %s to disk .", path.c_str());
-
-	ofstream sout(path.c_str(), ios_base::out);
-	if (sout)
-	{
-		sout << n;
-		sout.close();
-		printf(" done\n");
-	}
-	else
-	{
-		throw string("Cannot open " + path + "!");
-	}
-}
-
 template <typename T>
 void print_number(string& path, T number)
 {
@@ -269,7 +252,7 @@ void print_data(string &path, body_disk_t& disk, pp_disk_t::sim_data_t* sd, inpu
 	}
 }
 
-void print_data_info(string &path, ttt_t t, ttt_t dt, body_disk_t& disk, input_format_name_t format)
+void print_data_info(string &path, ttt_t t, ttt_t dt, uint32_t dt_CPU, body_disk_t& disk, input_format_name_t format)
 {
 	printf("Writing %s to disk .", path.c_str());
 
@@ -279,7 +262,7 @@ void print_data_info(string &path, ttt_t t, ttt_t dt, body_disk_t& disk, input_f
 		n_objects_t *n_bodies = new n_objects_t(disk.nBody[BODY_TYPE_STAR], disk.nBody[BODY_TYPE_GIANTPLANET], disk.nBody[BODY_TYPE_ROCKYPLANET], disk.nBody[BODY_TYPE_PROTOPLANET], disk.nBody[BODY_TYPE_SUPERPLANETESIMAL], disk.nBody[BODY_TYPE_PLANETESIMAL], disk.nBody[BODY_TYPE_TESTPARTICLE]);
 		if (INPUT_FORMAT_RED == format)
 		{
-			file::print_data_info_record_ascii_RED(sout, t, dt, n_bodies);
+			file::print_data_info_record_ascii_RED(sout, t, dt, dt_CPU, n_bodies);
 		}
 		if (INPUT_FORMAT_NONAME == format)
 		{

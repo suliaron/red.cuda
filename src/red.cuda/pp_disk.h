@@ -30,10 +30,13 @@ public:
 	computing_device_t get_computing_device() { return comp_dev; }
 
 	void set_n_tpb(uint32_t n)   { n_tpb = n;     }
-	uint32_t  get_n_tpb(void)    { return n_tpb;  }
+	uint32_t  get_n_tpb()        { return n_tpb;  }
 
 	void set_id_dev(uint32_t id) { id_dev = id;   }
-	uint32_t  get_id_dev(void)   { return id_dev; }
+	uint32_t  get_id_dev()       { return id_dev; }
+
+	void set_dt_CPU(uint32_t n)  { dt_CPU = n;    }
+	uint32_t get_dt_CPU()        { return dt_CPU; }
 
 	//! Determines the mass of the central star
 	/*!
@@ -183,6 +186,8 @@ private:
 	void transform_time();
 	//! Transform the velocity using the new time unit: 1/k = 58.13244 ...
 	void transform_velocity();
+
+	uint32_t dt_CPU;                      //!< The elapsed time since the first start [sec]
 
 	uint32_t id_dev;                      //!< The id of the GPU
 	computing_device_t comp_dev;          //!< The computing device to carry out the calculations (cpu or gpu)
