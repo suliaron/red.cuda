@@ -39,7 +39,6 @@ options::~options()
 
 void options::create_default()
 {
-	benchmark           = false;
 	test                = false;
 	verbose             = false;
 	print_to_screen     = false;
@@ -68,19 +67,15 @@ void options::parse(int argc, const char** argv)
 	{
 		string p = argv[i];
 
-		if (     p == "--benchmark" || p == "-b")
-		{
-			benchmark = true;
-		}
-		else if (p == "--test" || p == "-t")
+		if (p == "-t")
 		{
 			test = true;
 		}
-		else if (p == "--verbose" || p == "-v")
+		else if (p == "-v")
 		{
 			verbose = true;
 		}
-		else if (p == "--print_to_screen" || p == "-pts")
+		else if (p == "-pts")
 		{
 			verbose = true;
 			print_to_screen = true;
@@ -90,7 +85,7 @@ void options::parse(int argc, const char** argv)
 			ef = true;
 		}
 
-		else if (p == "--id_active_device" || p == "-id_dev")
+		else if (p == "-id_dev")
 		{
 			i++;
 			if (!tools::is_number(argv[i])) 
@@ -99,7 +94,7 @@ void options::parse(int argc, const char** argv)
 			}
 			id_dev = atoi(argv[i]);
 		}
-		else if (p == "--n_change_to_cpu" || p == "-n_chg")
+		else if (p == "-n_chg")
 		{
 			i++;
 			if (!tools::is_number(argv[i])) 
@@ -109,55 +104,45 @@ void options::parse(int argc, const char** argv)
 			n_change_to_cpu = atoi(argv[i]);
 		}
 
-		else if (p == "--cpu" || p == "-cpu")
+		else if (p == "-cpu")
 		{
 			comp_dev = COMPUTING_DEVICE_CPU;
 		}
-		else if (p == "--gpu" || p == "-gpu")
+		else if (p == "-gpu")
 		{
 			comp_dev = COMPUTING_DEVICE_GPU;
 		}
 
 
-		else if (p == "--inputDir" || p == "-iDir")
+		else if (p == "-idir")
 		{
 			i++;
 			dir[DIRECTORY_NAME_IN] = argv[i];
 		}
-		else if (p == "--outputDir" || p == "-oDir")
+		else if (p == "-odir")
 		{
 			i++;
 			dir[DIRECTORY_NAME_OUT] = argv[i];
 		}
 
 
-		else if (p == "--input" || p == "-i")
+		else if (p == "-i")
 		{
 			i++;
 			in_fn[INPUT_NAME_START_FILES] = argv[i];
 		}
-		//else if (p == "--input_data" || p == "-id")
-		//{
-		//	i++;
-		//	in_fn[INPUT_NAME_DATA] = argv[i];
-		//}
-		//else if (p == "--input_data_info" || p == "-idf")
-		//{
-		//	i++;
-		//	in_fn[INPUT_NAME_DATA_INFO] = argv[i];
-		//}
-		else if (p =="--parameters" || p == "-p")
+		else if (p == "-p")
 		{
 			i++;
 			in_fn[INPUT_NAME_PARAMETER] = argv[i];
 		}
-		else if (p == "--analytic_gas_disk" || p == "-ga")
+		else if (p == "-ga")
 		{
 			g_disk_model = GAS_DISK_MODEL_ANALYTIC;
 			i++;
 			in_fn[INPUT_NAME_GAS_DISK_MODEL] = argv[i];
 		}
-		else if (p == "--fargo_gas_disk" || p == "-gf")
+		else if (p == "-gf")
 		{
 			g_disk_model = GAS_DISK_MODEL_FARGO;
 			i++;
@@ -165,25 +150,7 @@ void options::parse(int argc, const char** argv)
 		}
 
 
-		else if (p == "--number-of-bodies" || p == "-nb")
-		{
-			int n_st  = 0;
-			int n_gp  = 0;
-			int n_rp  = 0;
-			int n_pp  = 0;
-			int n_spl = 0;
-			int n_pl  = 0;
-			int n_tp  = 0;
-			i++;    n_st  = atoi(argv[i]);
-			i++;    n_gp  = atoi(argv[i]);
-			i++;    n_rp  = atoi(argv[i]);
-			i++;    n_pp  = atoi(argv[i]);
-			i++;    n_spl = atoi(argv[i]);
-			i++;    n_pl  = atoi(argv[i]);
-			i++;    n_tp  = atoi(argv[i]);
-			n_bodies = new n_objects_t(n_st, n_gp, n_rp, n_pp, n_spl, n_pl, n_tp);
-		}
-		else if (p == "--help" || p == "-h")
+		else if (p == "-h")
 		{
 			print_usage();
 			exit(EXIT_SUCCESS);
@@ -205,7 +172,7 @@ pp_disk* options::create_pp_disk()
 {
 	pp_disk* ppd = 0x0;
 
-	if (benchmark)
+	if (0) //(benchmark)
 	{
 		ppd = new pp_disk(n_bodies, g_disk_model, id_dev, comp_dev);
 	}
@@ -243,7 +210,7 @@ pp_disk* options::create_pp_disk()
 		}
 		else
 		{
-			throw string("The -i | --input <filename> option was not provided.");
+			throw string("The -i <file> option was not provided.");
 		}
 		path_data      = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_DATA]);
 		path_data_info = file::combine_path(dir[DIRECTORY_NAME_IN], in_fn[INPUT_NAME_DATA_INFO]);
@@ -306,31 +273,28 @@ integrator* options::create_integrator(pp_disk* ppd, ttt_t dt)
 
 void options::print_usage()
 {
-	cout << "Usage: red <parameterlist>" << endl;
-	cout << "Parameters:" << endl << endl;
-	cout << "     -b      | --benchmark                    : run benchmark to find out the optimal number of threads per block" << endl;
-	cout << "     -t      | --test                         : run tests" << endl;
-	cout << "     -v      | --verbose                      : verbose mode (log all event during the execution fo the code to the log file)" << endl;
-	cout << "     -pts    | --print_to_screen              : verbose mode and print everything to the standard output stream too" << endl << endl;
-	//cout << "     -ef     |                                : use extended file names (use only for debuging purposes)" << endl;
-
-	cout << "     -id_dev | --id_active_device <number>    : the id of the device which will execute the code (default value is 0)" << endl;
-	cout << "     -n_chg  | --n_change_to_cpu <number>     : the threshold value for the total number of SI bodies to change to the CPU (default value is 100)" << endl << endl;
-
-	cout << "     -gpu    | --gpu                          : execute the code on the graphics processing unit (GPU) (default value is false)" << endl;
-	cout << "     -cpu    | --cpu                          : execute the code on the cpu if required by the user or if no GPU is installed (default value is true)" << endl << endl;
-
-	cout << "     -iDir   | --inputDir <directory>         : the directory containing the input files"  << endl;
-	cout << "     -oDir   | --outputDir <directory>        : the directory where the output files will be stored (if omitted the input directory will be used)" << endl << endl;
-
-	cout << "     -i      | --input <filename>             : the input file containing the filename of the input_data_info (1st line) and input_data (2nd line)" << endl;
-	//cout << "     -idf    | --input_data_info <filename>   : the input file containing the initial time, timestep and the number of the objects by their type" << endl;
-	//cout << "     -id     | --input_data <filename>        : the input file containing the parameters and the initial coordinates and velocities of each object" << endl;
-	cout << "     -p      | --parameter <filename>         : the input file containing the parameters of the simulation"  << endl;
-	cout << "     -ga     | --analytic_gas_disk <filename> : the input file containing the parameters of an analyticaly prescribed gas disk"  << endl;
-	cout << "     -gf     | --fargo_gas_disk <filename>    : the input file containing the details of the gas disk resulted from FARGO simulations"  << endl << endl;
-
-	cout << "     -nb     | --number-of-bodies             : set the number of bodies for benchmarking (pattern: n_st n_gp n_rp n_pp n_spl n_pl n_tp)" << endl << endl;
-
-	cout << "     -h      | --help                         : print this help" << endl;
+	cout << "Usage: red [options] -i <file> -p <file>" << endl;
+	cout << "Options:" << endl;
+	cout << "  -t                Run self-tests" << endl;
+	cout << "  -v                Verbose mode (log all event during the execution fo the code to the log file)" << endl;
+	cout << "  -pts              Verbose mode and print everything to the stdout too" << endl << endl;
+					      
+	cout << "  -id_dev <number>  The id of the device which will execute the code (default value is 0)" << endl;
+	cout << "  -n_chg  <number>  The threshold value for the total number of SI bodies to change to the CPU (default value is 100)" << endl << endl;
+					      
+	cout << "  -gpu              Execute the code on the graphics processing unit (GPU)" << endl;
+	cout << "  -cpu              Execute the code on the CPU if required by the user or if no GPU is installed (default)" << endl << endl;
+					      
+	cout << "  -idir <directory> The directory containing the input files"  << endl;
+	cout << "  -odir <directory> The directory where the output files will be stored (if omitted the input directory will be used)" << endl << endl;
+					      
+	cout << "  -i <file>         The input file containing the filename of the input_data_info (1st line) and input_data (2nd line)" << endl;
+	cout << "  -p <file>         The input file containing the parameters of the simulation"  << endl;
+	cout << "  -ga <file>        The input file containing the parameters of an analyticaly prescribed gas disk"  << endl;
+	cout << "  -gf <file>        The input file containing the details of the gas disk resulted from FARGO simulations"  << endl << endl;
+					      
+	cout << "  --help            Display this information" << endl << endl;
+	cout << "To start a simulation the -i and -p are obligatory command line arguments." << endl;
+	cout << "Arguments inside the <> brackets are obligatory." << endl;
+	cout << "All other options are facultative." << endl << endl;
 }

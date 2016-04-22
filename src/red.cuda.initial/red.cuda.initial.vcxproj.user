@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-oDir C:\Work\Oktatas\2016\InfoCsill4\TestRun -f input</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-odir C:\Work\red.cuda.Results\Dvorak\3D\Hansen_2009\CDM_Step\tol_-12\Aref_1_copy -f input</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

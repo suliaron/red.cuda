@@ -3014,7 +3014,7 @@ int parse_options(int argc, const char **argv, string &outDir, string &filename)
 	{
 		string p = argv[i];
 
-		if (     p == "-oDir")
+		if (     p == "-odir")
 		{
 			i++;
 			outDir = argv[i];
@@ -3062,7 +3062,7 @@ int main(int argc, const char **argv)
 		//create_disk::Elke_binary_test(outDir, filename);
 		//create_disk::Birgit_scenario(outDir, filename);
 		//create_disk::solar_system(outDir, filename);
-		//create_disk::Hansen_2009(outDir, filename);
+		create_disk::Hansen_2009(outDir, filename);
 		//create_disk::Chambers2001(outDir, filename);
 		//create_disk::n_pl_to_test_anal_gd(outDir, filename);
 		//create_disk::n_gp(outDir, filename);
@@ -3070,7 +3070,7 @@ int main(int argc, const char **argv)
 		//create_disk::n_pl(outDir, filename);
 		//create_disk::n_spl(outDir, filename);
 		//create_disk::n_pp(outDir, filename);
-		create_disk::two_body(outDir, filename);
+		//create_disk::two_body(outDir, filename);
 		//create_disk::Dvorak(outDir, filename);
 		//create_disk::GT_scenario(outDir, filename);
 		//create_disk::GT_scenario_mod(outDir, filename);

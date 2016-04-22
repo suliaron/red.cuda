@@ -110,10 +110,6 @@ string create_prefix(const options& opt)
 	};
 
 	string prefix;
-	if (opt.benchmark)
-	{
-		prefix = "b_";
-	}
 
 	if (opt.ef)
 	{
@@ -384,7 +380,7 @@ void run_benchmark(const options& opt, pp_disk* ppd, integrator* intgr, ofstream
 	}
 }
 
-void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_t offset, ofstream* slog)
+void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_t dt_CPU_offset, ofstream* slog)
 {
 	static string prefix = create_prefix(opt);
 	static string ext = (DATA_REPRESENTATION_ASCII == opt.param->output_data_rep ? "txt" : "dat");
@@ -414,8 +410,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 	ppd->calc_integral(false, integrals[0]);
 
 	uint32_t n_print = 0;
-	if (0 < opt.in_fn[INPUT_NAME_START_FILES].length() && 
-		4 <= opt.in_fn[INPUT_NAME_DATA].length() && "data" == opt.in_fn[INPUT_NAME_DATA].substr(0, 4))
+	if (4 <= opt.in_fn[INPUT_NAME_DATA].length() && "data" == opt.in_fn[INPUT_NAME_DATA].substr(0, 4))
 	{
 		string str = opt.in_fn[INPUT_NAME_DATA];
 		size_t pos = str.find_first_of("_");
@@ -488,7 +483,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 		dt = intgr->step();
 		dT_CPU = (clock() - T0_CPU);
 		T_CPU += dT_CPU;
-		ppd->set_dt_CPU(offset + T_CPU / CLOCKS_PER_SEC);
+		ppd->set_dt_CPU(dt_CPU_offset + T_CPU / CLOCKS_PER_SEC);
 		ps += fabs(dt);
 
 		if (0.0 < opt.param->threshold[THRESHOLD_RADII_ENHANCE_FACTOR])
@@ -593,10 +588,11 @@ void run_test()
 //http://developer.download.nvidia.com/assets/cuda/files/NVIDIA-CUDA-Floating-Point.pdf
 
 //-gpu -v -pts -ef -iDir C:\Work\red.cuda.Results\Dvorak\2D\NewRun_2\Run_cf4.0_2 -p parameters.txt -ic run_04.txt
+//-cpu -pts -iDir C:\Work\Oktatas\2016\InfoCsill4\TestRun -p parameters.txt -i start_files.txt 
 int main(int argc, const char** argv, const char** env)
 {
 	time_t start = time(NULL);
-	uint32_t offset = 0;
+	uint32_t dt_CPU_offset = 0;
 
 	ofstream* slog = 0x0;
 	try
@@ -630,16 +626,17 @@ int main(int argc, const char** argv, const char** env)
 		pp_disk *ppd = opt.create_pp_disk();
 		integrator *intgr = opt.create_integrator(ppd, ppd->dt);
 		// Number of seconds from previous runs
-		offset = ppd->get_dt_CPU();
+		dt_CPU_offset = ppd->get_dt_CPU();
+		run_simulation(opt, ppd, intgr, dt_CPU_offset, slog);
 
-		if (opt.benchmark)
-		{
-			run_benchmark(opt, ppd, intgr, *slog);
-		}
-		else
-		{
-			run_simulation(opt, ppd, intgr, offset, slog);
-		}
+		//if (opt.benchmark)
+		//{
+		//	run_benchmark(opt, ppd, intgr, *slog);
+		//}
+		//else
+		//{
+		//	run_simulation(opt, ppd, intgr, dt_CPU_offset, slog);
+		//}
 
 	} /* try */
 	catch (const string& msg)
@@ -650,7 +647,7 @@ int main(int argc, const char** argv, const char** env)
 			file::log_message(*slog, "Error: " + msg, false);
 		}
 	}
-	time_t total_time = offset + time(NULL) - start;
+	time_t total_time = dt_CPU_offset + time(NULL) - start;
 	cout << "Total time: " << total_time << " s" << endl;
 	if (0x0 != slog)
 	{

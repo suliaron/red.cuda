@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-cpu -pts -iDir C:\Work\Oktatas\2016\InfoCsill4\TestRun -p parameters.txt -i start_files.txt </LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-cpu -v -pts -idir C:\Work\red.cuda.Results\Dvorak\3D\Hansen_2009\CDM_Step\tol_-12\Aref_10 -i start_files.txt -p parameters.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

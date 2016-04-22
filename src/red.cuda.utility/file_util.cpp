@@ -594,7 +594,7 @@ void load_data_record_ascii(ifstream& input, std::string& name, pp_disk_t::param
 	int_t	type = 0;
 	string	buffer;
 
-	// name
+	// 1. field: name
 	input >> buffer;
 	// The names must be less than or equal to 30 chars
 	if (buffer.length() > 30)
@@ -603,23 +603,30 @@ void load_data_record_ascii(ifstream& input, std::string& name, pp_disk_t::param
 	}
 	name = buffer;
 
-	// id
+	// 2. field: id
 	input >> bmd->id;
-	// body type
+	// 3. field: body type
 	input >> type;
 	bmd->body_type = static_cast<body_type_t>(type);
-	// migration type
+	// 4. field:  migration type
 	input >> type;
 	bmd->mig_type = static_cast<migration_type_t>(type);
-	// migration stop at
+	// 5. field: migration stop at
 	input >> bmd->mig_stop_at;
 
-	// mass, radius density and stokes coefficient
+	// 6. field: mass
+	// 7. field: radius
+	// 8. field: density
+	// 9. field: stokes coefficient
 	input >> p->mass >> p->radius >> p->density >> p->cd;
 
-	// position
+	// 10. field: x
+	// 11. field: y
+	// 12. field: z
 	input >> r->x >> r->y >> r->z;
-	// velocity
+	// 13. field: vx
+	// 14. field: vy
+	// 15. field: vz
 	input >> v->x >> v->y >> v->z;
 	r->w = v->w = 0.0;
 }

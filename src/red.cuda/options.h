@@ -17,7 +17,6 @@ public:
 	pp_disk* create_pp_disk();
 	integrator* create_integrator(pp_disk* ppd, ttt_t dt);
 
-	bool benchmark;                 //!< Run benchmark test to tune the optimal number of threds per block
 	bool test;                      //!< Run tests for functions
 	bool verbose;                   //!< Print every event to the log file
 	bool print_to_screen;           //!< Print every event to the standard output stream (cout) 
