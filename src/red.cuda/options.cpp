@@ -288,12 +288,12 @@ void options::print_usage()
 	cout << "  -idir <directory> The directory containing the input files"  << endl;
 	cout << "  -odir <directory> The directory where the output files will be stored (if omitted the input directory will be used)" << endl << endl;
 					      
-	cout << "  -i <file>         The input file containing the filename of the input_data_info (1st line) and input_data (2nd line)" << endl;
+	cout << "  -i <file>         The input file containing the filenames of the input data" << endl;
 	cout << "  -p <file>         The input file containing the parameters of the simulation"  << endl;
 	cout << "  -ga <file>        The input file containing the parameters of an analyticaly prescribed gas disk"  << endl;
 	cout << "  -gf <file>        The input file containing the details of the gas disk resulted from FARGO simulations"  << endl << endl;
 					      
-	cout << "  --help            Display this information" << endl << endl;
+	cout << " --help             Display this information" << endl << endl;
 	cout << "To start a simulation the -i and -p are obligatory command line arguments." << endl;
 	cout << "Arguments inside the <> brackets are obligatory." << endl;
 	cout << "All other options are facultative." << endl << endl;

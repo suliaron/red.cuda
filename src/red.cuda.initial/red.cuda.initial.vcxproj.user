@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-odir C:\Work\red.cuda.Results\Dvorak\3D\Hansen_2009\CDM_Step\tol_-12\Aref_1_copy -f input</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-odir C:\Work\red.cuda.Results\Birgit_2016 -f input</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
