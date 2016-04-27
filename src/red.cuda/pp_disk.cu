@@ -1541,6 +1541,10 @@ pp_disk::pp_disk(string& path_data, string& path_data_info, gas_disk_model_t g_d
 
 	data_rep_t repres;
 	string ext = file::get_extension(path_data);
+//START DEBUG CODE
+printf("%s %s %d: ext: %s\n", __FILE__, __FUNCTION__, __LINE__, ext.c_str());
+//END   DEBUG CODE
+
 	if (     "txt" == ext)
 	{
 		repres = DATA_REPRESENTATION_ASCII;
