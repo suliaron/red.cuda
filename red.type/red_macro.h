@@ -32,6 +32,8 @@
 // Define this to turn on error checking
 #define CUDA_ERROR_CHECK
  
+#define DBG()  printf("<<DEBUG: %s %s %4d>> ", __FILE__, __FUNCTION__, __LINE__)
+
 #define CUDA_SAFE_CALL( err ) __cudaSafeCall( err, __FILE__, __LINE__ )
 #define CUDA_CHECK_ERROR()    __cudaCheckError( __FILE__, __LINE__ )
  
