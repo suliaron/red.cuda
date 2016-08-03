@@ -14,13 +14,6 @@ public:
 	var_t uniform();
 	var_t uniform(var_t x_min, var_t x_max);
 	int   uniform(int x_min, int x_max);
-
-	//var_t normal(var_t m, var_t s);
-	//var_t exponential(var_t lambda);
-	//var_t rayleigh(var_t sigma);
-
-	//var_t power_law(var_t lower, var_t upper, var_t p);
-
 private:
 	uint32_t idx;
 	uint32_t I[624];

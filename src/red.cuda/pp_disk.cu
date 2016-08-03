@@ -1541,30 +1541,6 @@ pp_disk::pp_disk(string& path_data, string& path_data_info, gas_disk_model_t g_d
 
 	data_rep_t repres;
 	string ext = file::get_extension(path_data);
-//START DEBUG CODE
-DBG();printf("ext: %s\n", ext.c_str());
-//END   DEBUG CODE
-
-	{
-		uint16_t len = ext.length() + 1;
-		char* _ext = (char*)malloc(len);
-		strcpy(_ext, ext.c_str());
-		DBG(); printf("_ext = %s\n", _ext);
-		if (     0 == strcmp("txt", _ext))
-		{
-			repres = DATA_REPRESENTATION_ASCII;
-		}
-		else if (0 == strcmp("dat", _ext))
-		{
-			repres = DATA_REPRESENTATION_BINARY;
-		}
-		else
-		{
-			throw string("The extension of the input data must be either 'txt' or 'dat'.");
-		}
-
-	}
-
 	if (     "txt" == ext)
 	{
 		repres = DATA_REPRESENTATION_ASCII;

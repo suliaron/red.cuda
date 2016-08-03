@@ -45,52 +45,6 @@ int red_random::uniform(int x_min, int x_max)
     return (x_min + (uint32_t)(rand()/4294967296.*(x_max - x_min + 1)));
 }
 
-//var_t red_random::normal(var_t m, var_t s)
-//{
-//    return (m + s*sqrt(-2.0*log((rand() + 1.0) / 4294967296.0)) * cos(1.4629180792671596E-9*(rand() + 1.0)));
-//}
-//
-//var_t red_random::exponential(var_t lambda)
-//{
-//    var_t u = uniform();
-//    return (-1.0 / lambda * log(u));
-//}
-//
-//var_t red_random::rayleigh(var_t sigma)
-//{
-//    var_t u = uniform();
-//    return (sigma * sqrt(-2.0 * log(u)));
-//}
-//
-//var_t red_random::power_law(var_t x_min, var_t x_max, var_t p)
-//{
-//	assert(x_min < x_max);
-//
-//	var_t y_min = pow(x_min, p);
-//	var_t y_max = pow(x_max, p);
-//	if (y_min > y_max)
-//	{
-//		swap(y_min, y_max);
-//	}
-//
-//	var_t d_y = y_max - y_min;
-//	var_t d_x = x_max - x_min;
-//
-//	var_t x, y;
-//	var_t area_max = d_x * d_y;
-//
-//	do
-//	{
-//		x = uniform(0.0, area_max) / d_y + x_min;
-//		y = uniform(y_min, y_max);
-//	} while (y > pow(x, p));
-//
-//	return x;
-//}
-
-
-
-
 distribution_base::distribution_base(uint32_t seed, var_t x_min, var_t x_max) :
 	rr(seed),
 	x_min(x_min),

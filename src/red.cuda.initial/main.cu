@@ -539,9 +539,17 @@ uint32_t coll_stat_run(nebula& n, body_disk_t& disk)
 		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC].x = 0.0;
 		disk.oe_d[type].range[ORBITAL_ELEMENT_ECC].y = 0.2;
 
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
+		/* 2D */
+		//disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);  // 2D
+
+		/* 3D */
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new rayleigh_distribution(rand(), 0.04);
+		disk.oe_d[type].range[ORBITAL_ELEMENT_INC].x = 0.0;
+		disk.oe_d[type].range[ORBITAL_ELEMENT_INC].y = 0.2;
+
 		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
+		//disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0); // 2D
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
 		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0, 1.0);
@@ -3158,7 +3166,7 @@ void create_init_cond(string& out_dir)
 }
 } /* project_collision_2D */
 
-namespace project_collision_Rezso_2D
+namespace project_collision_Rezso_3D
 {
 void create_init_cond(string& out_dir)
 {
@@ -3175,7 +3183,7 @@ void create_init_cond(string& out_dir)
 		delay(1600);
 	}
 }
-} /* project_collision_Rezso_2D */
+} /* project_collision_Rezso_3D */
 
 int parse_options(int argc, const char **argv, string &outDir, string &filename)
 {
@@ -3223,13 +3231,13 @@ int main(int argc, const char **argv)
 		}
 #endif	
 
-#if 0
+#if 1
 		{
-			project_collision_Rezso_2D::create_init_cond(outDir);
+			project_collision_Rezso_3D::create_init_cond(outDir);
 			return (EXIT_SUCCESS);
 		}
 #endif	
-		create_disk::Birgit_2016(outDir, filename);
+		//create_disk::Birgit_2016(outDir, filename);
 		//create_disk::Colliding_bodies(outDir, filename);
 		//create_disk::Elke_binary_test(outDir, filename);
 		//create_disk::Birgit_scenario(outDir, filename);
