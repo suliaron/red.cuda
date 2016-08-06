@@ -42,6 +42,7 @@ void options::create_default()
 	test                = false;
 	verbose             = false;
 	print_to_screen     = false;
+    print_dbe           = false;
 	ef                  = false;
 
 	id_dev              = 0;
@@ -79,6 +80,10 @@ void options::parse(int argc, const char** argv)
 		{
 			verbose = true;
 			print_to_screen = true;
+		}
+		else if (p == "-pe")
+		{
+            print_dbe = true;
 		}
 		else if (p == "-ef")
 		{
@@ -237,6 +242,12 @@ pp_disk* options::create_pp_disk()
 		ppd->copy_to_device();
 	}
 
+    // If backward integration than and the stepsize is positive than make it negative
+    if (0.0 > param->simulation_length && 0.0 < ppd->dt)
+    {
+        ppd->dt *= -1.0;
+    }
+
 	return ppd;
 }
 
@@ -277,6 +288,7 @@ void options::print_usage()
 	cout << "Options:" << endl;
 	cout << "  -t                Run self-tests" << endl;
 	cout << "  -v                Verbose mode (log all event during the execution fo the code to the log file)" << endl;
+	cout << "  -pe               Print the data before the event is detetced (the state before the event-detetcion)" << endl;
 	cout << "  -pts              Verbose mode and print everything to the stdout too" << endl << endl;
 					      
 	cout << "  -id_dev <number>  The id of the device which will execute the code (default value is 0)" << endl;
@@ -293,7 +305,7 @@ void options::print_usage()
 	cout << "  -ga <file>        The input file containing the parameters of an analyticaly prescribed gas disk"  << endl;
 	cout << "  -gf <file>        The input file containing the details of the gas disk resulted from FARGO simulations"  << endl << endl;
 					      
-	cout << " --help             Display this information" << endl << endl;
+	cout << "  -h                Display this information" << endl << endl;
 	cout << "To start a simulation the -i and -p are obligatory command line arguments." << endl;
 	cout << "Arguments inside the <> brackets are obligatory." << endl;
 	cout << "All other options are facultative." << endl << endl;

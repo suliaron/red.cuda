@@ -3153,7 +3153,7 @@ void create_init_cond(string& out_dir)
 {
 	char buffer[4];
 	// Iterates over the different initial seed
-	for (uint32_t j = 0; j < 10; j++)
+	for (uint32_t j = 0; j < 1; j++)
 	{
 		sprintf(buffer, "%02d", j+1);
 		string postfix(buffer);
@@ -3205,7 +3205,7 @@ int parse_options(int argc, const char **argv, string &outDir, string &filename)
 		}
 		else
 		{
-			throw string("Invalid switch on command-line.");
+			throw string("Invalid switch '" + p + "' on command-line.");
 		}
 		i++;
 	}
@@ -3223,15 +3223,16 @@ int main(int argc, const char **argv)
 	{
 		parse_options(argc, argv, outDir, filename);
 
-#if 0
+#if 1
 		{
-			string out_dir = "C:\\Work\\red.cuda.Results\\CollisionStatistics\\2D";
+			//string out_dir = "C:\\Work\\red.cuda.Results\\CollisionStatistics\\2D";
+            string out_dir = "C:\\Work\\red.cuda.Results\\CollidingBodies\\scenario_01";
 			project_collision_2D::create_init_cond(out_dir);
 			return (EXIT_SUCCESS);
 		}
 #endif	
 
-#if 1
+#if 0
 		{
 			project_collision_Rezso_3D::create_init_cond(outDir);
 			return (EXIT_SUCCESS);

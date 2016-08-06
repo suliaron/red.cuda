@@ -405,7 +405,7 @@ rungekutta8::rungekutta8(pp_disk *ppd, ttt_t dt, bool adaptive, var_t tolerance,
 	integrator(ppd, dt, adaptive, tolerance, (adaptive ? 13 : 11), comp_dev)
 {
 	name  = "Runge-Kutta-Fehlberg7";
-	order = 7;
+	order = 7;    
 }
 
 rungekutta8::~rungekutta8()
@@ -643,6 +643,7 @@ ttt_t rungekutta8::step()
 		calc_grid(n_var_total, THREADS_PER_BLOCK);
 	}
 
+    dt_try = dt_next;
 	// Calculate initial differentials and store them into dydx[][0]
 	int r = 0;
 	ttt_t ttemp = ppd->t + c[r] * dt_try;
@@ -692,14 +693,15 @@ ttt_t rungekutta8::step()
 			uint32_t n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_massive());
 			// Calculate the absolute values of the errors
 			calc_error(n_var);
-			max_err = LAMBDA * dt_try * get_max_error(n_var);
+            // In case of backward integration (when dt < 0) one needs abs of the maximum error
+			max_err = fabs(LAMBDA * dt_try * get_max_error(n_var));
 			if (0.0 < max_err)
 			{
 				dt_next = dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
 			}
 			else
 			{	
-				dt_next = 2.0 * dt_try;
+				dt_next = dt_try *= 2.0;
 			}
 		}
 		iter++;
@@ -841,6 +843,7 @@ ttt_t c_rungekutta8::step()
 		calc_grid(n_var_total, THREADS_PER_BLOCK);
 	}
 
+    dt_try = dt_next;
 	// Calculate initial differentials and store them into dydx[][0]
 	int stage = 0;
 	ttt_t ttemp = ppd->t + c[stage] * dt_try;
@@ -891,14 +894,15 @@ ttt_t c_rungekutta8::step()
 			uint32_t n_var = NDIM * (error_check_for_tp ? ppd->n_bodies->get_n_total_playing() : ppd->n_bodies->get_n_massive());
 			// Calculate the absolute values of the errors
 			call_kernel_calc_error(n_var);
-			max_err = LAMBDA * dt_try * get_max_error(n_var);
+            // In case of backward integration (when dt < 0) one needs abs of the maximum error
+			max_err = fabs(LAMBDA * dt_try * get_max_error(n_var));
 			if (0.0 < max_err)
 			{
 				dt_next = dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
 			}
 			else
 			{	
-				dt_next = 2.0 * dt_try;
+				dt_next = dt_try *= 2.0;
 			}
 		}
 		iter++;

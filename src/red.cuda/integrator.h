@@ -20,6 +20,9 @@ public:
 	void set_computing_device(computing_device_t device);
 	computing_device_t get_computing_device() { return comp_dev; }
 
+    ttt_t get_dt_next()            { return dt_next; }
+    void set_dt_next(ttt_t dt)     { dt_next = dt;   }
+
 	void update_counters(int iter);
 	uint64_t get_n_failed_step();
 	uint64_t get_n_passed_step();

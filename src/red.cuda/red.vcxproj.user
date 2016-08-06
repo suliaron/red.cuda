@@ -9,11 +9,11 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>-v -ef -gpu -iDir D:\Work\red.cuda.Results\Temp -p parameters.txt -ic input.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -cpu -idir C:\Work\red.cuda.Results\CollidingBodies\scenario_01\coll_Id_15 -p parameters.txt -i start_files.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LocalDebuggerCommandArguments>-gpu -v -pts -iDir D:\Work\red.cuda.Results\Temp -p parameters.txt -ic input_01.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -pe -cpu -idir C:\Work\red.cuda.Results\CollidingBodies\scenario_02 -p parameters.txt -i start_files.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

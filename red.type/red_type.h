@@ -418,6 +418,12 @@ namespace pp_disk_t
 		ttt_t	t;                     //!< Time of the event
 		var_t	d;                     //!< distance of the bodies
 
+		int id0;                       //!< Id of the star
+		uint32_t idx0;                 //!< Index of the star
+		param_t p0;                    //!< Parameters of the star
+		var4_t	r0;                    //!< Position of star
+		var4_t	v0;                    //!< Velocity of star
+
 		int id1;                       //!< Id of the survivor
 		uint32_t idx1;                 //!< Index of the survivor
 		param_t p1;                    //!< Parameters of the survivor before the event

@@ -219,6 +219,26 @@ void print_data(const options& opt, pp_disk* ppd, pp_disk_t::integral_t* integra
 	ppd->print_integral_data(path_integral, integrals[1]);
 }
 
+void print_data_before_event(const options& opt, pp_disk* ppd, uint32_t& n_event, string& prefix, string& ext, ofstream* slog)
+{
+    // In order to write out the data in yout
+    ppd->swap();
+
+	string n_event_str = redutilcu::number_to_string(n_event, OUTPUT_ORDINAL_NUMBER_WIDTH, true);
+	string fn_data = prefix + "event_" + n_event_str + "." + ext;
+	string path_data = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], fn_data);
+
+	ppd->print_data(path_data, opt.param->output_data_rep);
+
+	string fn_data_info = prefix + "event_" + n_event_str + ".info." + ext;
+	string path_data_info = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], fn_data_info);
+	ppd->print_data_info(path_data_info, opt.param->output_data_rep);
+	n_event++;
+
+    // Change back the pointers
+    ppd->swap();
+}
+
 void print_dump(const options& opt, pp_disk* ppd, string& prefix, string& ext, ofstream* slog)
 {
 	string fn_data = prefix + "dump." + ext;
@@ -390,6 +410,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 	static string path_integral_event = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_INTEGRAL_EVENT] + ".txt");
 	static string path_event          = file::combine_path(opt.dir[DIRECTORY_NAME_OUT], prefix + opt.out_fn[OUTPUT_NAME_EVENT] + ".txt");
 
+    ttt_t it = 0.0;   // integrator time: measures the time of this integration
 	ttt_t ps = 0.0;
 	ttt_t dt = 0.0;
 
@@ -410,14 +431,16 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 	ppd->calc_integral(false, integrals[0]);
 
 	uint32_t n_print = 0;
+    uint32_t n_event = 0;
 	if (4 <= opt.in_fn[INPUT_NAME_DATA].length() && "data" == opt.in_fn[INPUT_NAME_DATA].substr(0, 4))
 	{
 		string str = opt.in_fn[INPUT_NAME_DATA];
 		size_t pos = str.find_first_of("_");
 		str = str.substr(pos + 1, OUTPUT_ORDINAL_NUMBER_WIDTH);
 		n_print = atoi(str.c_str());
+        // TODO: set the n_event counter
 		// Set ps in order to save the next snapshot at the correct epoch
-		ps = ppd->t - n_print * opt.param->output_interval;
+		//ps = ppd->t - n_print * opt.param->output_interval;
 		n_print++;
 	}
 
@@ -439,7 +462,8 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 
 /* main cycle */
 #if 1
-	while (ppd->t <= opt.param->simulation_length && 1 < ppd->n_bodies->get_n_total_active())
+	//while (ppd->t <= opt.param->simulation_length && 1 < ppd->n_bodies->get_n_total_active())
+	while (fabs(it) <= fabs(opt.param->simulation_length) && 1 < ppd->n_bodies->get_n_total_active())
 	{
 		if (COMPUTING_DEVICE_GPU == intgr->get_computing_device() && opt.n_change_to_cpu >= ppd->n_bodies->get_n_SI())
 		{
@@ -484,7 +508,16 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 		dT_CPU = (clock() - T0_CPU);
 		T_CPU += dT_CPU;
 		ppd->set_dt_CPU(dt_CPU_offset + T_CPU / CLOCKS_PER_SEC);
-		ps += fabs(dt);
+        it += dt;
+		ps += dt;
+// DEBUG CODE BEGIN
+        //printf("dt = %25.16le it = %25.16le t = %25.16le\n", dt, it, ppd->t);
+// DEBUG CODE END
+        // The stepsize cannot exceed the user requsted output interval
+        if (fabs(opt.param->output_interval) < fabs(intgr->get_dt_next()))
+        {
+            intgr->set_dt_next(0.0 < dt ? opt.param->output_interval : -opt.param->output_interval);
+        }
 
 		if (0.0 < opt.param->threshold[THRESHOLD_RADII_ENHANCE_FACTOR])
 		{
@@ -509,6 +542,8 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 					string msg = "Dump file was created";
 					file::log_message(*slog, msg, opt.print_to_screen);
 				}
+
+                print_data_before_event(opt, ppd, n_event, prefix, ext, slog);
 			}
 		}
 
@@ -566,7 +601,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 
 	print_info(*sinfo, ppd, intgr, dt, &T_CPU, &dT_CPU);
 	// To avoid duplicate save at the end of the simulation
-	if (0.0 < ps)
+	if (0.0 < fabs(ps))
 	{
 		ps = 0.0;
 		print_data(opt, ppd, integrals, n_print, path_integral, prefix, ext, slog);
@@ -624,6 +659,14 @@ int main(int argc, const char** argv, const char** env)
 		}
 
 		pp_disk *ppd = opt.create_pp_disk();
+
+// Temporary ugly solution to have the correct input for the colliding bodies.
+#if 0
+        ppd->t  *= constants::Gauss;
+        ppd->dt *= constants::Gauss;
+        tools::transform_velocity(ppd->n_bodies->get_n_total_active(), ppd->sim_data);
+#endif
+
 		integrator *intgr = opt.create_integrator(ppd, ppd->dt);
 		// Number of seconds from previous runs
 		dt_CPU_offset = ppd->get_dt_CPU();

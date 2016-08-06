@@ -20,6 +20,7 @@ public:
 	bool test;                      //!< Run tests for functions
 	bool verbose;                   //!< Print every event to the log file
 	bool print_to_screen;           //!< Print every event to the standard output stream (cout) 
+    bool print_dbe;                 //!< Print data before the event is detetced (the state before the event detection)
 	bool ef;                        //!< Extend the file names with command line information. Only for developer and debugger purposes.
 
 	uint32_t id_dev;                //!< The id of the device which will execute the code

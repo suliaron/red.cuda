@@ -181,6 +181,7 @@ ttt_t rungekutta4::step()
 		calc_grid(n_var_total, THREADS_PER_BLOCK);
 	}
 
+    dt_try = dt_next;
 	// Calculate initial differentials and store them into d_f[][0]
 	int stage = 0;
 	ttt_t ttemp = ppd->t + c[stage] * dt_try;
@@ -225,14 +226,15 @@ ttt_t rungekutta4::step()
 			uint32_t n_var = NDIM * (error_check_for_tp ? n_body_total : ppd->n_bodies->get_n_massive());
 			// calculate: err = abs(f4 - f5)
 			calc_error(n_var);
-			max_err = LAMBDA * dt_try * get_max_error(n_var);
+            // In case of backward integration (when dt < 0) one needs abs of the maximum error
+			max_err = fabs(LAMBDA * dt_try * get_max_error(n_var));
 			if (0.0 < max_err)
 			{
 				dt_next = dt_try *= 0.9 * pow(tolerance / max_err, 1.0/(order));
 			}
 			else
 			{	
-				dt_next = 2.0 * dt_try;
+				dt_next = dt_try *= 2.0;
 			}
 		}
 		iter++;

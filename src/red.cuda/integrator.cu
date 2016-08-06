@@ -48,7 +48,7 @@ void integrator::initialize()
 	error_check_for_tp = false;
 
 	dt_did        = 0.0;
-	dt_next       = 0.0;
+    dt_next       = dt_try;
 
 	n_failed_step = 0;
 	n_passed_step = 0;
