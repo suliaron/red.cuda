@@ -511,10 +511,10 @@ uint32_t coll_stat_run(nebula& n, body_disk_t& disk)
 	//The pseudo-random number generator is initialized using the argument passed as seed.
 	srand(seed);
 
-	const var_t rhoSilicate = 2.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+	const var_t rhoSilicate = 2.5 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
-	disk.nBody[BODY_TYPE_PROTOPLANET ] = 10000;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 1000;
 
 	uint32_t n_body = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[n_body];
@@ -552,7 +552,7 @@ uint32_t coll_stat_run(nebula& n, body_disk_t& disk)
 		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
-		disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0, 1.0);
+        disk.pp_d[type].item[MASS      ] = new uniform_distribution(rand(), 1.0 * constants::CeresToSolar, 1.0 * constants::CeresToSolar);
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), rhoSilicate, rhoSilicate);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
@@ -1703,8 +1703,8 @@ void coll_stat_run(string& dir, string& filename)
 	body_disk_t disk;
 
 	// Create a MMSN with gas component and solids component
-	var_t r_1     =   0.5;      /* inner rim of the disk [AU]    */
-	var_t r_2     =   1.5;      /* outer rim of the disk [AU]    */
+	var_t r_1     =   2.5;      /* inner rim of the disk [AU]    */
+	var_t r_2     =   3.0;      /* outer rim of the disk [AU]    */
 	var_t r_SL    =   2.7;      /* distance of the snowline [AU] */
 	var_t f_neb   =   1.0;
 	var_t f_ice   =   4.2;      /* ice condensation coefficient beyond the snowline */
@@ -1715,8 +1715,8 @@ void coll_stat_run(string& dir, string& filename)
 	Sigma_1 *= constants::GramPerCm2ToSolarPerAu2;
 	gas_component gas_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_gas, p);
 
-	r_1 = 0.5;
-	r_2 = 1.5;
+	r_1 = 2.5;
+	r_2 = 3.0;
 	solid_component solid_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_ice, p);
 	nebula mmsn(gas_c, solid_c);
 
@@ -1777,8 +1777,8 @@ void coll_stat_run(string& dir, string& filename)
 	ttt_t dt = 0.0;
 	calculate_phase(sim_data, n_body, dt);
 
-	tools::transform_to_bc(n_body, sim_data);
-	tools::transform_time(n_body, sim_data);
+	tools::transform_to_bc(   n_body, sim_data);
+	tools::transform_time(    n_body, sim_data);
 	tools::transform_velocity(n_body, sim_data);
 	t0 *= constants::Gauss;
 	dt *= constants::Gauss;
@@ -3223,7 +3223,7 @@ int main(int argc, const char **argv)
 	{
 		parse_options(argc, argv, outDir, filename);
 
-#if 1
+#if 0
 		{
 			//string out_dir = "C:\\Work\\red.cuda.Results\\CollisionStatistics\\2D";
             string out_dir = "C:\\Work\\red.cuda.Results\\CollidingBodies\\scenario_01";
@@ -3232,7 +3232,7 @@ int main(int argc, const char **argv)
 		}
 #endif	
 
-#if 0
+#if 1
 		{
 			project_collision_Rezso_3D::create_init_cond(outDir);
 			return (EXIT_SUCCESS);

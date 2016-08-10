@@ -9,7 +9,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>-odir C:\Work\red.cuda.Results\CollidingBodies\scenario_01 -f input</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-odir C:\Work\red.cuda.Results\CollidingBodies\3D\scenario_01 -f input</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
