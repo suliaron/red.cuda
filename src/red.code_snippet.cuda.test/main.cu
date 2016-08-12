@@ -2434,7 +2434,7 @@ int main(int argc, char** argv)
 #endif
 
 
-#if 1
+#if 0
 /*
  * Test the number_to_string() template function
  */
@@ -2481,6 +2481,248 @@ int main(int argc, char** argv)
 	cout << "id: " << _number_to_string(id, 0, true) << endl;
 	cout << "id: " << _number_to_string(id, 7, true) << endl;
 	
+}
+
+#endif
+
+#if 1
+/*
+ *  Convert Dvorak input format to red-cuda format
+ */
+
+typedef struct dvorak_header
+    {
+	    ttt_t simulation_length;           //! length of the simulation [day]
+	    ttt_t output_interval;             //! interval between two succesive output epoch [day]
+        uint32_t data_format;               //! The format of the input data (0: orbital elements)
+        uint32_t number_of_lie_terms;
+        uint32_t n_massive;                //! Number of massive bodies
+        uint32_t n_massless;               //! Number of massless bodies
+        var_t accuray;                     //! 10-base logarithm of the accuracy
+        ttt_t dt_min;                      //! Minimal stepsize [day]
+        ttt_t sum_of_steps;                //! Sum of steps [day]
+        uint32_t n_step;                   //! Number of steps
+    } dvorak_header_t;
+
+
+
+void read_dvorak_header(ifstream& input, dvorak_header_t& header)
+{
+    input >> header.simulation_length;
+    input >> header.output_interval;
+    input >> header.data_format;
+    input >> header.number_of_lie_terms;
+    input >> header.n_massive;
+    input >> header.n_massless;
+    input >> header.accuray;
+    input >> header.dt_min;
+    input >> header.sum_of_steps;
+    input >> header.n_step;
+}
+
+int main()
+{
+	string input_dir = "C:\\Work\\Dvorak\\Temp";
+    string filename = "super.in";
+
+    pp_disk_t::sim_data_t sd;
+    vector<string> names;
+
+    string path = file::combine_path(input_dir, filename);
+    try
+    {
+        uint32_t n_total;
+        vector<orbelem_t> oe;
+        vector<nbody_t::param_t> p;
+
+        ifstream input(path);
+	    if (input) 
+	    {
+            dvorak_header_t header;
+            read_dvorak_header(input, header);
+
+            n_total = header.n_massive + header.n_massless;
+
+            for (uint32_t i = 0; i < n_total; i++)
+            {
+                orbelem_t _oe;
+                nbody_t::param_t _p;
+                input >> _oe.sma >> _oe.ecc >> _oe.inc >> _oe.peri >> _oe.node >> _oe.mean >> _p.mass >> _p.cd;
+
+                _oe.inc  *= constants::DegreeToRadian;
+                _oe.peri *= constants::DegreeToRadian;
+                _oe.node *= constants::DegreeToRadian;
+                _oe.mean *= constants::DegreeToRadian;
+
+                oe.push_back(_oe);
+                p.push_back(_p);
+            }
+	    }
+	    else 
+	    {
+		    throw string("Cannot open " + path + ".");
+	    }
+
+        // Populate the sd container
+        {
+            sd.h_y.resize(2);
+            sd.h_p       = new pp_disk_t::param_t[n_total];
+            sd.h_y[0]    = new var4_t[n_total];
+            sd.h_y[1]    = new var4_t[n_total];
+            sd.h_body_md = new pp_disk_t::body_metadata_t[n_total];
+
+            names.resize(n_total);
+
+            int32_t id = 1;
+            uint32_t idx_pp = 1;
+            for (uint32_t i = 0; i < n_total; i++, id++)
+            {
+                // This is the star
+                if (0 == i)
+                {
+                    names[i] = "Sun",
+
+                    sd.h_body_md[i].id = id;
+                    sd.h_body_md[i].body_type = BODY_TYPE_STAR;
+                    sd.h_body_md[i].mig_type = MIGRATION_TYPE_NO;
+                    sd.h_body_md[i].mig_stop_at = 0.0;
+                    
+                    sd.h_p[i].cd      = p[i].cd;
+                    sd.h_p[i].density = p[i].density;
+                    sd.h_p[i].mass    = p[i].mass;
+                    sd.h_p[i].radius  = p[i].radius;
+                    // Compute other physical properties
+                    {
+                        var_t density = 1.408 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+                        var_t R = tools::calc_radius(p[i].mass, density);
+
+                        sd.h_p[i].radius = R;
+                        sd.h_p[i].density = density;
+                        sd.h_p[i].cd = 0.0;
+                    }
+                    
+                    sd.h_y[0][i].x = sd.h_y[0][i].y = sd.h_y[0][i].z = 0.0;
+                    sd.h_y[1][i].x = sd.h_y[1][i].y = sd.h_y[1][i].z = 0.0;
+                }
+                // This is the Jupiter
+                else if (1 == i)
+                {
+                    names[i] = "Jupiter",
+
+                    sd.h_body_md[i].id = id;
+                    sd.h_body_md[i].body_type = BODY_TYPE_GIANTPLANET;
+                    sd.h_body_md[i].mig_type = MIGRATION_TYPE_NO;
+                    sd.h_body_md[i].mig_stop_at = 0.0;
+                    
+                    sd.h_p[i].cd      = p[i].cd;
+                    sd.h_p[i].density = p[i].density;
+                    sd.h_p[i].mass    = p[i].mass;
+                    sd.h_p[i].radius  = p[i].radius;
+                    // Compute other physical properties
+                    {
+                        var_t density = 1.326 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+                        var_t R = tools::calc_radius(p[i].mass, density);
+
+                        sd.h_p[i].radius = R;
+                        sd.h_p[i].density = density;
+                        sd.h_p[i].cd = 0.0;
+                    }
+                    
+                    var_t mu = K2*(p[0].mass + p[i].mass);
+                    tools::calc_phase(mu, &(oe[i]), &(sd.h_y[0][i]), &(sd.h_y[1][i]));
+                }
+                // These are the other bodies
+                else
+                {
+                    names[i] = "Proto" + number_to_string(idx_pp++);
+
+                    sd.h_body_md[i].id = id;
+                    sd.h_body_md[i].body_type = BODY_TYPE_PROTOPLANET;
+                    sd.h_body_md[i].mig_type = MIGRATION_TYPE_NO;
+                    sd.h_body_md[i].mig_stop_at = 0.0;
+                    
+                    sd.h_p[i].cd      = p[i].cd;       // This is the mass fraction
+                    sd.h_p[i].density = p[i].density;
+                    sd.h_p[i].mass    = p[i].mass;
+                    sd.h_p[i].radius  = p[i].radius;
+                    // Compute other physical properties
+                    {
+                        var_t density = 2.7 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+                        // Mass of solids
+                        var_t m_s = p[i].mass * (1.0 - p[i].cd);
+                        var_t R_s = tools::calc_radius(m_s, density);
+                        var_t V_s = 4.0/3.0 * PI * CUBE(R_s);
+                        // Mass of water
+                        density = 1.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+                        var_t m_w = p[i].mass * (p[i].cd);
+                        var_t R_w = tools::calc_radius(m_w, density);
+                        var_t V_w = 4.0/3.0 * PI * CUBE(R_w);
+
+                        var_t V_total = V_s + V_w;
+                        var_t R_avg = pow((3.0 * V_total)/ (4.0 * PI), 0.333333333333333);
+
+                        density = tools::calc_density(p[i].mass, R_avg);
+
+                        sd.h_p[i].radius = R_avg;
+                        sd.h_p[i].density = density;
+                        sd.h_p[i].cd = 0.0;
+                    }
+
+                    var_t mu = K2*(p[0].mass + p[i].mass);
+                    tools::calc_phase(mu, &(oe[i]), &(sd.h_y[0][i]), &(sd.h_y[1][i]));
+                }
+            }
+        }
+
+        ttt_t dt = tools::calc_orbital_period(K2, 1.0);
+
+	    tools::transform_to_bc(n_total, &sd);
+	    //tools::transform_time(n_total, &sd);
+	    tools::transform_velocity(n_total, &sd);
+	    ttt_t t0 = 0.0;
+	    dt *= constants::Gauss;
+
+		n_objects_t *n_bodies = new n_objects_t(1, 1, 0, 300, 0, 0, 0);
+        filename = "input.info.txt";
+        path = file::combine_path(input_dir, filename);
+        ofstream output(path);
+        if (output)
+        {
+    		file::print_data_info_record_ascii_RED(output, t0, dt, 0, n_bodies);
+        }
+        else
+        {
+		    throw string("Cannot open " + path + ".");
+        }
+        output.close();
+
+        filename = "input.data.txt";
+        path = file::combine_path(input_dir, filename);
+        output.open(path, ofstream::out);
+        if (output)
+        {
+            for (uint32_t i = 0; i < n_total; i++)
+            {
+                file::print_body_record_ascii_RED(output, names[i], &sd.h_p[i], &sd.h_body_md[i], &sd.h_y[0][i], &sd.h_y[1][i]);
+            }
+        }
+        else
+        {
+		    throw string("Cannot open " + path + ".");
+        }
+        output.close();
+
+    }
+   	catch (const string& msg)
+	{
+        delete sd.h_body_md;
+        delete sd.h_y[1];
+        delete sd.h_y[0];
+        delete sd.h_p;
+		cerr << "Error: " << msg << endl;
+	}
+
+    return (EXIT_SUCCESS);
 }
 
 #endif

@@ -524,9 +524,14 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 			bool collision = ppd->check_for_collision();
 			if (collision)
 			{
+                if (opt.print_dbe)
+                {
+                    print_data_before_event(opt, ppd, n_event, prefix, ext, slog);
+                }
+
 				pp_disk_t::integral_t I;
 
-				ppd->calc_integral(true, I);
+                ppd->calc_integral(true, I);
 				ppd->print_integral_data(path_integral_event, I);
 				ppd->handle_collision();
 				ppd->calc_integral(false, I);
@@ -542,8 +547,6 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 					string msg = "Dump file was created";
 					file::log_message(*slog, msg, opt.print_to_screen);
 				}
-
-                print_data_before_event(opt, ppd, n_event, prefix, ext, slog);
 			}
 		}
 
