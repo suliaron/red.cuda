@@ -260,7 +260,7 @@ void populate_disk(ttt_t t0, body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 	uint32_t bodyId  = 1;
 	for (int body_type = BODY_TYPE_STAR; body_type < BODY_TYPE_N; body_type++)
 	{
-		for (int i = 0; i < disk.nBody[body_type]; i++, bodyIdx++, bodyId++)
+		for (uint32_t i = 0; i < disk.nBody[body_type]; i++, bodyIdx++, bodyId++)
 		{
 			body_md.id          = bodyId;
 			body_md.body_type   = static_cast<body_type_t>(body_type);
@@ -423,7 +423,7 @@ uint32_t Chambers2001(nebula& n, body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), rho_solid, rho_solid);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i + 1, type));
@@ -492,7 +492,7 @@ uint32_t pl_to_test_anal_gd(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7*constants::GramPerCm3ToSolarPerAu3, 2.7*constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 1.0, 1.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i, type));
@@ -511,10 +511,10 @@ uint32_t coll_stat_run(nebula& n, body_disk_t& disk)
 	//The pseudo-random number generator is initialized using the argument passed as seed.
 	srand(seed);
 
-	const var_t rhoSilicate = 2.5 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
+	const var_t rhoSilicate = 2.0 /* g/cm^3 */ * constants::GramPerCm3ToSolarPerAu3;
 
 	disk.nBody[BODY_TYPE_STAR        ] = 1;
-	disk.nBody[BODY_TYPE_PROTOPLANET ] = 1000;
+	disk.nBody[BODY_TYPE_PROTOPLANET ] = 10000;
 
 	uint32_t n_body = calc_number_of_bodies(disk);
 	disk.mig_type = new migration_type_t[n_body];
@@ -543,7 +543,7 @@ uint32_t coll_stat_run(nebula& n, body_disk_t& disk)
 		//disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);  // 2D
 
 		/* 3D */
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new rayleigh_distribution(rand(), 0.04);
+        disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new rayleigh_distribution(rand(), 1.0 * constants::DegreeToRadian);
 		disk.oe_d[type].range[ORBITAL_ELEMENT_INC].x = 0.0;
 		disk.oe_d[type].range[ORBITAL_ELEMENT_INC].y = 0.2;
 
@@ -556,7 +556,7 @@ uint32_t coll_stat_run(nebula& n, body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), rhoSilicate, rhoSilicate);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i + 1, type));
@@ -612,7 +612,7 @@ uint32_t Dvorak(nebula& n, body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(  rand(), rhoBasalt, rhoBasalt);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(  rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i + 1, type));
@@ -665,7 +665,7 @@ uint32_t Hansen_2009(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 1.326 * constants::GramPerCm3ToSolarPerAu3, 1.326 * constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -687,7 +687,7 @@ uint32_t Hansen_2009(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), rhoBasalt, rhoBasalt);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i + 1, type));
@@ -740,7 +740,7 @@ uint32_t Birgit_2016(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 1.326 * constants::GramPerCm3ToSolarPerAu3, 1.326 * constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -762,7 +762,7 @@ uint32_t Birgit_2016(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), rho, rho);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i + 1, type));
@@ -813,7 +813,7 @@ uint32_t Two_body(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7*constants::GramPerCm3ToSolarPerAu3, 2.7*constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 1.0, 1.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i, type));
@@ -866,7 +866,7 @@ uint32_t n_gp(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 2.0 * constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -919,7 +919,7 @@ uint32_t n_pp(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 2.7 * constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -975,7 +975,7 @@ uint32_t n_spl(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 3.0 * constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 1.0, 2.7);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -1030,7 +1030,7 @@ uint32_t n_pl(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 1.0 * constants::GramPerCm3ToSolarPerAu3, 3.0 * constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -1086,7 +1086,7 @@ uint32_t n_tp(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 0.0, 0.0);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -1141,7 +1141,7 @@ uint32_t GT_scenario(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 0.0);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -1163,7 +1163,7 @@ uint32_t GT_scenario(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 0.0);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -1218,7 +1218,7 @@ uint32_t GT_scenario_mod(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 0.0);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -1240,7 +1240,7 @@ uint32_t GT_scenario_mod(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 0.0);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -1291,7 +1291,7 @@ uint32_t Birgit_scenario(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7 * constants::GramPerCm3ToSolarPerAu3, 2.7 * constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -1309,7 +1309,7 @@ uint32_t Birgit_scenario(body_disk_t& disk)
 		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
 		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i+1, type));
@@ -1355,7 +1355,7 @@ uint32_t Elke_binary_test(body_disk_t& disk)
 
 		disk.names.push_back("primary_star");
 		disk.names.push_back("secondary_star");
-		for (int i = 0; i < disk.nBody[type]; bodyIdx++, i++)
+		for (uint32_t i = 0; i < disk.nBody[type]; bodyIdx++, i++)
 		{
 			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
 			disk.stop_at[bodyIdx] = 0.0;
@@ -1398,7 +1398,7 @@ uint32_t Elke_binary_test(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), rhoSilicate, rhoSilicate);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; bodyIdx++, i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; bodyIdx++, i++) 
 		{
 			disk.names.push_back(create_name(i + 1, type));
 			disk.mig_type[bodyIdx] = MIGRATION_TYPE_NO;
@@ -1448,7 +1448,7 @@ uint32_t Colliding_bodies(body_disk_t& disk)
 		disk.pp_d[type].item[DENSITY   ] = new uniform_distribution(rand(), 2.7*constants::GramPerCm3ToSolarPerAu3, 2.7*constants::GramPerCm3ToSolarPerAu3);
 		disk.pp_d[type].item[DRAG_COEFF] = new uniform_distribution(rand(), 0.0, 0.0);
 
-		for (int i = 0; i < disk.nBody[type]; i++) 
+		for (uint32_t i = 0; i < disk.nBody[type]; i++) 
 		{
             bodyIdx++;
 			disk.names.push_back(create_name(i, type));
@@ -1566,7 +1566,7 @@ void Chambers2001(string& dir, string& filename)
 			uint32_t bodyIdx = 0;
 			for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 			{
-				for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+				for (uint32_t i = 0; i < disk.nBody[type]; i++, bodyIdx++)
 				{
 					if (sim_data->h_p[bodyIdx].mass > 0.0)
 					{
@@ -1642,7 +1642,7 @@ void Chambers2001(string& dir, string& filename)
 		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
-			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			for (uint32_t i = 0; i < disk.nBody[type]; i++, bodyIdx++)
 			{
 				if (sim_data->h_p[bodyIdx].mass > 0.0)
 				{
@@ -1703,8 +1703,8 @@ void coll_stat_run(string& dir, string& filename)
 	body_disk_t disk;
 
 	// Create a MMSN with gas component and solids component
-	var_t r_1     =   2.5;      /* inner rim of the disk [AU]    */
-	var_t r_2     =   3.0;      /* outer rim of the disk [AU]    */
+	var_t r_1     =   0.5;      /* inner rim of the disk [AU]    */
+	var_t r_2     =   1.5;      /* outer rim of the disk [AU]    */
 	var_t r_SL    =   2.7;      /* distance of the snowline [AU] */
 	var_t f_neb   =   1.0;
 	var_t f_ice   =   4.2;      /* ice condensation coefficient beyond the snowline */
@@ -1715,8 +1715,8 @@ void coll_stat_run(string& dir, string& filename)
 	Sigma_1 *= constants::GramPerCm2ToSolarPerAu2;
 	gas_component gas_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_gas, p);
 
-	r_1 = 2.5;
-	r_2 = 3.0;
+	r_1 = 0.5;
+	r_2 = 1.5;
 	solid_component solid_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_ice, p);
 	nebula mmsn(gas_c, solid_c);
 
@@ -1738,7 +1738,7 @@ void coll_stat_run(string& dir, string& filename)
 		for (uint32_t i = 0; i < n_body; i++)
 		{
 			// Only the masses of the protoplanets will be scaled
-			if (sim_data->h_body_md[i].body_type == BODY_TYPE_PROTOPLANET)
+			if (BODY_TYPE_PROTOPLANET == sim_data->h_body_md[i].body_type)
 			{
 				sim_data->h_p[i].mass = m_pp;
 			}
@@ -1756,7 +1756,7 @@ void coll_stat_run(string& dir, string& filename)
 		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
-			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			for (uint32_t i = 0; i < disk.nBody[type]; i++, bodyIdx++)
 			{
 				if (0.0 < sim_data->h_p[bodyIdx].mass)
 				{
@@ -1870,7 +1870,7 @@ void Dvorak(string& dir, string& filename)
 		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
-			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			for (uint32_t i = 0; i < disk.nBody[type]; i++, bodyIdx++)
 			{
 				if (sim_data->h_p[bodyIdx].mass > 0.0)
 				{
@@ -2146,7 +2146,7 @@ void GT_scenario(string& dir, string& filename)
 		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
-			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			for (uint32_t i = 0; i < disk.nBody[type]; i++, bodyIdx++)
 			{
 				if (sim_data->h_p[bodyIdx].mass > 0.0)
 				{
@@ -2289,7 +2289,7 @@ void GT_scenario_mod(string& dir, string& filename)
 		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
-			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			for (uint32_t i = 0; i < disk.nBody[type]; i++, bodyIdx++)
 			{
 				if (sim_data->h_p[bodyIdx].mass > 0.0)
 				{
@@ -2469,7 +2469,7 @@ void n_gp(string& dir, string& filename)
 		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
-			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			for (uint32_t i = 0; i < disk.nBody[type]; i++, bodyIdx++)
 			{
 				if (sim_data->h_p[bodyIdx].mass > 0.0)
 				{
@@ -2663,7 +2663,7 @@ void n_pl(string& dir, string& filename)
 		uint32_t bodyIdx = 0;
 		for (int type = BODY_TYPE_STAR; type < BODY_TYPE_N; type++)
 		{
-			for (int i = 0; i < disk.nBody[type]; i++, bodyIdx++)
+			for (uint32_t i = 0; i < disk.nBody[type]; i++, bodyIdx++)
 			{
 				if (sim_data->h_p[bodyIdx].mass > 0.0)
 				{
