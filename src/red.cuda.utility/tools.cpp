@@ -19,6 +19,12 @@ namespace redutilcu
 {
 namespace tools
 {
+
+/// Default white-space characters
+static const char* ws = " \t\n\r\f\v";
+/// Default comment character
+static const char* comment = "#";
+    
 bool is_number(const string& str)
 {
    for (size_t i = 0; i < str.length(); i++)
