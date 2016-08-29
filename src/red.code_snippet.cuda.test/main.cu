@@ -2535,7 +2535,7 @@ int main()
         vector<orbelem_t> oe;
         vector<nbody_t::param_t> p;
 
-        ifstream input(path);
+        ifstream input(path.c_str());
 	    if (input) 
 	    {
             dvorak_header_t header;
@@ -2685,7 +2685,7 @@ int main()
 		n_objects_t *n_bodies = new n_objects_t(1, 1, 0, 300, 0, 0, 0);
         filename = "input.info.txt";
         path = file::combine_path(input_dir, filename);
-        ofstream output(path);
+        ofstream output(path.c_str());
         if (output)
         {
     		file::print_data_info_record_ascii_RED(output, t0, dt, 0, n_bodies);
@@ -2698,7 +2698,7 @@ int main()
 
         filename = "input.data.txt";
         path = file::combine_path(input_dir, filename);
-        output.open(path, ofstream::out);
+        output.open(path.c_str(), ofstream::out);
         if (output)
         {
             for (uint32_t i = 0; i < n_total; i++)

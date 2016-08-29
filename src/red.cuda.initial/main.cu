@@ -1597,8 +1597,8 @@ void Chambers2001(string& dir, string& filename)
 		solid_component solid_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_ice, p);
 		nebula mmsn(gas_c, solid_c);
 
-		var_t m_gas   = mmsn.gas_c.calc_mass();
-		var_t m_solid = mmsn.solid_c.calc_mass();
+		//var_t m_gas   = mmsn.gas_c.calc_mass();
+		//var_t m_solid = mmsn.solid_c.calc_mass();
 
 		//var_t m_pp = (1.0 / 60.0) * constants::EarthToSolar;
 		//int_t n_pp = (int)(m_solid / m_pp);
@@ -1625,7 +1625,7 @@ void Chambers2001(string& dir, string& filename)
 		solid_component solid_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_ice, p);
 		nebula mmsn(gas_c, solid_c);
 
-		var_t m_gas   = mmsn.gas_c.calc_mass();
+		//var_t m_gas   = mmsn.gas_c.calc_mass();
 		var_t m_solid = mmsn.solid_c.calc_mass();
 
 		//var_t m_pp = (1.0 / 60.0) * constants::EarthToSolar;
@@ -1704,7 +1704,7 @@ void Chambers2001(string& dir, string& filename)
 	solid_component solid_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_ice, p);
 	nebula mmsn(gas_c, solid_c);
 
-	var_t m_gas   = mmsn.gas_c.calc_mass();
+	//var_t m_gas   = mmsn.gas_c.calc_mass();
 	var_t m_solid = mmsn.solid_c.calc_mass();
 
 	uint32_t seed = set_parameters::Dvorak(mmsn, disk);
@@ -1818,7 +1818,7 @@ void coll_stat_run(string& dir, string& filename)
 	solid_component solid_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_ice, p);
 	nebula mmsn(gas_c, solid_c);
 
-	var_t m_gas   = mmsn.gas_c.calc_mass();       // The mass is in solar mass unit
+	//var_t m_gas   = mmsn.gas_c.calc_mass();       // The mass is in solar mass unit
 	var_t m_solid = mmsn.solid_c.calc_mass();     // The mass is in solar mass unit
 
 	uint32_t seed = set_parameters::coll_stat_run(mmsn, disk);
@@ -1932,7 +1932,7 @@ void Dvorak(string& dir, string& filename)
 	solid_component solid_c(r_1, r_2, r_SL, f_neb, Sigma_1, f_ice, p);
 	nebula mmsn(gas_c, solid_c);
 
-	var_t m_gas   = mmsn.gas_c.calc_mass();
+	//var_t m_gas   = mmsn.gas_c.calc_mass();
 	var_t m_solid = mmsn.solid_c.calc_mass();
 
 	uint32_t seed = set_parameters::Dvorak(mmsn, disk);
