@@ -86,7 +86,7 @@ void populate_solar_system(body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 {
     ttt_t epoch = 2457153.5;
 	pp_disk_t::param_t param = {0.0, 0.0, 0.0, 0.0};
-	pp_disk_t::body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
+	pp_disk_t::body_metadata_t body_md = {0, 0, MIGRATION_TYPE_NO, 0.0};
 	orbelem_t oe = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // The id of each body must be larger than 0 in order to indicate inactive body with negative id (ie. zero is not good)
@@ -251,7 +251,7 @@ void populate_solar_system(body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 void populate_disk(ttt_t t0, body_disk_t& disk, pp_disk_t::sim_data_t *sd)
 {
 	pp_disk_t::param_t param = {0.0, 0.0, 0.0, 0.0};
-	pp_disk_t::body_metadata_t body_md = {0, 0, 0.0, MIGRATION_TYPE_NO};
+	pp_disk_t::body_metadata_t body_md = {0, 0, MIGRATION_TYPE_NO, 0.0};
 	orbelem_t oe = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // The id of each body must be larger than 0 in order to indicate inactive body with negative id 
@@ -1600,8 +1600,8 @@ void Chambers2001(string& dir, string& filename)
 		var_t m_gas   = mmsn.gas_c.calc_mass();
 		var_t m_solid = mmsn.solid_c.calc_mass();
 
-		var_t m_pp = (1.0 / 60.0) * constants::EarthToSolar;
-		int_t n_pp = (int)(m_solid / m_pp);
+		//var_t m_pp = (1.0 / 60.0) * constants::EarthToSolar;
+		//int_t n_pp = (int)(m_solid / m_pp);
 
 	}
 
@@ -1628,8 +1628,8 @@ void Chambers2001(string& dir, string& filename)
 		var_t m_gas   = mmsn.gas_c.calc_mass();
 		var_t m_solid = mmsn.solid_c.calc_mass();
 
-		var_t m_pp = (1.0 / 60.0) * constants::EarthToSolar;
-		int_t n_pp = (int)(m_solid / m_pp);
+		//var_t m_pp = (1.0 / 60.0) * constants::EarthToSolar;
+		//int_t n_pp = (int)(m_solid / m_pp);
 
 		uint32_t seed = set_parameters::Chambers2001(mmsn, disk);
 

@@ -592,7 +592,6 @@ var_t calc_potential_energy(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 	var_t result = 0.0;
 
 	var4_t* r = sim_data->h_y[0];
-	var4_t* v = sim_data->h_y[1];
     pp_disk_t::param_t* p = sim_data->h_p;
 
     for (uint32_t i = 0; i < n; i++)
@@ -624,7 +623,6 @@ var_t calc_potential_energy_CMU(uint32_t n, const pp_disk_t::sim_data_t *sim_dat
 	var_t result = 0.0;
 
 	var4_t* r = sim_data->h_y[0];
-	var4_t* v = sim_data->h_y[1];
     pp_disk_t::param_t* p = sim_data->h_p;
 
     for (uint32_t i = 0; i < n; i++)
@@ -781,7 +779,6 @@ void calc_oe(var_t mu, const var4_t* rVec, const var4_t* vVec, orbelem_t* oe)
     const var_t sq3 = 1.0e-14;
 
 	var_t r_norm = norm(rVec);
-	var_t v_norm = norm(vVec);
 
 	// Calculate energy, h
     var_t h = calc_energy(mu, rVec, vVec);
@@ -959,8 +956,8 @@ void print_body_metadata(const pp_disk_t::body_metadata_new_t *b)
 	static int var_t_w  = 5;
 
 	cout << setw(var_t_w) << b->id << endl;
-	cout << (char)(48 + b->body_type) << " (" << body_type_name[b->body_type] << ")" << endl
-		 << (char)(48 + b->mig_type) << " (" << migration_type_name[b->mig_type] << ")" << endl
+	cout << (char)(48 + b->body_type) << " (" << body_type_name[(int)b->body_type] << ")" << endl
+		 << (char)(48 + b->mig_type) << " (" << migration_type_name[(int)b->mig_type] << ")" << endl
 		 << (char)(48 + b->active) << (b->active ? " (true)" : " (false)") << endl
 		 << (char)(48 + b->unused) << (b->unused ? " (true)" : " (false)") << endl;
 	cout.precision(16);
