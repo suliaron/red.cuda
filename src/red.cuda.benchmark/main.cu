@@ -1015,10 +1015,10 @@ void cpu_calc_grav_accel_naive(int n_body, const var4_t* r, const var_t* mass, v
 
 void cpu_calc_grav_accel_naive(interaction_bound int_bound, const var4_t* r, const var_t* mass, var4_t* a)
 {
-	for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
+	for (unsigned int i = int_bound.sink.x; i < int_bound.sink.y; i++)
 	{
 		var4_t dVec = {0.0, 0.0, 0.0, 0.0};
-		for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+		for (unsigned int j = int_bound.source.x; j < int_bound.source.y; j++) 
 		{
 			if (i == j)
 			{
@@ -1083,10 +1083,10 @@ void cpu_calc_grav_accel_naive_sym(int n_body, const var4_t* r, const var_t* mas
 
 void cpu_calc_grav_accel_naive_sym(interaction_bound int_bound, const var4_t* r, const var_t* mass, var4_t* a)
 {
-	for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
+	for (unsigned int i = int_bound.sink.x; i < int_bound.sink.y; i++)
 	{
 		var4_t dVec = {0.0, 0.0, 0.0, 0.0};
-		for (int j = i + 1; j < int_bound.source.y; j++) 
+		for (unsigned int j = i + 1; j < int_bound.source.y; j++) 
 		{
 			// r_ij 3 FLOP
 			dVec.x = r[j].x - r[i].x;
@@ -1122,10 +1122,10 @@ void cpu_calc_grav_accel_naive_sym_advanced(interaction_bound int_bound, const v
 	const int n_source = int_bound.source.y - int_bound.source.x;
 	const int n_body = min(n_sink, n_source);
 
-	for (int i = int_bound.sink.x; i < int_bound.sink.x + n_body; i++)
+	for (unsigned int i = int_bound.sink.x; i < int_bound.sink.x + n_body; i++)
 	{
 		var4_t dVec = {0.0, 0.0, 0.0, 0.0};
-		for (int j = i + 1; j < int_bound.sink.x + n_body; j++) 
+		for (unsigned int j = i + 1; j < int_bound.sink.x + n_body; j++) 
 		{
 			// r_ij 3 FLOP
 			dVec.x = r[j].x - r[i].x;
@@ -1156,10 +1156,10 @@ void cpu_calc_grav_accel_naive_sym_advanced(interaction_bound int_bound, const v
 
 	if (n_sink < n_source)
 	{
-		for (int i = int_bound.sink.x; i < int_bound.sink.y; i++)
+		for (unsigned int i = int_bound.sink.x; i < int_bound.sink.y; i++)
 		{
 			var4_t dVec = {0.0, 0.0, 0.0, 0.0};
-			for (int j = int_bound.source.x + n_body; j < int_bound.source.y; j++) 
+			for (unsigned int j = int_bound.source.x + n_body; j < int_bound.source.y; j++) 
 			{
 				// r_ij 3 FLOP
 				dVec.x = r[j].x - r[i].x;
@@ -1183,10 +1183,10 @@ void cpu_calc_grav_accel_naive_sym_advanced(interaction_bound int_bound, const v
 	}
 	else
 	{
-		for (int i = int_bound.sink.x + n_body; i < int_bound.sink.y; i++)
+		for (unsigned int i = int_bound.sink.x + n_body; i < int_bound.sink.y; i++)
 		{
 			var4_t dVec = {0.0, 0.0, 0.0, 0.0};
-			for (int j = int_bound.source.x; j < int_bound.source.y; j++) 
+			for (unsigned int j = int_bound.source.x; j < int_bound.source.y; j++) 
 			{
 				// r_ij 3 FLOP
 				dVec.x = r[j].x - r[i].x;
