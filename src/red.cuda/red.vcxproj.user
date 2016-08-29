@@ -13,7 +13,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LocalDebuggerCommandArguments>-v -cpu -idir C:\Work\red.cuda.Results\CollStatRezso\3D\tol_1e-10\Aref_10\01 -p C:\Work\red.cuda.Results\CollStatRezso\3D\tol_1e-10\Aref_10\parameters.txt -i start_files.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-v -cpu -pe -idir C:\Work\red.cuda.Results\CollidingBodies\3D\scenario_01 -p parameters.txt -i start_files.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
