@@ -1334,8 +1334,8 @@ void pp_disk::handle_collision_pair(uint32_t i, event_data_t *collision)
 	collision->p2 = sim_data->h_p[mergerIdx];
 
 	// Compute the kinetic energy of the two bodies before the collision
-	var_t T0 = 0.5 * (collision->p1.mass * (SQR(collision->v1.x) + SQR(collision->v1.y) + SQR(collision->v1.z)) + 
-		              collision->p2.mass * (SQR(collision->v2.x) + SQR(collision->v2.y) + SQR(collision->v2.z)));
+	//var_t T0 = 0.5 * (collision->p1.mass * (SQR(collision->v1.x) + SQR(collision->v1.y) + SQR(collision->v1.z)) + 
+	//	              collision->p2.mass * (SQR(collision->v2.x) + SQR(collision->v2.y) + SQR(collision->v2.z)));
 
   	// Calculate position and velocitiy of the new object
 	tools::calc_position_after_collision(collision->p1.mass, collision->p2.mass, &(collision->r1), &(collision->r2), collision->rs);
@@ -1357,9 +1357,8 @@ void pp_disk::handle_collision_pair(uint32_t i, event_data_t *collision)
 	}
 
 	// Compute the kinetic energy of the surviver
-	var_t T1 = 0.5 * (collision->ps.mass * (SQR(collision->vs.x) + SQR(collision->vs.y) + SQR(collision->vs.z)));
-
-	var_t dT = T1 - T0;
+	//var_t T1 = 0.5 * (collision->ps.mass * (SQR(collision->vs.x) + SQR(collision->vs.y) + SQR(collision->vs.z)));
+	//var_t dT = T1 - T0;
 }
 
 void pp_disk::rebuild_vectors()
@@ -1772,6 +1771,8 @@ void pp_disk::load_data_info(string& path, data_rep_t repres)
 			throw string("Cannot open " + path + ".");
 		}
 		break;
+	default:
+		throw string("Parameter 'repres' is out of range.");
 	}
 	input.close();
 }
@@ -1870,6 +1871,8 @@ void pp_disk::print_data(string& path, data_rep_t repres)
 			file::print_body_record_binary_RED(sout, body_names[i], &p[i], &bmd[i], &r[i], &v[i]);
 		}
 		break;
+	default:
+		throw string("Parameter 'repres' is out of range.");
 	}
 	sout.close();
 }
@@ -1902,6 +1905,8 @@ void pp_disk::print_data_info(string& path, data_rep_t repres)
 			throw string("Cannot open " + path + ".");
 		}
 		break;
+	default:
+		throw string("Parameter 'repres' is out of range.");
 	}
 	sout.close();
 }

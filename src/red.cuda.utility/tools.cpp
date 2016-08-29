@@ -592,7 +592,6 @@ var_t calc_potential_energy(uint32_t n, const pp_disk_t::sim_data_t *sim_data)
 	var_t result = 0.0;
 
 	var4_t* r = sim_data->h_y[0];
-	var4_t* v = sim_data->h_y[1];
     pp_disk_t::param_t* p = sim_data->h_p;
 
     for (uint32_t i = 0; i < n; i++)
