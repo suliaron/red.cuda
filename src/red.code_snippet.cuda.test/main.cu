@@ -2522,7 +2522,12 @@ void read_dvorak_header(ifstream& input, dvorak_header_t& header)
 
 int main()
 {
-	string input_dir = "C:\\Work\\Dvorak\\Temp";
+	cout << "-----------------------------------------------" << endl;
+	cout << "Did you replace the D in the input with E or e?" << endl;
+	cout << "-----------------------------------------------" << endl;
+
+	//string input_dir = "C:\\Work\\Dvorak\\Temp";
+	string input_dir = "C:\\Work\\red.cuda.Results\\Dvorak\\3D\\Super\\Run_01";
     string filename = "super.in";
 
     pp_disk_t::sim_data_t sd;
