@@ -429,7 +429,7 @@ void rungekutta8::calc_ytemp_for_fr(uint32_t n_var, int r)
 		var_t* f7 = (var_t*)dydx[i][7];
 		var_t* f8 = (var_t*)dydx[i][8];
 		var_t* f9 = (var_t*)dydx[i][9];
-		var_t* f10= (var_t*)dydx[i][10];
+		//var_t* f10= (var_t*)dydx[i][10];
 		var_t* f11= adaptive ? (var_t*)dydx[i][11] : 0x0;
 
 		switch (r)

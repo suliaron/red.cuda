@@ -247,6 +247,8 @@ __host__ __device__
 	case EVENT_NAME_HIT_CENTRUM:
 		printf("HIT_CENTRUM, %20.10le, [d], %20.10le, [AU], %5d, %5d\n", t/K, d, bmd[idx1].id, bmd[idx2].id);
 		break;
+	default:
+		printf("Parameter 'name' is out of range.");
 	}
 }
 
@@ -413,72 +415,72 @@ static __global__
 	}
 }
 
-static __global__
-	void calc_grav_accel_naive
-	(
-		ttt_t curr_t, 
-		interaction_bound int_bound, 
-		const body_metadata_t* bmd, 
-		const param_t* p, 
-		const var4_t* r, 
-		const var4_t* v, 
-		var4_t* a,
-		event_data_t* events,
-		uint32_t *event_counter
-	)
-{
-	const uint32_t i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
-
-	if (i < int_bound.sink.y)
-	{
-		a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
-		if (0 < bmd[i].id)
-		{
-			var4_t dVec = {0.0, 0.0, 0.0, 0.0};
-			for (uint32_t j = int_bound.source.x; j < int_bound.source.y; j++) 
-			{
-				/* Skip the body with the same index and those which are inactive ie. id < 0 */
-				if (i == j || 0 > bmd[j].id)
-				{
-					continue;
-				}
-				// 3 FLOP
-				dVec.x = r[j].x - r[i].x;
-				dVec.y = r[j].y - r[i].y;
-				dVec.z = r[j].z - r[i].z;
-				// 5 FLOP
-				dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
-
-				// 20 FLOP
-				var_t d = sqrt(dVec.w);								// = r
-				// 2 FLOP
-				dVec.w = p[j].mass / (d*dVec.w);
-				// 6 FLOP
-				a[i].x += dVec.w * dVec.x;
-				a[i].y += dVec.w * dVec.y;
-				a[i].z += dVec.w * dVec.z;
-
-				// Check for collision - ignore the star (i > 0 criterium)
-				// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
-				// If i < j is the condition than test particles can not collide with massive bodies
-				if (0 < i && i > j && d < dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR] * (p[i].radius + p[j].radius))
-				{
-					uint32_t k = atomicAdd(event_counter, 1);
-
-					uint32_t survivIdx = i;
-					uint32_t mergerIdx = j;
-					if (p[mergerIdx].mass > p[survivIdx].mass)
-					{
-						uint32_t t = survivIdx;
-						survivIdx = mergerIdx;
-						mergerIdx = t;
-					}
-					pp_disk_utility::store_event_data(EVENT_NAME_COLLISION, curr_t, d, survivIdx, mergerIdx, p, r, v, bmd, &events[k]);
-				}
-			} // 36 FLOP
-		}
-	}
-}
+//static __global__
+//	void calc_grav_accel_naive
+//	(
+//		ttt_t curr_t, 
+//		interaction_bound int_bound, 
+//		const body_metadata_t* bmd, 
+//		const param_t* p, 
+//		const var4_t* r, 
+//		const var4_t* v, 
+//		var4_t* a,
+//		event_data_t* events,
+//		uint32_t *event_counter
+//	)
+//{
+//	const uint32_t i = int_bound.sink.x + blockIdx.x * blockDim.x + threadIdx.x;
+//
+//	if (i < int_bound.sink.y)
+//	{
+//		a[i].x = a[i].y = a[i].z = a[i].w = 0.0;
+//		if (0 < bmd[i].id)
+//		{
+//			var4_t dVec = {0.0, 0.0, 0.0, 0.0};
+//			for (uint32_t j = int_bound.source.x; j < int_bound.source.y; j++) 
+//			{
+//				/* Skip the body with the same index and those which are inactive ie. id < 0 */
+//				if (i == j || 0 > bmd[j].id)
+//				{
+//					continue;
+//				}
+//				// 3 FLOP
+//				dVec.x = r[j].x - r[i].x;
+//				dVec.y = r[j].y - r[i].y;
+//				dVec.z = r[j].z - r[i].z;
+//				// 5 FLOP
+//				dVec.w = SQR(dVec.x) + SQR(dVec.y) + SQR(dVec.z);	// = r2
+//
+//				// 20 FLOP
+//				var_t d = sqrt(dVec.w);								// = r
+//				// 2 FLOP
+//				dVec.w = p[j].mass / (d*dVec.w);
+//				// 6 FLOP
+//				a[i].x += dVec.w * dVec.x;
+//				a[i].y += dVec.w * dVec.y;
+//				a[i].z += dVec.w * dVec.z;
+//
+//				// Check for collision - ignore the star (i > 0 criterium)
+//				// The data of the collision will be stored for the body with the greater index (test particles can collide with massive bodies)
+//				// If i < j is the condition than test particles can not collide with massive bodies
+//				if (0 < i && i > j && d < dc_threshold[THRESHOLD_RADII_ENHANCE_FACTOR] * (p[i].radius + p[j].radius))
+//				{
+//					uint32_t k = atomicAdd(event_counter, 1);
+//
+//					uint32_t survivIdx = i;
+//					uint32_t mergerIdx = j;
+//					if (p[mergerIdx].mass > p[survivIdx].mass)
+//					{
+//						uint32_t t = survivIdx;
+//						survivIdx = mergerIdx;
+//						mergerIdx = t;
+//					}
+//					pp_disk_utility::store_event_data(EVENT_NAME_COLLISION, curr_t, d, survivIdx, mergerIdx, p, r, v, bmd, &events[k]);
+//				}
+//			} // 36 FLOP
+//		}
+//	}
+//}
 
 static __global__
 	void calc_drag_accel_NSI
@@ -1334,8 +1336,8 @@ void pp_disk::handle_collision_pair(uint32_t i, event_data_t *collision)
 	collision->p2 = sim_data->h_p[mergerIdx];
 
 	// Compute the kinetic energy of the two bodies before the collision
-	var_t T0 = 0.5 * (collision->p1.mass * (SQR(collision->v1.x) + SQR(collision->v1.y) + SQR(collision->v1.z)) + 
-		              collision->p2.mass * (SQR(collision->v2.x) + SQR(collision->v2.y) + SQR(collision->v2.z)));
+	//var_t T0 = 0.5 * (collision->p1.mass * (SQR(collision->v1.x) + SQR(collision->v1.y) + SQR(collision->v1.z)) + 
+	//	              collision->p2.mass * (SQR(collision->v2.x) + SQR(collision->v2.y) + SQR(collision->v2.z)));
 
   	// Calculate position and velocitiy of the new object
 	tools::calc_position_after_collision(collision->p1.mass, collision->p2.mass, &(collision->r1), &(collision->r2), collision->rs);
@@ -1357,9 +1359,8 @@ void pp_disk::handle_collision_pair(uint32_t i, event_data_t *collision)
 	}
 
 	// Compute the kinetic energy of the surviver
-	var_t T1 = 0.5 * (collision->ps.mass * (SQR(collision->vs.x) + SQR(collision->vs.y) + SQR(collision->vs.z)));
-
-	var_t dT = T1 - T0;
+	//var_t T1 = 0.5 * (collision->ps.mass * (SQR(collision->vs.x) + SQR(collision->vs.y) + SQR(collision->vs.z)));
+	//var_t dT = T1 - T0;
 }
 
 void pp_disk::rebuild_vectors()
@@ -1772,6 +1773,8 @@ void pp_disk::load_data_info(string& path, data_rep_t repres)
 			throw string("Cannot open " + path + ".");
 		}
 		break;
+	default:
+		throw string("Parameter 'repres' is out of range.");
 	}
 	input.close();
 }
@@ -1870,6 +1873,8 @@ void pp_disk::print_data(string& path, data_rep_t repres)
 			file::print_body_record_binary_RED(sout, body_names[i], &p[i], &bmd[i], &r[i], &v[i]);
 		}
 		break;
+	default:
+		throw string("Parameter 'repres' is out of range.");
 	}
 	sout.close();
 }
@@ -1902,6 +1907,8 @@ void pp_disk::print_data_info(string& path, data_rep_t repres)
 			throw string("Cannot open " + path + ".");
 		}
 		break;
+	default:
+		throw string("Parameter 'repres' is out of range.");
 	}
 	sout.close();
 }

@@ -23,7 +23,7 @@ red_random::~red_random()
 
 uint32_t red_random::rand()
 {
-	uint32_t j = idx < 623 ? idx + 1 : 0;
+	uint32_t j = (idx < 623) ? (idx + 1) : 0;
 	uint32_t y = I[idx]&0x80000000 | I[j]&0x7fffffff;
 	y = I[idx] = I[idx < 227 ? idx + 397 : idx-227]^y>>1^(y&1)*0x9908b0df;
 	idx = j;

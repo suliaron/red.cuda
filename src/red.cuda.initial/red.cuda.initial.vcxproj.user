@@ -12,4 +12,8 @@
     <LocalDebuggerCommandArguments>-odir C:\Work\red.cuda.Results\CollidingBodies\3D\scenario_01 -f input</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LocalDebuggerCommandArguments>-odir C:\Work\red.cuda.Results\CollStatRezso\3D\tol_1e-10\Aref_10\01 -f input</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
 </Project>
