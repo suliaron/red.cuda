@@ -135,7 +135,7 @@ void load_binary_file(const string& path, size_t n_data, var_t* data)
 	if (file)
 	{
 		file.seekg(0, file.end);     //N is the size of file in byte
-		size_t N = file.tellg();              
+		size_t N = (size_t)file.tellg();              
 		file.seekg(0, file.beg);
 		size_t size = n_data * sizeof(var_t);
 		if (size != N)
@@ -315,7 +315,8 @@ void log_start(ostream& sout, int argc, const char** argv, const char** env, str
 void log_message(ostream& sout, string msg, bool print_to_screen)
 {
 	sout << tools::get_time_stamp(false) << SEP << msg << endl;
-	if (print_to_screen && sout != cout)
+    // if (s.rdbuf() == std::cout.rdbuf())
+	if (print_to_screen && sout.rdbuf() != cout.rdbuf())
 	{
 		std::cout << tools::get_time_stamp(false) << SEP << msg << endl;
 	}

@@ -258,6 +258,7 @@ typedef struct ode_data
 	ode_data()
 	{
 		comp_dev = COMPUTING_DEVICE_CPU;
+        t = tout = 0.0;
 
 		p      = d_p      = h_p      = 0x0;
 		obj_md = d_obj_md = h_obj_md = 0x0;
@@ -446,15 +447,16 @@ namespace pp_disk_t
 			t = 0.0;
 			d = 0.0;
 
+            id0 = idx0 = 0;
 			id1  = id2  = 0;
 			idx1 = idx2 = 0;
 				
 			param_t p_zero = {0.0, 0.0, 0.0, 0.0};
 			var4_t v_zero = {0.0, 0.0, 0.0, 0.0};
 
-			p1 = p2 = ps = p_zero;
-			r1 = r2 = rs = v_zero;
-			v1 = v2 = vs = v_zero;
+			p0 = p1 = p2 = ps = p_zero;
+			r0 = r1 = r2 = rs = v_zero;
+			v0 = v1 = v2 = vs = v_zero;
 		}
 	} event_data_t;
 } /* namespace pp_disk_t */
