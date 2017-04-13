@@ -550,7 +550,7 @@ static __global__
 } /* kernel_utility */
 
 
-uint32_t pp_disk::benchmark()
+uint32_t pp_disk::benchmark(bool verbose)
 {
 	// Create aliases
 	var4_t* r   = sim_data->y[0];
@@ -575,6 +575,10 @@ uint32_t pp_disk::benchmark()
 	{
 		for (uint32_t n_tpb = half_warp_size; n_tpb <= (uint32_t)deviceProp.maxThreadsPerBlock/2; n_tpb += half_warp_size)
 		{
+            if (verbose)
+            {
+                printf(".");
+            }
 			set_n_tpb(n_tpb);
 			interaction_bound int_bound = n_bodies->get_bound_SI();
 

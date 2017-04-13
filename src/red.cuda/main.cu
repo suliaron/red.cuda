@@ -451,20 +451,40 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 
 	if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 	{
-		uint32_t n_tpb = ppd->benchmark();
+        if (opt.verbose)
+        {
+            printf("Searching for the optimal thread per block ");
+        }
+        uint32_t n_tpb = ppd->benchmark(opt.verbose);
 		ppd->set_n_tpb(n_tpb);
 		if (opt.verbose)
 		{
-			string msg = "Number of thread per block was set to " + redutilcu::number_to_string(ppd->get_n_tpb());
+            printf(" done\n");
+            string msg = "Number of thread per block was set to " + redutilcu::number_to_string(ppd->get_n_tpb());
 			file::log_message(*slog, msg, opt.print_to_screen);
 		}
 	}
 
 /* main cycle */
-#if 1
 	//while (ppd->t <= opt.param->simulation_length && 1 < ppd->n_bodies->get_n_total_active())
 	while (fabs(it) <= fabs(opt.param->simulation_length) && 1 < ppd->n_bodies->get_n_total_active())
 	{
+// TEST the change between CPU/GPU
+#if 1
+        if (COMPUTING_DEVICE_GPU == intgr->get_computing_device())
+        {
+            printf("The computing device is setting to CPU ... ");
+            intgr->set_computing_device(COMPUTING_DEVICE_CPU);
+            printf("done\n");
+        }
+        else
+        {
+            printf("The computing device is setting to GPU ... ");
+            intgr->set_computing_device(COMPUTING_DEVICE_GPU);
+            printf("done\n");
+        }
+#endif
+
 		if (COMPUTING_DEVICE_GPU == intgr->get_computing_device() && opt.n_change_to_cpu >= ppd->n_bodies->get_n_SI())
 		{
 			intgr->set_computing_device(COMPUTING_DEVICE_CPU);
@@ -510,9 +530,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 		ppd->set_dt_CPU(dt_CPU_offset + T_CPU / CLOCKS_PER_SEC);
         it += dt;
 		ps += dt;
-// DEBUG CODE BEGIN
-        //printf("dt = %25.16le it = %25.16le t = %25.16le\n", dt, it, ppd->t);
-// DEBUG CODE END
+
         // The stepsize cannot exceed the user requsted output interval
         if (fabs(opt.param->output_interval) < fabs(intgr->get_dt_next()))
         {
@@ -573,10 +591,15 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 
 			if (COMPUTING_DEVICE_GPU == ppd->get_computing_device())
 			{
-				uint32_t n_tpb = ppd->benchmark();
+                if (opt.verbose)
+                {
+                    printf("Searching for the optimal thread per block ");
+                }
+                uint32_t n_tpb = ppd->benchmark(opt.verbose);
 				ppd->set_n_tpb(n_tpb);
 				if (opt.verbose)
 				{
+                    printf(" done\n");
 					string msg = "Number of thread per block was set to " + redutilcu::number_to_string(ppd->get_n_tpb());
 					file::log_message(*slog, msg, opt.print_to_screen);
 				}
@@ -600,7 +623,6 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 			print_info(*sinfo, ppd, intgr, dt, &T_CPU, &dT_CPU);
 		}
 	} /* while */
-#endif
 
 	print_info(*sinfo, ppd, intgr, dt, &T_CPU, &dT_CPU);
 	// To avoid duplicate save at the end of the simulation
