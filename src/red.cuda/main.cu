@@ -444,7 +444,7 @@ void run_simulation(const options& opt, pp_disk* ppd, integrator* intgr, uint32_
 		n_print++;
 	}
 
-	if (0 == n_print)
+	if (0 == n_print && "dump" != opt.in_fn[INPUT_NAME_DATA].substr(0, 4))
 	{
 		print_data(opt, ppd, integrals, n_print, path_integral, prefix, ext, slog);
 	}
