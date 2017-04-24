@@ -129,7 +129,7 @@ public:
 	/*!
 		\return The optimal number of threads per block
 	*/
-	uint32_t benchmark();
+	uint32_t benchmark(bool verbose);
 	float benchmark_calc_grav_accel(ttt_t curr_t, uint32_t n_sink, interaction_bound int_bound, const pp_disk_t::body_metadata_t* body_md, const pp_disk_t::param_t* p, const var4_t* r, const var4_t* v, var4_t* a);
 
 	void gpu_calc_grav_accel(ttt_t curr_t, const var4_t* r, const var4_t* v, var4_t* dy);

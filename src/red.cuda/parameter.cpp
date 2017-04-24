@@ -32,8 +32,7 @@ parameter::parameter(string& dir, string& filename, bool verbose) :
 }
 
 parameter::~parameter() 
-{
-}
+{ }
 
 void parameter::create_default()
 {
@@ -101,7 +100,7 @@ void parameter::parse()
 
 void parameter::set_param(string& key, string& value)
 {
-	static char n_call = 0;
+	static unsigned short n_call = 0;
 
 	n_call++;
 	key = tools::trim(key);
@@ -257,6 +256,7 @@ void parameter::transform_time()
 	output_interval	  *= constants::Gauss;    // [day * k]
 }
 
+#if 0
 ostream& operator<<(ostream& stream, const parameter* p)
 {
 	const char* integrator_name[] = 
@@ -289,3 +289,5 @@ ostream& operator<<(ostream& stream, const parameter* p)
 
 	return stream;
 }
+#endif
+

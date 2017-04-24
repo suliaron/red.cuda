@@ -102,7 +102,10 @@ inline int _ConvertSMVer2Cores(int major, int minor)
         { 0x21, 48 }, // Fermi Generation (SM 2.1) GF10x class
         { 0x30, 192}, // Kepler Generation (SM 3.0) GK10x class
         { 0x35, 192}, // Kepler Generation (SM 3.5) GK11x class
-        {   -1, -1 }
+        { 0x37, 192}, // Kepler Generation (SM 3.7) GK21x class
+        { 0x50, 128}, // Maxwell Generation (SM 5.0) GM10x class
+        { 0x52, 128}, // Maxwell Generation (SM 5.2) GM20x class
+        {   -1,-1  }
     };
 
     int index = 0;

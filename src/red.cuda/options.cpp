@@ -34,8 +34,7 @@ options::options(int argc, const char** argv) :
 }
 
 options::~options() 
-{
-}
+{ }
 
 void options::create_default()
 {
