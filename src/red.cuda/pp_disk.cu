@@ -2030,14 +2030,14 @@ void pp_disk::print_event_data(string& path, ofstream& log_f)
 
   /* BEFORE THE EVENT                                                   */ 
 				 << setw(var_t_w) << sp_events[i].p0.mass << SEP                   /* star's mass                                    [solar mass]        */
-				 << setw(var_t_w) << sp_events[i].p0.density << SEP                /*            density                             [solar mass / AU^3] */
-				 << setw(var_t_w) << sp_events[i].p0.radius << SEP                 /*            radius                              [AU]                */
-				 << setw(var_t_w) << sp_events[i].r0.x << SEP                      /*            x-coordiante in barycentric system  [AU]                */
-				 << setw(var_t_w) << sp_events[i].r0.y << SEP                      /*            y-coordiante                        [AU]                */
-				 << setw(var_t_w) << sp_events[i].r0.z << SEP                      /*            z-coordiante                        [AU]                */
-				 << setw(var_t_w) << sp_events[i].v0.x << SEP                      /*            x-velocity                          [AU / k-day]        */
-				 << setw(var_t_w) << sp_events[i].v0.y << SEP                      /*            y-velocity                          [AU / k-day]        */
-				 << setw(var_t_w) << sp_events[i].v0.z << SEP                      /*            z-velocity                          [AU / k-day]        */
+				 << setw(var_t_w) << sp_events[i].p0.density << SEP                /*        density                                 [solar mass / AU^3] */
+				 << setw(var_t_w) << sp_events[i].p0.radius << SEP                 /*        radius                                  [AU]                */
+				 << setw(var_t_w) << sp_events[i].r0.x << SEP                      /*        x-coordiante in barycentric system      [AU]                */
+				 << setw(var_t_w) << sp_events[i].r0.y << SEP                      /*        y-coordiante                            [AU]                */
+				 << setw(var_t_w) << sp_events[i].r0.z << SEP                      /*        z-coordiante                            [AU]                */
+				 << setw(var_t_w) << sp_events[i].v0.x << SEP                      /*        x-velocity                              [AU / k-day]        */
+				 << setw(var_t_w) << sp_events[i].v0.y << SEP                      /*        y-velocity                              [AU / k-day]        */
+				 << setw(var_t_w) << sp_events[i].v0.z << SEP                      /*        z-velocity                              [AU / k-day]        */
 
                  << setw(var_t_w) << sp_events[i].p1.mass << SEP                   /* survivor's mass                                [solar mass]        */
 				 << setw(var_t_w) << sp_events[i].p1.density << SEP                /*            density                             [solar mass / AU^3] */
