@@ -824,12 +824,12 @@ uint32_t Birgit_scenario(body_disk_t& disk)
 
 	type = BODY_TYPE_TESTPARTICLE;
 	{
-		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new normal_distribution(rand(), 1.45 /* AU */, 0.35);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 0.0);
-		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 0.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_SMA ] = new uniform_distribution(rand(), 50.0, 80.0);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_ECC ] = new uniform_distribution(rand(), 0.8, 0.95);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_INC ] = new uniform_distribution(rand(), 0.0, 0.5);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_PERI] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_NODE] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
+		disk.oe_d[type].item[ORBITAL_ELEMENT_MEAN] = new uniform_distribution(rand(), 0.0, 2.0 * PI);
 
 		for (unsigned int i = 0; i < disk.nBody[type]; i++) 
 		{
@@ -2157,11 +2157,11 @@ void Birgit_scenario(string& dir, string& filename)
 				}
 				gp_counter++;
 			}
-			if (BODY_TYPE_TESTPARTICLE == sim_data->h_body_md[i].body_type)
-			{
-				sim_data->h_oe[i].sma = 2.4 + tp_counter * 0.01;
-				tp_counter++;
-			}
+			//if (BODY_TYPE_TESTPARTICLE == sim_data->h_body_md[i].body_type)
+			//{
+			//	sim_data->h_oe[i].sma = 2.4 + tp_counter * 0.01;
+			//	tp_counter++;
+			//}
 
 			var_t mu = K2 *(m0 + sim_data->h_p[i].mass);
 			tools::calc_phase(mu, &sim_data->h_oe[i], &rVec, &vVec);

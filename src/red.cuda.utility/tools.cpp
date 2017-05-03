@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "tools.h"
+#include "util.h"
 #include "red_constants.h"
 #include "red_macro.h"
 #include "red_type.h"
@@ -713,6 +714,8 @@ void shift_into_range(var_t lower, var_t upper, var_t &value)
 
 void kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E)
 {
+    static uint16_t n_max_step = 32;
+
 	if (ecc == 0.0 || mean == 0.0 || mean == PI)
 	{
         *E = mean;
@@ -721,16 +724,18 @@ void kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E)
     *E = mean + ecc * (sin(mean)) / (1.0 - sin(mean + ecc) + sin(mean));
     var_t E1 = 0.0;
     var_t error;
-    int step = 0;
+    uint16_t step = 0;
     do
 	{
         E1 = *E - (*E - ecc * sin(*E) - mean) / (1.0 - ecc * cos(*E));
         error = fabs(E1 - *E);
         *E = E1;
-    } while (error > eps && step++ <= 15);
-	if (15 < step)
+    } while (error > eps && step++ <= n_max_step);
+	if (n_max_step < step)
 	{
-		throw string("The kepler_equation_solver() failed: solution did not converge.");
+        string msg("The kepler_equation_solver() failed: solution did not converge (e = ");
+        msg += redutilcu::number_to_string(ecc) + ", error = " + redutilcu::number_to_string(error) + ").";
+		throw msg;
 	}
 }
 
@@ -738,7 +743,9 @@ void calc_phase(var_t mu, const orbelem_t* oe, var4_t* rVec, var4_t* vVec)
 {
     var_t ecc = oe->ecc;
 	var_t E = 0.0;
-	kepler_equation_solver(ecc, oe->mean, 1.0e-14, &E);
+    //kepler_equation_solver(ecc, oe->mean, 1.0e-14, &E);
+    // For Birgit's sake
+    kepler_equation_solver(ecc, oe->mean, 1.0e-8, &E);
     var_t v = 2.0 * atan(sqrt((1.0 + ecc) / (1.0 - ecc)) * tan(E / 2.0));
 
     var_t p = oe->sma * (1.0 - SQR(ecc));
