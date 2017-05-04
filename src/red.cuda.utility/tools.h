@@ -58,7 +58,9 @@ namespace redutilcu
         var4_t calc_angular_momentum_CMU(uint32_t n, const pp_disk_t::sim_data_t *sim_data);
        
 		void kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E);
-		void calc_phase(var_t mu, const orbelem_t* oe, var4_t* rVec, var4_t* vVec);
+        void kepler_equation_solver_intervall_half(var_t ecc, var_t mean, var_t eps, var_t& E);
+
+        void calc_phase(var_t mu, const orbelem_t* oe, var4_t* rVec, var4_t* vVec);
 		void calc_oe(   var_t mu, const var4_t* rVec, const var4_t* vVec, orbelem_t* oe);
 		ttt_t calc_orbital_period(var_t mu, var_t a);
 

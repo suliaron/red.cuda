@@ -716,10 +716,16 @@ void kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E)
 {
     static uint16_t n_max_step = 32;
 
-	if (ecc == 0.0 || mean == 0.0 || mean == PI)
+	if (0.0 == ecc || 0.0 == mean || PI == mean)
 	{
         *E = mean;
 		return;
+    }
+    bool s = false;
+    if (PI < mean)
+    {
+        mean -= PI;
+        s = true;
     }
     *E = mean + ecc * (sin(mean)) / (1.0 - sin(mean + ecc) + sin(mean));
     var_t E1 = 0.0;
@@ -734,9 +740,50 @@ void kepler_equation_solver(var_t ecc, var_t mean, var_t eps, var_t* E)
 	if (n_max_step < step)
 	{
         string msg("The kepler_equation_solver() failed: solution did not converge (e = ");
-        msg += redutilcu::number_to_string(ecc) + ", error = " + redutilcu::number_to_string(error) + ").";
+        msg += redutilcu::number_to_string(ecc) + ", mean = " + redutilcu::number_to_string(mean * constants::RadianToDegree) + ").";
 		throw msg;
 	}
+    if (s)
+    {
+        *E += (mean - *E) + PI;
+    }
+}
+
+var_t func(var_t M, var_t e, var_t E)
+{
+    return (E - e*sin(E) - M);
+}
+
+void kepler_equation_solver_intervall_half(var_t ecc, var_t mean, var_t eps, var_t& E)
+{
+    if (0.0 == ecc || 0.0 == mean || PI == mean)
+    {
+        E = mean;
+    }
+    else
+    {
+        var_t a = mean;
+        var_t b = mean + ecc;
+        var_t fa = func(mean, ecc, a);
+        var_t fb = func(mean, ecc, b);
+        if (fa > fb)
+        {
+            swap(a, b);
+        }
+        do
+        {
+            E = a + (b - a) / 2.0;
+            var_t f = func(mean, ecc, E);
+            if (0.0 > f)
+            {
+                a = E;
+            }
+            else
+            {
+                b = E;
+            }
+        } while (fabs(b - a) > eps);
+    }
 }
 
 void calc_phase(var_t mu, const orbelem_t* oe, var4_t* rVec, var4_t* vVec)

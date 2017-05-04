@@ -2485,7 +2485,7 @@ int main(int argc, char** argv)
 
 #endif
 
-#if 1
+#if 0
 /*
  *  Convert Dvorak input format to red-cuda format
  */
@@ -2731,3 +2731,4 @@ int main()
 }
 
 #endif
+

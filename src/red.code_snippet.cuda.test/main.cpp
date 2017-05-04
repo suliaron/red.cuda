@@ -270,7 +270,7 @@ int main(int argc, char **argv[])
 
 #endif
 
-#if 1
+#if 0
 
 int main()
 {
@@ -285,3 +285,65 @@ int main()
 }
 
 #endif
+
+#if 1
+#include <stdio.h>
+#include <math.h>
+
+#include "redutilcu.h"
+
+using namespace std;
+using namespace redutilcu;
+
+void test_kepler_solvers(var_t mean, var_t eps)
+{
+    var_t ecc = 0.0;
+    var_t E1 = NAN;
+    var_t E2 = NAN;
+
+    do
+    {
+        printf("    e = %25.16e\n", ecc);
+        tools::kepler_equation_solver(ecc, mean, eps, &E1);
+        tools::kepler_equation_solver_intervall_half(ecc, mean, eps, E2);
+        if (eps < fabs(E1 - E2))
+        {
+            printf("Error: the two methods give different result: %25.16e.\n", E1 - E2);
+        }
+        ecc += 0.1;
+    } while (ecc < 1.0);
+}
+
+int main()
+{
+    static var_t eps = 1.0e-15;
+
+    {
+        var_t mean = 190.0 * constants::DegreeToRadian;
+        var_t ecc = 0.9;
+        var_t E1 = NAN;
+        var_t E2 = NAN;
+
+        tools::kepler_equation_solver(ecc, mean, eps, &E1);
+        tools::kepler_equation_solver_intervall_half(ecc, mean, eps, E2);
+
+        printf("M = %25.16e e = %25.16e\n", mean * constants::RadianToDegree, ecc);
+        printf("               kepler_equation_solver(): E = %25.16e\n", E1 * constants::RadianToDegree);
+        printf("kepler_equation_solver_intervall_half(): E = %25.16e\n", E2 * constants::RadianToDegree);
+
+        return EXIT_SUCCESS;
+    }
+
+    var_t mean = 0.0;
+    do
+    {
+        printf("M = %25.16e\n", mean * constants::RadianToDegree);
+        test_kepler_solvers(mean, eps);
+        mean += 10.0 * constants::DegreeToRadian;
+    } while (mean < TWOPI);
+
+    return EXIT_SUCCESS;
+}
+
+#endif
+
